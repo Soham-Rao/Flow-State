@@ -269,6 +269,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 4.1: Checklists | ✅ Completed | 2026-03-12 | 2026-03-12 | Checklist data model + API, board card preview with collapsible progress, and card modal CRUD + progress |
 | Phase 4.2: Attachments | ⬜ Not Started | — | — | — |
 | Phase 4.3: Labels + Assignments + Cover Colors | ⬜ Not Started | — | — | — |
+| Phase 4.4: Comments + Due Dates + Archive/Restore | ⬜ Not Started | — | — | — |
 | Phase 5: Team & Collaboration | ⬜ Not Started | — | — | — |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
