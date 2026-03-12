@@ -6,6 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth-store";
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 export function RegisterPage(): JSX.Element {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,8 +27,26 @@ export function RegisterPage(): JSX.Element {
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
 
-    if (!name || !email || !password) {
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedName || !normalizedEmail || !password) {
       setFormError("Please complete all fields.");
+      return;
+    }
+
+    if (normalizedName.length < 2) {
+      setFormError("Name must be at least 2 characters.");
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setFormError("Please enter a valid email address.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setFormError("Password must be at least 8 characters.");
       return;
     }
 
@@ -32,8 +54,8 @@ export function RegisterPage(): JSX.Element {
 
     try {
       await register({
-        name,
-        email,
+        name: normalizedName,
+        email: normalizedEmail,
         password
       });
       navigate("/");
@@ -81,6 +103,8 @@ export function RegisterPage(): JSX.Element {
               value={name}
               onChange={(event) => onNameChange(event.target.value)}
               autoComplete="name"
+              minLength={2}
+              required
             />
             <Input
               type="email"
@@ -88,6 +112,7 @@ export function RegisterPage(): JSX.Element {
               value={email}
               onChange={(event) => onEmailChange(event.target.value)}
               autoComplete="email"
+              required
             />
             <Input
               type="password"
@@ -95,6 +120,8 @@ export function RegisterPage(): JSX.Element {
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
               autoComplete="new-password"
+              minLength={8}
+              required
             />
 
             {(formError || apiError) && (
@@ -102,6 +129,8 @@ export function RegisterPage(): JSX.Element {
                 {formError ?? apiError}
               </p>
             )}
+
+            <p className="text-xs text-muted-foreground">Use a valid email and password with at least 8 characters.</p>
 
             <Button className="w-full" type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Creating account..." : "Create account"}

@@ -256,9 +256,10 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase | Status | Date Started | Date Completed | Notes |
 |-------|--------|--------------|----------------|-------|
 | Phase 1.1: Scaffolding & Design System | ✅ Completed | 2026-03-12 | 2026-03-12 | Workspace + client/server scaffolding completed, lint/type/build checks done (runtime verification occurs in user environment) |
-| Phase 1.2: Database Schema & JWT Auth | ✅ Completed | 2026-03-12 | 2026-03-12 | Drizzle+SQLite core schema and JWT auth routes implemented; pending user-run runtime and test verification |
-| Phase 1.3: Auth UI & Layout Shell | 🟨 In Progress | 2026-03-12 | — | Client auth flow wired to backend with Zustand session store, route guards, login/register API integration, and logout-enabled app shell; server Vitest globals fix applied, awaiting user re-run |
-| Phase 2: Board & List Management | ⬜ Not Started | — | — | — |
+| Phase 1.2: Database Schema & JWT Auth | ✅ Completed | 2026-03-12 | 2026-03-12 | Drizzle+SQLite core schema and JWT auth routes implemented; user-run runtime/tests verified |
+| Phase 1.3: Auth UI & Layout Shell | ✅ Completed | 2026-03-12 | 2026-03-12 | Auth flow wired to backend with Zustand store/guards; login/register payload validation UX fixed and user-verified |
+| Phase 2.1: Board & List Backend APIs | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards/lists CRUD + reorder APIs, default lists on board creation, boards module integration tests added |
+| Phase 2.2: Board & List Frontend UI | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards page, board detail page, background presets, list management UI and routing/navigation updates implemented; user-run tests passed |
 | Phase 3: Card Management & DnD | ⬜ Not Started | — | — | — |
 | Phase 4: Task Features | ⬜ Not Started | — | — | — |
 | Phase 5: Team & Collaboration | ⬜ Not Started | — | — | — |
@@ -319,5 +320,11 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Fixed server startup blocker by pinning `zod` to `3.24.1`. Implemented Phase 1.2 backend foundation: Drizzle schema (users/boards/lists/cards), SQLite initialization, JWT auth (`register/login/logout/me`), auto-admin on first signup, auth middleware, and auth integration tests. |
 | 2026-03-12 | Implemented Phase 1.3 client auth integration: Zustand auth store, API-backed login/register/logout/me flow, route guards, session hydration, authenticated app-shell header, and Vite API proxy setup. Lint/type/build checks executed; tests intentionally not executed per user instruction. |
 | 2026-03-12 | User-run tests reported server failure: beforeAll is not defined. Fixed by enabling globals: true in server/vitest.config.ts. Awaiting user re-run of server tests. |
+| 2026-03-12 | Fixed login/register blocker by improving validation feedback end-to-end: backend now returns specific Zod field messages, client parses field-level details, and forms validate email/password rules before submit. |
+| 2026-03-12 | User confirmed full Phase 1 verification complete: tests passed and manual runtime validation succeeded. |
+| 2026-03-12 | Implemented Phase 2.1 backend: new boards module (`/api/boards`) with board/list CRUD, list reorder endpoint, schema validation, and automatic default lists (To Do / In Progress / Done). Added `server/tests/boards.test.ts`. |
+| 2026-03-12 | Implemented Phase 2.2 frontend: `/boards` and `/boards/:boardId` pages with create/edit/delete board controls, background preset selection, list create/rename/delete/toggle/reorder, plus route and sidebar wiring. Client/server lint + type checks pass; user-run tests pending. |
+| 2026-03-12 | User ran the full test suite and confirmed all tests pass for Phase 2. Added router-aware HomePage unit test rendering (wrapped in `MemoryRouter`) after introducing `Link` usage. Phase 2.2 marked complete. |
+
 
 

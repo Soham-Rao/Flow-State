@@ -1,11 +1,21 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { BoardDetailPage } from "@/pages/boards/board-detail-page";
+import { BoardsPage } from "@/pages/boards/boards-page";
 import { HomePage } from "@/pages/home-page";
 import { LoginPage } from "@/pages/login-page";
 import { RegisterPage } from "@/pages/register-page";
 import { AuthGate } from "@/routes/auth-gate";
 import { GuestOnlyRoute, ProtectedRoute } from "@/routes/protected-route";
+
+function WithShell({ children }: { children: JSX.Element }): JSX.Element {
+  return (
+    <ProtectedRoute>
+      <AppShell>{children}</AppShell>
+    </ProtectedRoute>
+  );
+}
 
 export function AppRouter(): JSX.Element {
   return (
@@ -15,11 +25,25 @@ export function AppRouter(): JSX.Element {
           <Route
             path="/"
             element={
-              <ProtectedRoute>
-                <AppShell>
-                  <HomePage />
-                </AppShell>
-              </ProtectedRoute>
+              <WithShell>
+                <HomePage />
+              </WithShell>
+            }
+          />
+          <Route
+            path="/boards"
+            element={
+              <WithShell>
+                <BoardsPage />
+              </WithShell>
+            }
+          />
+          <Route
+            path="/boards/:boardId"
+            element={
+              <WithShell>
+                <BoardDetailPage />
+              </WithShell>
             }
           />
           <Route

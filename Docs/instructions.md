@@ -22,66 +22,59 @@
 
 ---
 
-## Phase 1.1 Checklist - Scaffolding & Design System
+## Phase 1 Summary
 
-### Status
-
-- [x] Implemented scaffolding and design-system baseline.
-- [ ] Runtime verification pending user-run checks.
-
----
-
-## Phase 1.2 Checklist - Database Schema & JWT Auth
-
-### Status
-
-- [x] Fixed runtime blocker by pinning `zod` to `3.24.1`.
-- [x] Implemented DB foundation: SQLite connection, Drizzle schema, startup table initialization.
-- [x] Implemented auth backend: register/login/logout/me, first-signup auto-admin, auth middleware, JWT helpers.
-- [x] Added auth integration tests.
-- [ ] Runtime verification and tests pending user-run checks.
+- [x] Phase 1.1 implemented.
+- [x] Phase 1.2 implemented.
+- [x] Phase 1.3 implemented.
+- [x] User reported tests pass and manual verification complete.
 
 ---
 
-## Phase 1.3 Checklist - Auth UI & Layout Shell
+## Phase 2.1 Checklist - Board/List Backend APIs
 
-### Client Auth Wiring
+### API and Data
 
-- [x] Added API client and auth API wrappers for backend auth endpoints.
-- [x] Added session token helpers.
-- [x] Added Zustand auth store (`hydrate/login/register/logout`).
-- [x] Added auth route guards (`AuthGate`, `ProtectedRoute`, `GuestOnlyRoute`).
+- [x] Added board backgrounds constants and board/list validation schemas.
+- [x] Implemented board CRUD service + routes (`/api/boards`).
+- [x] Implemented list CRUD service + routes (`/api/boards/:boardId/lists`, `/api/boards/lists/:listId`).
+- [x] Implemented list ordering endpoint (`/api/boards/:boardId/lists/reorder`).
+- [x] Added default lists on board creation (To Do, In Progress, Done).
+- [x] Wired boards router in server app.
+
+### Tests and Checks
+
+- [x] Added integration tests for boards module (`server/tests/boards.test.ts`).
+- [x] Lint/type/build checks pass for server.
+- [ ] User-run server tests pending.
+
+---
+
+## Phase 2.2 Checklist - Board/List Frontend UI
 
 ### UI and Routing
 
-- [x] Updated login/register pages to call real backend auth and show loading/error states.
-- [x] Updated app shell header with authenticated user context and logout action.
-- [x] Updated home page to show authenticated user context.
-- [x] Added Vite `/api` proxy and `.env.example` client API base value.
+- [x] Added boards list page (`/boards`) with board creation modal and delete action.
+- [x] Added board detail page (`/boards/:boardId`) with board update/delete controls.
+- [x] Added list management UI in board detail: create, rename, delete, done toggle, reorder.
+- [x] Added board background presets and preview styles.
+- [x] Added boards API client + board/list types.
+- [x] Updated app routes and sidebar navigation to include boards.
 
-### Validation (No Test Execution)
+### Quality and Checks
 
-- [x] Dependency update and lockfile sync completed.
-- [x] Lint passes:
-  - `bun run --cwd client lint`
-  - `bun run --cwd server lint`
-- [x] Type checks pass:
-  - `bunx tsc -b client/tsconfig.json`
-  - `bunx tsc -p server/tsconfig.json --noEmit`
-- [x] Server build passes:
-  - `bun run --cwd server build`
-- [ ] Tests not executed by assistant (per user instruction).
-- [x] Applied feedback fix for user-run server tests: enabled `globals: true` in `server/vitest.config.ts`.
+- [x] Client lint passes.
+- [x] Client typecheck passes.
+- [ ] User-run client tests pending.
 
-### User-Run Test Commands
+---
+
+## User-Run Test Commands
 
 - `bun run --cwd server test`
 - `bun run --cwd client test`
 
-### User-Run Runtime Commands
+## User-Run Runtime Commands
 
-- `bun install`
 - `bun run dev:server`
 - `bun run dev:client`
-
-

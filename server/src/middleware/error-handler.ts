@@ -22,10 +22,17 @@ export function errorHandler(
   }
 
   if (error instanceof ZodError) {
+    const firstIssue = error.issues[0];
+    const firstPath = firstIssue?.path.join(".");
+    const validationMessage =
+      firstIssue && firstPath
+        ? `${firstPath}: ${firstIssue.message}`
+        : firstIssue?.message ?? "Invalid request payload";
+
     res.status(400).json({
       success: false,
       error: {
-        message: "Invalid request payload",
+        message: validationMessage,
         details: error.flatten()
       }
     });

@@ -1,5 +1,5 @@
 import { Bell, Command, LayoutDashboard, ListTodo, LogOut, Timer } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
@@ -10,7 +10,7 @@ interface AppShellProps {
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/", label: "Boards", icon: ListTodo },
+  { to: "/boards", label: "Boards", icon: ListTodo },
   { to: "/", label: "Focus", icon: Timer }
 ];
 
@@ -31,9 +31,9 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
       <aside className="border-b border-border/70 bg-card/70 px-4 py-4 backdrop-blur-md lg:border-b-0 lg:border-r lg:px-6 lg:py-6">
         <div className="mb-6 flex items-center justify-between lg:mb-8">
-          <Link to="/" className="text-xl font-bold tracking-tight text-primary">
+          <NavLink to="/" className="text-xl font-bold tracking-tight text-primary">
             FlowState
-          </Link>
+          </NavLink>
           <Button variant="secondary" size="sm" className="gap-2">
             <Command className="h-4 w-4" />
             Cmd+K
@@ -42,14 +42,20 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
 
         <nav className="grid gap-2">
           {navItems.map(({ to, label, icon: Icon }) => (
-            <Link
+            <NavLink
               key={label}
               to={to}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-secondary hover:text-secondary-foreground"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-secondary text-secondary-foreground"
+                    : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
+                }`
+              }
             >
               <Icon className="h-4 w-4" />
               {label}
-            </Link>
+            </NavLink>
           ))}
         </nav>
       </aside>
@@ -73,7 +79,13 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                 Alerts
               </Button>
 
-              <Button variant="secondary" size="sm" className="gap-2" onClick={() => void onLogout()} disabled={isSubmitting}>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-2"
+                onClick={() => void onLogout()}
+                disabled={isSubmitting}
+              >
                 <LogOut className="h-4 w-4" />
                 Logout
               </Button>

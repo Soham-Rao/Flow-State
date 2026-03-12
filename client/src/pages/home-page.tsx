@@ -1,5 +1,7 @@
 import { Activity, CalendarDays, CheckCircle2, ListTodo } from "lucide-react";
+import { Link } from "react-router-dom";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -35,11 +37,17 @@ export function HomePage(): JSX.Element {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
-        <p className="text-sm text-muted-foreground">
-          Signed in as <span className="font-medium text-foreground">{user?.email}</span>.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
+          <p className="text-sm text-muted-foreground">
+            Signed in as <span className="font-medium text-foreground">{user?.email}</span>.
+          </p>
+        </div>
+
+        <Link to="/boards">
+          <Button>Open boards</Button>
+        </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
