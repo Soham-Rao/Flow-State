@@ -8,6 +8,8 @@ export type BoardBackground =
   | "cobalt-dawn"
   | "sunset-grid";
 
+export type CardPriority = "low" | "medium" | "high" | "urgent";
+
 export interface BoardSummary {
   id: string;
   name: string;
@@ -19,6 +21,21 @@ export interface BoardSummary {
   listCount: number;
 }
 
+export interface BoardCard {
+  id: string;
+  listId: string;
+  title: string;
+  description: string | null;
+  priority: CardPriority;
+  dueDate: string | null;
+  position: number;
+  createdBy: string;
+  archivedAt: string | null;
+  doneEnteredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BoardList {
   id: string;
   boardId: string;
@@ -27,6 +44,7 @@ export interface BoardList {
   isDoneList: boolean;
   createdAt: string;
   updatedAt: string;
+  cards: BoardCard[];
 }
 
 export interface BoardDetail {
@@ -38,4 +56,11 @@ export interface BoardDetail {
   createdAt: string;
   updatedAt: string;
   lists: BoardList[];
+}
+
+export interface MoveCardResult {
+  sourceListId: string;
+  destinationListId: string;
+  sourceCards: BoardCard[];
+  destinationCards: BoardCard[];
 }

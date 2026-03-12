@@ -1,0 +1,127 @@
+# FlowState Resume Checkpoint
+
+Last checkpoint update: 2026-03-12 15:10:58 +05:30
+Purpose: Resume from this exact project state, not from zero.
+
+## 1) Resume Snapshot (Current State)
+
+- Phase status:
+  - Phase 1.1, 1.2, 1.3: complete
+  - Phase 2.1, 2.2, 2.3: complete
+  - Phase 3.1, 3.2, 3.3: implemented and documented
+  - Phase 3 overall: marked in-progress until user-run test verification is confirmed
+
+- Phase 3 implementation already done:
+  - Backend card APIs + rules + move logic + permissions
+  - Frontend board card UI (create/edit/delete)
+  - Card modal (title, description, priority, due date)
+  - Card drag/drop in-list and cross-list with optimistic updates
+  - Frontend test file added for card flows
+
+## 2) Resume-Next Priority
+
+Pending user verification step:
+- User should run:
+  - `bun run --cwd server test`
+  - `bun run --cwd client test`
+
+After user shares results:
+- If tests pass: mark Phase 3 fully complete and proceed to Phase 4 planning.
+- If tests fail: fix failures first, then continue.
+
+## 3) User Preferences to Preserve on Resume
+
+- Package manager: Bun
+- Language: TypeScript for client and server
+- Monorepo style: plain workspaces (`client/`, `server/`)
+- Assistant should write tests but user runs tests
+- Do not run tests unless user explicitly asks
+- Test cadence: after full phases (or every 2 full phases), not each subphase
+- Progress updates must be recorded in `Docs/context.md` at end of implementation cycles
+- Keep in-app confirmations (no browser native confirms)
+- Autosave UX for board/list settings is expected
+
+## 4) How to Read and Update Context Files on Resume
+
+Primary resume flow:
+1. Read `Docs/context.md` first:
+   - Check Progress Tracker table
+   - Check Key Decisions
+   - Check latest rows in Updates
+2. Read `Docs/instructions.md` second:
+   - Check active phase checklist
+   - Confirm user-run commands section
+3. Implement next scoped work
+4. Update both files after implementation:
+   - `Docs/context.md`: Progress Tracker + Updates row(s)
+   - `Docs/instructions.md`: checklist checkboxes/status
+
+Rule: treat `Docs/context.md` as source of truth for project state; treat `Docs/instructions.md` as execution checklist.
+
+## 5) Working Rules I Must Remember on Resume
+
+Code/workflow rules:
+- Do not revert unrelated user changes.
+- Avoid destructive git commands unless explicitly requested.
+- Prefer `rg` for searching.
+- Use `apply_patch` for focused file edits when possible.
+- Keep edits ASCII unless file already requires Unicode.
+- If unexpected file changes appear during work, pause and ask user how to proceed.
+
+Communication rules:
+- Be concise, collaborative, and transparent.
+- Give short progress updates while working.
+- Provide exact commands when user needs to run checks.
+
+## 6) Current Git Working Tree Snapshot (for Resume Awareness)
+
+Tracked modified files at checkpoint:
+- `Docs/context.md`
+- `Docs/instructions.md`
+- `client/src/lib/boards-api.ts`
+- `client/src/pages/boards/board-detail-page.tsx`
+- `client/src/types/board.ts`
+- `server/src/modules/boards/boards.route.ts`
+- `server/src/modules/boards/boards.schema.ts`
+- `server/src/modules/boards/boards.service.ts`
+- `server/data/flowstate.db-shm`
+- `server/data/flowstate.db-wal`
+
+Untracked files at checkpoint:
+- `Docs/notes.txt`
+- `client/src/pages/boards/board-detail-page.test.tsx`
+- `server/tests/cards.test.ts`
+
+Note: db `-shm` and `-wal` files are runtime artifacts; do not delete without user intent.
+
+## 7) Known Resume Risks / Attention Points
+
+- `client/src/pages/boards/board-detail-page.tsx` had large iterative edits. Lint and TypeScript check pass, but keep changes surgical going forward.
+- If UI regressions are reported, validate behavior in this order:
+  1. list edit/autosave focus behavior
+  2. card create/edit/delete
+  3. card drag/drop behavior
+  4. board autosave + Saved toast
+
+## 8) Immediate User-Facing Follow-up Item (from notes)
+
+User requested drag UX polish for cards:
+- Make dragged card less transparent (darker/more visible)
+- Improve drop affordance from only a blue line to space-making animation where cards shift
+- Show clearer drop-position preview matching final placement
+
+When implementing this, also provide exactly where to tweak opacity/animation values.
+
+## 9) Resume Command Pack
+
+- Client lint:
+  - `bun run --cwd client lint`
+- Client typecheck:
+  - `bunx tsc -b client/tsconfig.json`
+- User-run tests:
+  - `bun run --cwd server test`
+  - `bun run --cwd client test`
+
+This file is the resume checkpoint contract for continuing FlowState safely and quickly.
+
+

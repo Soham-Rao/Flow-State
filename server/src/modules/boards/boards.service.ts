@@ -1,11 +1,20 @@
 import crypto from "node:crypto";
 
-import { and, asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { boards, lists } from "../../db/schema.js";
+import { boards, cards, lists, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
-import type { CreateBoardInput, CreateListInput, ReorderListsInput, UpdateBoardInput, UpdateListInput } from "./boards.schema.js";
+import type {
+  CreateBoardInput,
+  CreateCardInput,
+  CreateListInput,
+  MoveCardInput,
+  ReorderListsInput,
+  UpdateBoardInput,
+  UpdateCardInput,
+  UpdateListInput
+} from "./boards.schema.js";
 
 interface BoardSummary {
   id: string;
@@ -18,6 +27,21 @@ interface BoardSummary {
   listCount: number;
 }
 
+export interface BoardCard {
+  id: string;
+  listId: string;
+  title: string;
+  description: string | null;
+  priority: "low" | "medium" | "high" | "urgent";
+  dueDate: Date | null;
+  position: number;
+  createdBy: string;
+  archivedAt: Date | null;
+  doneEnteredAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 interface BoardList {
   id: string;
   boardId: string;
@@ -26,6 +50,7 @@ interface BoardList {
   isDoneList: boolean;
   createdAt: Date;
   updatedAt: Date;
+  cards: BoardCard[];
 }
 
 interface BoardDetail {
@@ -37,6 +62,19 @@ interface BoardDetail {
   createdAt: Date;
   updatedAt: Date;
   lists: BoardList[];
+}
+
+interface ListRecord {
+  id: string;
+  boardId: string;
+  isDoneList: boolean;
+}
+
+interface MoveCardResult {
+  sourceListId: string;
+  destinationListId: string;
+  sourceCards: BoardCard[];
+  destinationCards: BoardCard[];
 }
 
 const defaultLists = [
@@ -54,16 +92,29 @@ function normalizeOptionalDescription(value: string | undefined): string | null 
   return trimmed.length === 0 ? null : trimmed;
 }
 
+function clampIndex(value: number, min: number, max: number): number {
+  if (value < min) {
+    return min;
+  }
+
+  if (value > max) {
+    return max;
+  }
+
+  return value;
+}
+
 function assertBoardExists(boardId: string): void {
   const board = db.select({ id: boards.id }).from(boards).where(eq(boards.id, boardId)).limit(1).get();
+
   if (!board) {
     throw new ApiError(404, "Board not found");
   }
 }
 
-function assertListExists(listId: string): { id: string; boardId: string } {
+function assertListExists(listId: string): ListRecord {
   const list = db
-    .select({ id: lists.id, boardId: lists.boardId })
+    .select({ id: lists.id, boardId: lists.boardId, isDoneList: lists.isDoneList })
     .from(lists)
     .where(eq(lists.id, listId))
     .limit(1)
@@ -74,6 +125,61 @@ function assertListExists(listId: string): { id: string; boardId: string } {
   }
 
   return list;
+}
+
+function assertCardExists(cardId: string): BoardCard {
+  const card = db
+    .select({
+      id: cards.id,
+      listId: cards.listId,
+      title: cards.title,
+      description: cards.description,
+      priority: cards.priority,
+      dueDate: cards.dueDate,
+      position: cards.position,
+      createdBy: cards.createdBy,
+      archivedAt: cards.archivedAt,
+      doneEnteredAt: cards.doneEnteredAt,
+      createdAt: cards.createdAt,
+      updatedAt: cards.updatedAt
+    })
+    .from(cards)
+    .where(and(eq(cards.id, cardId), isNull(cards.archivedAt)))
+    .limit(1)
+    .get();
+
+  if (!card) {
+    throw new ApiError(404, "Card not found");
+  }
+
+  return card as BoardCard;
+}
+
+function getCardsForList(listId: string): BoardCard[] {
+  return db
+    .select({
+      id: cards.id,
+      listId: cards.listId,
+      title: cards.title,
+      description: cards.description,
+      priority: cards.priority,
+      dueDate: cards.dueDate,
+      position: cards.position,
+      createdBy: cards.createdBy,
+      archivedAt: cards.archivedAt,
+      doneEnteredAt: cards.doneEnteredAt,
+      createdAt: cards.createdAt,
+      updatedAt: cards.updatedAt
+    })
+    .from(cards)
+    .where(and(eq(cards.listId, listId), isNull(cards.archivedAt)))
+    .orderBy(asc(cards.position), asc(cards.createdAt))
+    .all() as BoardCard[];
+}
+
+function getCardById(cardId: string): BoardCard {
+  const card = assertCardExists(cardId);
+  return card;
 }
 
 export function getBoards(): BoardSummary[] {
@@ -143,9 +249,40 @@ export function getBoardById(boardId: string): BoardDetail {
     .orderBy(asc(lists.position), asc(lists.createdAt))
     .all();
 
+  const boardCards = db
+    .select({
+      id: cards.id,
+      listId: cards.listId,
+      title: cards.title,
+      description: cards.description,
+      priority: cards.priority,
+      dueDate: cards.dueDate,
+      position: cards.position,
+      createdBy: cards.createdBy,
+      archivedAt: cards.archivedAt,
+      doneEnteredAt: cards.doneEnteredAt,
+      createdAt: cards.createdAt,
+      updatedAt: cards.updatedAt
+    })
+    .from(cards)
+    .innerJoin(lists, eq(cards.listId, lists.id))
+    .where(and(eq(lists.boardId, boardId), isNull(cards.archivedAt)))
+    .orderBy(asc(cards.position), asc(cards.createdAt))
+    .all() as BoardCard[];
+
+  const cardsByListId = new Map<string, BoardCard[]>();
+  for (const card of boardCards) {
+    const existing = cardsByListId.get(card.listId) ?? [];
+    existing.push(card);
+    cardsByListId.set(card.listId, existing);
+  }
+
   return {
     ...board,
-    lists: boardLists
+    lists: boardLists.map((list) => ({
+      ...list,
+      cards: cardsByListId.get(list.id) ?? []
+    }))
   };
 }
 
@@ -264,7 +401,10 @@ export function createList(boardId: string, input: CreateListInput): BoardList {
     throw new ApiError(500, "Failed to create list");
   }
 
-  return created;
+  return {
+    ...created,
+    cards: []
+  };
 }
 
 export function updateList(listId: string, input: UpdateListInput): BoardList {
@@ -310,7 +450,10 @@ export function updateList(listId: string, input: UpdateListInput): BoardList {
     throw new ApiError(404, "List not found");
   }
 
-  return updated;
+  return {
+    ...updated,
+    cards: getCardsForList(updated.id)
+  };
 }
 
 export function deleteList(listId: string): void {
@@ -367,5 +510,186 @@ export function reorderLists(boardId: string, input: ReorderListsInput): BoardLi
     .from(lists)
     .where(eq(lists.boardId, boardId))
     .orderBy(asc(lists.position), asc(lists.createdAt))
-    .all();
+    .all()
+    .map((list) => ({
+      ...list,
+      cards: getCardsForList(list.id)
+    }));
 }
+
+export function createCard(listId: string, input: CreateCardInput, userId: string): BoardCard {
+  const list = assertListExists(listId);
+
+  const maxPositionRow = db
+    .select({ maxPosition: sql<number>`coalesce(max(${cards.position}), -1)` })
+    .from(cards)
+    .where(and(eq(cards.listId, list.id), isNull(cards.archivedAt)))
+    .get();
+
+  const now = new Date();
+  const cardId = crypto.randomUUID();
+
+  db.insert(cards)
+    .values({
+      id: cardId,
+      listId: list.id,
+      title: input.title.trim(),
+      description: normalizeOptionalDescription(input.description),
+      priority: input.priority,
+      dueDate: input.dueDate ?? null,
+      position: (maxPositionRow?.maxPosition ?? -1) + 1,
+      createdBy: userId,
+      doneEnteredAt: list.isDoneList ? now : null,
+      createdAt: now,
+      updatedAt: now
+    })
+    .run();
+
+  return getCardById(cardId);
+}
+
+export function updateCard(cardId: string, input: UpdateCardInput): BoardCard {
+  assertCardExists(cardId);
+
+  const updatePayload: {
+    title?: string;
+    description?: string | null;
+    priority?: "low" | "medium" | "high" | "urgent";
+    dueDate?: Date | null;
+    updatedAt: Date;
+  } = {
+    updatedAt: new Date()
+  };
+
+  if (input.title !== undefined) {
+    updatePayload.title = input.title.trim();
+  }
+
+  if (input.description !== undefined) {
+    updatePayload.description = normalizeOptionalDescription(input.description);
+  }
+
+  if (input.priority !== undefined) {
+    updatePayload.priority = input.priority;
+  }
+
+  if (input.dueDate !== undefined) {
+    updatePayload.dueDate = input.dueDate;
+  }
+
+  db.update(cards).set(updatePayload).where(eq(cards.id, cardId)).run();
+
+  return getCardById(cardId);
+}
+
+export function deleteCard(cardId: string, requesterUserId: string, requesterRole: UserRole): void {
+  const existing = assertCardExists(cardId);
+
+  if (requesterRole !== "admin" && existing.createdBy !== requesterUserId) {
+    throw new ApiError(403, "You can only delete cards you created");
+  }
+
+  const result = db.delete(cards).where(eq(cards.id, cardId)).run();
+
+  if (result.changes === 0) {
+    throw new ApiError(404, "Card not found");
+  }
+}
+
+export function moveCard(input: MoveCardInput): MoveCardResult {
+  const sourceList = assertListExists(input.sourceListId);
+  const destinationList = assertListExists(input.destinationListId);
+
+  if (sourceList.boardId !== destinationList.boardId) {
+    throw new ApiError(400, "Source and destination lists must belong to the same board");
+  }
+
+  const movingCard = assertCardExists(input.cardId);
+
+  if (movingCard.listId !== sourceList.id) {
+    throw new ApiError(400, "Card does not belong to the provided source list");
+  }
+
+  const now = new Date();
+  const sourceCards = getCardsForList(sourceList.id);
+
+  if (!sourceCards.some((card) => card.id === movingCard.id)) {
+    throw new ApiError(400, "Card does not belong to the source list");
+  }
+
+  if (sourceList.id === destinationList.id) {
+    const fromIndex = sourceCards.findIndex((card) => card.id === movingCard.id);
+    const toIndex = clampIndex(input.destinationIndex, 0, sourceCards.length - 1);
+
+    const reordered = [...sourceCards];
+    const [removed] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, removed);
+
+    db.transaction((tx) => {
+      reordered.forEach((card, index) => {
+        tx.update(cards).set({ position: index, updatedAt: now }).where(eq(cards.id, card.id)).run();
+      });
+    });
+
+    const updated = getCardsForList(sourceList.id);
+
+    return {
+      sourceListId: sourceList.id,
+      destinationListId: destinationList.id,
+      sourceCards: updated,
+      destinationCards: updated
+    };
+  }
+
+  const sourceWithoutCard = sourceCards.filter((card) => card.id !== movingCard.id);
+  const destinationCards = getCardsForList(destinationList.id);
+  const destinationNext = [...destinationCards];
+
+  const insertIndex = clampIndex(input.destinationIndex, 0, destinationNext.length);
+
+  let nextDoneEnteredAt = movingCard.doneEnteredAt;
+  if (!sourceList.isDoneList && destinationList.isDoneList) {
+    nextDoneEnteredAt = now;
+  } else if (sourceList.isDoneList && !destinationList.isDoneList) {
+    nextDoneEnteredAt = null;
+  }
+
+  destinationNext.splice(insertIndex, 0, {
+    ...movingCard,
+    listId: destinationList.id,
+    doneEnteredAt: nextDoneEnteredAt,
+    updatedAt: now
+  });
+
+  db.transaction((tx) => {
+    sourceWithoutCard.forEach((card, index) => {
+      tx.update(cards).set({ position: index, updatedAt: now }).where(eq(cards.id, card.id)).run();
+    });
+
+    destinationNext.forEach((card, index) => {
+      if (card.id === movingCard.id) {
+        tx.update(cards)
+          .set({
+            listId: destinationList.id,
+            position: index,
+            doneEnteredAt: nextDoneEnteredAt,
+            updatedAt: now
+          })
+          .where(eq(cards.id, card.id))
+          .run();
+      } else {
+        tx.update(cards).set({ position: index, updatedAt: now }).where(eq(cards.id, card.id)).run();
+      }
+    });
+  });
+
+  return {
+    sourceListId: sourceList.id,
+    destinationListId: destinationList.id,
+    sourceCards: getCardsForList(sourceList.id),
+    destinationCards: getCardsForList(destinationList.id)
+  };
+}
+
+
+

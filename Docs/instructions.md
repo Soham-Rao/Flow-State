@@ -86,6 +86,31 @@
 
 ---
 
+## Phase 3 Checklist - Card Management & Drag-and-Drop
+
+### Phase 3.1 - Backend Card APIs
+
+- [x] Added card schemas and board routes for card CRUD + move (`createCard`, `updateCard`, `moveCard`, `deleteCard`).
+- [x] Implemented service-layer card lifecycle logic, including done-list countdown semantics (`doneEnteredAt`).
+- [x] Added backend integration coverage for cards (`server/tests/cards.test.ts`) including delete permission enforcement.
+
+### Phase 3.2 - Frontend Card UI + DnD
+
+- [x] Extended board types and API client with card operations.
+- [x] Implemented per-list card rendering on board detail page.
+- [x] Implemented quick-add card form in each list.
+- [x] Implemented card edit modal (title, description, priority, due date).
+- [x] Implemented card delete flow with in-app confirmation dialog.
+- [x] Implemented card drag-and-drop within list and across lists with optimistic UI + rollback on failure.
+- [x] Preserved existing list/board autosave flows and delayed Saved feedback.
+
+### Phase 3.3 - Client Tests & Docs
+
+- [x] Added frontend card workflow tests (`client/src/pages/boards/board-detail-page.test.tsx`).
+- [x] Updated `Docs/context.md` progress tracker and updates log for Phase 3 subphases.
+- [x] Updated this checklist with Phase 3 completion details.
+
+---
 ## User-Run Test Commands
 
 - `bun run --cwd server test`
@@ -95,6 +120,9 @@
 
 - `bun run dev:server`
 - `bun run dev:client`
+
+
+
 
 
 

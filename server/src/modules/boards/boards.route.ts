@@ -3,20 +3,27 @@ import { Router } from "express";
 import { requireAuth } from "../../middleware/require-auth.js";
 import {
   createBoard,
+  createCard,
   createList,
   deleteBoard,
+  deleteCard,
   deleteList,
   getBoardById,
   getBoards,
+  moveCard,
   reorderLists,
   updateBoard,
+  updateCard,
   updateList
 } from "./boards.service.js";
 import {
   createBoardSchema,
+  createCardSchema,
   createListSchema,
+  moveCardSchema,
   reorderListsSchema,
   updateBoardSchema,
+  updateCardSchema,
   updateListSchema
 } from "./boards.schema.js";
 
@@ -139,6 +146,63 @@ boardsRouter.delete("/lists/:listId", (req, res, next) => {
       success: true,
       data: {
         message: "List deleted"
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/lists/:listId/cards", (req, res, next) => {
+  try {
+    const body = createCardSchema.parse(req.body);
+    const data = createCard(req.params.listId, body, req.auth!.userId);
+
+    res.status(201).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.patch("/cards/:cardId", (req, res, next) => {
+  try {
+    const body = updateCardSchema.parse(req.body);
+    const data = updateCard(req.params.cardId, body);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/cards/move", (req, res, next) => {
+  try {
+    const body = moveCardSchema.parse(req.body);
+    const data = moveCard(body);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.delete("/cards/:cardId", (req, res, next) => {
+  try {
+    deleteCard(req.params.cardId, req.auth!.userId, req.auth!.role);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: "Card deleted"
       }
     });
   } catch (error) {

@@ -261,7 +261,10 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 2.1: Board & List Backend APIs | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards/lists CRUD + reorder APIs, default lists on board creation, boards module integration tests added |
 | Phase 2.2: Board & List Frontend UI | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards UI complete with custom in-app confirmations, drag-and-drop list reorder, collapsible bottom settings, live background preview, board-scoped content gradients, and user-run tests passed |
 | Phase 2.3: Board UX & Autosave Polish | ✅ Completed | 2026-03-12 | 2026-03-12 | In-app confirmations, drag-drop list reorder, board-scoped gradients with new smooth presets, darker tuning, board settings debounced autosave, list-name debounced autosave with pencil edit mode, and delayed Saved feedback |
-| Phase 3: Card Management & DnD | ⬜ Not Started | — | — | — |
+| Phase 3: Card Management & DnD | 🟨 In Progress | 2026-03-12 | — | Split into subphases; implementation complete and awaiting user-run full test verification |
+| Phase 3.1: Card Backend APIs & Rules | ✅ Completed | 2026-03-12 | 2026-03-12 | Card CRUD + move endpoints/services, done-list countdown transitions, and server integration tests (`server/tests/cards.test.ts`) |
+| Phase 3.2: Card Frontend UI & Drag-and-Drop | ✅ Completed | 2026-03-12 | 2026-03-12 | Board detail now renders cards, supports quick add, card modal edit/delete, and card DnD within and across lists with optimistic updates |
+| Phase 3.3: Card Tests & Docs | ✅ Completed | 2026-03-12 | 2026-03-12 | Added client card workflow tests and updated implementation checklists/progress docs; pending user-run test execution |
 | Phase 4: Task Features | ⬜ Not Started | — | — | — |
 | Phase 5: Team & Collaboration | ⬜ Not Started | — | — | — |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
@@ -336,4 +339,6 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Phase 2 list-editor stability fix: removed unintended board reload coupling when toggling list edit mode, eliminating page jump-to-top behavior on edit/save while keeping Enter/blur close-and-save flows. |
 | 2026-03-12 | Phase 2 focus-fix: resolved list-name editor regression where repeated focus/select on rerender replaced text each keystroke; editor now focuses once on open with caret at end and no repeated reselection. |
 | 2026-03-12 | Phase 2 list-delete UI tweak: moved per-list delete action from bottom text button to header icon row beside edit, using a red trash icon while preserving the same confirmation and delete flow. |
-
+| 2026-03-12 | Implemented Phase 3.1 backend card foundation: card schemas/routes, service methods for create/update/delete/move, board detail card hydration, done-list countdown transitions, and permissions for delete (admin or creator). |
+| 2026-03-12 | Implemented Phase 3.2 frontend card workflows on board detail: per-list card rendering, quick add, card edit modal (title/description/priority/due date), in-app card delete confirmation, and drag-and-drop within/across lists with optimistic state + rollback. |
+| 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |

@@ -1,5 +1,13 @@
 import { apiRequest } from "@/lib/api-client";
-import type { BoardBackground, BoardDetail, BoardList, BoardSummary } from "@/types/board";
+import type {
+  BoardBackground,
+  BoardCard,
+  BoardDetail,
+  BoardList,
+  BoardSummary,
+  CardPriority,
+  MoveCardResult
+} from "@/types/board";
 
 interface CreateBoardInput {
   name: string;
@@ -21,6 +29,27 @@ interface CreateListInput {
 interface UpdateListInput {
   name?: string;
   isDoneList?: boolean;
+}
+
+interface CreateCardInput {
+  title: string;
+  description?: string;
+  priority?: CardPriority;
+  dueDate?: string;
+}
+
+interface UpdateCardInput {
+  title?: string;
+  description?: string;
+  priority?: CardPriority;
+  dueDate?: string | null;
+}
+
+interface MoveCardInput {
+  cardId: string;
+  sourceListId: string;
+  destinationListId: string;
+  destinationIndex: number;
 }
 
 export function getBoards(): Promise<BoardSummary[]> {
@@ -88,5 +117,36 @@ export function reorderLists(boardId: string, listIds: string[]): Promise<BoardL
     method: "POST",
     auth: true,
     body: JSON.stringify({ listIds })
+  });
+}
+
+export function createCard(listId: string, input: CreateCardInput): Promise<BoardCard> {
+  return apiRequest<BoardCard>(`/boards/lists/${listId}/cards`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function updateCard(cardId: string, input: UpdateCardInput): Promise<BoardCard> {
+  return apiRequest<BoardCard>(`/boards/cards/${cardId}`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function deleteCard(cardId: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/boards/cards/${cardId}`, {
+    method: "DELETE",
+    auth: true
+  });
+}
+
+export function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
+  return apiRequest<MoveCardResult>("/boards/cards/move", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
   });
 }
