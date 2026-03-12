@@ -1,3 +1,5 @@
+allow deleting only file or both, as toggleable in board settings 
 
-what about client tests, only server tests are being made rn 
+test time when 
 
+discord roles   

@@ -58,6 +58,9 @@ interface CardDraft {
 const AUTO_SAVE_DELAY_MS = 750;
 const SAVED_TOAST_SHOW_DELAY_MS = 250;
 const SAVED_TOAST_VISIBLE_MS = 1500;
+const DONE_RETENTION_DAYS = 7;
+const DONE_RETENTION_MS = DONE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
 
 function sortCardsByPosition(cards: BoardCard[]): BoardCard[] {
   return [...cards].sort((a, b) => a.position - b.position);
@@ -102,6 +105,37 @@ function toIsoFromDateTimeInput(value: string): string | null {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
+}
+
+
+function getTimeLeftLabel(doneEnteredAt: string, nowMs: number): string {
+  const enteredAtMs = new Date(doneEnteredAt).getTime();
+  if (Number.isNaN(enteredAtMs)) return "";
+  const remainingMs = DONE_RETENTION_MS - (nowMs - enteredAtMs);
+  if (remainingMs <= 0) return "0s left";
+
+  const second = 1000;
+  const minute = 60 * second;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (remainingMs >= 2 * day) {
+    const daysLeft = Math.ceil(remainingMs / day);
+    return `${daysLeft}d left`;
+  }
+
+  if (remainingMs >= 2 * hour) {
+    const hoursLeft = Math.ceil(remainingMs / hour);
+    return `${hoursLeft}h left`;
+  }
+
+  if (remainingMs >= 2 * minute) {
+    const minutesLeft = Math.ceil(remainingMs / minute);
+    return `${minutesLeft}m left`;
+  }
+
+  const secondsLeft = Math.max(1, Math.ceil(remainingMs / second));
+  return `${secondsLeft}s left`;
 }
 
 function formatDueDateLabel(value: string | null): string | null {
@@ -165,7 +199,7 @@ function getCardFromBoard(
 // ---------------------------------------------------------------------------
 // CardSummary — pure display, no drag logic
 // ---------------------------------------------------------------------------
-function CardSummary({ card }: { card: BoardCard }): JSX.Element {
+function CardSummary({ card, nowMs }: { card: BoardCard; nowMs: number }): JSX.Element {
   const dueLabel = formatDueDateLabel(card.dueDate);
   return (
     <>
@@ -181,8 +215,8 @@ function CardSummary({ card }: { card: BoardCard }): JSX.Element {
           </span>
         )}
         {card.doneEnteredAt && (
-          <span className="rounded-full border border-emerald-300/70 bg-emerald-50/80 px-2 py-0.5 text-[11px] text-emerald-700">
-            Done timer started
+          <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[11px] text-rose-700">
+            {getTimeLeftLabel(card.doneEnteredAt, nowMs)}
           </span>
         )}
       </div>
@@ -197,10 +231,12 @@ function SortableCard({
   card,
   onEdit,
   onDeleteRequest,
+  nowMs,
 }: {
   card: BoardCard;
   onEdit: (card: BoardCard) => void;
   onDeleteRequest: (card: BoardCard) => void;
+  nowMs: number;
 }): JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
 
@@ -230,7 +266,7 @@ function SortableCard({
             }
           }}
         >
-          <CardSummary card={card} />
+          <CardSummary card={card} nowMs={nowMs} />
         </div>
 
         {/* Drag handle — only this area initiates drag */}
@@ -307,6 +343,7 @@ export function BoardDetailPage(): JSX.Element {
   const [isAutosavingBoard, setIsAutosavingBoard] = useState(false);
   const [listSavingIds, setListSavingIds] = useState<Set<string>>(new Set());
   const [showSavedNotice, setShowSavedNotice] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const autoSaveTimeoutRef = useRef<number | null>(null);
   const listAutoSaveTimeoutsRef = useRef<Record<string, number>>({});
@@ -327,6 +364,11 @@ export function BoardDetailPage(): JSX.Element {
   const orderedLists = useMemo(() => {
     return board ? sortBoardListsWithCards(board.lists) : [];
   }, [board]);
+
+  const hasDoneCards = useMemo(
+    () => (board ? board.lists.some((list) => list.cards.some((card) => Boolean(card.doneEnteredAt))) : false),
+    [board]
+  );
 
   const selectedCardWithList = useMemo(
     () => getCardFromBoard(board, selectedCardId),
@@ -442,6 +484,15 @@ export function BoardDetailPage(): JSX.Element {
     if (!editingListId) return;
     focusListInput(editingListId);
   }, [editingListId, focusListInput]);
+
+
+  useEffect(() => {
+    if (!hasDoneCards) return;
+    const interval = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [hasDoneCards]);
 
   useEffect(() => {
     if (!selectedCardId) return;
@@ -1099,6 +1150,7 @@ export function BoardDetailPage(): JSX.Element {
                                 card={card}
                                 onEdit={openCardEditor}
                                 onDeleteRequest={(c) => setCardToDelete(c)}
+                                nowMs={nowMs}
                               />
                             ))
                           )}
@@ -1132,7 +1184,7 @@ export function BoardDetailPage(): JSX.Element {
             <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>
               {activeCard ? (
                 <div className="rotate-1 rounded-md border border-border/70 bg-background px-3 py-2 shadow-2xl opacity-95 ring-2 ring-primary/30">
-                  <CardSummary card={activeCard} />
+                  <CardSummary card={activeCard} nowMs={nowMs} />
                 </div>
               ) : null}
             </DragOverlay>
