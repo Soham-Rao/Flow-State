@@ -17,7 +17,13 @@ vi.mock("@/lib/boards-api", () => ({
   createCard: vi.fn(),
   updateCard: vi.fn(),
   deleteCard: vi.fn(),
-  moveCard: vi.fn()
+  moveCard: vi.fn(),
+  createChecklist: vi.fn(),
+  updateChecklist: vi.fn(),
+  deleteChecklist: vi.fn(),
+  createChecklistItem: vi.fn(),
+  updateChecklistItem: vi.fn(),
+  deleteChecklistItem: vi.fn()
 }));
 
 const getBoardByIdMock = vi.mocked(boardsApi.getBoardById);
@@ -31,6 +37,12 @@ const createCardMock = vi.mocked(boardsApi.createCard);
 const updateCardMock = vi.mocked(boardsApi.updateCard);
 const deleteCardMock = vi.mocked(boardsApi.deleteCard);
 const moveCardMock = vi.mocked(boardsApi.moveCard);
+const createChecklistMock = vi.mocked(boardsApi.createChecklist);
+const updateChecklistMock = vi.mocked(boardsApi.updateChecklist);
+const deleteChecklistMock = vi.mocked(boardsApi.deleteChecklist);
+const createChecklistItemMock = vi.mocked(boardsApi.createChecklistItem);
+const updateChecklistItemMock = vi.mocked(boardsApi.updateChecklistItem);
+const deleteChecklistItemMock = vi.mocked(boardsApi.deleteChecklistItem);
 
 const baseCard: BoardCard = {
   id: "card-1",
@@ -44,7 +56,8 @@ const baseCard: BoardCard = {
   archivedAt: null,
   doneEnteredAt: null,
   createdAt: "2026-03-12T10:00:00.000Z",
-  updatedAt: "2026-03-12T10:00:00.000Z"
+  updatedAt: "2026-03-12T10:00:00.000Z",
+  checklists: []
 };
 
 const listOne: BoardList = {
@@ -126,6 +139,44 @@ beforeEach(() => {
   });
   updateCardMock.mockResolvedValue(baseCard);
   deleteCardMock.mockResolvedValue({ message: "Card deleted" });
+  createChecklistMock.mockResolvedValue({
+    id: "checklist-1",
+    cardId: baseCard.id,
+    title: "Checklist",
+    position: 0,
+    createdAt: "2026-03-12T10:00:00.000Z",
+    updatedAt: "2026-03-12T10:00:00.000Z",
+    items: []
+  });
+  updateChecklistMock.mockResolvedValue({
+    id: "checklist-1",
+    cardId: baseCard.id,
+    title: "Checklist",
+    position: 0,
+    createdAt: "2026-03-12T10:00:00.000Z",
+    updatedAt: "2026-03-12T10:00:00.000Z",
+    items: []
+  });
+  deleteChecklistMock.mockResolvedValue({ message: "Checklist deleted" });
+  createChecklistItemMock.mockResolvedValue({
+    id: "item-1",
+    checklistId: "checklist-1",
+    title: "Checklist item",
+    isDone: false,
+    position: 0,
+    createdAt: "2026-03-12T10:00:00.000Z",
+    updatedAt: "2026-03-12T10:00:00.000Z"
+  });
+  updateChecklistItemMock.mockResolvedValue({
+    id: "item-1",
+    checklistId: "checklist-1",
+    title: "Checklist item",
+    isDone: false,
+    position: 0,
+    createdAt: "2026-03-12T10:00:00.000Z",
+    updatedAt: "2026-03-12T10:00:00.000Z"
+  });
+  deleteChecklistItemMock.mockResolvedValue({ message: "Checklist item deleted" });
   moveCardMock.mockResolvedValue({
     sourceListId: "list-1",
     destinationListId: "list-1",
@@ -196,6 +247,32 @@ describe("BoardDetailPage cards", () => {
     });
 
     expect(await screen.findByText("Updated card title")).toBeInTheDocument();
+  });
+
+  it("creates a checklist from the card modal", async () => {
+    createChecklistMock.mockResolvedValue({
+      id: "checklist-1",
+      cardId: baseCard.id,
+      title: "Launch checklist",
+      position: 0,
+      createdAt: "2026-03-12T10:00:00.000Z",
+      updatedAt: "2026-03-12T10:00:00.000Z",
+      items: []
+    });
+
+    renderBoardPage();
+
+    fireEvent.click(await screen.findByText("Initial card"));
+
+    const input = await screen.findByPlaceholderText("New checklist title");
+    fireEvent.change(input, { target: { value: "Launch checklist" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add checklist" }));
+
+    await waitFor(() => {
+      expect(createChecklistMock).toHaveBeenCalledWith("card-1", { title: "Launch checklist" });
+    });
+
+    expect(await screen.findByDisplayValue("Launch checklist")).toBeInTheDocument();
   });
 
   it("deletes a card after confirmation", async () => {

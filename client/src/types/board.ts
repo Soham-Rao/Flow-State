@@ -21,6 +21,27 @@ export interface BoardSummary {
   listCount: number;
 }
 
+
+export interface ChecklistItem {
+  id: string;
+  checklistId: string;
+  title: string;
+  isDone: boolean;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Checklist {
+  id: string;
+  cardId: string;
+  title: string;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+  items: ChecklistItem[];
+}
+
 export interface BoardCard {
   id: string;
   listId: string;
@@ -34,6 +55,7 @@ export interface BoardCard {
   doneEnteredAt: string | null;
   createdAt: string;
   updatedAt: string;
+  checklists: Checklist[];
 }
 
 export interface BoardList {

@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-03-12
+> Last updated: 2026-03-13
 
 ---
 
@@ -265,7 +265,10 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 3.1: Card Backend APIs & Rules | ✅ Completed | 2026-03-12 | 2026-03-12 | Card CRUD + move endpoints/services, done-list countdown transitions, and server integration tests (`server/tests/cards.test.ts`) |
 | Phase 3.2: Card Frontend UI & Drag-and-Drop | ✅ Completed | 2026-03-12 | 2026-03-12 | Board detail now renders cards, supports quick add, card modal edit/delete, and card DnD within and across lists with optimistic updates |
 | Phase 3.3: Card Tests & Docs | ✅ Completed | 2026-03-12 | 2026-03-12 | Added client card workflow tests and updated implementation checklists/progress docs; pending user-run test execution |
-| Phase 4: Task Features | ⬜ Not Started | — | — | — |
+| Phase 4: Task Features | 🟡 In Progress | 2026-03-12 | — | Split into sub-phases starting with checklists |
+| Phase 4.1: Checklists | ✅ Completed | 2026-03-12 | 2026-03-12 | Checklist data model + API, board card preview with collapsible progress, and card modal CRUD + progress |
+| Phase 4.2: Attachments | ⬜ Not Started | — | — | — |
+| Phase 4.3: Labels + Assignments + Cover Colors | ⬜ Not Started | — | — | — |
 | Phase 5: Team & Collaboration | ⬜ Not Started | — | — | — |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
@@ -343,3 +346,4 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Implemented Phase 3.1 backend card foundation: card schemas/routes, service methods for create/update/delete/move, board detail card hydration, done-list countdown transitions, and permissions for delete (admin or creator). |
 | 2026-03-12 | Implemented Phase 3.2 frontend card workflows on board detail: per-list card rendering, quick add, card edit modal (title/description/priority/due date), in-app card delete confirmation, and drag-and-drop within/across lists with optimistic state + rollback. |
 | 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |
+| 2026-03-12 | Phase 4.1 delivered: checklists data model + API, board card collapsible checklist previews with progress bars, card modal checklist CRUD, and new client/server checklist tests (user-run pending). |

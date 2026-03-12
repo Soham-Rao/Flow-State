@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-12 15:10:58 +05:30
+Last checkpoint update: 2026-03-13 01:00:55 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -8,27 +8,42 @@ Purpose: Resume from this exact project state, not from zero.
 - Phase status:
   - Phase 1.1, 1.2, 1.3: complete
   - Phase 2.1, 2.2, 2.3: complete
-  - Phase 3.1, 3.2, 3.3: implemented and documented
-  - Phase 3 overall: complete (user-run tests verified)
+  - Phase 3.1, 3.2, 3.3: complete (dnd-kit for cards)
+  - Phase 4: in progress
+  - Phase 4.1 (Checklists): implemented on server + client
 
-- Phase 3 implementation complete and verified:
-  - Backend card APIs + rules + move logic + permissions
-  - Frontend board card UI (create/edit/delete)
-  - Card modal (title, description, priority, due date)
-  - Card drag/drop in-list and cross-list with optimistic updates (dnd-kit)
-  - Frontend test file added for card flows
+- Phase 4.1 implementation highlights:
+  - Server schema: checklists + checklist_items tables with relations and test DB setup
+  - Server API: CRUD for checklists + items in `boards.route.ts`/`boards.service.ts`
+  - Client types + API: checklist support in `types/board.ts` and `boards-api.ts`
+  - UI: checklist preview on cards + full checklist CRUD in card modal
+
+- Recent UI/UX work:
+  - Card editor modal is scrollable with max height
+  - Sticky header in card modal with `Delete`, `Close`, `Save changes` actions
+  - Checklist items can be toggled directly in card previews
+  - Clicking checklist body (expanded) opens card editor + autoscrolls to that checklist
+  - `Esc` closes the card editor
+  - Header delete button now has `aria-label="Delete card"` to satisfy tests
+  - User confirmed all tests pass and checklist body click -> editor + autoscroll works
+
+- Test location change:
+  - Client tests moved from `client/src/...` to `client/tests/...`
+  - Added `client/tsconfig.test.json`
+  - Updated `client/vitest.config.ts` include globs
+  - Updated `client/package.json` lint to include tests
 
 ## 2) Resume-Next Priority
 
-Next priority:
-- Phase 4 planning and implementation (Task Features).
+- Phase 4.2: Attachments (upload + metadata + delete + modal UI).
+- Phase 4.3: Labels + Assignments + Cover Colors (board-level CRUD, assign to cards, filter/visuals).
 
 ## 3) User Preferences to Preserve on Resume
 
 - Package manager: Bun
 - Language: TypeScript for client and server
 - Monorepo style: plain workspaces (`client/`, `server/`)
-- Assistant should write tests but user runs tests
+- Assistant writes tests but user runs tests
 - Do not run tests unless user explicitly asks
 - Test cadence: after full phases (or every 2 full phases), not each subphase
 - Progress updates must be recorded in `Docs/context.md` at end of implementation cycles
@@ -72,39 +87,41 @@ Communication rules:
 Tracked modified files at checkpoint:
 - `Docs/context.md`
 - `Docs/instructions.md`
+- `Docs/resume.txt`
+- `client/package.json`
 - `client/src/lib/boards-api.ts`
 - `client/src/pages/boards/board-detail-page.tsx`
 - `client/src/types/board.ts`
+- `client/tsconfig.json`
+- `client/vitest.config.ts`
+- `server/src/db/init.ts`
+- `server/src/db/schema.ts`
 - `server/src/modules/boards/boards.route.ts`
 - `server/src/modules/boards/boards.schema.ts`
 - `server/src/modules/boards/boards.service.ts`
-- `server/data/flowstate.db-shm`
-- `server/data/flowstate.db-wal`
+- DB runtime artifacts (test db shm/wal files)
+
+Tracked deleted files at checkpoint:
+- `client/src/pages/home-page.test.tsx`
+- `client/src/pages/boards/board-detail-page.test.tsx`
 
 Untracked files at checkpoint:
-- `Docs/notes.txt`
-- `client/src/pages/boards/board-detail-page.test.tsx`
-- `server/tests/cards.test.ts`
+- `client/tests/`
+- `client/tsconfig.test.json`
+- `server/tests/checklists.test.ts`
+- `server/data/flowstate.checklists.test.db` (+ shm/wal)
 
 Note: db `-shm` and `-wal` files are runtime artifacts; do not delete without user intent.
 
 ## 7) Known Resume Risks / Attention Points
 
-- `client/src/pages/boards/board-detail-page.tsx` had large iterative edits. Lint and TypeScript check pass, but keep changes surgical going forward.
-- If UI regressions are reported, validate behavior in this order:
-  1. list edit/autosave focus behavior
-  2. card create/edit/delete
-  3. card drag/drop behavior
-  4. board autosave + Saved toast
+- Card modal UI recently restructured (sticky header + scrollable content). Verify actions remain accessible.
+- Checklist body click -> editor + scroll relies on `openCardEditor(card, checklistId)`; avoid clearing scroll target prematurely.
+- Tests are now in `client/tests/`; ensure tooling/lint includes that path.
 
-## 8) Immediate User-Facing Follow-up Item (from notes)
+## 8) Immediate User-Facing Follow-up Item
 
-User requested drag UX polish for cards:
-- Make dragged card less transparent (darker/more visible)
-- Improve drop affordance from only a blue line to space-making animation where cards shift
-- Show clearer drop-position preview matching final placement
-
-When implementing this, also provide exactly where to tweak opacity/animation values.
+- Start Phase 4.2: Attachments (server + client + UI).
 
 ## 9) Resume Command Pack
 
@@ -113,9 +130,7 @@ When implementing this, also provide exactly where to tweak opacity/animation va
 - Client typecheck:
   - `bunx tsc -b client/tsconfig.json`
 - User-run tests:
-  - `bun run --cwd server test`
   - `bun run --cwd client test`
+  - `bun run --cwd server test`
 
 This file is the resume checkpoint contract for continuing FlowState safely and quickly.
-
-

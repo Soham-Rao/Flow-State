@@ -6,6 +6,8 @@ import type {
   BoardList,
   BoardSummary,
   CardPriority,
+  Checklist,
+  ChecklistItem,
   MoveCardResult
 } from "@/types/board";
 
@@ -44,6 +46,24 @@ interface UpdateCardInput {
   priority?: CardPriority;
   dueDate?: string | null;
 }
+
+interface CreateChecklistInput {
+  title: string;
+}
+
+interface UpdateChecklistInput {
+  title?: string;
+}
+
+interface CreateChecklistItemInput {
+  title: string;
+}
+
+interface UpdateChecklistItemInput {
+  title?: string;
+  isDone?: boolean;
+}
+
 
 interface MoveCardInput {
   cardId: string;
@@ -148,5 +168,58 @@ export function moveCard(input: MoveCardInput): Promise<MoveCardResult> {
     method: "POST",
     auth: true,
     body: JSON.stringify(input)
+  });
+}
+
+
+export function createChecklist(cardId: string, input: CreateChecklistInput): Promise<Checklist> {
+  return apiRequest<Checklist>(`/boards/cards/${cardId}/checklists`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function updateChecklist(checklistId: string, input: UpdateChecklistInput): Promise<Checklist> {
+  return apiRequest<Checklist>(`/boards/checklists/${checklistId}`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function deleteChecklist(checklistId: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/boards/checklists/${checklistId}`, {
+    method: "DELETE",
+    auth: true
+  });
+}
+
+export function createChecklistItem(
+  checklistId: string,
+  input: CreateChecklistItemInput
+): Promise<ChecklistItem> {
+  return apiRequest<ChecklistItem>(`/boards/checklists/${checklistId}/items`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function updateChecklistItem(
+  itemId: string,
+  input: UpdateChecklistItemInput
+): Promise<ChecklistItem> {
+  return apiRequest<ChecklistItem>(`/boards/checklist-items/${itemId}`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function deleteChecklistItem(itemId: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/boards/checklist-items/${itemId}`, {
+    method: "DELETE",
+    auth: true
   });
 }

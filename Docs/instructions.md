@@ -122,14 +122,12 @@
 - `bun run dev:client`
 
 
+## Phase 4.1 Checklist - Checklists
 
-
-
-
-
-
-
-
-
-
+- [x] Added checklists + checklist items tables and indices.
+- [x] Implemented checklist CRUD services + API routes.
+- [x] Board detail hydration now includes checklists + items.
+- [x] Card modal checklist UI + board-view collapsible previews with progress bars.
+- [x] Client API + types updated for checklists.
+- [x] Added client + server checklist tests (user-run pending).
 

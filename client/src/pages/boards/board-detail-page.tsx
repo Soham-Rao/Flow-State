@@ -12,13 +12,12 @@ import {
 import {
   SortableContext,
   arrayMove,
-  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { CalendarClock, ChevronDown, ChevronUp, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, ChevronUp, GripVertical, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -29,18 +28,24 @@ import { Input } from "@/components/ui/input";
 import { boardBackgroundPresets, getBoardBackgroundClass, getBoardSurfaceClass } from "@/lib/board-backgrounds";
 import {
   createCard,
+  createChecklist,
+  createChecklistItem,
   createList,
   deleteBoard,
   deleteCard,
+  deleteChecklist,
+  deleteChecklistItem,
   deleteList,
   getBoardById,
   moveCard,
   reorderLists,
   updateBoard,
   updateCard,
+  updateChecklist,
+  updateChecklistItem,
   updateList
 } from "@/lib/boards-api";
-import type { BoardBackground, BoardCard, BoardDetail, BoardList, CardPriority } from "@/types/board";
+import type { BoardBackground, BoardCard, BoardDetail, BoardList, CardPriority, Checklist, ChecklistItem } from "@/types/board";
 
 interface BoardDraft {
   name: string;
@@ -62,8 +67,26 @@ const DONE_RETENTION_DAYS = 7;
 const DONE_RETENTION_MS = DONE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 
+function sortChecklistItems(items: ChecklistItem[]): ChecklistItem[] {
+  return [...items].sort((a, b) => a.position - b.position);
+}
+
+function sortChecklists(checklists: Checklist[]): Checklist[] {
+  return [...checklists]
+    .sort((a, b) => a.position - b.position)
+    .map((checklist) => ({
+      ...checklist,
+      items: sortChecklistItems(checklist.items ?? [])
+    }));
+}
+
 function sortCardsByPosition(cards: BoardCard[]): BoardCard[] {
-  return [...cards].sort((a, b) => a.position - b.position);
+  return [...cards]
+    .sort((a, b) => a.position - b.position)
+    .map((card) => ({
+      ...card,
+      checklists: sortChecklists(card.checklists ?? [])
+    }));
 }
 
 function sortListsByPosition(values: BoardList[]): BoardList[] {
@@ -138,6 +161,13 @@ function getTimeLeftLabel(doneEnteredAt: string, nowMs: number): string {
   return `${secondsLeft}s left`;
 }
 
+function getChecklistProgress(checklist: Checklist): { done: number; total: number; percent: number } {
+  const total = checklist.items?.length ?? 0;
+  const done = checklist.items?.filter((item) => item.isDone).length ?? 0;
+  const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+  return { done, total, percent };
+}
+
 function formatDueDateLabel(value: string | null): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -199,8 +229,38 @@ function getCardFromBoard(
 // ---------------------------------------------------------------------------
 // CardSummary — pure display, no drag logic
 // ---------------------------------------------------------------------------
-function CardSummary({ card, nowMs }: { card: BoardCard; nowMs: number }): JSX.Element {
+function CardSummary({
+  card,
+  nowMs,
+  showChecklists = true,
+  onChecklistItemToggle,
+  onChecklistOpen
+}: {
+  card: BoardCard;
+  nowMs: number;
+  showChecklists?: boolean;
+  onChecklistItemToggle?: (
+    cardId: string,
+    checklistId: string,
+    item: ChecklistItem,
+    nextValue: boolean
+  ) => void;
+  onChecklistOpen?: (card: BoardCard, checklistId: string) => void;
+}): JSX.Element {
   const dueLabel = formatDueDateLabel(card.dueDate);
+  const checklists = showChecklists ? card.checklists ?? [] : [];
+  const canToggleItems = Boolean(onChecklistItemToggle);
+  const handleChecklistBodyClick = (
+    event: React.MouseEvent<HTMLElement>,
+    checklistId: string
+  ): void => {
+    const target = event.target as HTMLElement;
+    if (target.closest("summary")) return;
+    if (target.closest("input, button, a")) return;
+    const details = target.closest("details") as HTMLDetailsElement | null;
+    if (details && !details.open) return;
+    onChecklistOpen?.(card, checklistId);
+  };
   return (
     <>
       <p className="line-clamp-2 text-sm font-medium text-foreground">{card.title}</p>
@@ -220,6 +280,81 @@ function CardSummary({ card, nowMs }: { card: BoardCard; nowMs: number }): JSX.E
           </span>
         )}
       </div>
+      {checklists.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {checklists.map((checklist) => {
+            const progress = getChecklistProgress(checklist);
+            return (
+              <details
+                key={checklist.id}
+                className="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5"
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                <summary className="flex cursor-pointer items-center justify-between text-[11px] font-medium text-muted-foreground">
+                  <span className="flex min-w-0 items-center gap-1">
+                    <ListChecks className="h-3 w-3" />
+                    <span className="truncate">{checklist.title}</span>
+                  </span>
+                  <span>{progress.done}/{progress.total}</span>
+                </summary>
+                <div
+                  className="mt-2 space-y-2"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleChecklistBodyClick(event, checklist.id);
+                  }}
+                >
+                  <div className="h-1.5 w-full rounded-full bg-muted/60">
+                    <div
+                      className="h-1.5 rounded-full bg-emerald-500/80"
+                      style={{ width: `${progress.percent}%` }}
+                    />
+                  </div>
+                  {checklist.items.length > 0 ? (
+                    <ul className="space-y-1 text-[11px] text-muted-foreground">
+                      {checklist.items.map((item) => (
+                        <li key={item.id} className="flex items-center gap-1.5">
+                          {canToggleItems ? (
+                            <input
+                              type="checkbox"
+                              className="mt-0.5 h-3.5 w-3.5 rounded border-muted-foreground/40 text-emerald-500"
+                              checked={item.isDone}
+                              onChange={(event) => {
+                                event.stopPropagation();
+                                onChecklistItemToggle?.(card.id, checklist.id, item, event.target.checked);
+                              }}
+                              onClick={(event) => event.stopPropagation()}
+                              aria-label={`Mark ${item.title} ${item.isDone ? "not done" : "done"}`}
+                            />
+                          ) : (
+                            <span
+                              className={`inline-flex h-3 w-3 items-center justify-center rounded-sm border ${
+                                item.isDone
+                                  ? "border-emerald-500/80 bg-emerald-500/80 text-white"
+                                  : "border-muted-foreground/40"
+                              }`}
+                            >
+                              {item.isDone && <Check className="h-2 w-2" />}
+                            </span>
+                          )}
+                          <span className={item.isDone ? "line-through text-muted-foreground/70" : ""}>
+                            {item.title}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">No items yet.</p>
+                  )}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
@@ -230,13 +365,20 @@ function CardSummary({ card, nowMs }: { card: BoardCard; nowMs: number }): JSX.E
 function SortableCard({
   card,
   onEdit,
-  onDeleteRequest,
   nowMs,
+  onChecklistItemToggle,
+  onChecklistOpen,
 }: {
   card: BoardCard;
   onEdit: (card: BoardCard) => void;
-  onDeleteRequest: (card: BoardCard) => void;
   nowMs: number;
+  onChecklistItemToggle?: (
+    cardId: string,
+    checklistId: string,
+    item: ChecklistItem,
+    nextValue: boolean
+  ) => void;
+  onChecklistOpen?: (card: BoardCard, checklistId: string) => void;
 }): JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
 
@@ -266,7 +408,7 @@ function SortableCard({
             }
           }}
         >
-          <CardSummary card={card} nowMs={nowMs} />
+          <CardSummary card={card} nowMs={nowMs} onChecklistItemToggle={onChecklistItemToggle} onChecklistOpen={onChecklistOpen} />
         </div>
 
         {/* Drag handle — only this area initiates drag */}
@@ -327,10 +469,17 @@ export function BoardDetailPage(): JSX.Element {
   const [cardDraft, setCardDraft] = useState<CardDraft | null>(null);
   const [isCardSaving, setIsCardSaving] = useState(false);
 
+  const [newChecklistTitle, setNewChecklistTitle] = useState("");
+  const [newChecklistItemTitles, setNewChecklistItemTitles] = useState<Record<string, string>>({});
+  const [checklistTitleDrafts, setChecklistTitleDrafts] = useState<Record<string, string>>({});
+  const [checklistItemTitleDrafts, setChecklistItemTitleDrafts] = useState<Record<string, string>>({});
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeleteBoardOpen, setIsDeleteBoardOpen] = useState(false);
   const [listToDelete, setListToDelete] = useState<BoardList | null>(null);
   const [cardToDelete, setCardToDelete] = useState<BoardCard | null>(null);
+  const [checklistToDelete, setChecklistToDelete] = useState<Checklist | null>(null);
+  const [checklistItemToDelete, setChecklistItemToDelete] = useState<{ item: ChecklistItem; cardId: string } | null>(null);
+  const [scrollToChecklistId, setScrollToChecklistId] = useState<string | null>(null);
 
   // List drag (HTML5 DnD — kept as-is since it works)
   const [draggingListId, setDraggingListId] = useState<string | null>(null);
@@ -348,6 +497,7 @@ export function BoardDetailPage(): JSX.Element {
   const autoSaveTimeoutRef = useRef<number | null>(null);
   const listAutoSaveTimeoutsRef = useRef<Record<string, number>>({});
   const listInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const checklistSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const savedShowTimeoutRef = useRef<number | null>(null);
   const savedHideTimeoutRef = useRef<number | null>(null);
 
@@ -373,6 +523,11 @@ export function BoardDetailPage(): JSX.Element {
   const selectedCardWithList = useMemo(
     () => getCardFromBoard(board, selectedCardId),
     [board, selectedCardId]
+  );
+
+  const selectedCardChecklists = useMemo(
+    () => selectedCardWithList?.card.checklists ?? [],
+    [selectedCardWithList]
   );
 
   // The card currently being dragged (for the DragOverlay ghost)
@@ -464,6 +619,49 @@ export function BoardDetailPage(): JSX.Element {
     });
   }, []);
 
+  const updateCardInBoard = useCallback((cardId: string, updater: (card: BoardCard) => BoardCard): void => {
+    setBoard((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        lists: current.lists.map((list) => ({
+          ...list,
+          cards: list.cards.map((card) => (card.id === cardId ? updater(card) : card))
+        }))
+      };
+    });
+  }, []);
+
+  const updateCardChecklists = useCallback(
+    (cardId: string, updater: (checklists: Checklist[]) => Checklist[]): void => {
+      updateCardInBoard(cardId, (card) => ({
+        ...card,
+        checklists: sortChecklists(updater(card.checklists ?? []))
+      }));
+    },
+    [updateCardInBoard]
+  );
+
+  const updateChecklistInCard = useCallback(
+    (cardId: string, checklistId: string, updater: (checklist: Checklist) => Checklist): void => {
+      updateCardChecklists(cardId, (checklists) =>
+        checklists.map((checklist) => (checklist.id === checklistId ? updater(checklist) : checklist))
+      );
+    },
+    [updateCardChecklists]
+  );
+
+  const updateChecklistItemsInCard = useCallback(
+    (cardId: string, checklistId: string, updater: (items: ChecklistItem[]) => ChecklistItem[]): void => {
+      updateChecklistInCard(cardId, checklistId, (checklist) => ({
+        ...checklist,
+        items: sortChecklistItems(updater(checklist.items ?? []))
+      }));
+    },
+    [updateChecklistInCard]
+  );
+
+
   const loadBoard = useCallback(async (): Promise<void> => {
     if (!boardId) return;
     setLoading(true);
@@ -499,6 +697,12 @@ export function BoardDetailPage(): JSX.Element {
     if (!selectedCardWithList) {
       setSelectedCardId(null);
       setCardDraft(null);
+      setNewChecklistTitle("");
+      setNewChecklistItemTitles({});
+      setChecklistTitleDrafts({});
+      setChecklistItemTitleDrafts({});
+      setChecklistToDelete(null);
+      setChecklistItemToDelete(null);
     }
   }, [selectedCardId, selectedCardWithList]);
 
@@ -900,15 +1104,203 @@ export function BoardDetailPage(): JSX.Element {
     }
   };
 
-  const openCardEditor = (card: BoardCard): void => {
+  const onCreateChecklist = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    if (!selectedCardWithList) return;
+    const title = newChecklistTitle.trim();
+    if (title.length < 1) { setError("Checklist title cannot be empty."); return; }
+    try {
+      const created = await createChecklist(selectedCardWithList.card.id, { title });
+      updateCardChecklists(selectedCardWithList.card.id, (checklists) => [...checklists, created]);
+      setNewChecklistTitle("");
+      setError(null);
+      triggerSavedNotice();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to create checklist");
+    }
+  };
+
+  const onSaveChecklistTitle = async (cardId: string, checklist: Checklist): Promise<void> => {
+    const draft = checklistTitleDrafts[checklist.id] ?? checklist.title;
+    const title = draft.trim();
+    if (title.length < 1) {
+      setChecklistTitleDrafts((current) => ({ ...current, [checklist.id]: checklist.title }));
+      setError("Checklist title cannot be empty.");
+      return;
+    }
+    if (title === checklist.title) return;
+    try {
+      const updated = await updateChecklist(checklist.id, { title });
+      updateChecklistInCard(cardId, checklist.id, () => updated);
+      setChecklistTitleDrafts((current) => ({ ...current, [checklist.id]: updated.title }));
+      setError(null);
+      triggerSavedNotice();
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Failed to update checklist");
+    }
+  };
+
+  const onDeleteChecklist = async (): Promise<void> => {
+    if (!checklistToDelete) return;
+    try {
+      await deleteChecklist(checklistToDelete.id);
+      updateCardChecklists(checklistToDelete.cardId, (checklists) =>
+        checklists.filter((checklist) => checklist.id !== checklistToDelete.id)
+      );
+      setChecklistTitleDrafts((current) => {
+        const next = { ...current };
+        delete next[checklistToDelete.id];
+        return next;
+      });
+      setChecklistItemTitleDrafts((current) => {
+        const next = { ...current };
+        checklistToDelete.items.forEach((item) => {
+          delete next[item.id];
+        });
+        return next;
+      });
+      setNewChecklistItemTitles((current) => {
+        const next = { ...current };
+        delete next[checklistToDelete.id];
+        return next;
+      });
+      setChecklistToDelete(null);
+      setError(null);
+      triggerSavedNotice();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete checklist");
+    }
+  };
+
+  const onCreateChecklistItem = async (
+    cardId: string,
+    checklistId: string,
+    event: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
+    event.preventDefault();
+    const title = (newChecklistItemTitles[checklistId] ?? "").trim();
+    if (title.length < 1) { setError("Checklist item cannot be empty."); return; }
+    try {
+      const created = await createChecklistItem(checklistId, { title });
+      updateChecklistItemsInCard(cardId, checklistId, (items) => [...items, created]);
+      setNewChecklistItemTitles((current) => ({ ...current, [checklistId]: "" }));
+      setError(null);
+      triggerSavedNotice();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to create checklist item");
+    }
+  };
+
+  const onSaveChecklistItemTitle = async (
+    cardId: string,
+    checklistId: string,
+    item: ChecklistItem
+  ): Promise<void> => {
+    const draft = checklistItemTitleDrafts[item.id] ?? item.title;
+    const title = draft.trim();
+    if (title.length < 1) {
+      setChecklistItemTitleDrafts((current) => ({ ...current, [item.id]: item.title }));
+      setError("Checklist item cannot be empty.");
+      return;
+    }
+    if (title === item.title) return;
+    try {
+      const updated = await updateChecklistItem(item.id, { title });
+      updateChecklistItemsInCard(cardId, checklistId, (items) =>
+        items.map((entry) => (entry.id === item.id ? updated : entry))
+      );
+      setChecklistItemTitleDrafts((current) => ({ ...current, [item.id]: updated.title }));
+      setError(null);
+      triggerSavedNotice();
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Failed to update checklist item");
+    }
+  };
+
+  const onToggleChecklistItem = async (
+    cardId: string,
+    checklistId: string,
+    item: ChecklistItem,
+    nextValue: boolean
+  ): Promise<void> => {
+    try {
+      const updated = await updateChecklistItem(item.id, { isDone: nextValue });
+      updateChecklistItemsInCard(cardId, checklistId, (items) =>
+        items.map((entry) => (entry.id === item.id ? updated : entry))
+      );
+      setError(null);
+      triggerSavedNotice();
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Failed to update checklist item");
+    }
+  };
+
+  const onDeleteChecklistItem = async (): Promise<void> => {
+    if (!checklistItemToDelete) return;
+    const { item, cardId } = checklistItemToDelete;
+    try {
+      await deleteChecklistItem(item.id);
+      updateChecklistItemsInCard(cardId, item.checklistId, (items) =>
+        items.filter((entry) => entry.id !== item.id)
+      );
+      setChecklistItemTitleDrafts((current) => {
+        const next = { ...current };
+        delete next[item.id];
+        return next;
+      });
+      setChecklistItemToDelete(null);
+      setError(null);
+      triggerSavedNotice();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete checklist item");
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedCardWithList || !cardDraft) return;
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeCardEditor();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedCardWithList, cardDraft]);
+
+  useEffect(() => {
+    if (!scrollToChecklistId || !selectedCardWithList || !cardDraft) return;
+    const target = checklistSectionRefs.current[scrollToChecklistId];
+    if (!target) return;
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    setScrollToChecklistId(null);
+  }, [scrollToChecklistId, selectedCardWithList, cardDraft]);
+
+  const openCardEditor = (card: BoardCard, checklistId?: string): void => {
     setSelectedCardId(card.id);
     setCardDraft(buildCardDraft(card));
+    setNewChecklistTitle("");
+    setNewChecklistItemTitles({});
+    setChecklistTitleDrafts({});
+    setChecklistItemTitleDrafts({});
+    setChecklistToDelete(null);
+    setChecklistItemToDelete(null);
+    setScrollToChecklistId(checklistId ?? null);
   };
 
   const closeCardEditor = (): void => {
     setSelectedCardId(null);
     setCardDraft(null);
     setIsCardSaving(false);
+    setNewChecklistTitle("");
+    setNewChecklistItemTitles({});
+    setChecklistTitleDrafts({});
+    setChecklistItemTitleDrafts({});
+    setChecklistToDelete(null);
+    setChecklistItemToDelete(null);
+    setScrollToChecklistId(null);
   };
 
   const onSaveCard = async (): Promise<void> => {
@@ -1149,8 +1541,9 @@ export function BoardDetailPage(): JSX.Element {
                                 key={card.id}
                                 card={card}
                                 onEdit={openCardEditor}
-                                onDeleteRequest={(c) => setCardToDelete(c)}
                                 nowMs={nowMs}
+                                onChecklistItemToggle={onToggleChecklistItem}
+                                onChecklistOpen={openCardEditor}
                               />
                             ))
                           )}
@@ -1184,7 +1577,7 @@ export function BoardDetailPage(): JSX.Element {
             <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>
               {activeCard ? (
                 <div className="rotate-1 rounded-md border border-border/70 bg-background px-3 py-2 shadow-2xl opacity-95 ring-2 ring-primary/30">
-                  <CardSummary card={activeCard} nowMs={nowMs} />
+                  <CardSummary card={activeCard} nowMs={nowMs} showChecklists={false} />
                 </div>
               ) : null}
             </DragOverlay>
@@ -1245,12 +1638,32 @@ export function BoardDetailPage(): JSX.Element {
       {/* Card editor modal */}
       {selectedCardWithList && cardDraft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
-              <CardTitle>Edit Card</CardTitle>
-              <CardDescription>{selectedCardWithList.list.name}</CardDescription>
+          <Card className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden">
+            <CardHeader className="sticky top-0 z-10 shrink-0 border-b border-border/60 bg-card/95 backdrop-blur">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Edit Card</CardTitle>
+                  <CardDescription>{selectedCardWithList.list.name}</CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={() => setCardToDelete(selectedCardWithList.card)}
+                    aria-label="Delete card"
+                  >
+                    <Trash2 className="mr-1 h-4 w-4" />
+                    Delete
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={closeCardEditor}>Close</Button>
+                  <Button type="button" onClick={() => void onSaveCard()} disabled={isCardSaving}>
+                    {isCardSaving ? "Saving..." : "Save changes"}
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Title</p>
                 <Input
@@ -1291,18 +1704,155 @@ export function BoardDetailPage(): JSX.Element {
                   />
                 </label>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button type="button" variant="ghost" className="text-red-600 hover:text-red-700"
-                  onClick={() => setCardToDelete(selectedCardWithList.card)}>
-                  <Trash2 className="mr-1 h-4 w-4" />
-                  Delete card
-                </Button>
-                <div className="flex gap-2">
-                  <Button type="button" variant="ghost" onClick={closeCardEditor}>Close</Button>
-                  <Button type="button" onClick={() => void onSaveCard()} disabled={isCardSaving}>
-                    {isCardSaving ? "Saving..." : "Save changes"}
-                  </Button>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <ListChecks className="h-4 w-4 text-muted-foreground" />
+                    Checklists
+                  </div>
                 </div>
+
+                {selectedCardChecklists.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No checklists yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedCardChecklists.map((checklist) => {
+                      const progress = getChecklistProgress(checklist);
+                      const title = checklistTitleDrafts[checklist.id] ?? checklist.title;
+                      return (
+                        <div
+                          key={checklist.id}
+                          ref={(node) => { checklistSectionRefs.current[checklist.id] = node; }}
+                          className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Input
+                              value={title}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setChecklistTitleDrafts((current) => ({ ...current, [checklist.id]: value }));
+                              }}
+                              onBlur={() => { void onSaveChecklistTitle(selectedCardWithList.card.id, checklist); }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") { event.preventDefault(); void onSaveChecklistTitle(selectedCardWithList.card.id, checklist); }
+                                if (event.key === "Escape") {
+                                  event.preventDefault();
+                                  setChecklistTitleDrafts((current) => ({ ...current, [checklist.id]: checklist.title }));
+                                }
+                              }}
+                              placeholder="Checklist title"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              onClick={() => setChecklistToDelete(checklist)}
+                              title="Delete checklist"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="h-1.5 w-full rounded-full bg-muted/60">
+                              <div
+                                className="h-1.5 rounded-full bg-emerald-500/80"
+                                style={{ width: `${progress.percent}%` }}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {progress.done}/{progress.total} complete
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            {checklist.items.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">No items yet.</p>
+                            ) : (
+                              checklist.items.map((item) => {
+                                const itemTitle = checklistItemTitleDrafts[item.id] ?? item.title;
+                                return (
+                                  <div key={item.id} className="flex items-start gap-2">
+                                    <input
+                                      type="checkbox"
+                                      className="mt-1 h-4 w-4"
+                                      checked={item.isDone}
+                                      onChange={(event) => {
+                                        void onToggleChecklistItem(
+                                          selectedCardWithList.card.id,
+                                          checklist.id,
+                                          item,
+                                          event.target.checked
+                                        );
+                                      }}
+                                    />
+                                    <Input
+                                      value={itemTitle}
+                                      onChange={(event) => {
+                                        const value = event.target.value;
+                                        setChecklistItemTitleDrafts((current) => ({ ...current, [item.id]: value }));
+                                      }}
+                                      onBlur={() => { void onSaveChecklistItemTitle(selectedCardWithList.card.id, checklist.id, item); }}
+                                      onKeyDown={(event) => {
+                                        if (event.key === "Enter") { event.preventDefault(); void onSaveChecklistItemTitle(selectedCardWithList.card.id, checklist.id, item); }
+                                        if (event.key === "Escape") {
+                                          event.preventDefault();
+                                          setChecklistItemTitleDrafts((current) => ({ ...current, [item.id]: item.title }));
+                                        }
+                                      }}
+                                      placeholder="Checklist item"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="mt-0.5 h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                      onClick={() => setChecklistItemToDelete({ item, cardId: selectedCardWithList.card.id })}
+                                      title="Delete item"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+
+                          <form
+                            className="grid gap-2 sm:grid-cols-[1fr_auto]"
+                            onSubmit={(event) => { void onCreateChecklistItem(selectedCardWithList.card.id, checklist.id, event); }}
+                          >
+                            <Input
+                              value={newChecklistItemTitles[checklist.id] ?? ""}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                setNewChecklistItemTitles((current) => ({ ...current, [checklist.id]: value }));
+                              }}
+                              placeholder="New checklist item"
+                            />
+                            <Button type="submit" className="gap-1">
+                              <Plus className="h-4 w-4" />
+                              Add item
+                            </Button>
+                          </form>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <form className="grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={onCreateChecklist}>
+                  <Input
+                    value={newChecklistTitle}
+                    onChange={(event) => setNewChecklistTitle(event.target.value)}
+                    placeholder="New checklist title"
+                  />
+                  <Button type="submit" className="gap-1">
+                    <Plus className="h-4 w-4" />
+                    Add checklist
+                  </Button>
+                </form>
               </div>
             </CardContent>
           </Card>
@@ -1330,6 +1880,22 @@ export function BoardDetailPage(): JSX.Element {
         confirmLabel="Delete" cancelLabel="Keep"
         onCancel={() => setCardToDelete(null)}
         onConfirm={() => { void onDeleteCard(); }}
+      />
+      <ConfirmDialog
+        open={checklistToDelete !== null}
+        title="Delete checklist"
+        description={`Delete "${checklistToDelete?.title ?? "this checklist"}"?`}
+        confirmLabel="Delete" cancelLabel="Keep"
+        onCancel={() => setChecklistToDelete(null)}
+        onConfirm={() => { void onDeleteChecklist(); }}
+      />
+      <ConfirmDialog
+        open={checklistItemToDelete !== null}
+        title="Delete checklist item"
+        description={`Delete "${checklistItemToDelete?.item.title ?? "this item"}"?`}
+        confirmLabel="Delete" cancelLabel="Keep"
+        onCancel={() => setChecklistItemToDelete(null)}
+        onConfirm={() => { void onDeleteChecklistItem(); }}
       />
       <ConfirmDialog
         open={listToDelete !== null}

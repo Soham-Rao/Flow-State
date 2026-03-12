@@ -56,6 +56,29 @@ export const cards = sqliteTable("cards", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
 });
+export const checklists = sqliteTable("checklists", {
+  id: text("id").primaryKey(),
+  cardId: text("card_id")
+    .notNull()
+    .references(() => cards.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  position: integer("position").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
+export const checklistItems = sqliteTable("checklist_items", {
+  id: text("id").primaryKey(),
+  checklistId: text("checklist_id")
+    .notNull()
+    .references(() => checklists.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  isDone: integer("is_done", { mode: "boolean" }).notNull().default(false),
+  position: integer("position").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
 
 export const usersRelations = relations(users, ({ many }) => ({
   boards: many(boards),
@@ -78,7 +101,7 @@ export const listsRelations = relations(lists, ({ one, many }) => ({
   cards: many(cards)
 }));
 
-export const cardsRelations = relations(cards, ({ one }) => ({
+export const cardsRelations = relations(cards, ({ one, many }) => ({
   list: one(lists, {
     fields: [cards.listId],
     references: [lists.id]
@@ -86,6 +109,22 @@ export const cardsRelations = relations(cards, ({ one }) => ({
   creator: one(users, {
     fields: [cards.createdBy],
     references: [users.id]
+  }),
+  checklists: many(checklists)
+}));
+
+export const checklistsRelations = relations(checklists, ({ one, many }) => ({
+  card: one(cards, {
+    fields: [checklists.cardId],
+    references: [cards.id]
+  }),
+  items: many(checklistItems)
+}));
+
+export const checklistItemsRelations = relations(checklistItems, ({ one }) => ({
+  checklist: one(checklists, {
+    fields: [checklistItems.checklistId],
+    references: [checklists.id]
   })
 }));
 

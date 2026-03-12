@@ -1,18 +1,22 @@
 import crypto from "node:crypto";
 
-import { and, asc, count, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { boards, cards, lists, type UserRole } from "../../db/schema.js";
+import { boards, cards, checklists, checklistItems, lists, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type {
   CreateBoardInput,
   CreateCardInput,
+  CreateChecklistInput,
+  CreateChecklistItemInput,
   CreateListInput,
   MoveCardInput,
   ReorderListsInput,
   UpdateBoardInput,
   UpdateCardInput,
+  UpdateChecklistInput,
+  UpdateChecklistItemInput,
   UpdateListInput
 } from "./boards.schema.js";
 
@@ -27,7 +31,7 @@ interface BoardSummary {
   listCount: number;
 }
 
-export interface BoardCard {
+interface CardRecord {
   id: string;
   listId: string;
   title: string;
@@ -40,6 +44,30 @@ export interface BoardCard {
   doneEnteredAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+interface BoardChecklistItem {
+  id: string;
+  checklistId: string;
+  title: string;
+  isDone: boolean;
+  position: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface BoardChecklist {
+  id: string;
+  cardId: string;
+  title: string;
+  position: number;
+  createdAt: Date;
+  updatedAt: Date;
+  items: BoardChecklistItem[];
+}
+
+export interface BoardCard extends CardRecord {
+  checklists: BoardChecklist[];
 }
 
 interface BoardList {
@@ -127,7 +155,7 @@ function assertListExists(listId: string): ListRecord {
   return list;
 }
 
-function assertCardExists(cardId: string): BoardCard {
+function assertCardExists(cardId: string): CardRecord {
   const card = db
     .select({
       id: cards.id,
@@ -152,11 +180,169 @@ function assertCardExists(cardId: string): BoardCard {
     throw new ApiError(404, "Card not found");
   }
 
-  return card as BoardCard;
+  return card as CardRecord;
 }
 
+function assertChecklistExists(checklistId: string): { id: string; cardId: string } {
+  const checklist = db
+    .select({ id: checklists.id, cardId: checklists.cardId })
+    .from(checklists)
+    .where(eq(checklists.id, checklistId))
+    .limit(1)
+    .get();
+
+  if (!checklist) {
+    throw new ApiError(404, "Checklist not found");
+  }
+
+  return checklist;
+}
+
+function assertChecklistItemExists(itemId: string): { id: string; checklistId: string } {
+  const item = db
+    .select({ id: checklistItems.id, checklistId: checklistItems.checklistId })
+    .from(checklistItems)
+    .where(eq(checklistItems.id, itemId))
+    .limit(1)
+    .get();
+
+  if (!item) {
+    throw new ApiError(404, "Checklist item not found");
+  }
+
+  return item;
+}
+
+function getChecklistItemsForChecklists(checklistIds: string[]): Map<string, BoardChecklistItem[]> {
+  if (checklistIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      id: checklistItems.id,
+      checklistId: checklistItems.checklistId,
+      title: checklistItems.title,
+      isDone: checklistItems.isDone,
+      position: checklistItems.position,
+      createdAt: checklistItems.createdAt,
+      updatedAt: checklistItems.updatedAt
+    })
+    .from(checklistItems)
+    .where(inArray(checklistItems.checklistId, checklistIds))
+    .orderBy(asc(checklistItems.position), asc(checklistItems.createdAt))
+    .all() as BoardChecklistItem[];
+
+  const itemsByChecklistId = new Map<string, BoardChecklistItem[]>();
+  for (const item of rows) {
+    const items = itemsByChecklistId.get(item.checklistId) ?? [];
+    items.push(item);
+    itemsByChecklistId.set(item.checklistId, items);
+  }
+
+  return itemsByChecklistId;
+}
+
+function getChecklistsForCards(cardIds: string[]): Map<string, BoardChecklist[]> {
+  if (cardIds.length === 0) {
+    return new Map();
+  }
+
+  const checklistRows = db
+    .select({
+      id: checklists.id,
+      cardId: checklists.cardId,
+      title: checklists.title,
+      position: checklists.position,
+      createdAt: checklists.createdAt,
+      updatedAt: checklists.updatedAt
+    })
+    .from(checklists)
+    .where(inArray(checklists.cardId, cardIds))
+    .orderBy(asc(checklists.position), asc(checklists.createdAt))
+    .all() as Array<Omit<BoardChecklist, "items">>;
+
+  if (checklistRows.length === 0) {
+    return new Map();
+  }
+
+  const checklistIds = checklistRows.map((row) => row.id);
+  const itemsByChecklistId = getChecklistItemsForChecklists(checklistIds);
+
+  const checklistsByCardId = new Map<string, BoardChecklist[]>();
+  for (const checklist of checklistRows) {
+    const items = itemsByChecklistId.get(checklist.id) ?? [];
+    const cardLists = checklistsByCardId.get(checklist.cardId) ?? [];
+    cardLists.push({ ...checklist, items });
+    checklistsByCardId.set(checklist.cardId, cardLists);
+  }
+
+  return checklistsByCardId;
+}
+
+function attachChecklistsToCards(cards: CardRecord[]): BoardCard[] {
+  const cardIds = cards.map((card) => card.id);
+  const checklistsByCardId = getChecklistsForCards(cardIds);
+
+  return cards.map((card) => ({
+    ...card,
+    checklists: checklistsByCardId.get(card.id) ?? []
+  }));
+}
+
+function getChecklistById(checklistId: string): BoardChecklist {
+  const checklist = db
+    .select({
+      id: checklists.id,
+      cardId: checklists.cardId,
+      title: checklists.title,
+      position: checklists.position,
+      createdAt: checklists.createdAt,
+      updatedAt: checklists.updatedAt
+    })
+    .from(checklists)
+    .where(eq(checklists.id, checklistId))
+    .limit(1)
+    .get();
+
+  if (!checklist) {
+    throw new ApiError(404, "Checklist not found");
+  }
+
+  const items = getChecklistItemsForChecklists([checklist.id]).get(checklist.id) ?? [];
+
+  return {
+    ...checklist,
+    items
+  };
+}
+
+function getChecklistItemById(itemId: string): BoardChecklistItem {
+  const item = db
+    .select({
+      id: checklistItems.id,
+      checklistId: checklistItems.checklistId,
+      title: checklistItems.title,
+      isDone: checklistItems.isDone,
+      position: checklistItems.position,
+      createdAt: checklistItems.createdAt,
+      updatedAt: checklistItems.updatedAt
+    })
+    .from(checklistItems)
+    .where(eq(checklistItems.id, itemId))
+    .limit(1)
+    .get();
+
+  if (!item) {
+    throw new ApiError(404, "Checklist item not found");
+  }
+
+  return item as BoardChecklistItem;
+}
+
+
 function getCardsForList(listId: string): BoardCard[] {
-  return db
+  const rows = db
     .select({
       id: cards.id,
       listId: cards.listId,
@@ -174,12 +360,14 @@ function getCardsForList(listId: string): BoardCard[] {
     .from(cards)
     .where(and(eq(cards.listId, listId), isNull(cards.archivedAt)))
     .orderBy(asc(cards.position), asc(cards.createdAt))
-    .all() as BoardCard[];
+    .all() as CardRecord[];
+
+  return attachChecklistsToCards(rows);
 }
 
 function getCardById(cardId: string): BoardCard {
   const card = assertCardExists(cardId);
-  return card;
+  return attachChecklistsToCards([card])[0];
 }
 
 export function getBoards(): BoardSummary[] {
@@ -249,7 +437,7 @@ export function getBoardById(boardId: string): BoardDetail {
     .orderBy(asc(lists.position), asc(lists.createdAt))
     .all();
 
-  const boardCards = db
+  const boardCardRows = db
     .select({
       id: cards.id,
       listId: cards.listId,
@@ -268,7 +456,9 @@ export function getBoardById(boardId: string): BoardDetail {
     .innerJoin(lists, eq(cards.listId, lists.id))
     .where(and(eq(lists.boardId, boardId), isNull(cards.archivedAt)))
     .orderBy(asc(cards.position), asc(cards.createdAt))
-    .all() as BoardCard[];
+    .all() as CardRecord[];
+
+  const boardCards = attachChecklistsToCards(boardCardRows);
 
   const cardsByListId = new Map<string, BoardCard[]>();
   for (const card of boardCards) {
@@ -582,6 +772,122 @@ export function updateCard(cardId: string, input: UpdateCardInput): BoardCard {
   return getCardById(cardId);
 }
 
+
+export function createChecklist(cardId: string, input: CreateChecklistInput): BoardChecklist {
+  assertCardExists(cardId);
+
+  const maxPositionRow = db
+    .select({ maxPosition: sql<number>`coalesce(max(${checklists.position}), -1)` })
+    .from(checklists)
+    .where(eq(checklists.cardId, cardId))
+    .get();
+
+  const now = new Date();
+  const checklistId = crypto.randomUUID();
+
+  db.insert(checklists)
+    .values({
+      id: checklistId,
+      cardId,
+      title: input.title.trim(),
+      position: (maxPositionRow?.maxPosition ?? -1) + 1,
+      createdAt: now,
+      updatedAt: now
+    })
+    .run();
+
+  return getChecklistById(checklistId);
+}
+
+export function updateChecklist(checklistId: string, input: UpdateChecklistInput): BoardChecklist {
+  assertChecklistExists(checklistId);
+
+  const updatePayload: {
+    title?: string;
+    updatedAt: Date;
+  } = {
+    updatedAt: new Date()
+  };
+
+  if (input.title !== undefined) {
+    updatePayload.title = input.title.trim();
+  }
+
+  db.update(checklists).set(updatePayload).where(eq(checklists.id, checklistId)).run();
+
+  return getChecklistById(checklistId);
+}
+
+export function deleteChecklist(checklistId: string): void {
+  const result = db.delete(checklists).where(eq(checklists.id, checklistId)).run();
+
+  if (result.changes === 0) {
+    throw new ApiError(404, "Checklist not found");
+  }
+}
+
+export function createChecklistItem(
+  checklistId: string,
+  input: CreateChecklistItemInput
+): BoardChecklistItem {
+  assertChecklistExists(checklistId);
+
+  const maxPositionRow = db
+    .select({ maxPosition: sql<number>`coalesce(max(${checklistItems.position}), -1)` })
+    .from(checklistItems)
+    .where(eq(checklistItems.checklistId, checklistId))
+    .get();
+
+  const now = new Date();
+  const itemId = crypto.randomUUID();
+
+  db.insert(checklistItems)
+    .values({
+      id: itemId,
+      checklistId,
+      title: input.title.trim(),
+      isDone: false,
+      position: (maxPositionRow?.maxPosition ?? -1) + 1,
+      createdAt: now,
+      updatedAt: now
+    })
+    .run();
+
+  return getChecklistItemById(itemId);
+}
+
+export function updateChecklistItem(itemId: string, input: UpdateChecklistItemInput): BoardChecklistItem {
+  assertChecklistItemExists(itemId);
+
+  const updatePayload: {
+    title?: string;
+    isDone?: boolean;
+    updatedAt: Date;
+  } = {
+    updatedAt: new Date()
+  };
+
+  if (input.title !== undefined) {
+    updatePayload.title = input.title.trim();
+  }
+
+  if (input.isDone !== undefined) {
+    updatePayload.isDone = input.isDone;
+  }
+
+  db.update(checklistItems).set(updatePayload).where(eq(checklistItems.id, itemId)).run();
+
+  return getChecklistItemById(itemId);
+}
+
+export function deleteChecklistItem(itemId: string): void {
+  const result = db.delete(checklistItems).where(eq(checklistItems.id, itemId)).run();
+
+  if (result.changes === 0) {
+    throw new ApiError(404, "Checklist item not found");
+  }
+}
+
 export function deleteCard(cardId: string, requesterUserId: string, requesterRole: UserRole): void {
   const existing = assertCardExists(cardId);
 
@@ -604,7 +910,7 @@ export function moveCard(input: MoveCardInput): MoveCardResult {
     throw new ApiError(400, "Source and destination lists must belong to the same board");
   }
 
-  const movingCard = assertCardExists(input.cardId);
+  const movingCard = getCardById(input.cardId);
 
   if (movingCard.listId !== sourceList.id) {
     throw new ApiError(400, "Card does not belong to the provided source list");

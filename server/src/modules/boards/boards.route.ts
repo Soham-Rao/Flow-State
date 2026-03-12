@@ -4,9 +4,13 @@ import { requireAuth } from "../../middleware/require-auth.js";
 import {
   createBoard,
   createCard,
+  createChecklist,
+  createChecklistItem,
   createList,
   deleteBoard,
   deleteCard,
+  deleteChecklist,
+  deleteChecklistItem,
   deleteList,
   getBoardById,
   getBoards,
@@ -14,16 +18,22 @@ import {
   reorderLists,
   updateBoard,
   updateCard,
+  updateChecklist,
+  updateChecklistItem,
   updateList
 } from "./boards.service.js";
 import {
   createBoardSchema,
   createCardSchema,
+  createChecklistItemSchema,
+  createChecklistSchema,
   createListSchema,
   moveCardSchema,
   reorderListsSchema,
   updateBoardSchema,
   updateCardSchema,
+  updateChecklistItemSchema,
+  updateChecklistSchema,
   updateListSchema
 } from "./boards.schema.js";
 
@@ -203,6 +213,92 @@ boardsRouter.delete("/cards/:cardId", (req, res, next) => {
       success: true,
       data: {
         message: "Card deleted"
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/cards/:cardId/checklists", (req, res, next) => {
+  try {
+    const body = createChecklistSchema.parse(req.body);
+    const data = createChecklist(req.params.cardId, body);
+
+    res.status(201).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.patch("/checklists/:checklistId", (req, res, next) => {
+  try {
+    const body = updateChecklistSchema.parse(req.body);
+    const data = updateChecklist(req.params.checklistId, body);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.delete("/checklists/:checklistId", (req, res, next) => {
+  try {
+    deleteChecklist(req.params.checklistId);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: "Checklist deleted"
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/checklists/:checklistId/items", (req, res, next) => {
+  try {
+    const body = createChecklistItemSchema.parse(req.body);
+    const data = createChecklistItem(req.params.checklistId, body);
+
+    res.status(201).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.patch("/checklist-items/:itemId", (req, res, next) => {
+  try {
+    const body = updateChecklistItemSchema.parse(req.body);
+    const data = updateChecklistItem(req.params.itemId, body);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.delete("/checklist-items/:itemId", (req, res, next) => {
+  try {
+    deleteChecklistItem(req.params.itemId);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: "Checklist item deleted"
       }
     });
   } catch (error) {

@@ -51,14 +51,40 @@ export function initializeDatabase(): void {
       FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS checklists (
+      id TEXT PRIMARY KEY,
+      card_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS checklist_items (
+      id TEXT PRIMARY KEY,
+      checklist_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      is_done INTEGER NOT NULL DEFAULT 0,
+      position INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (checklist_id) REFERENCES checklists(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_lists_board_id ON lists(board_id);
     CREATE INDEX IF NOT EXISTS idx_cards_list_id ON cards(list_id);
     CREATE INDEX IF NOT EXISTS idx_cards_done_entered_at ON cards(done_entered_at);
+
+    CREATE INDEX IF NOT EXISTS idx_checklists_card_id ON checklists(card_id);
+    CREATE INDEX IF NOT EXISTS idx_checklist_items_checklist_id ON checklist_items(checklist_id);
   `);
 }
 
 export function clearDatabaseForTests(): void {
   sqlite.exec(`
+    DELETE FROM checklist_items;
+    DELETE FROM checklists;
     DELETE FROM cards;
     DELETE FROM lists;
     DELETE FROM boards;

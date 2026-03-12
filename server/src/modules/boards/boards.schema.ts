@@ -72,6 +72,32 @@ export const moveCardSchema = z.object({
   destinationIndex: z.number().int().min(0)
 });
 
+
+export const createChecklistSchema = z.object({
+  title: z.string().trim().min(1).max(120)
+});
+
+export const updateChecklistSchema = z
+  .object({
+    title: z.string().trim().min(1).max(120).optional()
+  })
+  .refine((value) => value.title !== undefined, {
+    message: "At least one field is required"
+  });
+
+export const createChecklistItemSchema = z.object({
+  title: z.string().trim().min(1).max(200)
+});
+
+export const updateChecklistItemSchema = z
+  .object({
+    title: z.string().trim().min(1).max(200).optional(),
+    isDone: z.boolean().optional()
+  })
+  .refine((value) => value.title !== undefined || value.isDone !== undefined, {
+    message: "At least one field is required"
+  });
+
 export type CreateBoardInput = z.infer<typeof createBoardSchema>;
 export type UpdateBoardInput = z.infer<typeof updateBoardSchema>;
 export type CreateListInput = z.infer<typeof createListSchema>;
@@ -79,5 +105,9 @@ export type UpdateListInput = z.infer<typeof updateListSchema>;
 export type ReorderListsInput = z.infer<typeof reorderListsSchema>;
 
 export type CreateCardInput = z.infer<typeof createCardSchema>;
+export type CreateChecklistInput = z.infer<typeof createChecklistSchema>;
+export type CreateChecklistItemInput = z.infer<typeof createChecklistItemSchema>;
 export type UpdateCardInput = z.infer<typeof updateCardSchema>;
+export type UpdateChecklistInput = z.infer<typeof updateChecklistSchema>;
+export type UpdateChecklistItemInput = z.infer<typeof updateChecklistItemSchema>;
 export type MoveCardInput = z.infer<typeof moveCardSchema>;
