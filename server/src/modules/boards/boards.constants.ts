@@ -1,9 +1,12 @@
 export const boardBackgrounds = [
   "teal-gradient",
-  "sunset-grid",
   "ocean-glow",
   "slate-minimal",
-  "ember-horizon"
+  "ember-horizon",
+  "mint-breeze",
+  "rose-aurora",
+  "cobalt-dawn",
+  "sunset-grid"
 ] as const;
 
 export type BoardBackground = (typeof boardBackgrounds)[number];

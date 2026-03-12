@@ -46,7 +46,7 @@
 
 - [x] Added integration tests for boards module (`server/tests/boards.test.ts`).
 - [x] Lint/type/build checks pass for server.
-- [ ] User-run server tests pending.
+- [x] User-run server tests passed.
 
 ---
 
@@ -65,7 +65,24 @@
 
 - [x] Client lint passes.
 - [x] Client typecheck passes.
-- [ ] User-run client tests pending.
+- [x] User-run client tests passed.
+
+---
+
+## Phase 2.3 Checklist - UX Polish on Boards
+
+- [x] Replaced browser confirm prompts with in-app confirmation modals.
+- [x] Removed board interaction refresh/jump feel by avoiding full board refetch on each action.
+- [x] Added drag-and-drop list reordering on board detail page.
+- [x] Moved board settings to a collapsible section at the bottom.
+- [x] Made board background preview update live while selecting settings.
+- [x] Applied selected board gradient to the full board content area (excluding sidebar and top header), only while viewing that board.
+- [x] Removed `sunset-grid` from selectable presets and added additional smooth gradient options.
+- [x] Converted board settings to debounced autosave (no Save button; avoids save-on-every-keystroke).
+- [x] Kept delayed floating Saved confirmation and inline Saving... status for board settings.
+- [x] Switched list-name editing to pencil-toggle mode with debounced autosave (no list Save button).
+- [x] Prevented edit focus scroll jump and made editor auto-close on Enter or blur/click-away.
+- [x] Moved list delete action next to edit as a red trash icon button (same delete behavior).
 
 ---
 
@@ -78,3 +95,13 @@
 
 - `bun run dev:server`
 - `bun run dev:client`
+
+
+
+
+
+
+
+
+
+

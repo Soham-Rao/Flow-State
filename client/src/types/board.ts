@@ -1,9 +1,12 @@
 export type BoardBackground =
   | "teal-gradient"
-  | "sunset-grid"
   | "ocean-glow"
   | "slate-minimal"
-  | "ember-horizon";
+  | "ember-horizon"
+  | "mint-breeze"
+  | "rose-aurora"
+  | "cobalt-dawn"
+  | "sunset-grid";
 
 export interface BoardSummary {
   id: string;

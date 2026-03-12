@@ -259,7 +259,8 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 1.2: Database Schema & JWT Auth | ✅ Completed | 2026-03-12 | 2026-03-12 | Drizzle+SQLite core schema and JWT auth routes implemented; user-run runtime/tests verified |
 | Phase 1.3: Auth UI & Layout Shell | ✅ Completed | 2026-03-12 | 2026-03-12 | Auth flow wired to backend with Zustand store/guards; login/register payload validation UX fixed and user-verified |
 | Phase 2.1: Board & List Backend APIs | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards/lists CRUD + reorder APIs, default lists on board creation, boards module integration tests added |
-| Phase 2.2: Board & List Frontend UI | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards page, board detail page, background presets, list management UI and routing/navigation updates implemented; user-run tests passed |
+| Phase 2.2: Board & List Frontend UI | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards UI complete with custom in-app confirmations, drag-and-drop list reorder, collapsible bottom settings, live background preview, board-scoped content gradients, and user-run tests passed |
+| Phase 2.3: Board UX & Autosave Polish | ✅ Completed | 2026-03-12 | 2026-03-12 | In-app confirmations, drag-drop list reorder, board-scoped gradients with new smooth presets, darker tuning, board settings debounced autosave, list-name debounced autosave with pencil edit mode, and delayed Saved feedback |
 | Phase 3: Card Management & DnD | ⬜ Not Started | — | — | — |
 | Phase 4: Task Features | ⬜ Not Started | — | — | — |
 | Phase 5: Team & Collaboration | ⬜ Not Started | — | — | — |
@@ -325,6 +326,14 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Implemented Phase 2.1 backend: new boards module (`/api/boards`) with board/list CRUD, list reorder endpoint, schema validation, and automatic default lists (To Do / In Progress / Done). Added `server/tests/boards.test.ts`. |
 | 2026-03-12 | Implemented Phase 2.2 frontend: `/boards` and `/boards/:boardId` pages with create/edit/delete board controls, background preset selection, list create/rename/delete/toggle/reorder, plus route and sidebar wiring. Client/server lint + type checks pass; user-run tests pending. |
 | 2026-03-12 | User ran the full test suite and confirmed all tests pass for Phase 2. Added router-aware HomePage unit test rendering (wrapped in `MemoryRouter`) after introducing `Link` usage. Phase 2.2 marked complete. |
-
-
+| 2026-03-12 | Phase 2 UX polish: replaced browser confirm prompts with in-app confirmation modals, removed board action refresh/jump behavior by using local state updates, added list drag-and-drop reordering, moved board settings to a collapsible bottom section, and made background preview update live while editing. |
+| 2026-03-12 | Phase 2 gradient polish: board content area now inherits selected board gradient while inside `/boards/:boardId` only (sidebar/header unchanged). Updated gradient presets to remove `sunset-grid` from selectable options and added smooth options (`mint-breeze`, `rose-aurora`, `cobalt-dawn`) with legacy `sunset-grid` compatibility retained for existing boards. |
+| 2026-03-12 | Phase 2 visual tuning: darkened board-surface gradients slightly for better board identity contrast and added inline tuning guidance in `client/src/lib/board-backgrounds.ts` (adjust linear alpha `0.90` for lighter/darker). |
+| 2026-03-12 | Phase 2 save-feedback polish: board settings now show explicit save feedback (Saving... while request is in flight and a floating Saved label on success) to reduce uncertainty about persisted changes. |
+| 2026-03-12 | Phase 2 autosave polish: removed manual Save board action and switched board settings (name, description, background) to debounced autosave (750ms pause). Added inline Saving... status and preserved delayed floating Saved confirmation after successful persistence. |
+| 2026-03-12 | Phase 2.3 completed summary: delivered board UX polish bundle including in-app confirmations, no-refresh interactions, drag-drop list ordering, board-only gradient backgrounds with expanded smooth presets, board and list debounced autosave flows, pencil-to-edit list names, and consistent delayed Saved confirmation feedback. |
+| 2026-03-12 | Phase 2 list-editor polish: entering list edit now focuses input without scroll reposition; editor closes on Enter and on blur/click-away while persisting pending debounced autosave changes. |
+| 2026-03-12 | Phase 2 list-editor stability fix: removed unintended board reload coupling when toggling list edit mode, eliminating page jump-to-top behavior on edit/save while keeping Enter/blur close-and-save flows. |
+| 2026-03-12 | Phase 2 focus-fix: resolved list-name editor regression where repeated focus/select on rerender replaced text each keystroke; editor now focuses once on open with caret at end and no repeated reselection. |
+| 2026-03-12 | Phase 2 list-delete UI tweak: moved per-list delete action from bottom text button to header icon row beside edit, using a red trash icon while preserving the same confirmation and delete flow. |
 
