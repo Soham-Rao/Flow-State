@@ -9,25 +9,19 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 1.1, 1.2, 1.3: complete
   - Phase 2.1, 2.2, 2.3: complete
   - Phase 3.1, 3.2, 3.3: implemented and documented
-  - Phase 3 overall: marked in-progress until user-run test verification is confirmed
+  - Phase 3 overall: complete (user-run tests verified)
 
-- Phase 3 implementation already done:
+- Phase 3 implementation complete and verified:
   - Backend card APIs + rules + move logic + permissions
   - Frontend board card UI (create/edit/delete)
   - Card modal (title, description, priority, due date)
-  - Card drag/drop in-list and cross-list with optimistic updates
+  - Card drag/drop in-list and cross-list with optimistic updates (dnd-kit)
   - Frontend test file added for card flows
 
 ## 2) Resume-Next Priority
 
-Pending user verification step:
-- User should run:
-  - `bun run --cwd server test`
-  - `bun run --cwd client test`
-
-After user shares results:
-- If tests pass: mark Phase 3 fully complete and proceed to Phase 4 planning.
-- If tests fail: fix failures first, then continue.
+Next priority:
+- Phase 4 planning and implementation (Task Features).
 
 ## 3) User Preferences to Preserve on Resume
 

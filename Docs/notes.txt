@@ -1,5 +1,3 @@
-when i drag tasks, their opacity is far too light, barely seen. make it darker and show me where i can edit this. also, when i do the drag and drop, i would like to see better animation, like instead of just a blue line appearing where it might be dropped, i would like to see the cards move up or down to make space for the card being dropped and the same low opacity card being dragged been shown where it might get dropped if i release the mouse then  
-
-test currently errors
 
 what about client tests, only server tests are being made rn 
+

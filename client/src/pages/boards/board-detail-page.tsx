@@ -1,3 +1,23 @@
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useDroppable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { CalendarClock, ChevronDown, ChevronUp, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -35,16 +55,6 @@ interface CardDraft {
   dueDate: string;
 }
 
-interface DraggingCardState {
-  cardId: string;
-  sourceListId: string;
-}
-
-interface CardDropTarget {
-  listId: string;
-  destinationIndex: number;
-}
-
 const AUTO_SAVE_DELAY_MS = 750;
 const SAVED_TOAST_SHOW_DELAY_MS = 250;
 const SAVED_TOAST_VISIBLE_MS = 1500;
@@ -79,55 +89,25 @@ function moveListIds(listIds: string[], sourceId: string, targetId: string): str
   return nextIds;
 }
 
-function clampIndex(value: number, min: number, max: number): number {
-  if (value < min) {
-    return min;
-  }
-
-  if (value > max) {
-    return max;
-  }
-
-  return value;
-}
-
 function formatDueDateForInput(value: string | null): string {
-  if (!value) {
-    return "";
-  }
-
+  if (!value) return "";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
+  if (Number.isNaN(date.getTime())) return "";
   const timezoneOffsetMs = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
 }
 
 function toIsoFromDateTimeInput(value: string): string | null {
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
+  if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
 }
 
 function formatDueDateLabel(value: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
+  if (Number.isNaN(date.getTime())) return null;
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
@@ -138,31 +118,21 @@ function formatDueDateLabel(value: string | null): string | null {
 
 function getPriorityBadgeClass(priority: CardPriority): string {
   switch (priority) {
-    case "low":
-      return "border-emerald-400/50 bg-emerald-100/75 text-emerald-900";
-    case "medium":
-      return "border-sky-400/50 bg-sky-100/75 text-sky-900";
-    case "high":
-      return "border-amber-400/50 bg-amber-100/75 text-amber-900";
-    case "urgent":
-      return "border-rose-400/50 bg-rose-100/75 text-rose-900";
-    default:
-      return "border-border bg-secondary text-secondary-foreground";
+    case "low":    return "border-emerald-400/50 bg-emerald-100/75 text-emerald-900";
+    case "medium": return "border-sky-400/50 bg-sky-100/75 text-sky-900";
+    case "high":   return "border-amber-400/50 bg-amber-100/75 text-amber-900";
+    case "urgent": return "border-rose-400/50 bg-rose-100/75 text-rose-900";
+    default:       return "border-border bg-secondary text-secondary-foreground";
   }
 }
 
 function getPriorityLabel(priority: CardPriority): string {
   switch (priority) {
-    case "low":
-      return "Low";
-    case "medium":
-      return "Medium";
-    case "high":
-      return "High";
-    case "urgent":
-      return "Urgent";
-    default:
-      return priority;
+    case "low":    return "Low";
+    case "medium": return "Medium";
+    case "high":   return "High";
+    case "urgent": return "Urgent";
+    default:       return priority;
   }
 }
 
@@ -184,20 +154,121 @@ function getCardFromBoard(
   board: BoardDetail | null,
   cardId: string | null
 ): { card: BoardCard; list: BoardList } | null {
-  if (!board || !cardId) {
-    return null;
-  }
-
+  if (!board || !cardId) return null;
   for (const list of board.lists) {
     const card = list.cards.find((item) => item.id === cardId);
-    if (card) {
-      return { card, list };
-    }
+    if (card) return { card, list };
   }
-
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// CardSummary — pure display, no drag logic
+// ---------------------------------------------------------------------------
+function CardSummary({ card }: { card: BoardCard }): JSX.Element {
+  const dueLabel = formatDueDateLabel(card.dueDate);
+  return (
+    <>
+      <p className="line-clamp-2 text-sm font-medium text-foreground">{card.title}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getPriorityBadgeClass(card.priority)}`}>
+          {getPriorityLabel(card.priority)}
+        </span>
+        {dueLabel && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-secondary/70 px-2 py-0.5 text-[11px] text-muted-foreground">
+            <CalendarClock className="h-3 w-3" />
+            {dueLabel}
+          </span>
+        )}
+        {card.doneEnteredAt && (
+          <span className="rounded-full border border-emerald-300/70 bg-emerald-50/80 px-2 py-0.5 text-[11px] text-emerald-700">
+            Done timer started
+          </span>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SortableCard — wraps a card with dnd-kit drag handle
+// ---------------------------------------------------------------------------
+function SortableCard({
+  card,
+  onEdit,
+  onDeleteRequest,
+}: {
+  card: BoardCard;
+  onEdit: (card: BoardCard) => void;
+  onDeleteRequest: (card: BoardCard) => void;
+}): JSX.Element {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} data-card-id={card.id}>
+      <div
+        className={`group flex items-start gap-2 rounded-md border border-border/70 bg-background/90 px-3 py-2 transition-all duration-150 ${
+          isDragging ? "opacity-30 ring-2 ring-primary/25 shadow-md" : "hover:shadow-sm"
+        }`}
+      >
+        {/* Clickable content area */}
+        <div
+          className="flex-1 min-w-0 cursor-pointer text-left"
+          role="button"
+          tabIndex={0}
+          aria-label={`Open card ${card.title}`}
+          onClick={() => onEdit(card)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onEdit(card);
+            }
+          }}
+        >
+          <CardSummary card={card} />
+        </div>
+
+        {/* Drag handle — only this area initiates drag */}
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="mt-0.5 shrink-0 cursor-grab active:cursor-grabbing rounded p-0.5 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100 touch-none"
+          tabIndex={-1}
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ListDropZone — makes an empty list accept drops
+// ---------------------------------------------------------------------------
+function ListDropZone({ listId }: { listId: string }): JSX.Element {
+  const { setNodeRef, isOver } = useDroppable({ id: listId });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground transition-colors ${
+        isOver ? "border-primary/50 bg-primary/5" : "border-border/50 bg-background/70"
+      }`}
+    >
+      {isOver ? "Drop here" : "No cards yet. Add one below."}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BoardDetailPage
+// ---------------------------------------------------------------------------
 export function BoardDetailPage(): JSX.Element {
   const { boardId } = useParams<{ boardId: string }>();
   const navigate = useNavigate();
@@ -225,11 +296,13 @@ export function BoardDetailPage(): JSX.Element {
   const [listToDelete, setListToDelete] = useState<BoardList | null>(null);
   const [cardToDelete, setCardToDelete] = useState<BoardCard | null>(null);
 
+  // List drag (HTML5 DnD — kept as-is since it works)
   const [draggingListId, setDraggingListId] = useState<string | null>(null);
   const [dragOverListId, setDragOverListId] = useState<string | null>(null);
 
-  const [draggingCard, setDraggingCard] = useState<DraggingCardState | null>(null);
-  const [cardDropTarget, setCardDropTarget] = useState<CardDropTarget | null>(null);
+  // Card drag (dnd-kit)
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const preDragListsRef = useRef<BoardList[] | null>(null);
 
   const [isAutosavingBoard, setIsAutosavingBoard] = useState(false);
   const [listSavingIds, setListSavingIds] = useState<Set<string>>(new Set());
@@ -240,34 +313,39 @@ export function BoardDetailPage(): JSX.Element {
   const listInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const savedShowTimeoutRef = useRef<number | null>(null);
   const savedHideTimeoutRef = useRef<number | null>(null);
-  const suppressCardClickRef = useRef(false);
 
   const lastSyncedBoardRef = useRef<BoardDraft | null>(null);
   const currentDraftBoardRef = useRef<BoardDraft | null>(null);
   const listSyncedNamesRef = useRef<Record<string, string>>({});
   const initializedBoardRef = useRef(false);
 
+  // dnd-kit sensors — require 5px movement so clicks still work normally
+  const cardSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
   const orderedLists = useMemo(() => {
     return board ? sortBoardListsWithCards(board.lists) : [];
   }, [board]);
 
-  const selectedCardWithList = useMemo(() => getCardFromBoard(board, selectedCardId), [board, selectedCardId]);
+  const selectedCardWithList = useMemo(
+    () => getCardFromBoard(board, selectedCardId),
+    [board, selectedCardId]
+  );
 
-  const activeBannerClass = useMemo(() => {
-    return getBoardBackgroundClass(boardBackground);
-  }, [boardBackground]);
+  // The card currently being dragged (for the DragOverlay ghost)
+  const activeCard = useMemo(
+    () => (activeCardId ? board?.lists.flatMap((l) => l.cards).find((c) => c.id === activeCardId) ?? null : null),
+    [board, activeCardId]
+  );
 
-  const activeSurfaceClass = useMemo(() => {
-    return getBoardSurfaceClass(boardBackground);
-  }, [boardBackground]);
+  const activeBannerClass = useMemo(() => getBoardBackgroundClass(boardBackground), [boardBackground]);
+  const activeSurfaceClass = useMemo(() => getBoardSurfaceClass(boardBackground), [boardBackground]);
 
   const focusListInput = useCallback((listId: string): void => {
     window.requestAnimationFrame(() => {
       const input = listInputRefs.current[listId];
-      if (!input) {
-        return;
-      }
-
+      if (!input) return;
       input.focus({ preventScroll: true });
       const cursorAt = input.value.length;
       input.setSelectionRange(cursorAt, cursorAt);
@@ -279,7 +357,6 @@ export function BoardDetailPage(): JSX.Element {
       window.clearTimeout(savedShowTimeoutRef.current);
       savedShowTimeoutRef.current = null;
     }
-
     if (savedHideTimeoutRef.current !== null) {
       window.clearTimeout(savedHideTimeoutRef.current);
       savedHideTimeoutRef.current = null;
@@ -289,10 +366,8 @@ export function BoardDetailPage(): JSX.Element {
   const triggerSavedNotice = useCallback((): void => {
     setShowSavedNotice(false);
     clearSavedNoticeTimers();
-
     savedShowTimeoutRef.current = window.setTimeout(() => {
       setShowSavedNotice(true);
-
       savedHideTimeoutRef.current = window.setTimeout(() => {
         setShowSavedNotice(false);
       }, SAVED_TOAST_VISIBLE_MS);
@@ -308,21 +383,13 @@ export function BoardDetailPage(): JSX.Element {
   };
 
   const clearAllListAutosaveTimeouts = (): void => {
-    Object.values(listAutoSaveTimeoutsRef.current).forEach((timeout) => {
-      window.clearTimeout(timeout);
-    });
-
+    Object.values(listAutoSaveTimeoutsRef.current).forEach((t) => window.clearTimeout(t));
     listAutoSaveTimeoutsRef.current = {};
   };
 
   const hydrateBoardState = useCallback((data: BoardDetail): void => {
     const sortedLists = sortBoardListsWithCards(data.lists);
-
-    setBoard({
-      ...data,
-      lists: sortedLists
-    });
-
+    setBoard({ ...data, lists: sortedLists });
     setBoardName(data.name);
     setBoardDescription(data.description ?? "");
     setBoardBackground(data.background);
@@ -331,76 +398,53 @@ export function BoardDetailPage(): JSX.Element {
     setNewCardTitles((current) => {
       const next = { ...current };
       for (const list of sortedLists) {
-        if (next[list.id] === undefined) {
-          next[list.id] = "";
-        }
+        if (next[list.id] === undefined) next[list.id] = "";
       }
       for (const key of Object.keys(next)) {
-        if (!sortedLists.some((list) => list.id === key)) {
-          delete next[key];
-        }
+        if (!sortedLists.some((list) => list.id === key)) delete next[key];
       }
       return next;
     });
 
     listSyncedNamesRef.current = Object.fromEntries(sortedLists.map((list) => [list.id, list.name]));
-
     const syncedDraft: BoardDraft = {
       name: data.name.trim(),
       description: (data.description ?? "").trim(),
       background: data.background
     };
-
     lastSyncedBoardRef.current = syncedDraft;
     currentDraftBoardRef.current = syncedDraft;
     initializedBoardRef.current = true;
-
     setListSavingIds(new Set());
     setEditingListId((current) => {
-      if (!current) {
-        return current;
-      }
-
+      if (!current) return current;
       return sortedLists.some((list) => list.id === current) ? current : null;
     });
   }, []);
 
   const loadBoard = useCallback(async (): Promise<void> => {
-    if (!boardId) {
-      return;
-    }
-
+    if (!boardId) return;
     setLoading(true);
     setError(null);
-
     try {
       const data = await getBoardById(boardId);
       hydrateBoardState(data);
     } catch (loadError) {
-      const message = loadError instanceof Error ? loadError.message : "Failed to load board";
-      setError(message);
+      setError(loadError instanceof Error ? loadError.message : "Failed to load board");
     } finally {
       setLoading(false);
     }
   }, [boardId, hydrateBoardState]);
 
-  useEffect(() => {
-    void loadBoard();
-  }, [loadBoard]);
+  useEffect(() => { void loadBoard(); }, [loadBoard]);
 
   useEffect(() => {
-    if (!editingListId) {
-      return;
-    }
-
+    if (!editingListId) return;
     focusListInput(editingListId);
   }, [editingListId, focusListInput]);
 
   useEffect(() => {
-    if (!selectedCardId) {
-      return;
-    }
-
+    if (!selectedCardId) return;
     if (!selectedCardWithList) {
       setSelectedCardId(null);
       setCardDraft(null);
@@ -408,156 +452,88 @@ export function BoardDetailPage(): JSX.Element {
   }, [selectedCardId, selectedCardWithList]);
 
   const runBoardAutosave = useCallback(async (): Promise<void> => {
-    if (!boardId) {
-      return;
-    }
-
+    if (!boardId) return;
     const draft = currentDraftBoardRef.current;
     const synced = lastSyncedBoardRef.current;
-
-    if (!draft || !synced) {
-      return;
-    }
-
+    if (!draft || !synced) return;
     const hasChanges =
-      draft.name !== synced.name || draft.description !== synced.description || draft.background !== synced.background;
-
-    if (!hasChanges) {
-      return;
-    }
-
-    if (draft.name.length < 2) {
-      setError("Board name must be at least 2 characters.");
-      return;
-    }
-
+      draft.name !== synced.name ||
+      draft.description !== synced.description ||
+      draft.background !== synced.background;
+    if (!hasChanges) return;
+    if (draft.name.length < 2) { setError("Board name must be at least 2 characters."); return; }
     setIsAutosavingBoard(true);
-
     try {
       const updated = await updateBoard(boardId, {
         name: draft.name,
         description: draft.description,
         background: draft.background
       });
-
       hydrateBoardState(updated);
       setError(null);
       triggerSavedNotice();
     } catch (updateError) {
-      const message = updateError instanceof Error ? updateError.message : "Failed to update board";
-      setError(message);
+      setError(updateError instanceof Error ? updateError.message : "Failed to update board");
     } finally {
       setIsAutosavingBoard(false);
     }
   }, [boardId, hydrateBoardState, triggerSavedNotice]);
 
-  const runListNameAutosave = useCallback(
-    async (listId: string, rawName: string): Promise<void> => {
-      const name = rawName.trim();
-      const syncedName = listSyncedNamesRef.current[listId];
-
-      if (syncedName === undefined) {
-        return;
-      }
-
-      if (name.length < 1) {
-        setError("List name cannot be empty.");
-        return;
-      }
-
-      if (name === syncedName) {
-        return;
-      }
-
-      setListSavingIds((current) => {
-        const next = new Set(current);
-        next.add(listId);
-        return next;
-      });
-
-      try {
-        const updated = await updateList(listId, { name });
-
-        listSyncedNamesRef.current[updated.id] = updated.name;
-
-        setBoard((current) => {
-          if (!current) {
-            return current;
-          }
-
-          return {
-            ...current,
-            lists: current.lists.map((list) => (list.id === updated.id ? { ...updated, cards: list.cards } : list))
-          };
-        });
-
-        setListNameDrafts((current) => ({
+  const runListNameAutosave = useCallback(async (listId: string, rawName: string): Promise<void> => {
+    const name = rawName.trim();
+    const syncedName = listSyncedNamesRef.current[listId];
+    if (syncedName === undefined) return;
+    if (name.length < 1) { setError("List name cannot be empty."); return; }
+    if (name === syncedName) return;
+    setListSavingIds((c) => new Set(c).add(listId));
+    try {
+      const updated = await updateList(listId, { name });
+      listSyncedNamesRef.current[updated.id] = updated.name;
+      setBoard((current) => {
+        if (!current) return current;
+        return {
           ...current,
-          [updated.id]: updated.name
-        }));
-
-        setError(null);
+          lists: current.lists.map((list) =>
+            list.id === updated.id ? { ...updated, cards: list.cards } : list
+          )
+        };
+      });
+      setListNameDrafts((c) => ({ ...c, [updated.id]: updated.name }));
+      setError(null);
       triggerSavedNotice();
-      } catch (updateError) {
-        const message = updateError instanceof Error ? updateError.message : "Failed to update list";
-        setError(message);
-      } finally {
-        setListSavingIds((current) => {
-          const next = new Set(current);
-          next.delete(listId);
-          return next;
-        });
-      }
-    },
-    [triggerSavedNotice]
-  );
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Failed to update list");
+    } finally {
+      setListSavingIds((c) => { const n = new Set(c); n.delete(listId); return n; });
+    }
+  }, [triggerSavedNotice]);
 
-  const scheduleListNameAutosave = useCallback(
-    (listId: string, draftName: string): void => {
-      clearListAutosaveTimeout(listId);
-
-      listAutoSaveTimeoutsRef.current[listId] = window.setTimeout(() => {
-        void runListNameAutosave(listId, draftName);
-      }, AUTO_SAVE_DELAY_MS);
-    },
-    [runListNameAutosave]
-  );
+  const scheduleListNameAutosave = useCallback((listId: string, draftName: string): void => {
+    clearListAutosaveTimeout(listId);
+    listAutoSaveTimeoutsRef.current[listId] = window.setTimeout(() => {
+      void runListNameAutosave(listId, draftName);
+    }, AUTO_SAVE_DELAY_MS);
+  }, [runListNameAutosave]);
 
   useEffect(() => {
-    if (!initializedBoardRef.current || !boardId) {
-      return;
-    }
-
+    if (!initializedBoardRef.current || !boardId) return;
     const nextDraft: BoardDraft = {
       name: boardName.trim(),
       description: boardDescription.trim(),
       background: boardBackground
     };
-
     currentDraftBoardRef.current = nextDraft;
-
     const synced = lastSyncedBoardRef.current;
     const hasChanges =
       synced !== null &&
       (nextDraft.name !== synced.name ||
         nextDraft.description !== synced.description ||
         nextDraft.background !== synced.background);
-
-    if (!hasChanges) {
-      return;
-    }
-
+    if (!hasChanges) return;
     setShowSavedNotice(false);
     clearSavedNoticeTimers();
-
-    if (autoSaveTimeoutRef.current !== null) {
-      window.clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    autoSaveTimeoutRef.current = window.setTimeout(() => {
-      void runBoardAutosave();
-    }, AUTO_SAVE_DELAY_MS);
-
+    if (autoSaveTimeoutRef.current !== null) window.clearTimeout(autoSaveTimeoutRef.current);
+    autoSaveTimeoutRef.current = window.setTimeout(() => { void runBoardAutosave(); }, AUTO_SAVE_DELAY_MS);
     return () => {
       if (autoSaveTimeoutRef.current !== null) {
         window.clearTimeout(autoSaveTimeoutRef.current);
@@ -568,322 +544,308 @@ export function BoardDetailPage(): JSX.Element {
 
   useEffect(() => {
     return () => {
-      if (autoSaveTimeoutRef.current !== null) {
-        window.clearTimeout(autoSaveTimeoutRef.current);
-      }
-
+      if (autoSaveTimeoutRef.current !== null) window.clearTimeout(autoSaveTimeoutRef.current);
       clearAllListAutosaveTimeouts();
       clearSavedNoticeTimers();
     };
   }, [clearSavedNoticeTimers]);
 
-  const onDeleteBoard = async (): Promise<void> => {
-    if (!boardId) {
-      return;
+  // -------------------------------------------------------------------------
+  // dnd-kit card drag handlers
+  // -------------------------------------------------------------------------
+
+  const onCardDragStart = useCallback((event: DragStartEvent): void => {
+    setActiveCardId(event.active.id as string);
+    // Snapshot the board before any drag changes so we can revert on error
+    preDragListsRef.current = board?.lists ?? null;
+  }, [board]);
+
+  /**
+   * Fires while dragging over a different list — move the card there optimistically
+   * so the SortableContext in the destination list re-renders immediately.
+   */
+  const onCardDragOver = useCallback((event: DragOverEvent): void => {
+    const { active, over } = event;
+    if (!over || !board) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    if (activeId === overId) return;
+
+    const sourceList = board.lists.find((l) => l.cards.some((c) => c.id === activeId));
+    // over.id can be a card ID or a list ID (ListDropZone)
+    const destList = board.lists.find(
+      (l) => l.id === overId || l.cards.some((c) => c.id === overId)
+    );
+
+    if (!sourceList || !destList || sourceList.id === destList.id) return;
+
+    const movingCard = sourceList.cards.find((c) => c.id === activeId);
+    if (!movingCard) return;
+
+    const overCardIndex = destList.cards.findIndex((c) => c.id === overId);
+    // If hovering directly over the list zone (not a card), append to end
+    const insertAt = overCardIndex >= 0 ? overCardIndex : destList.cards.length;
+
+    setBoard((current) => {
+      if (!current) return current;
+
+      const newSourceCards = sourceList.cards
+        .filter((c) => c.id !== activeId)
+        .map((c, i) => ({ ...c, position: i }));
+
+      const newDestCards = [...destList.cards];
+      newDestCards.splice(insertAt, 0, { ...movingCard, listId: destList.id });
+      const normalizedDestCards = newDestCards.map((c, i) => ({ ...c, position: i }));
+
+      return {
+        ...current,
+        lists: current.lists.map((l) => {
+          if (l.id === sourceList.id) return { ...l, cards: newSourceCards };
+          if (l.id === destList.id) return { ...l, cards: normalizedDestCards };
+          return l;
+        })
+      };
+    });
+  }, [board]);
+
+  /**
+   * Fires when the user releases the card.
+   * - Same-list: uses arrayMove to finalise ordering, then calls the API.
+   * - Cross-list: card already moved optimistically; just call the API.
+   */
+  const onCardDragEnd = useCallback(async (event: DragEndEvent): Promise<void> => {
+    const { active, over } = event;
+    const prevLists = preDragListsRef.current;
+
+    setActiveCardId(null);
+    preDragListsRef.current = null;
+
+    if (!over || !board || !boardId) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Find which list has this card right now (may have changed in onCardDragOver)
+    const currentList = board.lists.find((l) => l.cards.some((c) => c.id === activeId));
+    if (!currentList) return;
+
+    // Handle same-list reordering (cross-list was already done in onCardDragOver)
+    let finalCards = currentList.cards;
+    const activeIndex = currentList.cards.findIndex((c) => c.id === activeId);
+    const overIndex = currentList.cards.findIndex((c) => c.id === overId);
+
+    if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+      finalCards = arrayMove(currentList.cards, activeIndex, overIndex).map((c, i) => ({
+        ...c,
+        position: i
+      }));
+      setBoard((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          lists: current.lists.map((l) =>
+            l.id === currentList.id ? { ...l, cards: finalCards } : l
+          )
+        };
+      });
     }
 
+    // Figure out original source list from pre-drag snapshot
+    const originalSourceList = prevLists?.find((l) => l.cards.some((c) => c.id === activeId));
+    if (!originalSourceList) return;
+
+    const destinationIndex = finalCards.findIndex((c) => c.id === activeId);
+    if (destinationIndex < 0) return;
+
+    // Skip API call if nothing actually changed
+    const originalIndex = originalSourceList.cards.findIndex((c) => c.id === activeId);
+    if (originalSourceList.id === currentList.id && originalIndex === destinationIndex) return;
+
+    try {
+      const moved = await moveCard({
+        cardId: activeId,
+        sourceListId: originalSourceList.id,
+        destinationListId: currentList.id,
+        destinationIndex,
+      });
+
+      setBoard((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          lists: current.lists.map((list) => {
+            if (list.id === moved.sourceListId && list.id === moved.destinationListId) {
+              return { ...list, cards: sortCardsByPosition(moved.sourceCards) };
+            }
+            if (list.id === moved.sourceListId) {
+              return { ...list, cards: sortCardsByPosition(moved.sourceCards) };
+            }
+            if (list.id === moved.destinationListId) {
+              return { ...list, cards: sortCardsByPosition(moved.destinationCards) };
+            }
+            return list;
+          })
+        };
+      });
+
+      setError(null);
+      triggerSavedNotice();
+    } catch (moveError) {
+      setError(moveError instanceof Error ? moveError.message : "Failed to move card");
+      // Revert to pre-drag state
+      if (prevLists) {
+        setBoard((current) => (current ? { ...current, lists: prevLists } : current));
+      }
+    }
+  }, [board, boardId, triggerSavedNotice]);
+
+  // -------------------------------------------------------------------------
+  // List drag (HTML5 DnD — unchanged)
+  // -------------------------------------------------------------------------
+  const onDropList = async (targetListId: string): Promise<void> => {
+    if (!boardId || !board || !draggingListId) return;
+    if (draggingListId === targetListId) return;
+    const currentIds = orderedLists.map((list) => list.id);
+    const nextIds = moveListIds(currentIds, draggingListId, targetListId);
+    if (currentIds.join(":") === nextIds.join(":")) return;
+    const byId = new Map(board.lists.map((list) => [list.id, list]));
+    const optimisticLists = nextIds
+      .map((id, index) => { const found = byId.get(id); return found ? { ...found, position: index } : null; })
+      .filter((list): list is BoardList => list !== null);
+    const previousLists = board.lists;
+    setBoard((current) => current ? { ...current, lists: optimisticLists } : current);
+    try {
+      const updatedLists = await reorderLists(boardId, nextIds);
+      setBoard((current) => current ? { ...current, lists: sortBoardListsWithCards(updatedLists) } : current);
+      setError(null);
+      triggerSavedNotice();
+    } catch (reorderError) {
+      setError(reorderError instanceof Error ? reorderError.message : "Failed to reorder lists");
+      setBoard((current) => current ? { ...current, lists: previousLists } : current);
+    }
+  };
+
+  // -------------------------------------------------------------------------
+  // CRUD handlers
+  // -------------------------------------------------------------------------
+  const onDeleteBoard = async (): Promise<void> => {
+    if (!boardId) return;
     try {
       await deleteBoard(boardId);
       navigate("/boards");
     } catch (deleteError) {
-      const message = deleteError instanceof Error ? deleteError.message : "Failed to delete board";
-      setError(message);
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete board");
     }
   };
 
   const onCreateList = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
-
-    if (!boardId) {
-      return;
-    }
-
-    if (newListName.trim().length < 1) {
-      setError("List name cannot be empty.");
-      return;
-    }
-
+    if (!boardId) return;
+    if (newListName.trim().length < 1) { setError("List name cannot be empty."); return; }
     try {
-      const created = await createList(boardId, {
-        name: newListName.trim(),
-        isDoneList: newListDone
-      });
-
+      const created = await createList(boardId, { name: newListName.trim(), isDoneList: newListDone });
       listSyncedNamesRef.current[created.id] = created.name;
-
       setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          lists: sortBoardListsWithCards([...current.lists, { ...created, cards: [] }])
-        };
+        if (!current) return current;
+        return { ...current, lists: sortBoardListsWithCards([...current.lists, { ...created, cards: [] }]) };
       });
-
-      setListNameDrafts((current) => ({
-        ...current,
-        [created.id]: created.name
-      }));
-
-      setNewCardTitles((current) => ({
-        ...current,
-        [created.id]: ""
-      }));
-
+      setListNameDrafts((c) => ({ ...c, [created.id]: created.name }));
+      setNewCardTitles((c) => ({ ...c, [created.id]: "" }));
       setNewListName("");
       setNewListDone(false);
       setError(null);
       triggerSavedNotice();
     } catch (createError) {
-      const message = createError instanceof Error ? createError.message : "Failed to create list";
-      setError(message);
+      setError(createError instanceof Error ? createError.message : "Failed to create list");
     }
   };
 
   const onToggleDone = async (listId: string, isDoneList: boolean): Promise<void> => {
     try {
-      const updated = await updateList(listId, {
-        isDoneList: !isDoneList
-      });
-
+      const updated = await updateList(listId, { isDoneList: !isDoneList });
       setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          lists: current.lists.map((list) => (list.id === updated.id ? { ...updated, cards: list.cards } : list))
-        };
+        if (!current) return current;
+        return { ...current, lists: current.lists.map((list) => list.id === updated.id ? { ...updated, cards: list.cards } : list) };
       });
-
       setError(null);
       triggerSavedNotice();
     } catch (updateError) {
-      const message = updateError instanceof Error ? updateError.message : "Failed to update list";
-      setError(message);
+      setError(updateError instanceof Error ? updateError.message : "Failed to update list");
     }
   };
 
-  const closeListEditor = useCallback(
-    async (list: BoardList): Promise<void> => {
-      if (editingListId !== list.id) {
-        return;
-      }
-
-      const draft = listNameDrafts[list.id] ?? list.name;
-      const trimmed = draft.trim();
-
-      if (trimmed.length < 1) {
-        const syncedName = listSyncedNamesRef.current[list.id] ?? list.name;
-        setListNameDrafts((current) => ({
-          ...current,
-          [list.id]: syncedName
-        }));
-        setEditingListId(null);
-        setError("List name cannot be empty.");
-        return;
-      }
-
+  const closeListEditor = useCallback(async (list: BoardList): Promise<void> => {
+    if (editingListId !== list.id) return;
+    const draft = listNameDrafts[list.id] ?? list.name;
+    const trimmed = draft.trim();
+    if (trimmed.length < 1) {
+      const syncedName = listSyncedNamesRef.current[list.id] ?? list.name;
+      setListNameDrafts((c) => ({ ...c, [list.id]: syncedName }));
       setEditingListId(null);
-      clearListAutosaveTimeout(list.id);
-      await runListNameAutosave(list.id, draft);
-    },
-    [editingListId, listNameDrafts, runListNameAutosave]
-  );
+      setError("List name cannot be empty.");
+      return;
+    }
+    setEditingListId(null);
+    clearListAutosaveTimeout(list.id);
+    await runListNameAutosave(list.id, draft);
+  }, [editingListId, listNameDrafts, runListNameAutosave]);
 
   const cancelListEditor = useCallback((list: BoardList): void => {
     clearListAutosaveTimeout(list.id);
     const syncedName = listSyncedNamesRef.current[list.id] ?? list.name;
-    setListNameDrafts((current) => ({
-      ...current,
-      [list.id]: syncedName
-    }));
+    setListNameDrafts((c) => ({ ...c, [list.id]: syncedName }));
     setEditingListId(null);
   }, []);
 
   const onToggleListEdit = async (list: BoardList): Promise<void> => {
-    if (editingListId === list.id) {
-      await closeListEditor(list);
-      return;
-    }
-
+    if (editingListId === list.id) { await closeListEditor(list); return; }
     setEditingListId(list.id);
   };
 
   const onDeleteList = async (): Promise<void> => {
-    if (!listToDelete) {
-      return;
-    }
-
+    if (!listToDelete) return;
     try {
       await deleteList(listToDelete.id);
-
       clearListAutosaveTimeout(listToDelete.id);
       delete listSyncedNamesRef.current[listToDelete.id];
-
       setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          lists: current.lists.filter((list) => list.id !== listToDelete.id)
-        };
+        if (!current) return current;
+        return { ...current, lists: current.lists.filter((list) => list.id !== listToDelete.id) };
       });
-
-      setListNameDrafts((current) => {
-        const nextDrafts = { ...current };
-        delete nextDrafts[listToDelete.id];
-        return nextDrafts;
-      });
-
-      setNewCardTitles((current) => {
-        const nextDrafts = { ...current };
-        delete nextDrafts[listToDelete.id];
-        return nextDrafts;
-      });
-
-      setListSavingIds((current) => {
-        const next = new Set(current);
-        next.delete(listToDelete.id);
-        return next;
-      });
-
-      if (editingListId === listToDelete.id) {
-        setEditingListId(null);
-      }
-
+      setListNameDrafts((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
+      setNewCardTitles((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
+      setListSavingIds((c) => { const n = new Set(c); n.delete(listToDelete.id); return n; });
+      if (editingListId === listToDelete.id) setEditingListId(null);
       setListToDelete(null);
       setError(null);
       triggerSavedNotice();
     } catch (deleteError) {
-      const message = deleteError instanceof Error ? deleteError.message : "Failed to delete list";
-      setError(message);
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete list");
     }
   };
 
-  const onDropList = async (targetListId: string): Promise<void> => {
-    if (!boardId || !board || !draggingListId || draggingCard) {
-      return;
-    }
-
-    if (draggingListId === targetListId) {
-      return;
-    }
-
-    const currentIds = orderedLists.map((list) => list.id);
-    const nextIds = moveListIds(currentIds, draggingListId, targetListId);
-
-    if (currentIds.join(":") === nextIds.join(":")) {
-      return;
-    }
-
-    const byId = new Map(board.lists.map((list) => [list.id, list]));
-    const optimisticLists = nextIds
-      .map((id, index) => {
-        const found = byId.get(id);
-        if (!found) {
-          return null;
-        }
-
-        return {
-          ...found,
-          position: index
-        };
-      })
-      .filter((list): list is BoardList => list !== null);
-
-    const previousLists = board.lists;
-
-    setBoard((current) => {
-      if (!current) {
-        return current;
-      }
-
-      return {
-        ...current,
-        lists: optimisticLists
-      };
-    });
-
-    try {
-      const updatedLists = await reorderLists(boardId, nextIds);
-
-      setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          lists: sortBoardListsWithCards(updatedLists)
-        };
-      });
-
-      setError(null);
-      triggerSavedNotice();
-    } catch (reorderError) {
-      const message = reorderError instanceof Error ? reorderError.message : "Failed to reorder lists";
-      setError(message);
-
-      setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          lists: previousLists
-        };
-      });
-    }
-  };
   const onCreateCard = async (listId: string, event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
-
     const title = (newCardTitles[listId] ?? "").trim();
-    if (title.length < 1) {
-      setError("Card title cannot be empty.");
-      return;
-    }
-
+    if (title.length < 1) { setError("Card title cannot be empty."); return; }
     try {
       const created = await createCard(listId, { title });
-
       setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
+        if (!current) return current;
         return {
           ...current,
           lists: current.lists.map((list) => {
-            if (list.id !== listId) {
-              return list;
-            }
-
-            return {
-              ...list,
-              cards: sortCardsByPosition([...list.cards, created])
-            };
+            if (list.id !== listId) return list;
+            return { ...list, cards: sortCardsByPosition([...list.cards, created]) };
           })
         };
       });
-
-      setNewCardTitles((current) => ({
-        ...current,
-        [listId]: ""
-      }));
-
+      setNewCardTitles((c) => ({ ...c, [listId]: "" }));
       setError(null);
       triggerSavedNotice();
     } catch (createError) {
-      const message = createError instanceof Error ? createError.message : "Failed to create card";
-      setError(message);
+      setError(createError instanceof Error ? createError.message : "Failed to create card");
     }
   };
 
@@ -899,20 +861,11 @@ export function BoardDetailPage(): JSX.Element {
   };
 
   const onSaveCard = async (): Promise<void> => {
-    if (!selectedCardWithList || !cardDraft) {
-      return;
-    }
-
+    if (!selectedCardWithList || !cardDraft) return;
     const title = cardDraft.title.trim();
-    if (title.length < 1) {
-      setError("Card title cannot be empty.");
-      return;
-    }
-
+    if (title.length < 1) { setError("Card title cannot be empty."); return; }
     const dueDateIso = toIsoFromDateTimeInput(cardDraft.dueDate);
-
     setIsCardSaving(true);
-
     try {
       const updated = await updateCard(selectedCardWithList.card.id, {
         title,
@@ -920,312 +873,55 @@ export function BoardDetailPage(): JSX.Element {
         priority: cardDraft.priority,
         dueDate: dueDateIso
       });
-
       setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
+        if (!current) return current;
         return {
           ...current,
           lists: current.lists.map((list) => {
-            if (list.id !== updated.listId) {
-              return list;
-            }
-
-            return {
-              ...list,
-              cards: sortCardsByPosition(list.cards.map((card) => (card.id === updated.id ? updated : card)))
-            };
+            if (list.id !== updated.listId) return list;
+            return { ...list, cards: sortCardsByPosition(list.cards.map((card) => card.id === updated.id ? updated : card)) };
           })
         };
       });
-
       setCardDraft(buildCardDraft(updated));
       setError(null);
       triggerSavedNotice();
     } catch (updateError) {
-      const message = updateError instanceof Error ? updateError.message : "Failed to update card";
-      setError(message);
+      setError(updateError instanceof Error ? updateError.message : "Failed to update card");
     } finally {
       setIsCardSaving(false);
     }
   };
 
   const onDeleteCard = async (): Promise<void> => {
-    if (!cardToDelete) {
-      return;
-    }
-
+    if (!cardToDelete) return;
     try {
       await deleteCard(cardToDelete.id);
-
       setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
+        if (!current) return current;
         return {
           ...current,
           lists: current.lists.map((list) => {
-            if (list.id !== cardToDelete.listId) {
-              return list;
-            }
-
+            if (list.id !== cardToDelete.listId) return list;
             const nextCards = list.cards
               .filter((card) => card.id !== cardToDelete.id)
-              .map((card, index) => ({
-                ...card,
-                position: index
-              }));
-
-            return {
-              ...list,
-              cards: nextCards
-            };
+              .map((card, index) => ({ ...card, position: index }));
+            return { ...list, cards: nextCards };
           })
         };
       });
-
-      if (selectedCardId === cardToDelete.id) {
-        closeCardEditor();
-      }
-
+      if (selectedCardId === cardToDelete.id) closeCardEditor();
       setCardToDelete(null);
       setError(null);
       triggerSavedNotice();
     } catch (deleteError) {
-      const message = deleteError instanceof Error ? deleteError.message : "Failed to delete card";
-      setError(message);
-    }
-  };
-  const getMovePayload = (
-    currentBoard: BoardDetail,
-    targetListId: string,
-    rawDestinationIndex: number
-  ): {
-    sourceListId: string;
-    destinationListId: string;
-    destinationIndex: number;
-    sourceIndex: number;
-  } | null => {
-    if (!draggingCard) {
-      return null;
-    }
-
-    const sourceList = currentBoard.lists.find((list) => list.id === draggingCard.sourceListId);
-    const destinationList = currentBoard.lists.find((list) => list.id === targetListId);
-
-    if (!sourceList || !destinationList) {
-      return null;
-    }
-
-    const sourceIndex = sourceList.cards.findIndex((card) => card.id === draggingCard.cardId);
-
-    if (sourceIndex < 0) {
-      return null;
-    }
-
-    const isSameList = sourceList.id === destinationList.id;
-
-    let destinationIndex = rawDestinationIndex;
-    if (isSameList && rawDestinationIndex > sourceIndex) {
-      destinationIndex -= 1;
-    }
-
-    const maxIndex = isSameList ? Math.max(sourceList.cards.length - 1, 0) : destinationList.cards.length;
-    destinationIndex = clampIndex(destinationIndex, 0, maxIndex);
-
-    return {
-      sourceListId: sourceList.id,
-      destinationListId: destinationList.id,
-      destinationIndex,
-      sourceIndex
-    };
-  };
-
-  const applyOptimisticCardMove = (
-    currentBoard: BoardDetail,
-    sourceListId: string,
-    destinationListId: string,
-    destinationIndex: number,
-    cardId: string
-  ): BoardList[] | null => {
-    const sourceList = currentBoard.lists.find((list) => list.id === sourceListId);
-    const destinationList = currentBoard.lists.find((list) => list.id === destinationListId);
-
-    if (!sourceList || !destinationList) {
-      return null;
-    }
-
-    const sourceCards = [...sourceList.cards];
-    const sourceIndex = sourceCards.findIndex((card) => card.id === cardId);
-
-    if (sourceIndex < 0) {
-      return null;
-    }
-
-    const [movingCard] = sourceCards.splice(sourceIndex, 1);
-    const isSameList = sourceListId === destinationListId;
-
-    const destinationCards = isSameList ? sourceCards : [...destinationList.cards];
-    const boundedIndex = clampIndex(destinationIndex, 0, destinationCards.length);
-
-    const nowIso = new Date().toISOString();
-    let doneEnteredAt = movingCard.doneEnteredAt;
-
-    if (!sourceList.isDoneList && destinationList.isDoneList) {
-      doneEnteredAt = nowIso;
-    } else if (sourceList.isDoneList && !destinationList.isDoneList) {
-      doneEnteredAt = null;
-    }
-
-    destinationCards.splice(boundedIndex, 0, {
-      ...movingCard,
-      listId: destinationListId,
-      doneEnteredAt,
-      updatedAt: nowIso
-    });
-
-    const normalizedSourceCards = (isSameList ? destinationCards : sourceCards).map((card, index) => ({
-      ...card,
-      listId: sourceListId,
-      position: index
-    }));
-
-    const normalizedDestinationCards = isSameList
-      ? normalizedSourceCards
-      : destinationCards.map((card, index) => ({
-          ...card,
-          listId: destinationListId,
-          position: index
-        }));
-
-    return currentBoard.lists.map((list) => {
-      if (list.id === sourceListId) {
-        return {
-          ...list,
-          cards: normalizedSourceCards
-        };
-      }
-
-      if (list.id === destinationListId) {
-        return {
-          ...list,
-          cards: normalizedDestinationCards
-        };
-      }
-
-      return list;
-    });
-  };
-
-  const onDropCard = async (targetListId: string, rawDestinationIndex: number): Promise<void> => {
-    if (!boardId || !board || !draggingCard) {
-      return;
-    }
-
-    const payload = getMovePayload(board, targetListId, rawDestinationIndex);
-    if (!payload) {
-      return;
-    }
-
-    if (payload.sourceListId === payload.destinationListId && payload.sourceIndex === payload.destinationIndex) {
-      return;
-    }
-
-    const previousLists = board.lists;
-    const optimisticLists = applyOptimisticCardMove(
-      board,
-      payload.sourceListId,
-      payload.destinationListId,
-      payload.destinationIndex,
-      draggingCard.cardId
-    );
-
-    if (optimisticLists) {
-      setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          lists: sortBoardListsWithCards(optimisticLists)
-        };
-      });
-    }
-
-    try {
-      const moved = await moveCard({
-        cardId: draggingCard.cardId,
-        sourceListId: payload.sourceListId,
-        destinationListId: payload.destinationListId,
-        destinationIndex: payload.destinationIndex
-      });
-
-      setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          lists: current.lists.map((list) => {
-            if (list.id === moved.sourceListId && list.id === moved.destinationListId) {
-              return {
-                ...list,
-                cards: sortCardsByPosition(moved.sourceCards)
-              };
-            }
-
-            if (list.id === moved.sourceListId) {
-              return {
-                ...list,
-                cards: sortCardsByPosition(moved.sourceCards)
-              };
-            }
-
-            if (list.id === moved.destinationListId) {
-              return {
-                ...list,
-                cards: sortCardsByPosition(moved.destinationCards)
-              };
-            }
-
-            return list;
-          })
-        };
-      });
-
-      setError(null);
-      triggerSavedNotice();
-    } catch (moveError) {
-      const message = moveError instanceof Error ? moveError.message : "Failed to move card";
-      setError(message);
-
-      setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-
-        return {
-          ...current,
-          lists: previousLists
-        };
-      });
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete card");
     }
   };
 
-  const clearCardDragState = (): void => {
-    setDraggingCard(null);
-    setCardDropTarget(null);
-
-    window.setTimeout(() => {
-      suppressCardClickRef.current = false;
-    }, 0);
-  };
-
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading board...</p>;
   }
@@ -1257,9 +953,7 @@ export function BoardDetailPage(): JSX.Element {
             <p className="text-sm text-muted-foreground">Cards are now live: create, drag, and edit in place.</p>
           </div>
           <Link to="/boards">
-            <Button type="button" variant="ghost">
-              Back to boards
-            </Button>
+            <Button type="button" variant="ghost">Back to boards</Button>
           </Link>
         </div>
 
@@ -1278,15 +972,11 @@ export function BoardDetailPage(): JSX.Element {
             <form className="grid gap-3 sm:grid-cols-[1fr_auto_auto]" onSubmit={onCreateList}>
               <Input
                 value={newListName}
-                onChange={(event) => setNewListName(event.target.value)}
+                onChange={(e) => setNewListName(e.target.value)}
                 placeholder="List name"
               />
               <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={newListDone}
-                  onChange={(event) => setNewListDone(event.target.checked)}
-                />
+                <input type="checkbox" checked={newListDone} onChange={(e) => setNewListDone(e.target.checked)} />
                 Done list
               </label>
               <Button type="submit">Add list</Button>
@@ -1296,298 +986,157 @@ export function BoardDetailPage(): JSX.Element {
 
         <div>
           <p className="mb-3 text-xs uppercase tracking-wide text-muted-foreground">Drag lists to reorder</p>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {orderedLists.map((list) => (
-              <div
-                key={list.id}
-                className={dragOverListId === list.id ? "rounded-lg ring-2 ring-primary/40" : ""}
-                onDragOver={(event) => {
-                  if (draggingCard || !draggingListId) {
-                    return;
-                  }
 
-                  event.preventDefault();
-                  if (draggingListId !== list.id) {
-                    setDragOverListId(list.id);
-                  }
-                }}
-                onDrop={(event) => {
-                  if (!draggingListId || draggingCard) {
-                    return;
-                  }
+          {/* DndContext wraps all lists so cards can drag across them */}
+          <DndContext
+            sensors={cardSensors}
+            collisionDetection={closestCenter}
+            onDragStart={onCardDragStart}
+            onDragOver={onCardDragOver}
+            onDragEnd={(e) => { void onCardDragEnd(e); }}
+          >
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {orderedLists.map((list) => (
+                <div
+                  key={list.id}
+                  data-list-id={list.id}
+                  data-testid={`list-${list.id}`}
+                  className={dragOverListId === list.id ? "rounded-lg ring-2 ring-primary/40" : ""}
+                  onDragOver={(event) => {
+                    // HTML5 DnD — list reordering only
+                    if (!draggingListId) return;
+                    event.preventDefault();
+                    if (draggingListId !== list.id) setDragOverListId(list.id);
+                  }}
+                  onDrop={(event) => {
+                    if (!draggingListId) return;
+                    event.preventDefault();
+                    void onDropList(list.id);
+                    setDragOverListId(null);
+                    setDraggingListId(null);
+                  }}
+                >
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="text-base font-semibold">
+                          {listNameDrafts[list.id] ?? list.name}
+                        </CardTitle>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button" variant="ghost" size="sm" className="h-8 w-8 p-0"
+                            onClick={() => { void onToggleListEdit(list); }}
+                            title={editingListId === list.id ? "Done editing" : "Edit list name"}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button" variant="ghost" size="sm"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            onClick={() => setListToDelete(list)}
+                            title="Delete list"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          {/* HTML5 drag handle for list reordering */}
+                          <button
+                            type="button"
+                            draggable
+                            onDragStart={() => setDraggingListId(list.id)}
+                            onDragEnd={() => { setDraggingListId(null); setDragOverListId(null); }}
+                            className="rounded-md p-1 text-muted-foreground hover:bg-secondary/70"
+                            title="Drag to reorder list"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </CardHeader>
 
-                  event.preventDefault();
-                  void onDropList(list.id);
-                  setDragOverListId(null);
-                  setDraggingListId(null);
-                }}
-              >
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-base font-semibold">{listNameDrafts[list.id] ?? list.name}</CardTitle>
+                    <CardContent className="space-y-3">
+                      {editingListId === list.id && (
+                        <div className="space-y-2">
+                          <Input
+                            ref={(node) => { listInputRefs.current[list.id] = node; }}
+                            value={listNameDrafts[list.id] ?? list.name}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setListNameDrafts((c) => ({ ...c, [list.id]: value }));
+                              scheduleListNameAutosave(list.id, value);
+                            }}
+                            onBlur={() => { void closeListEditor(list); }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { e.preventDefault(); void closeListEditor(list); }
+                              if (e.key === "Escape") { e.preventDefault(); cancelListEditor(list); }
+                            }}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {listSavingIds.has(list.id) ? "Saving..." : "Autosaves after a short pause."}
+                          </p>
+                        </div>
+                      )}
 
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => {
-                            void onToggleListEdit(list);
-                          }}
-                          title={editingListId === list.id ? "Done editing" : "Edit list name"}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                          onClick={() => setListToDelete(list)}
-                          title="Delete list"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-
-                        <button
-                          type="button"
-                          draggable
-                          onDragStart={() => setDraggingListId(list.id)}
-                          onDragEnd={() => {
-                            setDraggingListId(null);
-                            setDragOverListId(null);
-                          }}
-                          className="rounded-md p-1 text-muted-foreground hover:bg-secondary/70"
-                          title="Drag to reorder"
-                        >
-                          <GripVertical className="h-4 w-4" />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{list.isDoneList ? "Done list" : "Active list"}</span>
+                        <button type="button" className="underline underline-offset-2"
+                          onClick={() => void onToggleDone(list.id, list.isDoneList)}>
+                          Toggle
                         </button>
                       </div>
-                    </div>
-                  </CardHeader>
 
-                  <CardContent className="space-y-3">
-                    {editingListId === list.id && (
-                      <div className="space-y-2">
-                        <Input
-                          ref={(node) => {
-                            listInputRefs.current[list.id] = node;
-                          }}
-                          value={listNameDrafts[list.id] ?? list.name}
-                          onChange={(event) => {
-                            const value = event.target.value;
-
-                            setListNameDrafts((current) => ({
-                              ...current,
-                              [list.id]: value
-                            }));
-
-                            scheduleListNameAutosave(list.id, value);
-                          }}
-                          onBlur={() => {
-                            void closeListEditor(list);
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              void closeListEditor(list);
-                            }
-
-                            if (event.key === "Escape") {
-                              event.preventDefault();
-                              cancelListEditor(list);
-                            }
-                          }}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {listSavingIds.has(list.id) ? "Saving..." : "Autosaves after a short pause."}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{list.isDoneList ? "Done list" : "Active list"}</span>
-                      <button
-                        type="button"
-                        className="underline underline-offset-2"
-                        onClick={() => void onToggleDone(list.id, list.isDoneList)}
+                      {/* Card list — wrapped in SortableContext for this list */}
+                      <SortableContext
+                        items={list.cards.map((c) => c.id)}
+                        strategy={verticalListSortingStrategy}
                       >
-                        Toggle
-                      </button>
-                    </div>
+                        <div className="space-y-2 rounded-md border border-dashed border-border/70 p-2">
+                          {list.cards.length === 0 ? (
+                            <ListDropZone listId={list.id} />
+                          ) : (
+                            list.cards.map((card) => (
+                              <SortableCard
+                                key={card.id}
+                                card={card}
+                                onEdit={openCardEditor}
+                                onDeleteRequest={(c) => setCardToDelete(c)}
+                              />
+                            ))
+                          )}
+                        </div>
+                      </SortableContext>
 
-                    <div
-                      className={`space-y-2 rounded-md border border-dashed border-border/70 p-2 ${
-                        cardDropTarget?.listId === list.id ? "ring-2 ring-primary/25" : ""
-                      }`}
-                      onDragOver={(event) => {
-                        if (!draggingCard) {
-                          return;
-                        }
+                      <form
+                        className="grid gap-2 sm:grid-cols-[1fr_auto]"
+                        onSubmit={(e) => { void onCreateCard(list.id, e); }}
+                      >
+                        <Input
+                          value={newCardTitles[list.id] ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setNewCardTitles((c) => ({ ...c, [list.id]: value }));
+                          }}
+                          placeholder="New card title"
+                        />
+                        <Button type="submit" className="gap-1">
+                          <Plus className="h-4 w-4" />
+                          Add Card
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+            </div>
 
-                        event.preventDefault();
-                        event.stopPropagation();
-
-                        setCardDropTarget({
-                          listId: list.id,
-                          destinationIndex: list.cards.length
-                        });
-                      }}
-                      onDrop={(event) => {
-                        if (!draggingCard) {
-                          return;
-                        }
-
-                        event.preventDefault();
-                        event.stopPropagation();
-
-                        void onDropCard(list.id, list.cards.length);
-                        clearCardDragState();
-                      }}
-                    >
-                      {list.cards.length === 0 ? (
-                        <p className="rounded-md border border-border/50 bg-background/70 px-3 py-4 text-sm text-muted-foreground">
-                          No cards yet. Add one below.
-                        </p>
-                      ) : (
-                        list.cards.map((card, cardIndex) => {
-                          const topDropActive =
-                            draggingCard !== null &&
-                            cardDropTarget?.listId === list.id &&
-                            cardDropTarget.destinationIndex === cardIndex;
-
-                          const bottomDropActive =
-                            draggingCard !== null &&
-                            cardDropTarget?.listId === list.id &&
-                            cardDropTarget.destinationIndex === cardIndex + 1;
-
-                          const dueLabel = formatDueDateLabel(card.dueDate);
-
-                          return (
-                            <div key={card.id} className="relative">
-                              {topDropActive && (
-                                <div className="absolute -top-1 left-1 right-1 h-0.5 rounded-full bg-primary" />
-                              )}
-
-                              <div
-                                draggable
-                                onDragStart={(event) => {
-                                  event.stopPropagation();
-                                  setDraggingCard({ cardId: card.id, sourceListId: list.id });
-                                  setCardDropTarget(null);
-                                  suppressCardClickRef.current = true;
-                                  event.dataTransfer.effectAllowed = "move";
-                                }}
-                                onDragEnd={() => {
-                                  clearCardDragState();
-                                }}
-                                onDragOver={(event) => {
-                                  if (!draggingCard) {
-                                    return;
-                                  }
-
-                                  event.preventDefault();
-                                  event.stopPropagation();
-
-                                  const bounds = event.currentTarget.getBoundingClientRect();
-                                  const isBefore = event.clientY < bounds.top + bounds.height / 2;
-
-                                  setCardDropTarget({
-                                    listId: list.id,
-                                    destinationIndex: isBefore ? cardIndex : cardIndex + 1
-                                  });
-                                }}
-                                onDrop={(event) => {
-                                  if (!draggingCard) {
-                                    return;
-                                  }
-
-                                  event.preventDefault();
-                                  event.stopPropagation();
-
-                                  const bounds = event.currentTarget.getBoundingClientRect();
-                                  const isBefore = event.clientY < bounds.top + bounds.height / 2;
-                                  const rawDestinationIndex = isBefore ? cardIndex : cardIndex + 1;
-
-                                  void onDropCard(list.id, rawDestinationIndex);
-                                  clearCardDragState();
-                                }}
-                                className="group flex cursor-grab items-start gap-2 rounded-md border border-border/70 bg-background/90 px-3 py-2 active:cursor-grabbing"
-                              >
-                                <button
-                                  type="button"
-                                  className="flex-1 text-left"
-                                  onClick={() => {
-                                    if (suppressCardClickRef.current) {
-                                      return;
-                                    }
-
-                                    openCardEditor(card);
-                                  }}
-                                >
-                                  <p className="line-clamp-2 text-sm font-medium text-foreground">{card.title}</p>
-                                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                                    <span
-                                      className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getPriorityBadgeClass(card.priority)}`}
-                                    >
-                                      {getPriorityLabel(card.priority)}
-                                    </span>
-                                    {dueLabel && (
-                                      <span className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-secondary/70 px-2 py-0.5 text-[11px] text-muted-foreground">
-                                        <CalendarClock className="h-3 w-3" />
-                                        {dueLabel}
-                                      </span>
-                                    )}
-                                    {card.doneEnteredAt && (
-                                      <span className="rounded-full border border-emerald-300/70 bg-emerald-50/80 px-2 py-0.5 text-[11px] text-emerald-700">
-                                        Done timer started
-                                      </span>
-                                    )}
-                                  </div>
-                                </button>
-
-                                <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100" />
-                              </div>
-
-                              {bottomDropActive && (
-                                <div className="absolute -bottom-1 left-1 right-1 h-0.5 rounded-full bg-primary" />
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-
-                    <form
-                      className="grid gap-2 sm:grid-cols-[1fr_auto]"
-                      onSubmit={(event) => {
-                        void onCreateCard(list.id, event);
-                      }}
-                    >
-                      <Input
-                        value={newCardTitles[list.id] ?? ""}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          setNewCardTitles((current) => ({
-                            ...current,
-                            [list.id]: value
-                          }));
-                        }}
-                        placeholder="New card title"
-                      />
-                      <Button type="submit" className="gap-1">
-                        <Plus className="h-4 w-4" />
-                        Add Card
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
-          </div>
+            {/* The floating card that follows your cursor */}
+            <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>
+              {activeCard ? (
+                <div className="rotate-1 rounded-md border border-border/70 bg-background px-3 py-2 shadow-2xl opacity-95 ring-2 ring-primary/30">
+                  <CardSummary card={activeCard} />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </div>
 
         <Card>
@@ -1598,53 +1147,36 @@ export function BoardDetailPage(): JSX.Element {
                 <CardDescription>Collapsed by default so list work stays front and center.</CardDescription>
               </div>
               <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsSettingsOpen((current) => !current)}
+                type="button" variant="secondary" size="sm"
+                onClick={() => setIsSettingsOpen((c) => !c)}
                 className="gap-1"
               >
-                {isSettingsOpen ? (
-                  <>
-                    Hide
-                    <ChevronUp className="h-4 w-4" />
-                  </>
-                ) : (
-                  <>
-                    Show
-                    <ChevronDown className="h-4 w-4" />
-                  </>
-                )}
+                {isSettingsOpen ? (<>Hide <ChevronUp className="h-4 w-4" /></>) : (<>Show <ChevronDown className="h-4 w-4" /></>)}
               </Button>
             </div>
           </CardHeader>
 
           {isSettingsOpen && (
             <CardContent className="space-y-4">
-              <Input value={boardName} onChange={(event) => setBoardName(event.target.value)} />
+              <Input value={boardName} onChange={(e) => setBoardName(e.target.value)} />
               <textarea
                 value={boardDescription}
-                onChange={(event) => setBoardDescription(event.target.value)}
+                onChange={(e) => setBoardDescription(e.target.value)}
                 placeholder="Description"
                 className="min-h-[88px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
               />
-
               <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
                 {boardBackgroundPresets.map((preset) => (
                   <button
-                    key={preset.id}
-                    type="button"
+                    key={preset.id} type="button"
                     onClick={() => setBoardBackground(preset.id)}
-                    className={`overflow-hidden rounded-md border text-left ${
-                      boardBackground === preset.id ? "border-primary ring-2 ring-primary/40" : "border-border"
-                    }`}
+                    className={`overflow-hidden rounded-md border text-left ${boardBackground === preset.id ? "border-primary ring-2 ring-primary/40" : "border-border"}`}
                   >
                     <div className={`h-10 ${preset.className}`} />
                     <p className="px-2 py-1 text-[11px] text-muted-foreground">{preset.label}</p>
                   </button>
                 ))}
               </div>
-
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
                   {isAutosavingBoard ? "Saving..." : "Changes save automatically"}
@@ -1658,6 +1190,7 @@ export function BoardDetailPage(): JSX.Element {
         </Card>
       </div>
 
+      {/* Card editor modal */}
       {selectedCardWithList && cardDraft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <Card className="w-full max-w-2xl">
@@ -1670,57 +1203,25 @@ export function BoardDetailPage(): JSX.Element {
                 <p className="text-xs text-muted-foreground">Title</p>
                 <Input
                   value={cardDraft.title}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setCardDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            title: value
-                          }
-                        : current
-                    );
-                  }}
+                  onChange={(e) => { const v = e.target.value; setCardDraft((c) => c ? { ...c, title: v } : c); }}
                   placeholder="Card title"
                 />
               </div>
-
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Description</p>
                 <textarea
                   value={cardDraft.description}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setCardDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            description: value
-                          }
-                        : current
-                    );
-                  }}
+                  onChange={(e) => { const v = e.target.value; setCardDraft((c) => c ? { ...c, description: v } : c); }}
                   placeholder="Describe the task"
                   className="min-h-[140px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
                 />
               </div>
-
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1 text-sm">
                   <span className="text-xs text-muted-foreground">Priority</span>
                   <select
                     value={cardDraft.priority}
-                    onChange={(event) => {
-                      const value = event.target.value as CardPriority;
-                      setCardDraft((current) =>
-                        current
-                          ? {
-                              ...current,
-                              priority: value
-                            }
-                          : current
-                      );
-                    }}
+                    onChange={(e) => { const v = e.target.value as CardPriority; setCardDraft((c) => c ? { ...c, priority: v } : c); }}
                     className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm"
                   >
                     <option value="low">Low</option>
@@ -1729,42 +1230,23 @@ export function BoardDetailPage(): JSX.Element {
                     <option value="urgent">Urgent</option>
                   </select>
                 </label>
-
                 <label className="space-y-1 text-sm">
                   <span className="text-xs text-muted-foreground">Due date</span>
                   <Input
                     type="datetime-local"
                     value={cardDraft.dueDate}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      setCardDraft((current) =>
-                        current
-                          ? {
-                              ...current,
-                              dueDate: value
-                            }
-                          : current
-                      );
-                    }}
+                    onChange={(e) => { const v = e.target.value; setCardDraft((c) => c ? { ...c, dueDate: v } : c); }}
                   />
                 </label>
               </div>
-
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-red-600 hover:text-red-700"
-                  onClick={() => setCardToDelete(selectedCardWithList.card)}
-                >
+                <Button type="button" variant="ghost" className="text-red-600 hover:text-red-700"
+                  onClick={() => setCardToDelete(selectedCardWithList.card)}>
                   <Trash2 className="mr-1 h-4 w-4" />
                   Delete card
                 </Button>
-
                 <div className="flex gap-2">
-                  <Button type="button" variant="ghost" onClick={closeCardEditor}>
-                    Close
-                  </Button>
+                  <Button type="button" variant="ghost" onClick={closeCardEditor}>Close</Button>
                   <Button type="button" onClick={() => void onSaveCard()} disabled={isCardSaving}>
                     {isCardSaving ? "Saving..." : "Save changes"}
                   </Button>
@@ -1774,6 +1256,7 @@ export function BoardDetailPage(): JSX.Element {
           </Card>
         </div>
       )}
+
       {showSavedNotice && (
         <div className="pointer-events-none fixed bottom-5 right-5 z-40 rounded-full border border-emerald-300/60 bg-emerald-100/90 px-4 py-2 text-sm font-medium text-emerald-900 shadow-lg backdrop-blur">
           Saved
@@ -1784,97 +1267,26 @@ export function BoardDetailPage(): JSX.Element {
         open={isDeleteBoardOpen}
         title="Delete board"
         description={`Delete "${board.name}" and all its lists? This cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Keep"
+        confirmLabel="Delete" cancelLabel="Keep"
         onCancel={() => setIsDeleteBoardOpen(false)}
-        onConfirm={() => {
-          setIsDeleteBoardOpen(false);
-          void onDeleteBoard();
-        }}
+        onConfirm={() => { setIsDeleteBoardOpen(false); void onDeleteBoard(); }}
       />
-
-      <ConfirmDialog
-        open={listToDelete !== null}
-        title="Delete list"
-        description={`Delete "${listToDelete?.name ?? "this list"}"?`}
-        confirmLabel="Delete"
-        cancelLabel="Keep"
-        onCancel={() => setListToDelete(null)}
-        onConfirm={() => {
-          void onDeleteList();
-        }}
-      />
-
       <ConfirmDialog
         open={cardToDelete !== null}
         title="Delete card"
         description={`Delete "${cardToDelete?.title ?? "this card"}"?`}
-        confirmLabel="Delete"
-        cancelLabel="Keep"
+        confirmLabel="Delete" cancelLabel="Keep"
         onCancel={() => setCardToDelete(null)}
-        onConfirm={() => {
-          void onDeleteCard();
-        }}
+        onConfirm={() => { void onDeleteCard(); }}
+      />
+      <ConfirmDialog
+        open={listToDelete !== null}
+        title="Delete list"
+        description={`Delete "${listToDelete?.name ?? "this list"}"?`}
+        confirmLabel="Delete" cancelLabel="Keep"
+        onCancel={() => setListToDelete(null)}
+        onConfirm={() => { void onDeleteList(); }}
       />
     </>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

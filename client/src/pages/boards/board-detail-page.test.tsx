@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -149,10 +149,13 @@ describe("BoardDetailPage cards", () => {
       expect(getBoardByIdMock).toHaveBeenCalledWith("board-1");
     });
 
-    fireEvent.change(screen.getByPlaceholderText("New card title"), {
+    const list = await screen.findByTestId("list-list-1");
+    const listScope = within(list);
+
+    fireEvent.change(listScope.getByPlaceholderText("New card title"), {
       target: { value: "New card from form" }
     });
-    fireEvent.click(screen.getByRole("button", { name: "Add Card" }));
+    fireEvent.click(listScope.getByRole("button", { name: "Add Card" }));
 
     await waitFor(() => {
       expect(createCardMock).toHaveBeenCalledWith("list-1", {

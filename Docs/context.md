@@ -261,7 +261,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 2.1: Board & List Backend APIs | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards/lists CRUD + reorder APIs, default lists on board creation, boards module integration tests added |
 | Phase 2.2: Board & List Frontend UI | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards UI complete with custom in-app confirmations, drag-and-drop list reorder, collapsible bottom settings, live background preview, board-scoped content gradients, and user-run tests passed |
 | Phase 2.3: Board UX & Autosave Polish | ✅ Completed | 2026-03-12 | 2026-03-12 | In-app confirmations, drag-drop list reorder, board-scoped gradients with new smooth presets, darker tuning, board settings debounced autosave, list-name debounced autosave with pencil edit mode, and delayed Saved feedback |
-| Phase 3: Card Management & DnD | 🟨 In Progress | 2026-03-12 | — | Split into subphases; implementation complete and awaiting user-run full test verification |
+| Phase 3: Card Management & DnD | ✅ Completed | 2026-03-12 | 2026-03-12 | User-run tests passed; card drag-and-drop finalized with dnd-kit and phase verified |
 | Phase 3.1: Card Backend APIs & Rules | ✅ Completed | 2026-03-12 | 2026-03-12 | Card CRUD + move endpoints/services, done-list countdown transitions, and server integration tests (`server/tests/cards.test.ts`) |
 | Phase 3.2: Card Frontend UI & Drag-and-Drop | ✅ Completed | 2026-03-12 | 2026-03-12 | Board detail now renders cards, supports quick add, card modal edit/delete, and card DnD within and across lists with optimistic updates |
 | Phase 3.3: Card Tests & Docs | ✅ Completed | 2026-03-12 | 2026-03-12 | Added client card workflow tests and updated implementation checklists/progress docs; pending user-run test execution |
@@ -319,6 +319,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 | Date | Update |
 |------|--------|
+| 2026-03-12 | Phase 3 verified complete after user-run tests; card drag-and-drop finalized with dnd-kit and docs updated. |
 | 2026-03-12 | Confirmed implementation defaults: Bun, TypeScript for client/server, plain workspace structure, first-signup auto-admin, edit yes/delete restricted, done-list cleanup trigger, email invite flow. Added execution checklist to `Docs/instructions.md` and added progress logging policy. |
 | 2026-03-12 | Implemented Phase 1.1 scaffold: Bun workspaces, client React+Vite+Tailwind+shadcn-style shell, server Express+TS health API, lint configs, and baseline tests. Lint and TypeScript checks passed. Client build/test execution in sandbox hit `spawn EPERM`; runtime/build/test verification deferred to user environment and full-phase test cadence. |
 | 2026-03-12 | Fixed server startup blocker by pinning `zod` to `3.24.1`. Implemented Phase 1.2 backend foundation: Drizzle schema (users/boards/lists/cards), SQLite initialization, JWT auth (`register/login/logout/me`), auto-admin on first signup, auth middleware, and auth integration tests. |
