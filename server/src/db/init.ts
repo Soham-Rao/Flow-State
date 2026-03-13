@@ -19,6 +19,8 @@ export function initializeDatabase(): void {
       background TEXT NOT NULL DEFAULT 'teal-gradient',
       retention_mode TEXT NOT NULL DEFAULT 'card_and_attachments',
       retention_minutes INTEGER NOT NULL DEFAULT 10080,
+      archive_retention_minutes INTEGER NOT NULL DEFAULT 10080,
+      archived_at INTEGER,
       created_by TEXT NOT NULL,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
@@ -31,6 +33,7 @@ export function initializeDatabase(): void {
       name TEXT NOT NULL,
       position INTEGER NOT NULL DEFAULT 0,
       is_done_list INTEGER NOT NULL DEFAULT 0,
+      archived_at INTEGER,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
       FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE
@@ -116,7 +119,43 @@ export function initializeDatabase(): void {
       FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
     );
 
+
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      board_id TEXT NOT NULL,
+      list_id TEXT,
+      card_id TEXT,
+      author_id TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
+      FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE,
+      FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+      FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS comment_reactions (
+      comment_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (comment_id, user_id, emoji),
+      FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS comment_mentions (
+      comment_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (comment_id, user_id),
+      FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_lists_board_id ON lists(board_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_boards_name_unique ON boards(name);
     CREATE INDEX IF NOT EXISTS idx_cards_list_id ON cards(list_id);
     CREATE INDEX IF NOT EXISTS idx_cards_done_entered_at ON cards(done_entered_at);
 
@@ -128,6 +167,9 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_card_assignees_card_id ON card_assignees(card_id);
     CREATE INDEX IF NOT EXISTS idx_card_assignees_user_id ON card_assignees(user_id);
     CREATE INDEX IF NOT EXISTS idx_attachments_card_id ON attachments(card_id);
+    CREATE INDEX IF NOT EXISTS idx_comments_board_id ON comments(board_id);
+    CREATE INDEX IF NOT EXISTS idx_comments_list_id ON comments(list_id);
+    CREATE INDEX IF NOT EXISTS idx_comments_card_id ON comments(card_id);
   `);
 
   const boardColumns = sqlite.prepare("PRAGMA table_info(boards)").all() as Array<{ name: string }>;
@@ -141,6 +183,23 @@ export function initializeDatabase(): void {
     sqlite.exec("ALTER TABLE boards ADD COLUMN retention_minutes INTEGER NOT NULL DEFAULT 10080");
   }
 
+  if (!boardColumnNames.has("archive_retention_minutes")) {
+    sqlite.exec("ALTER TABLE boards ADD COLUMN archive_retention_minutes INTEGER NOT NULL DEFAULT 10080");
+  }
+
+  if (!boardColumnNames.has("archived_at")) {
+    sqlite.exec("ALTER TABLE boards ADD COLUMN archived_at INTEGER");
+  }
+
+  const listColumns = sqlite.prepare("PRAGMA table_info(lists)").all() as Array<{ name: string }>;
+  const listColumnNames = new Set(listColumns.map((column) => column.name));
+
+  if (!listColumnNames.has("archived_at")) {
+    sqlite.exec("ALTER TABLE lists ADD COLUMN archived_at INTEGER");
+  }
+
+  sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_board_name_active ON lists(board_id, name) WHERE archived_at IS NULL");
+
   const cardColumns = sqlite.prepare("PRAGMA table_info(cards)").all() as Array<{ name: string }>;
   const cardColumnNames = new Set(cardColumns.map((column) => column.name));
 
@@ -152,6 +211,9 @@ export function initializeDatabase(): void {
 
 export function clearDatabaseForTests(): void {
   sqlite.exec(`
+    DELETE FROM comment_mentions;
+    DELETE FROM comment_reactions;
+    DELETE FROM comments;
     DELETE FROM card_labels;
     DELETE FROM card_assignees;
     DELETE FROM labels;

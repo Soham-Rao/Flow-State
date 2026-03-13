@@ -1,18 +1,20 @@
 import { apiRequest } from "@/lib/api-client";
 import { getSessionToken } from "@/lib/session";
 import type {
+  ArchivedListEntry,
   BoardAttachment,
   BoardBackground,
   BoardCard,
+  BoardComment,
   BoardDetail,
   BoardLabel,
   BoardList,
   BoardSummary,
   CardCoverColor,
-  LabelColor,
   CardPriority,
   Checklist,
   ChecklistItem,
+  LabelColor,
   MoveCardResult
 } from "@/types/board";
 
@@ -24,6 +26,7 @@ interface CreateBoardInput {
   background: BoardBackground;
   retentionMode?: "attachments_only" | "card_and_attachments";
   retentionMinutes?: number;
+  archiveRetentionMinutes?: number;
 }
 
 interface UpdateBoardInput {
@@ -32,6 +35,7 @@ interface UpdateBoardInput {
   background?: BoardBackground;
   retentionMode?: "attachments_only" | "card_and_attachments";
   retentionMinutes?: number;
+  archiveRetentionMinutes?: number;
 }
 
 interface CreateListInput {
@@ -94,6 +98,19 @@ interface MoveCardInput {
   sourceListId: string;
   destinationListId: string;
   destinationIndex: number;
+}
+
+interface CreateCommentInput {
+  body: string;
+  mentions?: string[];
+}
+
+interface CommentReactionInput {
+  emoji: string;
+}
+
+interface RestoreArchiveInput {
+  renameConflicts?: boolean;
 }
 
 export function getBoards(): Promise<BoardSummary[]> {
@@ -353,4 +370,94 @@ export async function downloadAttachment(attachmentId: string, filename: string)
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+export function getArchivedLists(boardId: string): Promise<ArchivedListEntry[]> {
+  return apiRequest<ArchivedListEntry[]>(`/boards/${boardId}/archived-lists`, {
+    method: "GET",
+    auth: true
+  });
+}
+
+export function archiveBoard(boardId: string): Promise<BoardSummary> {
+  return apiRequest<BoardSummary>(`/boards/${boardId}/archive`, {
+    method: "POST",
+    auth: true
+  });
+}
+
+export function restoreBoard(boardId: string): Promise<BoardSummary> {
+  return apiRequest<BoardSummary>(`/boards/${boardId}/restore`, {
+    method: "POST",
+    auth: true
+  });
+}
+
+export function archiveList(listId: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/boards/lists/${listId}/archive`, {
+    method: "POST",
+    auth: true
+  });
+}
+
+export function restoreList(listId: string, input: RestoreArchiveInput): Promise<BoardDetail> {
+  return apiRequest<BoardDetail>(`/boards/lists/${listId}/restore`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function archiveCard(cardId: string): Promise<BoardCard> {
+  return apiRequest<BoardCard>(`/boards/cards/${cardId}/archive`, {
+    method: "POST",
+    auth: true
+  });
+}
+
+export function restoreCard(cardId: string, input: RestoreArchiveInput): Promise<BoardCard> {
+  return apiRequest<BoardCard>(`/boards/cards/${cardId}/restore`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function createBoardComment(boardId: string, input: CreateCommentInput): Promise<BoardComment> {
+  return apiRequest<BoardComment>(`/boards/${boardId}/comments`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function createListComment(listId: string, input: CreateCommentInput): Promise<BoardComment> {
+  return apiRequest<BoardComment>(`/boards/lists/${listId}/comments`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function createCardComment(cardId: string, input: CreateCommentInput): Promise<BoardComment> {
+  return apiRequest<BoardComment>(`/boards/cards/${cardId}/comments`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function toggleCommentReaction(commentId: string, input: CommentReactionInput): Promise<BoardComment> {
+  return apiRequest<BoardComment>(`/boards/comments/${commentId}/reactions`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function deleteComment(commentId: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/boards/comments/${commentId}`, {
+    method: "DELETE",
+    auth: true
+  });
 }

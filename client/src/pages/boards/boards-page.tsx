@@ -6,8 +6,35 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { boardBackgroundPresets, getBoardBackgroundClass } from "@/lib/board-backgrounds";
-import { createBoard, deleteBoard, getBoards } from "@/lib/boards-api";
+import { archiveBoard, createBoard, deleteBoard, getBoards, restoreBoard } from "@/lib/boards-api";
 import type { BoardBackground, BoardSummary } from "@/types/board";
+
+const BOARD_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
+
+function getArchiveCountdownLabel(archivedAt: string | null, retentionMinutes: number, expiredLabel = "Deleting soon"): string {
+  if (!archivedAt) return "";
+  const archivedAtMs = new Date(archivedAt).getTime();
+  if (Number.isNaN(archivedAtMs)) return "";
+  const retentionMs = retentionMinutes * 60 * 1000;
+  const remainingMs = retentionMs - (Date.now() - archivedAtMs);
+  if (remainingMs <= 0) return expiredLabel;
+
+  const second = 1000;
+  const minute = 60 * second;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (remainingMs >= 2 * day) {
+    return `${Math.ceil(remainingMs / day)}d left`;
+  }
+  if (remainingMs >= 2 * hour) {
+    return `${Math.ceil(remainingMs / hour)}h left`;
+  }
+  if (remainingMs >= 2 * minute) {
+    return `${Math.ceil(remainingMs / minute)}m left`;
+  }
+  return `${Math.max(1, Math.ceil(remainingMs / second))}s left`;
+}
 
 export function BoardsPage(): JSX.Element {
   const [boards, setBoards] = useState<BoardSummary[]>([]);
@@ -16,12 +43,16 @@ export function BoardsPage(): JSX.Element {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState<BoardSummary | null>(null);
+  const [boardToArchive, setBoardToArchive] = useState<BoardSummary | null>(null);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [background, setBackground] = useState<BoardBackground>("teal-gradient");
 
   const navigate = useNavigate();
+
+  const activeBoards = boards.filter((board) => !board.archivedAt);
+  const archivedBoards = boards.filter((board) => Boolean(board.archivedAt));
 
   const loadBoards = async (showLoading = false): Promise<void> => {
     if (showLoading) {
@@ -91,6 +122,33 @@ export function BoardsPage(): JSX.Element {
     }
   };
 
+  const confirmArchiveBoard = async (): Promise<void> => {
+    if (!boardToArchive) {
+      return;
+    }
+
+    try {
+      await archiveBoard(boardToArchive.id);
+      setBoardToArchive(null);
+      await loadBoards();
+      setError(null);
+    } catch (archiveError) {
+      const message = archiveError instanceof Error ? archiveError.message : "Failed to archive board";
+      setError(message);
+    }
+  };
+
+  const onRestoreBoard = async (boardId: string): Promise<void> => {
+    try {
+      await restoreBoard(boardId);
+      await loadBoards();
+      setError(null);
+    } catch (restoreError) {
+      const message = restoreError instanceof Error ? restoreError.message : "Failed to restore board";
+      setError(message);
+    }
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -113,16 +171,20 @@ export function BoardsPage(): JSX.Element {
 
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading boards...</p>
-        ) : boards.length === 0 ? (
+        ) : activeBoards.length === 0 ? (
           <Card>
             <CardHeader>
-              <CardTitle>No boards yet</CardTitle>
-              <CardDescription>Create your first board to start organizing lists and tasks.</CardDescription>
+              <CardTitle>No active boards yet</CardTitle>
+              <CardDescription>
+                {archivedBoards.length > 0
+                  ? "All current boards are archived. Restore one below or create a new board."
+                  : "Create your first board to start organizing lists and tasks."}
+              </CardDescription>
             </CardHeader>
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {boards.map((board) => (
+            {activeBoards.map((board) => (
               <Card key={board.id} className="overflow-hidden">
                 <Link to={`/boards/${board.id}`}>
                   <div className={`h-24 w-full ${getBoardBackgroundClass(board.background)}`} />
@@ -139,6 +201,15 @@ export function BoardsPage(): JSX.Element {
                         Open
                       </Button>
                     </Link>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-amber-600 hover:text-amber-700"
+                      onClick={() => setBoardToArchive(board)}
+                    >
+                      Archive
+                    </Button>
                     <Button type="button" variant="ghost" size="sm" onClick={() => setBoardToDelete(board)}>
                       Delete
                     </Button>
@@ -146,6 +217,51 @@ export function BoardsPage(): JSX.Element {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {archivedBoards.length > 0 && (
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-lg font-semibold">Archived boards</h3>
+              <p className="text-xs text-muted-foreground">
+                Archived boards auto-delete after 7 days unless restored.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {archivedBoards.map((board) => {
+                const countdownLabel = getArchiveCountdownLabel(board.archivedAt, BOARD_ARCHIVE_RETENTION_MINUTES);
+                return (
+                <Card key={board.id} className="overflow-hidden border border-amber-200/60">
+                  <div className={`h-20 w-full ${getBoardBackgroundClass(board.background)}`} />
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="line-clamp-1 text-lg">{board.name}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          Archived
+                        </span>
+                        {countdownLabel && (
+                          <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                            {countdownLabel}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <CardDescription className="line-clamp-2">{board.description ?? "No description"}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">
+                      Archived {board.archivedAt ? new Date(board.archivedAt).toLocaleDateString() : "recently"}
+                    </p>
+                    <Button type="button" size="sm" onClick={() => { void onRestoreBoard(board.id); }}>
+                      Restore
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+              })}
+            </div>
           </div>
         )}
 
@@ -209,6 +325,17 @@ export function BoardsPage(): JSX.Element {
         )}
       </div>
 
+      <ConfirmDialog
+        open={boardToArchive !== null}
+        title="Archive board"
+        description={`Archive "${boardToArchive?.name ?? "this board"}"? You can restore it for 7 days.`}
+        confirmLabel="Archive"
+        cancelLabel="Cancel"
+        onCancel={() => setBoardToArchive(null)}
+        onConfirm={() => {
+          void confirmArchiveBoard();
+        }}
+      />
       <ConfirmDialog
         open={boardToDelete !== null}
         title="Delete board"

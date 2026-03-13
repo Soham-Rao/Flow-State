@@ -5,15 +5,17 @@ import path from "node:path";
 import { and, asc, count, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { attachments, boards, cardAssignees, cardLabels, cards, checklists, checklistItems, labels, lists, users, type CardCoverColor, type LabelColor, type RetentionMode, type UserRole } from "../../db/schema.js";
+import { attachments, boards, cardAssignees, cardLabels, cards, checklistItems, checklists, commentMentions, commentReactions, comments, labels, lists, users, type CardCoverColor, type LabelColor, type RetentionMode, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type {
   AssignAssigneeInput,
   AssignLabelInput,
+  CommentReactionInput,
   CreateBoardInput,
   CreateCardInput,
   CreateChecklistInput,
   CreateChecklistItemInput,
+  CreateCommentInput,
   CreateLabelInput,
   CreateListInput,
   MoveCardInput,
@@ -33,6 +35,8 @@ interface BoardSummary {
   background: string;
   retentionMode: RetentionMode;
   retentionMinutes: number;
+  archiveRetentionMinutes: number;
+  archivedAt: Date | null;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -82,6 +86,39 @@ interface BoardMember {
 }
 
 
+interface CommentReaction {
+  emoji: string;
+  count: number;
+}
+
+interface BoardComment {
+  id: string;
+  boardId: string;
+  listId: string | null;
+  cardId: string | null;
+  author: BoardMember;
+  body: string;
+  createdAt: Date;
+  updatedAt: Date;
+  reactions: CommentReaction[];
+  mentions: BoardMember[];
+}
+
+type CommentRow = {
+  id: string;
+  boardId: string;
+  listId: string | null;
+  cardId: string | null;
+  body: string;
+  createdAt: Date;
+  updatedAt: Date;
+  authorId: string;
+  authorName: string;
+  authorEmail: string;
+  authorRole: UserRole;
+  authorCreatedAt: Date;
+};
+
 interface AttachmentRecord extends BoardAttachment {
   storedName: string;
   storagePath: string;
@@ -112,6 +149,7 @@ export interface BoardCard extends CardRecord {
   attachments: BoardAttachment[];
   labels: BoardLabel[];
   assignees: BoardMember[];
+  comments: BoardComment[];
 }
 
 interface BoardList {
@@ -120,9 +158,11 @@ interface BoardList {
   name: string;
   position: number;
   isDoneList: boolean;
+  archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   cards: BoardCard[];
+  comments: BoardComment[];
 }
 
 interface BoardDetail {
@@ -132,18 +172,32 @@ interface BoardDetail {
   background: string;
   retentionMode: RetentionMode;
   retentionMinutes: number;
+  archiveRetentionMinutes: number;
+  archivedAt: Date | null;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
   lists: BoardList[];
   labels: BoardLabel[];
   members: BoardMember[];
+  comments: BoardComment[];
+}
+
+interface ArchivedListEntry {
+  id: string;
+  sourceListId: string;
+  name: string;
+  archivedAt: Date | null;
+  kind: "list" | "cards";
+  cards: BoardCard[];
 }
 
 interface ListRecord {
   id: string;
   boardId: string;
+  name: string;
   isDoneList: boolean;
+  archivedAt: Date | null;
 }
 
 interface MoveCardResult {
@@ -161,6 +215,9 @@ const defaultLists = [
 
 const DEFAULT_RETENTION_MINUTES = 7 * 24 * 60;
 const DEFAULT_RETENTION_MODE: RetentionMode = "card_and_attachments";
+const DEFAULT_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
+const MAX_ARCHIVE_RETENTION_MINUTES = 365 * 24 * 60;
+const BOARD_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
 const UPLOADS_ROOT = path.resolve(process.cwd(), "uploads");
 
 function normalizeOptionalDescription(value: string | undefined): string | null {
@@ -198,6 +255,14 @@ function normalizeCoverColor(value: CardCoverColor | null | undefined): CardCove
   return value;
 }
 
+function resolveRestoredName(name: string, existing: Set<string>): string {
+  let candidate = `${name} - restored`;
+  while (existing.has(candidate)) {
+    candidate = `${candidate} - restored`;
+  }
+  return candidate;
+}
+
 function clampRetentionMinutes(value: number | undefined): number {
   if (value === undefined || Number.isNaN(value)) {
     return DEFAULT_RETENTION_MINUTES;
@@ -208,6 +273,18 @@ function clampRetentionMinutes(value: number | undefined): number {
   }
 
   return Math.min(value, 525600);
+}
+
+function clampArchiveRetentionMinutes(value: number | undefined): number {
+  if (value === undefined || Number.isNaN(value)) {
+    return DEFAULT_ARCHIVE_RETENTION_MINUTES;
+  }
+
+  if (value < 1) {
+    return 1;
+  }
+
+  return Math.min(value, MAX_ARCHIVE_RETENTION_MINUTES);
 }
 
 function buildAttachmentStoragePath(boardId: string, cardId: string, storedName: string): string {
@@ -234,16 +311,81 @@ async function removeFileIfExists(filePath: string): Promise<void> {
 }
 
 function assertBoardExists(boardId: string): void {
-  const board = db.select({ id: boards.id }).from(boards).where(eq(boards.id, boardId)).limit(1).get();
+  const board = db
+    .select({ id: boards.id })
+    .from(boards)
+    .where(and(eq(boards.id, boardId), isNull(boards.archivedAt)))
+    .limit(1)
+    .get();
 
   if (!board) {
     throw new ApiError(404, "Board not found");
   }
 }
 
+function getBoardRecord(boardId: string): { id: string; name: string; archivedAt: Date | null; archiveRetentionMinutes: number } {
+  const board = db
+    .select({
+      id: boards.id,
+      name: boards.name,
+      archivedAt: boards.archivedAt,
+      archiveRetentionMinutes: boards.archiveRetentionMinutes
+    })
+    .from(boards)
+    .where(eq(boards.id, boardId))
+    .limit(1)
+    .get();
+
+  if (!board) {
+    throw new ApiError(404, "Board not found");
+  }
+
+  return board;
+}
+
+function assertBoardNameAvailable(name: string, excludeBoardId?: string): void {
+  const existing = db
+    .select({ id: boards.id })
+    .from(boards)
+    .where(eq(boards.name, name))
+    .limit(1)
+    .get();
+
+  if (existing && existing.id !== excludeBoardId) {
+    throw new ApiError(409, "Board name already exists");
+  }
+}
+
 function assertListExists(listId: string): ListRecord {
   const list = db
-    .select({ id: lists.id, boardId: lists.boardId, isDoneList: lists.isDoneList })
+    .select({
+      id: lists.id,
+      boardId: lists.boardId,
+      name: lists.name,
+      isDoneList: lists.isDoneList,
+      archivedAt: lists.archivedAt
+    })
+    .from(lists)
+    .where(and(eq(lists.id, listId), isNull(lists.archivedAt)))
+    .limit(1)
+    .get();
+
+  if (!list) {
+    throw new ApiError(404, "List not found");
+  }
+
+  return list;
+}
+
+function getListRecord(listId: string): ListRecord {
+  const list = db
+    .select({
+      id: lists.id,
+      boardId: lists.boardId,
+      name: lists.name,
+      isDoneList: lists.isDoneList,
+      archivedAt: lists.archivedAt
+    })
     .from(lists)
     .where(eq(lists.id, listId))
     .limit(1)
@@ -254,6 +396,19 @@ function assertListExists(listId: string): ListRecord {
   }
 
   return list;
+}
+
+function assertListNameAvailable(boardId: string, name: string, excludeListId?: string): void {
+  const existing = db
+    .select({ id: lists.id })
+    .from(lists)
+    .where(and(eq(lists.boardId, boardId), eq(lists.name, name), isNull(lists.archivedAt)))
+    .limit(1)
+    .get();
+
+  if (existing && existing.id !== excludeListId) {
+    throw new ApiError(409, "List name already exists");
+  }
 }
 
 function assertCardExists(cardId: string): CardRecord {
@@ -388,6 +543,27 @@ function assertChecklistItemExists(itemId: string): { id: string; checklistId: s
   return item;
 }
 
+function assertCommentExists(commentId: string): { id: string; boardId: string; listId: string | null; cardId: string | null; authorId: string } {
+  const comment = db
+    .select({
+      id: comments.id,
+      boardId: comments.boardId,
+      listId: comments.listId,
+      cardId: comments.cardId,
+      authorId: comments.authorId
+    })
+    .from(comments)
+    .where(eq(comments.id, commentId))
+    .limit(1)
+    .get();
+
+  if (!comment) {
+    throw new ApiError(404, "Comment not found");
+  }
+
+  return comment;
+}
+
 function getChecklistItemsForChecklists(checklistIds: string[]): Map<string, BoardChecklistItem[]> {
   if (checklistIds.length === 0) {
     return new Map();
@@ -416,6 +592,224 @@ function getChecklistItemsForChecklists(checklistIds: string[]): Map<string, Boa
   }
 
   return itemsByChecklistId;
+}
+
+function getCommentReactionsForComments(commentIds: string[]): Map<string, CommentReaction[]> {
+  if (commentIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      commentId: commentReactions.commentId,
+      emoji: commentReactions.emoji
+    })
+    .from(commentReactions)
+    .where(inArray(commentReactions.commentId, commentIds))
+    .all() as Array<{ commentId: string; emoji: string }>;
+
+  const countsByCommentId = new Map<string, Map<string, number>>();
+  for (const row of rows) {
+    const emojiCounts = countsByCommentId.get(row.commentId) ?? new Map<string, number>();
+    emojiCounts.set(row.emoji, (emojiCounts.get(row.emoji) ?? 0) + 1);
+    countsByCommentId.set(row.commentId, emojiCounts);
+  }
+
+  const reactionsByCommentId = new Map<string, CommentReaction[]>();
+  for (const [commentId, emojiCounts] of countsByCommentId) {
+    const reactions = Array.from(emojiCounts.entries()).map(([emoji, count]) => ({ emoji, count }));
+    reactionsByCommentId.set(commentId, reactions);
+  }
+
+  return reactionsByCommentId;
+}
+
+function getCommentMentionsForComments(commentIds: string[]): Map<string, BoardMember[]> {
+  if (commentIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      commentId: commentMentions.commentId,
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt
+    })
+    .from(commentMentions)
+    .innerJoin(users, eq(commentMentions.userId, users.id))
+    .where(inArray(commentMentions.commentId, commentIds))
+    .all();
+
+  const mentionsByCommentId = new Map<string, BoardMember[]>();
+  for (const row of rows) {
+    const list = mentionsByCommentId.get(row.commentId) ?? [];
+    list.push({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      createdAt: row.createdAt
+    });
+    mentionsByCommentId.set(row.commentId, list);
+  }
+
+  return mentionsByCommentId;
+}
+
+function attachCommentRelations(rows: CommentRow[]): BoardComment[] {
+  const commentIds = rows.map((row) => row.id);
+  const reactionsByCommentId = getCommentReactionsForComments(commentIds);
+  const mentionsByCommentId = getCommentMentionsForComments(commentIds);
+
+  return rows.map((row) => ({
+    id: row.id,
+    boardId: row.boardId,
+    listId: row.listId ?? null,
+    cardId: row.cardId ?? null,
+    author: {
+      id: row.authorId,
+      name: row.authorName,
+      email: row.authorEmail,
+      role: row.authorRole,
+      createdAt: row.authorCreatedAt
+    },
+    body: row.body,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    reactions: reactionsByCommentId.get(row.id) ?? [],
+    mentions: mentionsByCommentId.get(row.id) ?? []
+  }));
+}
+
+function getCommentsForBoard(boardId: string): BoardComment[] {
+  const rows = db
+    .select({
+      id: comments.id,
+      boardId: comments.boardId,
+      listId: comments.listId,
+      cardId: comments.cardId,
+      body: comments.body,
+      createdAt: comments.createdAt,
+      updatedAt: comments.updatedAt,
+      authorId: users.id,
+      authorName: users.name,
+      authorEmail: users.email,
+      authorRole: users.role,
+      authorCreatedAt: users.createdAt
+    })
+    .from(comments)
+    .innerJoin(users, eq(comments.authorId, users.id))
+    .where(and(eq(comments.boardId, boardId), isNull(comments.listId), isNull(comments.cardId)))
+    .orderBy(asc(comments.createdAt))
+    .all() as CommentRow[];
+
+  return attachCommentRelations(rows);
+}
+
+function getCommentsForLists(listIds: string[]): Map<string, BoardComment[]> {
+  if (listIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      id: comments.id,
+      boardId: comments.boardId,
+      listId: comments.listId,
+      cardId: comments.cardId,
+      body: comments.body,
+      createdAt: comments.createdAt,
+      updatedAt: comments.updatedAt,
+      authorId: users.id,
+      authorName: users.name,
+      authorEmail: users.email,
+      authorRole: users.role,
+      authorCreatedAt: users.createdAt
+    })
+    .from(comments)
+    .innerJoin(users, eq(comments.authorId, users.id))
+    .where(and(inArray(comments.listId, listIds), isNull(comments.cardId)))
+    .orderBy(asc(comments.createdAt))
+    .all() as CommentRow[];
+
+  const commentsByListId = new Map<string, BoardComment[]>();
+  for (const comment of attachCommentRelations(rows)) {
+    if (!comment.listId) continue;
+    const list = commentsByListId.get(comment.listId) ?? [];
+    list.push(comment);
+    commentsByListId.set(comment.listId, list);
+  }
+
+  return commentsByListId;
+}
+
+function getCommentsForCards(cardIds: string[]): Map<string, BoardComment[]> {
+  if (cardIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      id: comments.id,
+      boardId: comments.boardId,
+      listId: comments.listId,
+      cardId: comments.cardId,
+      body: comments.body,
+      createdAt: comments.createdAt,
+      updatedAt: comments.updatedAt,
+      authorId: users.id,
+      authorName: users.name,
+      authorEmail: users.email,
+      authorRole: users.role,
+      authorCreatedAt: users.createdAt
+    })
+    .from(comments)
+    .innerJoin(users, eq(comments.authorId, users.id))
+    .where(inArray(comments.cardId, cardIds))
+    .orderBy(asc(comments.createdAt))
+    .all() as CommentRow[];
+
+  const commentsByCardId = new Map<string, BoardComment[]>();
+  for (const comment of attachCommentRelations(rows)) {
+    if (!comment.cardId) continue;
+    const list = commentsByCardId.get(comment.cardId) ?? [];
+    list.push(comment);
+    commentsByCardId.set(comment.cardId, list);
+  }
+
+  return commentsByCardId;
+}
+
+function getCommentById(commentId: string): BoardComment {
+  const rows = db
+    .select({
+      id: comments.id,
+      boardId: comments.boardId,
+      listId: comments.listId,
+      cardId: comments.cardId,
+      body: comments.body,
+      createdAt: comments.createdAt,
+      updatedAt: comments.updatedAt,
+      authorId: users.id,
+      authorName: users.name,
+      authorEmail: users.email,
+      authorRole: users.role,
+      authorCreatedAt: users.createdAt
+    })
+    .from(comments)
+    .innerJoin(users, eq(comments.authorId, users.id))
+    .where(eq(comments.id, commentId))
+    .limit(1)
+    .all() as CommentRow[];
+
+  if (rows.length === 0) {
+    throw new ApiError(404, "Comment not found");
+  }
+
+  return attachCommentRelations(rows)[0];
 }
 
 function getAttachmentsForCards(cardIds: string[]): Map<string, BoardAttachment[]> {
@@ -574,6 +968,7 @@ function attachChecklistsToCards(cards: CardRecord[]): BoardCard[] {
   const attachmentsByCardId = getAttachmentsForCards(cardIds);
   const labelsByCardId = getLabelsForCards(cardIds);
   const assigneesByCardId = getAssigneesForCards(cardIds);
+  const commentsByCardId = getCommentsForCards(cardIds);
 
   return cards.map((card) => ({
     ...card,
@@ -581,7 +976,8 @@ function attachChecklistsToCards(cards: CardRecord[]): BoardCard[] {
     checklists: checklistsByCardId.get(card.id) ?? [],
     attachments: attachmentsByCardId.get(card.id) ?? [],
     labels: labelsByCardId.get(card.id) ?? [],
-    assignees: assigneesByCardId.get(card.id) ?? []
+    assignees: assigneesByCardId.get(card.id) ?? [],
+    comments: commentsByCardId.get(card.id) ?? []
   }));
 }
 
@@ -717,9 +1113,99 @@ function getCardsForList(listId: string): BoardCard[] {
   return attachChecklistsToCards(rows);
 }
 
+function getCardsForListIncludingArchived(listId: string): BoardCard[] {
+  const rows = db
+    .select({
+      id: cards.id,
+      listId: cards.listId,
+      title: cards.title,
+      description: cards.description,
+      priority: cards.priority,
+      coverColor: cards.coverColor,
+      dueDate: cards.dueDate,
+      position: cards.position,
+      createdBy: cards.createdBy,
+      archivedAt: cards.archivedAt,
+      doneEnteredAt: cards.doneEnteredAt,
+      createdAt: cards.createdAt,
+      updatedAt: cards.updatedAt
+    })
+    .from(cards)
+    .where(eq(cards.listId, listId))
+    .orderBy(asc(cards.position), asc(cards.createdAt))
+    .all() as CardRecord[];
+
+  return attachChecklistsToCards(rows);
+}
+
 function getCardById(cardId: string): BoardCard {
   const card = assertCardExists(cardId);
   return attachChecklistsToCards([card])[0];
+}
+
+function getCardByIdIncludingArchived(cardId: string): BoardCard {
+  const card = db
+    .select({
+      id: cards.id,
+      listId: cards.listId,
+      title: cards.title,
+      description: cards.description,
+      priority: cards.priority,
+      coverColor: cards.coverColor,
+      dueDate: cards.dueDate,
+      position: cards.position,
+      createdBy: cards.createdBy,
+      archivedAt: cards.archivedAt,
+      doneEnteredAt: cards.doneEnteredAt,
+      createdAt: cards.createdAt,
+      updatedAt: cards.updatedAt
+    })
+    .from(cards)
+    .where(eq(cards.id, cardId))
+    .limit(1)
+    .get();
+
+  if (!card) {
+    throw new ApiError(404, "Card not found");
+  }
+
+  return attachChecklistsToCards([card])[0];
+}
+
+function getBoardSummaryById(boardId: string): BoardSummary {
+  const board = db
+    .select({
+      id: boards.id,
+      name: boards.name,
+      description: boards.description,
+      background: boards.background,
+      retentionMode: boards.retentionMode,
+      retentionMinutes: boards.retentionMinutes,
+      archiveRetentionMinutes: boards.archiveRetentionMinutes,
+      archivedAt: boards.archivedAt,
+      createdBy: boards.createdBy,
+      createdAt: boards.createdAt,
+      updatedAt: boards.updatedAt
+    })
+    .from(boards)
+    .where(eq(boards.id, boardId))
+    .limit(1)
+    .get();
+
+  if (!board) {
+    throw new ApiError(404, "Board not found");
+  }
+
+  const listCountRow = db
+    .select({ listCount: count(lists.id) })
+    .from(lists)
+    .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
+    .get();
+
+  return {
+    ...board,
+    listCount: listCountRow?.listCount ?? 0
+  };
 }
 
 export function getBoards(): BoardSummary[] {
@@ -731,6 +1217,8 @@ export function getBoards(): BoardSummary[] {
       background: boards.background,
       retentionMode: boards.retentionMode,
       retentionMinutes: boards.retentionMinutes,
+      archiveRetentionMinutes: boards.archiveRetentionMinutes,
+      archivedAt: boards.archivedAt,
       createdBy: boards.createdBy,
       createdAt: boards.createdAt,
       updatedAt: boards.updatedAt
@@ -745,6 +1233,7 @@ export function getBoards(): BoardSummary[] {
       listCount: count(lists.id)
     })
     .from(lists)
+    .where(isNull(lists.archivedAt))
     .groupBy(lists.boardId)
     .all();
 
@@ -765,6 +1254,8 @@ export function getBoardById(boardId: string): BoardDetail {
       background: boards.background,
       retentionMode: boards.retentionMode,
       retentionMinutes: boards.retentionMinutes,
+      archiveRetentionMinutes: boards.archiveRetentionMinutes,
+      archivedAt: boards.archivedAt,
       createdBy: boards.createdBy,
       createdAt: boards.createdAt,
       updatedAt: boards.updatedAt
@@ -785,11 +1276,12 @@ export function getBoardById(boardId: string): BoardDetail {
       name: lists.name,
       position: lists.position,
       isDoneList: lists.isDoneList,
+      archivedAt: lists.archivedAt,
       createdAt: lists.createdAt,
       updatedAt: lists.updatedAt
     })
     .from(lists)
-    .where(eq(lists.boardId, boardId))
+    .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
     .orderBy(asc(lists.position), asc(lists.createdAt))
     .all();
 
@@ -811,7 +1303,7 @@ export function getBoardById(boardId: string): BoardDetail {
     })
     .from(cards)
     .innerJoin(lists, eq(cards.listId, lists.id))
-    .where(and(eq(lists.boardId, boardId), isNull(cards.archivedAt)))
+    .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt), isNull(cards.archivedAt)))
     .orderBy(asc(cards.position), asc(cards.createdAt))
     .all() as CardRecord[];
 
@@ -824,32 +1316,120 @@ export function getBoardById(boardId: string): BoardDetail {
     cardsByListId.set(card.listId, existing);
   }
 
+  const listCommentsByListId = getCommentsForLists(boardLists.map((list) => list.id));
+  const boardComments = getCommentsForBoard(boardId);
+
   return {
     ...board,
     lists: boardLists.map((list) => ({
       ...list,
-      cards: cardsByListId.get(list.id) ?? []
+      cards: cardsByListId.get(list.id) ?? [],
+      comments: listCommentsByListId.get(list.id) ?? []
     })),
     labels: getLabelsForBoard(boardId),
-    members: getBoardMembers()
+    members: getBoardMembers(),
+    comments: boardComments
   };
+}
+
+export function getArchivedLists(boardId: string): ArchivedListEntry[] {
+  assertBoardExists(boardId);
+
+  const archivedLists = db
+    .select({
+      id: lists.id,
+      boardId: lists.boardId,
+      name: lists.name,
+      archivedAt: lists.archivedAt
+    })
+    .from(lists)
+    .where(and(eq(lists.boardId, boardId), isNotNull(lists.archivedAt)))
+    .orderBy(asc(lists.archivedAt), asc(lists.createdAt))
+    .all();
+
+  const archivedListEntries: ArchivedListEntry[] = archivedLists.map((list) => ({
+    id: list.id,
+    sourceListId: list.id,
+    name: list.name,
+    archivedAt: list.archivedAt,
+    kind: "list",
+    cards: getCardsForListIncludingArchived(list.id)
+  }));
+
+  const archivedCardRows = db
+    .select({
+      id: cards.id,
+      listId: cards.listId,
+      title: cards.title,
+      description: cards.description,
+      priority: cards.priority,
+      coverColor: cards.coverColor,
+      dueDate: cards.dueDate,
+      position: cards.position,
+      createdBy: cards.createdBy,
+      archivedAt: cards.archivedAt,
+      doneEnteredAt: cards.doneEnteredAt,
+      createdAt: cards.createdAt,
+      updatedAt: cards.updatedAt,
+      listName: lists.name
+    })
+    .from(cards)
+    .innerJoin(lists, eq(cards.listId, lists.id))
+    .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt), isNotNull(cards.archivedAt)))
+    .orderBy(asc(cards.archivedAt), asc(cards.createdAt))
+    .all() as Array<CardRecord & { listName: string }>;
+
+  const listNameById = new Map(archivedCardRows.map((row) => [row.listId, row.listName]));
+  const archivedCards = attachChecklistsToCards(archivedCardRows.map(({ listName, ...card }) => card));
+
+  const archivedCardsByListId = new Map<string, BoardCard[]>();
+  for (const card of archivedCards) {
+    const list = archivedCardsByListId.get(card.listId) ?? [];
+    list.push(card);
+    archivedCardsByListId.set(card.listId, list);
+  }
+
+  const archivedCardEntries: ArchivedListEntry[] = Array.from(archivedCardsByListId.entries()).map(([listId, cards]) => {
+    const listName = listNameById.get(listId) ?? "Archived";
+    const archivedAt = cards.reduce<Date | null>((current, card) => {
+      if (!card.archivedAt) return current;
+      if (!current) return card.archivedAt;
+      return card.archivedAt < current ? card.archivedAt : current;
+    }, null);
+    return {
+      id: `archived-cards:${listId}`,
+      sourceListId: listId,
+      name: `${listName} - archived`,
+      archivedAt,
+      kind: "cards",
+      cards
+    };
+  });
+
+  return [...archivedListEntries, ...archivedCardEntries];
 }
 
 export function createBoard(input: CreateBoardInput, userId: string): BoardDetail {
   const now = new Date();
   const boardId = crypto.randomUUID();
+  const trimmedName = input.name.trim();
   const retentionMinutes = clampRetentionMinutes(input.retentionMinutes);
   const retentionMode = input.retentionMode ?? DEFAULT_RETENTION_MODE;
+  const archiveRetentionMinutes = clampArchiveRetentionMinutes(input.archiveRetentionMinutes);
+
+  assertBoardNameAvailable(trimmedName);
 
   db.transaction((tx) => {
     tx.insert(boards)
       .values({
         id: boardId,
-        name: input.name.trim(),
+        name: trimmedName,
         description: normalizeOptionalDescription(input.description),
         background: input.background,
         retentionMode,
         retentionMinutes,
+        archiveRetentionMinutes,
+        archivedAt: null,
         createdBy: userId,
         createdAt: now,
         updatedAt: now
@@ -883,13 +1463,16 @@ export function updateBoard(boardId: string, input: UpdateBoardInput): BoardDeta
     background?: string;
     retentionMode?: RetentionMode;
     retentionMinutes?: number;
+    archiveRetentionMinutes?: number;
     updatedAt: Date;
   } = {
     updatedAt: new Date()
   };
 
   if (input.name !== undefined) {
-    updatePayload.name = input.name.trim();
+    const trimmed = input.name.trim();
+    assertBoardNameAvailable(trimmed, boardId);
+    updatePayload.name = trimmed;
   }
 
   if (input.description !== undefined) {
@@ -908,6 +1491,10 @@ export function updateBoard(boardId: string, input: UpdateBoardInput): BoardDeta
     updatePayload.retentionMinutes = clampRetentionMinutes(input.retentionMinutes);
   }
 
+  if (input.archiveRetentionMinutes !== undefined) {
+    updatePayload.archiveRetentionMinutes = clampArchiveRetentionMinutes(input.archiveRetentionMinutes);
+  }
+
   db.update(boards).set(updatePayload).where(eq(boards.id, boardId)).run();
 
   return getBoardById(boardId);
@@ -919,6 +1506,34 @@ export function deleteBoard(boardId: string): void {
   if (result.changes === 0) {
     throw new ApiError(404, "Board not found");
   }
+}
+
+export function archiveBoard(boardId: string): BoardSummary {
+  const board = getBoardRecord(boardId);
+  if (board.archivedAt) {
+    return getBoardSummaryById(boardId);
+  }
+
+  db.update(boards)
+    .set({ archivedAt: new Date(), updatedAt: new Date() })
+    .where(eq(boards.id, boardId))
+    .run();
+
+  return getBoardSummaryById(boardId);
+}
+
+export function restoreBoard(boardId: string): BoardSummary {
+  const board = getBoardRecord(boardId);
+  if (!board.archivedAt) {
+    return getBoardSummaryById(boardId);
+  }
+
+  db.update(boards)
+    .set({ archivedAt: null, updatedAt: new Date() })
+    .where(eq(boards.id, boardId))
+    .run();
+
+  return getBoardSummaryById(boardId);
 }
 
 
@@ -1051,25 +1666,170 @@ export function removeMemberFromCard(cardId: string, userId: string): BoardCard 
   return getCardById(cardId);
 }
 
+function storeCommentMentions(commentId: string, mentions: string[] | undefined): void {
+  if (!mentions || mentions.length === 0) {
+    return;
+  }
+
+  const uniqueMentions = Array.from(new Set(mentions));
+  const existingUsers = db
+    .select({ id: users.id })
+    .from(users)
+    .where(inArray(users.id, uniqueMentions))
+    .all();
+
+  if (existingUsers.length === 0) {
+    return;
+  }
+
+  db.insert(commentMentions)
+    .values(existingUsers.map((user) => ({
+      commentId,
+      userId: user.id,
+      createdAt: new Date()
+    })))
+    .run();
+}
+
+function createCommentRecord(params: {
+  boardId: string;
+  listId: string | null;
+  cardId: string | null;
+  input: CreateCommentInput;
+  authorId: string;
+}): BoardComment {
+  const now = new Date();
+  const commentId = crypto.randomUUID();
+
+  db.insert(comments)
+    .values({
+      id: commentId,
+      boardId: params.boardId,
+      listId: params.listId,
+      cardId: params.cardId,
+      authorId: params.authorId,
+      body: params.input.body.trim(),
+      createdAt: now,
+      updatedAt: now
+    })
+    .run();
+
+  storeCommentMentions(commentId, params.input.mentions);
+
+  return getCommentById(commentId);
+}
+
+export function deleteComment(commentId: string, requesterUserId: string, requesterRole: UserRole): void {
+  const comment = assertCommentExists(commentId);
+
+  if (requesterRole !== "admin" && comment.authorId !== requesterUserId) {
+    throw new ApiError(403, "You can only delete comments you created");
+  }
+
+  db.transaction((tx) => {
+    tx.delete(commentMentions).where(eq(commentMentions.commentId, commentId)).run();
+    tx.delete(commentReactions).where(eq(commentReactions.commentId, commentId)).run();
+    tx.delete(comments).where(eq(comments.id, commentId)).run();
+  });
+}
+
+export function createBoardComment(boardId: string, input: CreateCommentInput, authorId: string): BoardComment {
+  assertBoardExists(boardId);
+
+  return createCommentRecord({
+    boardId,
+    listId: null,
+    cardId: null,
+    input,
+    authorId
+  });
+}
+
+export function createListComment(listId: string, input: CreateCommentInput, authorId: string): BoardComment {
+  const list = assertListExists(listId);
+
+  return createCommentRecord({
+    boardId: list.boardId,
+    listId: list.id,
+    cardId: null,
+    input,
+    authorId
+  });
+}
+
+export function createCardComment(cardId: string, input: CreateCommentInput, authorId: string): BoardComment {
+  assertCardExists(cardId);
+  const { boardId } = getCardBoardContext(cardId);
+
+  return createCommentRecord({
+    boardId,
+    listId: null,
+    cardId,
+    input,
+    authorId
+  });
+}
+
+export function toggleCommentReaction(commentId: string, userId: string, input: CommentReactionInput): BoardComment {
+  assertCommentExists(commentId);
+
+  const existing = db
+    .select({ commentId: commentReactions.commentId })
+    .from(commentReactions)
+    .where(and(
+      eq(commentReactions.commentId, commentId),
+      eq(commentReactions.userId, userId),
+      eq(commentReactions.emoji, input.emoji)
+    ))
+    .limit(1)
+    .get();
+
+  if (existing) {
+    db.delete(commentReactions)
+      .where(and(
+        eq(commentReactions.commentId, commentId),
+        eq(commentReactions.userId, userId),
+        eq(commentReactions.emoji, input.emoji)
+      ))
+      .run();
+  } else {
+    db.insert(commentReactions)
+      .values({
+        commentId,
+        userId,
+        emoji: input.emoji,
+        createdAt: new Date()
+      })
+      .run();
+  }
+
+  return getCommentById(commentId);
+}
+
+
 export function createList(boardId: string, input: CreateListInput): BoardList {
   assertBoardExists(boardId);
 
   const maxPositionRow = db
     .select({ maxPosition: sql<number>`coalesce(max(${lists.position}), -1)` })
     .from(lists)
-    .where(eq(lists.boardId, boardId))
+    .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
     .get();
 
   const now = new Date();
   const listId = crypto.randomUUID();
+  const trimmedName = input.name.trim();
+
+  assertListNameAvailable(boardId, trimmedName);
 
   db.insert(lists)
     .values({
       id: listId,
       boardId,
-      name: input.name.trim(),
+      name: trimmedName,
       position: (maxPositionRow?.maxPosition ?? -1) + 1,
       isDoneList: input.isDoneList,
+      archivedAt: null,
       createdAt: now,
       updatedAt: now
     })
@@ -1082,6 +1842,7 @@ export function createList(boardId: string, input: CreateListInput): BoardList {
       name: lists.name,
       position: lists.position,
       isDoneList: lists.isDoneList,
+      archivedAt: lists.archivedAt,
       createdAt: lists.createdAt,
       updatedAt: lists.updatedAt
     })
@@ -1096,7 +1857,8 @@ export function createList(boardId: string, input: CreateListInput): BoardList {
 
   return {
     ...created,
-    cards: []
+    cards: [],
+    comments: []
   };
 }
 
@@ -1146,6 +1908,7 @@ export function updateList(listId: string, input: UpdateListInput): BoardList {
       name: lists.name,
       position: lists.position,
       isDoneList: lists.isDoneList,
+      archivedAt: lists.archivedAt,
       createdAt: lists.createdAt,
       updatedAt: lists.updatedAt
     })
@@ -1160,7 +1923,8 @@ export function updateList(listId: string, input: UpdateListInput): BoardList {
 
   return {
     ...updated,
-    cards: getCardsForList(updated.id)
+    cards: getCardsForList(updated.id),
+    comments: getCommentsForLists([updated.id]).get(updated.id) ?? []
   };
 }
 
@@ -1172,13 +1936,100 @@ export function deleteList(listId: string): void {
   }
 }
 
+export function archiveList(listId: string): void {
+  const list = assertListExists(listId);
+  if (list.archivedAt) return;
+
+  db.update(lists)
+    .set({ archivedAt: new Date(), updatedAt: new Date() })
+    .where(eq(lists.id, listId))
+    .run();
+}
+
+export function restoreList(listId: string, renameConflicts: boolean): BoardDetail {
+  const list = getListRecord(listId);
+  if (!list.archivedAt) {
+    return getBoardById(list.boardId);
+  }
+
+  const existingList = db
+    .select({ id: lists.id, name: lists.name })
+    .from(lists)
+    .where(and(eq(lists.boardId, list.boardId), eq(lists.name, list.name), isNull(lists.archivedAt)))
+    .limit(1)
+    .get();
+
+  const now = new Date();
+
+  if (existingList) {
+    const archivedCards = getCardsForListIncludingArchived(list.id);
+    const existingCards = getCardsForList(existingList.id);
+    const existingNames = new Set(existingCards.map((card) => card.title));
+
+    const renameMap = new Map<string, string>();
+    for (const card of archivedCards) {
+      if (!existingNames.has(card.title)) {
+        continue;
+      }
+      if (!renameConflicts) {
+        throw new ApiError(409, "Card with same name exists creating conflict");
+      }
+      const nextName = resolveRestoredName(card.title, existingNames);
+      renameMap.set(card.id, nextName);
+      existingNames.add(nextName);
+    }
+
+    const maxPositionRow = db
+      .select({ maxPosition: sql<number>`coalesce(max(${cards.position}), -1)` })
+      .from(cards)
+      .where(and(eq(cards.listId, existingList.id), isNull(cards.archivedAt)))
+      .get();
+
+    let nextPosition = (maxPositionRow?.maxPosition ?? -1) + 1;
+
+    db.transaction((tx) => {
+      archivedCards.forEach((card) => {
+        const nextTitle = renameMap.get(card.id) ?? card.title;
+        tx.update(cards)
+          .set({
+            listId: existingList.id,
+            title: nextTitle,
+            archivedAt: null,
+            position: nextPosition++,
+            updatedAt: now
+          })
+          .where(eq(cards.id, card.id))
+          .run();
+      });
+
+      tx.delete(lists).where(eq(lists.id, list.id)).run();
+    });
+
+    return getBoardById(list.boardId);
+  }
+
+  db.transaction((tx) => {
+    tx.update(lists)
+      .set({ archivedAt: null, updatedAt: now })
+      .where(eq(lists.id, list.id))
+      .run();
+
+    tx.update(cards)
+      .set({ archivedAt: null, updatedAt: now })
+      .where(eq(cards.listId, list.id))
+      .run();
+  });
+
+  return getBoardById(list.boardId);
+}
+
 export function reorderLists(boardId: string, input: ReorderListsInput): BoardList[] {
   assertBoardExists(boardId);
 
   const existing = db
     .select({ id: lists.id })
     .from(lists)
-    .where(eq(lists.boardId, boardId))
+    .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
     .all();
 
   const existingIds = existing.map((row) => row.id);
@@ -1205,24 +2056,29 @@ export function reorderLists(boardId: string, input: ReorderListsInput): BoardLi
     });
   });
 
-  return db
+  const updatedLists = db
     .select({
       id: lists.id,
       boardId: lists.boardId,
       name: lists.name,
       position: lists.position,
       isDoneList: lists.isDoneList,
+      archivedAt: lists.archivedAt,
       createdAt: lists.createdAt,
       updatedAt: lists.updatedAt
     })
     .from(lists)
-    .where(eq(lists.boardId, boardId))
+    .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
     .orderBy(asc(lists.position), asc(lists.createdAt))
-    .all()
-    .map((list) => ({
-      ...list,
-      cards: getCardsForList(list.id)
-    }));
+    .all();
+
+  const commentsByListId = getCommentsForLists(updatedLists.map((list) => list.id));
+
+  return updatedLists.map((list) => ({
+    ...list,
+    cards: getCardsForList(list.id),
+    comments: commentsByListId.get(list.id) ?? []
+  }));
 }
 
 export function createCard(listId: string, input: CreateCardInput, userId: string): BoardCard {
@@ -1499,6 +2355,62 @@ export async function deleteCard(cardId: string, requesterUserId: string, reques
   }
 }
 
+export function archiveCard(cardId: string, requesterUserId: string, requesterRole: UserRole): BoardCard {
+  const existing = assertCardExists(cardId);
+
+  if (requesterRole !== "admin" && existing.createdBy !== requesterUserId) {
+    throw new ApiError(403, "You can only archive cards you created");
+  }
+
+  db.update(cards)
+    .set({ archivedAt: new Date(), updatedAt: new Date() })
+    .where(eq(cards.id, cardId))
+    .run();
+
+  return getCardByIdIncludingArchived(cardId);
+}
+
+export function restoreCard(cardId: string, renameConflicts: boolean): BoardCard {
+  const card = getCardByIdIncludingArchived(cardId);
+  if (!card.archivedAt) {
+    return card;
+  }
+
+  const list = getListRecord(card.listId);
+  if (list.archivedAt) {
+    throw new ApiError(400, "List is archived. Restore the list first.");
+  }
+
+  const existingCards = getCardsForList(list.id);
+  const existingNames = new Set(existingCards.map((item) => item.title));
+  let nextTitle = card.title;
+
+  if (existingNames.has(nextTitle)) {
+    if (!renameConflicts) {
+      throw new ApiError(409, "Card with same name exists creating conflict");
+    }
+    nextTitle = resolveRestoredName(nextTitle, existingNames);
+  }
+
+  const maxPositionRow = db
+    .select({ maxPosition: sql<number>`coalesce(max(${cards.position}), -1)` })
+    .from(cards)
+    .where(and(eq(cards.listId, list.id), isNull(cards.archivedAt)))
+    .get();
+
+  db.update(cards)
+    .set({
+      archivedAt: null,
+      title: nextTitle,
+      position: (maxPositionRow?.maxPosition ?? -1) + 1,
+      updatedAt: new Date()
+    })
+    .where(eq(cards.id, cardId))
+    .run();
+
+  return getCardById(cardId);
+}
+
 export function moveCard(input: MoveCardInput): MoveCardResult {
   const sourceList = assertListExists(input.sourceListId);
   const destinationList = assertListExists(input.destinationListId);
@@ -1629,6 +2541,110 @@ export async function cleanupExpiredCards(now: Date = new Date()): Promise<void>
     await deleteAttachmentsForCard(row.cardId);
     db.delete(cards).where(eq(cards.id, row.cardId)).run();
   }
+
+  await cleanupArchivedCards(now);
+  await cleanupArchivedLists(now);
+  await cleanupArchivedBoards(now);
 }
 
+
+async function cleanupArchivedCards(now: Date): Promise<void> {
+  const rows = db
+    .select({
+      cardId: cards.id,
+      archivedAt: cards.archivedAt,
+      boardArchiveRetention: boards.archiveRetentionMinutes
+    })
+    .from(cards)
+    .innerJoin(lists, eq(cards.listId, lists.id))
+    .innerJoin(boards, eq(lists.boardId, boards.id))
+    .where(and(isNotNull(cards.archivedAt), isNull(lists.archivedAt), isNull(boards.archivedAt)))
+    .all() as Array<{
+      cardId: string;
+      archivedAt: Date | null;
+      boardArchiveRetention: number | null;
+    }>;
+
+  const nowMs = now.getTime();
+
+  for (const row of rows) {
+    if (!row.archivedAt) continue;
+    const retentionMinutes = clampArchiveRetentionMinutes(row.boardArchiveRetention ?? DEFAULT_ARCHIVE_RETENTION_MINUTES);
+    const expiresAt = row.archivedAt.getTime() + retentionMinutes * 60 * 1000;
+    if (nowMs < expiresAt) continue;
+
+    await deleteAttachmentsForCard(row.cardId);
+    db.delete(cards).where(eq(cards.id, row.cardId)).run();
+  }
+}
+
+async function cleanupArchivedLists(now: Date): Promise<void> {
+  const rows = db
+    .select({
+      listId: lists.id,
+      archivedAt: lists.archivedAt,
+      boardArchiveRetention: boards.archiveRetentionMinutes
+    })
+    .from(lists)
+    .innerJoin(boards, eq(lists.boardId, boards.id))
+    .where(and(isNotNull(lists.archivedAt), isNull(boards.archivedAt)))
+    .all() as Array<{
+      listId: string;
+      archivedAt: Date | null;
+      boardArchiveRetention: number | null;
+    }>;
+
+  const nowMs = now.getTime();
+
+  for (const row of rows) {
+    if (!row.archivedAt) continue;
+    const retentionMinutes = clampArchiveRetentionMinutes(row.boardArchiveRetention ?? DEFAULT_ARCHIVE_RETENTION_MINUTES);
+    const expiresAt = row.archivedAt.getTime() + retentionMinutes * 60 * 1000;
+    if (nowMs < expiresAt) continue;
+
+    const cardRows = db
+      .select({ id: cards.id })
+      .from(cards)
+      .where(eq(cards.listId, row.listId))
+      .all() as Array<{ id: string }>;
+
+    for (const card of cardRows) {
+      await deleteAttachmentsForCard(card.id);
+    }
+
+    db.delete(lists).where(eq(lists.id, row.listId)).run();
+  }
+}
+
+async function cleanupArchivedBoards(now: Date): Promise<void> {
+  const rows = db
+    .select({
+      boardId: boards.id,
+      archivedAt: boards.archivedAt
+    })
+    .from(boards)
+    .where(isNotNull(boards.archivedAt))
+    .all() as Array<{ boardId: string; archivedAt: Date | null }>;
+
+  const nowMs = now.getTime();
+
+  for (const row of rows) {
+    if (!row.archivedAt) continue;
+    const expiresAt = row.archivedAt.getTime() + BOARD_ARCHIVE_RETENTION_MINUTES * 60 * 1000;
+    if (nowMs < expiresAt) continue;
+
+    const cardRows = db
+      .select({ id: cards.id })
+      .from(cards)
+      .innerJoin(lists, eq(cards.listId, lists.id))
+      .where(eq(lists.boardId, row.boardId))
+      .all() as Array<{ id: string }>;
+
+    for (const card of cardRows) {
+      await deleteAttachmentsForCard(card.id);
+    }
+
+    db.delete(boards).where(eq(boards.id, row.boardId)).run();
+  }
+}
 

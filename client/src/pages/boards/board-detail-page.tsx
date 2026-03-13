@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { CalendarClock, Check, ChevronDown, ChevronUp, Download, GripVertical, ListChecks, Paperclip, Pencil, Plus, Tag, Trash2, Users } from "lucide-react";
+import { Archive, CalendarClock, Check, ChevronDown, ChevronUp, Download, GripVertical, ListChecks, MessageSquare, Paperclip, Pencil, Plus, Tag, Trash2, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -27,14 +27,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { boardBackgroundPresets, getBoardBackgroundClass, getBoardSurfaceClass } from "@/lib/board-backgrounds";
 import {
+  archiveBoard,
+  archiveCard,
+  archiveList,
   assignLabelToCard,
   assignMemberToCard,
   createAttachments,
+  createBoardComment,
   createCard,
+  createCardComment,
+  deleteComment,
   createChecklist,
   createChecklistItem,
   createLabel,
   createList,
+  createListComment,
   deleteAttachment,
   deleteBoard,
   deleteCard,
@@ -43,11 +50,16 @@ import {
   deleteLabel,
   deleteList,
   downloadAttachment,
+  getArchivedLists,
   getBoardById,
   moveCard,
   removeLabelFromCard,
   removeMemberFromCard,
   reorderLists,
+  restoreBoard,
+  restoreCard,
+  restoreList,
+  toggleCommentReaction,
   updateBoard,
   updateCard,
   updateChecklist,
@@ -55,7 +67,7 @@ import {
   updateLabel,
   updateList
 } from "@/lib/boards-api";
-import type { BoardAttachment, BoardBackground, BoardCard, BoardDetail, BoardLabel, BoardList, BoardMember, CardCoverColor, CardPriority, Checklist, ChecklistItem, LabelColor, RetentionMode } from "@/types/board";
+import type { ArchivedListEntry, BoardAttachment, BoardBackground, BoardCard, BoardComment, BoardDetail, BoardLabel, BoardList, BoardMember, CardCoverColor, CardPriority, Checklist, ChecklistItem, LabelColor, RetentionMode } from "@/types/board";
 
 interface BoardDraft {
   name: string;
@@ -63,6 +75,7 @@ interface BoardDraft {
   background: BoardBackground;
   retentionMode: RetentionMode;
   retentionMinutes: number;
+  archiveRetentionMinutes: number;
 }
 
 interface CardDraft {
@@ -74,7 +87,7 @@ interface CardDraft {
 }
 
 const AUTO_SAVE_DELAY_MS = 750;
-const CARD_AUTO_SAVE_DELAY_MS = 2000;
+const CARD_AUTO_SAVE_DELAY_MS = 750;
 const SAVED_TOAST_SHOW_DELAY_MS = 250;
 const SAVED_TOAST_VISIBLE_MS = 1500;
 const MIN_RETENTION_MINUTES = 1;
@@ -131,6 +144,20 @@ const coverColorClasses: Record<CardCoverColor, string> = {
   purple: "bg-purple-500",
   pink: "bg-pink-500"
 };
+
+const coverColorSurfaceClasses: Record<CardCoverColor, string> = {
+  none: "bg-background/90",
+  slate: "bg-gradient-to-br from-slate-50 via-slate-100/70 to-white",
+  blue: "bg-gradient-to-br from-blue-50 via-sky-100/70 to-white",
+  teal: "bg-gradient-to-br from-teal-50 via-cyan-100/70 to-white",
+  green: "bg-gradient-to-br from-emerald-50 via-emerald-100/70 to-white",
+  amber: "bg-gradient-to-br from-amber-50 via-amber-100/70 to-white",
+  orange: "bg-gradient-to-br from-orange-50 via-orange-100/70 to-white",
+  red: "bg-gradient-to-br from-rose-50 via-rose-100/70 to-white",
+  purple: "bg-gradient-to-br from-purple-50 via-purple-100/70 to-white",
+  pink: "bg-gradient-to-br from-pink-50 via-pink-100/70 to-white"
+};
+
 
 
 function sortChecklistItems(items: ChecklistItem[]): ChecklistItem[] {
@@ -254,6 +281,181 @@ function getInitials(name: string): string {
   return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
 }
 
+function getCommentSnippet(body: string): string {
+  const trimmed = body.trim();
+  if (trimmed.length <= 80) return trimmed;
+  return `${trimmed.slice(0, 77)}...`;
+}
+
+const COMMENT_REACTION_CHOICES = ["👍", "🎉", "❤️"];
+
+function appendMention(body: string, name: string): string {
+  const tag = `@${name}`;
+  if (body.includes(tag)) return body;
+  return body.trim().length > 0 ? `${body} ${tag}` : tag;
+}
+
+function CommentNote({
+  comment,
+  expanded,
+  onToggle,
+  onReact,
+  onDelete,
+  variant = "default"
+}: {
+  comment: BoardComment;
+  expanded: boolean;
+  onToggle: () => void;
+  onReact?: (emoji: string) => void;
+  onDelete?: () => void;
+  variant?: "default" | "compact";
+}): JSX.Element {
+  const displayBody = expanded ? comment.body : getCommentSnippet(comment.body);
+  const reactionCounts = new Map(comment.reactions.map((reaction) => [reaction.emoji, reaction.count]));
+  const showReactionPicker = Boolean(onReact && expanded);
+  const reactionEmojis = showReactionPicker
+    ? Array.from(new Set([...COMMENT_REACTION_CHOICES, ...comment.reactions.map((reaction) => reaction.emoji)]))
+    : comment.reactions.map((reaction) => reaction.emoji);
+  const isCompact = variant === "compact";
+  const reactionSummary = comment.reactions
+    .map((reaction) => `${reaction.emoji}${reaction.count}`)
+    .join(" ");
+
+  if (isCompact && !expanded) {
+    return (
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggle();
+        }}
+        className="inline-flex w-auto max-w-[240px] min-w-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50/80 px-2 py-1 text-[10px] text-amber-900 shadow-sm transition hover:bg-amber-50"
+      >
+        <span className="font-semibold">{comment.author.name}</span>
+        <span className="truncate text-amber-800">{displayBody}</span>
+        {reactionSummary.length > 0 && (
+          <span className="ml-auto text-[9px] text-amber-700">{reactionSummary}</span>
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          onToggle();
+        }
+      }}
+      className="w-full rounded-md border border-amber-200 bg-amber-50/80 px-2.5 py-2 text-left text-xs text-amber-950 shadow-sm transition hover:bg-amber-50"
+    >
+      <div className="flex items-center justify-between gap-2 text-[10px] text-amber-700">
+        <span className="font-semibold text-amber-900">{comment.author.name}</span>
+        <div className="flex items-center gap-2">
+          <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
+          {expanded && (
+            <button
+              type="button"
+              className="text-[10px] text-amber-700 hover:text-amber-900"
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggle();
+              }}
+            >
+              Collapse
+            </button>
+          )}
+          {expanded && onDelete && (
+            <button
+              type="button"
+              className="text-[10px] text-rose-600 hover:text-rose-700"
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete();
+              }}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="mt-1 text-xs text-amber-950">{displayBody}</p>
+      {expanded && reactionEmojis.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {reactionEmojis.map((emoji) => {
+            const count = reactionCounts.get(emoji) ?? 0;
+            const label = count > 0 ? `${emoji} ${count}` : emoji;
+            const chipClass = count > 0
+              ? "border-amber-200 bg-white/80 text-amber-800"
+              : "border-amber-100 bg-white/70 text-amber-700";
+
+            return showReactionPicker ? (
+              <button
+                key={`${comment.id}-${emoji}`}
+                type="button"
+                className={`rounded-full border px-1.5 py-0.5 text-[10px] ${chipClass}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onReact?.(emoji);
+                }}
+              >
+                {label}
+              </button>
+            ) : (
+              <span
+                key={`${comment.id}-${emoji}`}
+                className={`rounded-full border px-1.5 py-0.5 text-[10px] ${chipClass}`}
+              >
+                {label}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MentionPicker({
+  members,
+  selectedIds,
+  onToggle
+}: {
+  members: BoardMember[];
+  selectedIds: string[];
+  onToggle: (member: BoardMember) => void;
+}): JSX.Element | null {
+  if (members.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+      <span className="mr-1">Mentions:</span>
+      {members.map((member) => {
+        const displayName = member.name.split(/\s+/)[0] ?? member.name;
+        const selected = selectedIds.includes(member.id);
+        return (
+          <button
+            key={member.id}
+            type="button"
+            onClick={() => onToggle(member)}
+            className={`rounded-full border px-2 py-0.5 text-[10px] ${selected ? "border-sky-300 bg-sky-100 text-sky-900" : "border-border/60 bg-white/70 text-muted-foreground"}`}
+            title={member.name}
+          >
+            @{displayName}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function sortAttachments(attachments: BoardAttachment[]): BoardAttachment[] {
   return [...attachments].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
@@ -287,7 +489,66 @@ function getTimeLeftLabel(doneEnteredAt: string, nowMs: number, retentionMinutes
 
   const secondsLeft = Math.max(1, Math.ceil(remainingMs / second));
   return `${secondsLeft}s left`;
+
+function getArchiveCountdownLabel(archivedAt: string | null, nowMs: number, retentionMinutes: number, expiredLabel = "Deleting soon"): string {
+  if (!archivedAt) return "";
+  const archivedAtMs = new Date(archivedAt).getTime();
+  if (Number.isNaN(archivedAtMs)) return "";
+  const retentionMs = clampRetentionMinutes(retentionMinutes) * 60 * 1000;
+  const remainingMs = retentionMs - (nowMs - archivedAtMs);
+  if (remainingMs <= 0) return expiredLabel;
+
+  const second = 1000;
+  const minute = 60 * second;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (remainingMs >= 2 * day) {
+    const daysLeft = Math.ceil(remainingMs / day);
+    return `${daysLeft}d left`;
+  }
+
+  if (remainingMs >= 2 * hour) {
+    const hoursLeft = Math.ceil(remainingMs / hour);
+    return `${hoursLeft}h left`;
+  }
+
+  if (remainingMs >= 2 * minute) {
+    const minutesLeft = Math.ceil(remainingMs / minute);
+    return `${minutesLeft}m left`;
+  }
+
+  const secondsLeft = Math.max(1, Math.ceil(remainingMs / second));
+  return `${secondsLeft}s left`;
 }
+
+}
+
+function getArchiveCountdownLabel(archivedAt: string | null, nowMs: number, retentionMinutes: number, expiredLabel = "Deleting soon"): string {
+  if (!archivedAt) return "";
+  const archivedAtMs = new Date(archivedAt).getTime();
+  if (Number.isNaN(archivedAtMs)) return "";
+  const retentionMs = clampRetentionMinutes(retentionMinutes) * 60 * 1000;
+  const remainingMs = retentionMs - (nowMs - archivedAtMs);
+  if (remainingMs <= 0) return expiredLabel;
+
+  const second = 1000;
+  const minute = 60 * second;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (remainingMs >= 2 * day) {
+    return `${Math.ceil(remainingMs / day)}d left`;
+  }
+  if (remainingMs >= 2 * hour) {
+    return `${Math.ceil(remainingMs / hour)}h left`;
+  }
+  if (remainingMs >= 2 * minute) {
+    return `${Math.ceil(remainingMs / minute)}m left`;
+  }
+  return `${Math.max(1, Math.ceil(remainingMs / second))}s left`;
+}
+
 
 function getChecklistProgress(checklist: Checklist): { done: number; total: number; percent: number } {
   const total = checklist.items?.length ?? 0;
@@ -376,7 +637,13 @@ function CardSummary({
   retentionMinutes,
   showChecklists = true,
   onChecklistItemToggle,
-  onChecklistOpen
+  onChecklistOpen,
+  expandedCommentIds,
+  onToggleComment,
+  onReact,
+  onDeleteComment,
+  expandedCardCommentGroups,
+  onToggleCardCommentGroup
 }: {
   card: BoardCard;
   nowMs: number;
@@ -389,9 +656,19 @@ function CardSummary({
     nextValue: boolean
   ) => void;
   onChecklistOpen?: (card: BoardCard, checklistId: string) => void;
+  expandedCommentIds?: Set<string>;
+  onToggleComment?: (commentId: string) => void;
+  onReact?: (commentId: string, emoji: string) => void;
+  onDeleteComment?: (comment: BoardComment) => void;
+  expandedCardCommentGroups?: Set<string>;
+  onToggleCardCommentGroup?: (cardId: string) => void;
+  onDownloadAllAttachments?: (card: BoardCard) => void;
 }): JSX.Element {
   const dueLabel = formatDueDateLabel(card.dueDate);
   const checklists = showChecklists ? card.checklists ?? [] : [];
+  const cardComments = card.comments ?? [];
+  const showAllComments = expandedCardCommentGroups?.has(card.id) ?? false;
+  const visibleComments = showAllComments ? cardComments : cardComments.slice(0, 2);
   const canToggleItems = Boolean(onChecklistItemToggle);
   const handleChecklistBodyClick = (
     event: React.MouseEvent<HTMLElement>,
@@ -405,129 +682,175 @@ function CardSummary({
     onChecklistOpen?.(card, checklistId);
   };
   return (
-    <>
-      {card.coverColor && card.coverColor !== "none" && (
-        <div className={`mb-2 h-1.5 w-full rounded-full ${coverColorClasses[card.coverColor]}`} />
-      )}
-      <p className="line-clamp-2 text-sm font-medium text-foreground">{card.title}</p>
-      {card.labels.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {card.labels.map((label) => (
-            <span
-              key={label.id}
-              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${labelColorStyles[label.color].chip}`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${labelColorStyles[label.color].dot}`} />
-              {label.name}
+    <div className="space-y-2">
+      <p className="line-clamp-2 text-sm font-semibold text-foreground">{card.title}</p>
+
+      <div className="space-y-2">
+        <div className="space-y-1">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Highlights</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getPriorityBadgeClass(card.priority)}`}>
+              {getPriorityLabel(card.priority)}
             </span>
-          ))}
-        </div>
-      )}
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getPriorityBadgeClass(card.priority)}`}>
-          {getPriorityLabel(card.priority)}
-        </span>
-        {dueLabel && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-secondary/70 px-2 py-0.5 text-[11px] text-muted-foreground">
-            <CalendarClock className="h-3 w-3" />
-            {dueLabel}
-          </span>
-        )}
-        {card.doneEnteredAt && (
-          <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[11px] text-rose-700">
-            {getTimeLeftLabel(card.doneEnteredAt, nowMs, retentionMinutes)}
-          </span>
-        )}
-        {card.assignees.length > 0 && (
-          <div className="flex items-center gap-1">
-            {card.assignees.map((assignee) => (
-              <span
-                key={assignee.id}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-700"
-                title={assignee.name}
-              >
-                {getInitials(assignee.name)}
+            {dueLabel && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-secondary/70 px-2 py-0.5 text-[11px] text-muted-foreground">
+                <CalendarClock className="h-3 w-3" />
+                {dueLabel}
               </span>
-            ))}
+            )}
+            {card.doneEnteredAt && (
+              <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[11px] text-rose-700">
+                {getTimeLeftLabel(card.doneEnteredAt, nowMs, retentionMinutes)}
+              </span>
+            )}
+            {card.assignees.length > 0 && (
+              <div className="flex items-center gap-1">
+                {card.assignees.map((assignee) => (
+                  <span
+                    key={assignee.id}
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-700"
+                    title={assignee.name}
+                  >
+                    {getInitials(assignee.name)}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {card.labels.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tags</p>
+            <div className="flex flex-wrap gap-1">
+              {card.labels.map((label) => (
+                <span
+                  key={label.id}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${labelColorStyles[label.color].chip}`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${labelColorStyles[label.color].dot}`} />
+                  {label.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {cardComments.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Notes</p>
+            <div className="flex flex-wrap gap-1">
+              {visibleComments.map((comment) => (
+                <CommentNote
+                  key={comment.id}
+                  comment={comment}
+                  expanded={expandedCommentIds?.has(comment.id) ?? false}
+                  onToggle={() => onToggleComment?.(comment.id)}
+                  onReact={onReact ? (emoji) => onReact(comment.id, emoji) : undefined}
+                  onDelete={onDeleteComment ? () => onDeleteComment(comment) : undefined}
+                  variant="compact"
+                />
+              ))}
+              {cardComments.length > 2 && onToggleCardCommentGroup && (
+                <button
+                  type="button"
+                  className="basis-full text-[10px] text-muted-foreground underline underline-offset-2"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onToggleCardCommentGroup(card.id);
+                  }}
+                >
+                  {showAllComments ? "Show less" : `Show all (${cardComments.length})`}
+                </button>
+              )}
+              {!onToggleCardCommentGroup && cardComments.length > visibleComments.length && (
+                <span className="basis-full text-[10px] text-muted-foreground">
+                  +{cardComments.length - visibleComments.length} more comments
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {checklists.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Checklists</p>
+            {checklists.map((checklist) => {
+              const progress = getChecklistProgress(checklist);
+              return (
+                <details
+                  key={checklist.id}
+                  className="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <summary className="flex cursor-pointer items-center justify-between text-[11px] font-medium text-muted-foreground">
+                    <span className="flex min-w-0 items-center gap-1">
+                      <ListChecks className="h-3 w-3" />
+                      <span className="truncate">{checklist.title}</span>
+                    </span>
+                    <span>{progress.done}/{progress.total}</span>
+                  </summary>
+                  <div
+                    className="mt-2 space-y-2"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleChecklistBodyClick(event, checklist.id);
+                    }}
+                  >
+                    <div className="h-1.5 w-full rounded-full bg-muted/60">
+                      <div
+                        className="h-1.5 rounded-full bg-emerald-500/80"
+                        style={{ width: `${progress.percent}%` }}
+                      />
+                    </div>
+                    {checklist.items.length > 0 ? (
+                      <ul className="space-y-1 text-[11px] text-muted-foreground">
+                        {checklist.items.map((item) => (
+                          <li key={item.id} className="flex items-center gap-1.5">
+                            {canToggleItems ? (
+                              <input
+                                type="checkbox"
+                                className="mt-0.5 h-3.5 w-3.5 rounded border-muted-foreground/40 text-emerald-500"
+                                checked={item.isDone}
+                                onChange={(event) => {
+                                  event.stopPropagation();
+                                  onChecklistItemToggle?.(card.id, checklist.id, item, event.target.checked);
+                                }}
+                                onClick={(event) => event.stopPropagation()}
+                                aria-label={`Mark ${item.title} ${item.isDone ? "not done" : "done"}`}
+                              />
+                            ) : (
+                              <span
+                                className={`inline-flex h-3 w-3 items-center justify-center rounded-sm border ${
+                                  item.isDone
+                                    ? "border-emerald-500/80 bg-emerald-500/80 text-white"
+                                    : "border-muted-foreground/40"
+                                }`}
+                              >
+                                {item.isDone && <Check className="h-2 w-2" />}
+                              </span>
+                            )}
+                            <span className={item.isDone ? "line-through text-muted-foreground/70" : ""}>
+                              {item.title}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">No items yet.</p>
+                    )}
+                  </div>
+                </details>
+              );
+            })}
           </div>
         )}
       </div>
-      {checklists.length > 0 && (
-        <div className="mt-3 space-y-2">
-          {checklists.map((checklist) => {
-            const progress = getChecklistProgress(checklist);
-            return (
-              <details
-                key={checklist.id}
-                className="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5"
-                onClick={(event) => {
-                  event.stopPropagation();
-                }}
-                onKeyDown={(event) => event.stopPropagation()}
-              >
-                <summary className="flex cursor-pointer items-center justify-between text-[11px] font-medium text-muted-foreground">
-                  <span className="flex min-w-0 items-center gap-1">
-                    <ListChecks className="h-3 w-3" />
-                    <span className="truncate">{checklist.title}</span>
-                  </span>
-                  <span>{progress.done}/{progress.total}</span>
-                </summary>
-                <div
-                  className="mt-2 space-y-2"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleChecklistBodyClick(event, checklist.id);
-                  }}
-                >
-                  <div className="h-1.5 w-full rounded-full bg-muted/60">
-                    <div
-                      className="h-1.5 rounded-full bg-emerald-500/80"
-                      style={{ width: `${progress.percent}%` }}
-                    />
-                  </div>
-                  {checklist.items.length > 0 ? (
-                    <ul className="space-y-1 text-[11px] text-muted-foreground">
-                      {checklist.items.map((item) => (
-                        <li key={item.id} className="flex items-center gap-1.5">
-                          {canToggleItems ? (
-                            <input
-                              type="checkbox"
-                              className="mt-0.5 h-3.5 w-3.5 rounded border-muted-foreground/40 text-emerald-500"
-                              checked={item.isDone}
-                              onChange={(event) => {
-                                event.stopPropagation();
-                                onChecklistItemToggle?.(card.id, checklist.id, item, event.target.checked);
-                              }}
-                              onClick={(event) => event.stopPropagation()}
-                              aria-label={`Mark ${item.title} ${item.isDone ? "not done" : "done"}`}
-                            />
-                          ) : (
-                            <span
-                              className={`inline-flex h-3 w-3 items-center justify-center rounded-sm border ${
-                                item.isDone
-                                  ? "border-emerald-500/80 bg-emerald-500/80 text-white"
-                                  : "border-muted-foreground/40"
-                              }`}
-                            >
-                              {item.isDone && <Check className="h-2 w-2" />}
-                            </span>
-                          )}
-                          <span className={item.isDone ? "line-through text-muted-foreground/70" : ""}>
-                            {item.title}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground">No items yet.</p>
-                  )}
-                </div>
-              </details>
-            );
-          })}
-        </div>
-      )}
-    </>
+    </div>
+
   );
 }
 
@@ -541,6 +864,13 @@ function SortableCard({
   retentionMinutes,
   onChecklistItemToggle,
   onChecklistOpen,
+  expandedCommentIds,
+  onToggleComment,
+  onReact,
+  onDeleteComment,
+  expandedCardCommentGroups,
+  onToggleCardCommentGroup,
+  onDownloadAllAttachments,
 }: {
   card: BoardCard;
   onEdit: (card: BoardCard) => void;
@@ -553,6 +883,13 @@ function SortableCard({
     nextValue: boolean
   ) => void;
   onChecklistOpen?: (card: BoardCard, checklistId: string) => void;
+  expandedCommentIds?: Set<string>;
+  onToggleComment?: (commentId: string) => void;
+  onReact?: (commentId: string, emoji: string) => void;
+  onDeleteComment?: (comment: BoardComment) => void;
+  expandedCardCommentGroups?: Set<string>;
+  onToggleCardCommentGroup?: (cardId: string) => void;
+  onDownloadAllAttachments?: (card: BoardCard) => void;
 }): JSX.Element {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
 
@@ -564,7 +901,7 @@ function SortableCard({
   return (
     <div ref={setNodeRef} style={style} data-card-id={card.id}>
       <div
-        className={`group flex items-start gap-2 rounded-md border border-border/70 bg-background/90 px-3 py-2 transition-all duration-150 ${
+        className={`group flex items-start gap-2 rounded-md border border-border/70 ${coverColorSurfaceClasses[card.coverColor ?? "none"]} px-3 py-2 transition-all duration-150 ${
           isDragging ? "opacity-30 ring-2 ring-primary/25 shadow-md" : "hover:shadow-sm"
         }`}
       >
@@ -582,20 +919,47 @@ function SortableCard({
             }
           }}
         >
-          <CardSummary card={card} nowMs={nowMs} retentionMinutes={retentionMinutes} onChecklistItemToggle={onChecklistItemToggle} onChecklistOpen={onChecklistOpen} />
+          <CardSummary
+            card={card}
+            nowMs={nowMs}
+            retentionMinutes={retentionMinutes}
+            onChecklistItemToggle={onChecklistItemToggle}
+            onChecklistOpen={onChecklistOpen}
+            expandedCommentIds={expandedCommentIds}
+            onToggleComment={onToggleComment}
+            onReact={onReact}
+            onDeleteComment={onDeleteComment}
+            expandedCardCommentGroups={expandedCardCommentGroups}
+            onToggleCardCommentGroup={onToggleCardCommentGroup}
+          />
         </div>
 
-        {/* Drag handle — only this area initiates drag */}
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          className="mt-0.5 shrink-0 cursor-grab active:cursor-grabbing rounded p-0.5 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100 touch-none"
-          tabIndex={-1}
-          aria-label="Drag to reorder"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        <div className="mt-0.5 flex shrink-0 flex-col items-center gap-1">
+          {card.attachments.length > 0 && onDownloadAllAttachments && (
+            <button
+              type="button"
+              className="rounded p-0.5 text-muted-foreground opacity-60 transition-opacity hover:text-foreground group-hover:opacity-100"
+              title="Download all"
+              onClick={(event) => {
+                event.stopPropagation();
+                onDownloadAllAttachments(card);
+              }}
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          )}
+          {/* Drag handle — only this area initiates drag */}
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="rounded p-0.5 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100 touch-none cursor-grab active:cursor-grabbing"
+            tabIndex={-1}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -677,6 +1041,25 @@ export function BoardDetailPage(): JSX.Element {
   const [retentionDays, setRetentionDays] = useState(7);
   const [retentionHours, setRetentionHours] = useState(0);
   const [retentionMinutesPart, setRetentionMinutesPart] = useState(0);
+  const [archiveRetentionDays, setArchiveRetentionDays] = useState(7);
+  const [archiveRetentionHours, setArchiveRetentionHours] = useState(0);
+  const [archiveRetentionMinutesPart, setArchiveRetentionMinutesPart] = useState(0);
+
+  const [newBoardComment, setNewBoardComment] = useState("");
+  const [newListCommentDrafts, setNewListCommentDrafts] = useState<Record<string, string>>({});
+  const [newCardComment, setNewCardComment] = useState("");
+  const [expandedCommentIds, setExpandedCommentIds] = useState<Set<string>>(new Set());
+  const [expandedListCommentGroups, setExpandedListCommentGroups] = useState<Set<string>>(new Set());
+  const [expandedCardCommentGroups, setExpandedCardCommentGroups] = useState<Set<string>>(new Set());
+  const [boardCommentMentions, setBoardCommentMentions] = useState<string[]>([]);
+  const [listCommentMentions, setListCommentMentions] = useState<Record<string, string[]>>({});
+  const [cardCommentMentions, setCardCommentMentions] = useState<string[]>([]);
+
+  const [archivedLists, setArchivedLists] = useState<ArchivedListEntry[]>([]);
+  const [isArchivedOpen, setIsArchivedOpen] = useState(false);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [archivedError, setArchivedError] = useState<string | null>(null);
+  const [restoreConflict, setRestoreConflict] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState<LabelColor>("blue");
@@ -703,8 +1086,10 @@ export function BoardDetailPage(): JSX.Element {
   const [checklistItemTitleDrafts, setChecklistItemTitleDrafts] = useState<Record<string, string>>({});
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeleteBoardOpen, setIsDeleteBoardOpen] = useState(false);
+  const [isArchiveBoardOpen, setIsArchiveBoardOpen] = useState(false);
   const [listToDelete, setListToDelete] = useState<BoardList | null>(null);
   const [cardToDelete, setCardToDelete] = useState<BoardCard | null>(null);
+  const [commentToDelete, setCommentToDelete] = useState<BoardComment | null>(null);
   const [checklistToDelete, setChecklistToDelete] = useState<Checklist | null>(null);
   const [checklistItemToDelete, setChecklistItemToDelete] = useState<{ item: ChecklistItem; cardId: string } | null>(null);
   const [scrollToChecklistId, setScrollToChecklistId] = useState<string | null>(null);
@@ -756,6 +1141,11 @@ export function BoardDetailPage(): JSX.Element {
   const retentionTotalMinutes = useMemo(
     () => toRetentionMinutes(retentionDays, retentionHours, retentionMinutesPart),
     [retentionDays, retentionHours, retentionMinutesPart]
+  );
+
+  const archiveRetentionTotalMinutes = useMemo(
+    () => toRetentionMinutes(archiveRetentionDays, archiveRetentionHours, archiveRetentionMinutesPart),
+    [archiveRetentionDays, archiveRetentionHours, archiveRetentionMinutesPart]
   );
 
   const selectedCardWithList = useMemo(
@@ -855,12 +1245,91 @@ export function BoardDetailPage(): JSX.Element {
     labelAutoSaveTimeoutsRef.current = {};
   };
 
+  const toggleListCommentGroup = useCallback((listId: string): void => {
+    setExpandedListCommentGroups((current) => {
+      const next = new Set(current);
+      if (next.has(listId)) {
+        next.delete(listId);
+      } else {
+        next.add(listId);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleCardCommentGroup = useCallback((cardId: string): void => {
+    setExpandedCardCommentGroups((current) => {
+      const next = new Set(current);
+      if (next.has(cardId)) {
+        next.delete(cardId);
+      } else {
+        next.add(cardId);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleCommentExpanded = useCallback((commentId: string): void => {
+    setExpandedCommentIds((current) => {
+      const next = new Set(current);
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+      return next;
+    });
+  }, []);
+
+  const onToggleBoardMention = (member: BoardMember): void => {
+    setBoardCommentMentions((current) => {
+      const hasMention = current.includes(member.id);
+      if (!hasMention) {
+        setNewBoardComment((body) => appendMention(body, member.name));
+      }
+      return hasMention ? current.filter((id) => id !== member.id) : [...current, member.id];
+    });
+  };
+
+  const onToggleListMention = (listId: string, member: BoardMember): void => {
+    setListCommentMentions((current) => {
+      const existing = current[listId] ?? [];
+      const hasMention = existing.includes(member.id);
+      if (!hasMention) {
+        setNewListCommentDrafts((drafts) => ({
+          ...drafts,
+          [listId]: appendMention(drafts[listId] ?? "", member.name)
+        }));
+      }
+      const next = hasMention ? existing.filter((id) => id !== member.id) : [...existing, member.id];
+      return { ...current, [listId]: next };
+    });
+  };
+
+  const onToggleCardMention = (member: BoardMember): void => {
+    setCardCommentMentions((current) => {
+      const hasMention = current.includes(member.id);
+      if (!hasMention) {
+        setNewCardComment((body) => appendMention(body, member.name));
+      }
+      return hasMention ? current.filter((id) => id !== member.id) : [...current, member.id];
+    });
+  };
+
   const applyRetentionParts = useCallback((days: number, hours: number, minutes: number): void => {
     const totalMinutes = toRetentionMinutes(days, hours, minutes);
     const nextParts = splitRetentionMinutes(totalMinutes);
     setRetentionDays(nextParts.days);
     setRetentionHours(nextParts.hours);
     setRetentionMinutesPart(nextParts.minutes);
+  }, []);
+
+  const applyArchiveRetentionParts = useCallback((days: number, hours: number, minutes: number): void => {
+    const totalMinutes = toRetentionMinutes(days, hours, minutes);
+    const nextParts = splitRetentionMinutes(totalMinutes);
+    setArchiveRetentionDays(nextParts.days);
+    setArchiveRetentionHours(nextParts.hours);
+    setArchiveRetentionMinutesPart(nextParts.minutes);
   }, []);
 
   const hydrateBoardState = useCallback((data: BoardDetail): void => {
@@ -874,6 +1343,10 @@ export function BoardDetailPage(): JSX.Element {
     setRetentionDays(retentionParts.days);
     setRetentionHours(retentionParts.hours);
     setRetentionMinutesPart(retentionParts.minutes);
+    const archiveRetentionParts = splitRetentionMinutes(data.archiveRetentionMinutes ?? MIN_RETENTION_MINUTES);
+    setArchiveRetentionDays(archiveRetentionParts.days);
+    setArchiveRetentionHours(archiveRetentionParts.hours);
+    setArchiveRetentionMinutesPart(archiveRetentionParts.minutes);
     setListNameDrafts(Object.fromEntries(sortedLists.map((list) => [list.id, list.name])));
 
     const boardLabels = data.labels ?? [];
@@ -892,13 +1365,36 @@ export function BoardDetailPage(): JSX.Element {
       return next;
     });
 
+    setNewListCommentDrafts((current) => {
+      const next = { ...current };
+      for (const list of sortedLists) {
+        if (next[list.id] === undefined) next[list.id] = "";
+      }
+      for (const key of Object.keys(next)) {
+        if (!sortedLists.some((list) => list.id === key)) delete next[key];
+      }
+      return next;
+    });
+
+    setListCommentMentions((current) => {
+      const next = { ...current };
+      for (const list of sortedLists) {
+        if (!next[list.id]) next[list.id] = [];
+      }
+      for (const key of Object.keys(next)) {
+        if (!sortedLists.some((list) => list.id === key)) delete next[key];
+      }
+      return next;
+    });
+
     listSyncedNamesRef.current = Object.fromEntries(sortedLists.map((list) => [list.id, list.name]));
     const syncedDraft: BoardDraft = {
       name: data.name.trim(),
       description: (data.description ?? "").trim(),
       background: data.background,
       retentionMode: data.retentionMode ?? "card_and_attachments",
-      retentionMinutes: clampRetentionMinutes(data.retentionMinutes ?? MIN_RETENTION_MINUTES)
+      retentionMinutes: clampRetentionMinutes(data.retentionMinutes ?? MIN_RETENTION_MINUTES),
+      archiveRetentionMinutes: clampRetentionMinutes(data.archiveRetentionMinutes ?? MIN_RETENTION_MINUTES)
     };
     lastSyncedBoardRef.current = syncedDraft;
     currentDraftBoardRef.current = syncedDraft;
@@ -938,6 +1434,56 @@ export function BoardDetailPage(): JSX.Element {
           }
           return { ...list, cards: list.cards.filter((card) => card.id !== updated.id) };
         })
+      };
+    });
+  }, []);
+
+  const removeCommentFromBoard = useCallback((comment: BoardComment): void => {
+    setBoard((current) => {
+      if (!current) return current;
+      const isBoardComment = !comment.listId && !comment.cardId;
+      return {
+        ...current,
+        comments: isBoardComment
+          ? (current.comments ?? []).filter((entry) => entry.id !== comment.id)
+          : current.comments,
+        lists: current.lists.map((list) => ({
+          ...list,
+          comments: comment.listId === list.id
+            ? (list.comments ?? []).filter((entry) => entry.id !== comment.id)
+            : list.comments,
+          cards: list.cards.map((card) => ({
+            ...card,
+            comments: comment.cardId === card.id
+              ? (card.comments ?? []).filter((entry) => entry.id !== comment.id)
+              : card.comments
+          }))
+        }))
+      };
+    });
+  }, []);
+
+  const replaceCommentInBoard = useCallback((updated: BoardComment): void => {
+    setBoard((current) => {
+      if (!current) return current;
+      const nextBoardComments = (current.comments ?? []).map((comment) =>
+        comment.id === updated.id ? updated : comment
+      );
+      return {
+        ...current,
+        comments: nextBoardComments,
+        lists: current.lists.map((list) => ({
+          ...list,
+          comments: (list.comments ?? []).map((comment) =>
+            comment.id === updated.id ? updated : comment
+          ),
+          cards: list.cards.map((card) => ({
+            ...card,
+            comments: (card.comments ?? []).map((comment) =>
+              comment.id === updated.id ? updated : comment
+            )
+          }))
+        }))
       };
     });
   }, []);
@@ -1056,6 +1602,7 @@ export function BoardDetailPage(): JSX.Element {
       setChecklistItemToDelete(null);
       setAttachmentError(null);
       setIsUploadingAttachments(false);
+      setNewCardComment("");
     }
   }, [selectedCardId, selectedCardWithList]);
 
@@ -1069,7 +1616,8 @@ export function BoardDetailPage(): JSX.Element {
       draft.description !== synced.description ||
       draft.background !== synced.background ||
       draft.retentionMode !== synced.retentionMode ||
-      draft.retentionMinutes !== synced.retentionMinutes;
+      draft.retentionMinutes !== synced.retentionMinutes ||
+      draft.archiveRetentionMinutes !== synced.archiveRetentionMinutes;
     if (!hasChanges) return;
     if (draft.name.length < 2) { setError("Board name must be at least 2 characters."); return; }
     setIsAutosavingBoard(true);
@@ -1079,7 +1627,8 @@ export function BoardDetailPage(): JSX.Element {
         description: draft.description,
         background: draft.background,
         retentionMode: draft.retentionMode,
-        retentionMinutes: draft.retentionMinutes
+        retentionMinutes: draft.retentionMinutes,
+        archiveRetentionMinutes: draft.archiveRetentionMinutes
       });
       hydrateBoardState(updated);
       setError(null);
@@ -1173,7 +1722,8 @@ export function BoardDetailPage(): JSX.Element {
       description: boardDescription.trim(),
       background: boardBackground,
       retentionMode,
-      retentionMinutes: retentionTotalMinutes
+      retentionMinutes: retentionTotalMinutes,
+      archiveRetentionMinutes: archiveRetentionTotalMinutes
     };
     currentDraftBoardRef.current = nextDraft;
     const synced = lastSyncedBoardRef.current;
@@ -1183,7 +1733,8 @@ export function BoardDetailPage(): JSX.Element {
         nextDraft.description !== synced.description ||
         nextDraft.background !== synced.background ||
         nextDraft.retentionMode !== synced.retentionMode ||
-        nextDraft.retentionMinutes !== synced.retentionMinutes);
+        nextDraft.retentionMinutes !== synced.retentionMinutes ||
+        nextDraft.archiveRetentionMinutes !== synced.archiveRetentionMinutes);
     if (!hasChanges) return;
     setShowSavedNotice(false);
     clearSavedNoticeTimers();
@@ -1195,7 +1746,7 @@ export function BoardDetailPage(): JSX.Element {
         autoSaveTimeoutRef.current = null;
       }
     };
-  }, [boardId, boardName, boardDescription, boardBackground, retentionMode, retentionTotalMinutes, runBoardAutosave, clearSavedNoticeTimers]);
+  }, [boardId, boardName, boardDescription, boardBackground, retentionMode, retentionTotalMinutes, archiveRetentionTotalMinutes, runBoardAutosave, clearSavedNoticeTimers]);
 
   useEffect(() => {
     return () => {
@@ -1495,6 +2046,7 @@ export function BoardDetailPage(): JSX.Element {
       });
       setListNameDrafts((c) => ({ ...c, [created.id]: created.name }));
       setNewCardTitles((c) => ({ ...c, [created.id]: "" }));
+      setListCommentMentions((c) => ({ ...c, [created.id]: [] }));
       setNewListName("");
       setNewListDone(false);
       setError(null);
@@ -1563,6 +2115,7 @@ export function BoardDetailPage(): JSX.Element {
       });
       setListNameDrafts((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
       setNewCardTitles((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
+      setListCommentMentions((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
       setListSavingIds((c) => { const n = new Set(c); n.delete(listToDelete.id); return n; });
       if (editingListId === listToDelete.id) setEditingListId(null);
       setListToDelete(null);
@@ -1675,6 +2228,204 @@ export function BoardDetailPage(): JSX.Element {
     }
   };
 
+
+  const onCreateBoardComment = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    if (!boardId) return;
+    const body = newBoardComment.trim();
+    if (body.length < 1) return;
+    try {
+      const created = await createBoardComment(boardId, { body, mentions: boardCommentMentions });
+      setBoard((current) => current ? { ...current, comments: [...(current.comments ?? []), created] } : current);
+      setNewBoardComment("");
+      setBoardCommentMentions([]);
+      setError(null);
+      triggerSavedNotice();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to add comment");
+    }
+  };
+
+  const onCreateListComment = async (listId: string, event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    const body = (newListCommentDrafts[listId] ?? "").trim();
+    if (body.length < 1) return;
+    const mentions = listCommentMentions[listId] ?? [];
+    try {
+      const created = await createListComment(listId, { body, mentions });
+      setBoard((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          lists: current.lists.map((list) =>
+            list.id === listId ? { ...list, comments: [...(list.comments ?? []), created] } : list
+          )
+        };
+      });
+      setNewListCommentDrafts((current) => ({ ...current, [listId]: "" }));
+      setListCommentMentions((current) => ({ ...current, [listId]: [] }));
+      setError(null);
+      triggerSavedNotice();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to add comment");
+    }
+  };
+
+  const onCreateCardComment = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    if (!selectedCardWithList) return;
+    const body = newCardComment.trim();
+    if (body.length < 1) return;
+    try {
+      const created = await createCardComment(selectedCardWithList.card.id, { body, mentions: cardCommentMentions });
+      updateCardInBoard(selectedCardWithList.card.id, (card) => ({
+        ...card,
+        comments: [...(card.comments ?? []), created]
+      }));
+      setNewCardComment("");
+      setCardCommentMentions([]);
+      setError(null);
+      triggerSavedNotice();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to add comment");
+    }
+  };
+
+  const onToggleCommentReaction = async (commentId: string, emoji: string): Promise<void> => {
+    try {
+      const updated = await toggleCommentReaction(commentId, { emoji });
+      replaceCommentInBoard(updated);
+      setError(null);
+    } catch (reactionError) {
+      setError(reactionError instanceof Error ? reactionError.message : "Failed to update reaction");
+    }
+  };
+
+  const onDeleteComment = async (): Promise<void> => {
+    if (!commentToDelete) return;
+    try {
+      await deleteComment(commentToDelete.id);
+      removeCommentFromBoard(commentToDelete);
+      setCommentToDelete(null);
+      setError(null);
+      triggerSavedNotice();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete comment");
+    }
+  };
+
+  const loadArchivedLists = useCallback(async (): Promise<void> => {
+    if (!boardId) return;
+    setArchivedLoading(true);
+    setArchivedError(null);
+    try {
+      const data = await getArchivedLists(boardId);
+      setArchivedLists(data);
+    } catch (loadError) {
+      setArchivedError(loadError instanceof Error ? loadError.message : "Failed to load archived lists");
+    } finally {
+      setArchivedLoading(false);
+    }
+  }, [boardId]);
+
+  const openArchivedLists = useCallback((): void => {
+    setIsArchivedOpen(true);
+    void loadArchivedLists();
+  }, [loadArchivedLists]);
+
+  const onArchiveBoard = useCallback(async (): Promise<void> => {
+    if (!boardId) return;
+    try {
+      await archiveBoard(boardId);
+      setIsArchiveBoardOpen(false);
+      navigate("/boards");
+    } catch (archiveError) {
+      setError(archiveError instanceof Error ? archiveError.message : "Failed to archive board");
+    }
+  }, [boardId, navigate]);
+
+  const onArchiveList = useCallback(async (listId: string): Promise<void> => {
+    try {
+      await archiveList(listId);
+      setBoard((current) => (current ? { ...current, lists: current.lists.filter((list) => list.id !== listId) } : current));
+      triggerSavedNotice();
+      if (isArchivedOpen) void loadArchivedLists();
+    } catch (archiveError) {
+      setError(archiveError instanceof Error ? archiveError.message : "Failed to archive list");
+    }
+  }, [isArchivedOpen, loadArchivedLists, triggerSavedNotice]);
+
+  const onArchiveCard = useCallback(async (): Promise<void> => {
+    if (!selectedCardWithList) return;
+    try {
+      await archiveCard(selectedCardWithList.card.id);
+      setBoard((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          lists: current.lists.map((list) =>
+            list.id === selectedCardWithList.list.id
+              ? { ...list, cards: list.cards.filter((card) => card.id !== selectedCardWithList.card.id) }
+              : list
+          )
+        };
+      });
+      setSelectedCardId(null);
+      setCardDraft(null);
+      triggerSavedNotice();
+      if (isArchivedOpen) void loadArchivedLists();
+    } catch (archiveError) {
+      setError(archiveError instanceof Error ? archiveError.message : "Failed to archive card");
+    }
+  }, [selectedCardWithList, isArchivedOpen, loadArchivedLists, triggerSavedNotice]);
+
+  const restoreArchivedEntry = useCallback(async (entry: ArchivedListEntry, renameConflicts: boolean): Promise<void> => {
+    try {
+      if (entry.kind === "list") {
+        const updated = await restoreList(entry.sourceListId, { renameConflicts });
+        hydrateBoardState(updated);
+      } else {
+        for (const card of entry.cards) {
+          await restoreCard(card.id, { renameConflicts });
+        }
+        await refreshBoardSilently();
+      }
+      await loadArchivedLists();
+      setRestoreConflict(null);
+    } catch (restoreError) {
+      setError(restoreError instanceof Error ? restoreError.message : "Failed to restore archive");
+    }
+  }, [hydrateBoardState, loadArchivedLists, refreshBoardSilently]);
+
+  const requestRestoreArchivedEntry = useCallback((entry: ArchivedListEntry): void => {
+    if (!board) return;
+    let targetList: BoardList | undefined;
+    if (entry.kind === "list") {
+      targetList = board.lists.find((list) => list.name === entry.name);
+    } else {
+      targetList = board.lists.find((list) => list.id === entry.sourceListId);
+    }
+
+    if (!targetList) {
+      void restoreArchivedEntry(entry, false);
+      return;
+    }
+
+    const existingNames = new Set(targetList.cards.map((card) => card.title));
+    const hasConflict = entry.cards.some((card) => existingNames.has(card.title));
+
+    if (hasConflict) {
+      setRestoreConflict({
+        message: "Card with same name exists creating conflict",
+        onConfirm: () => {
+          void restoreArchivedEntry(entry, true);
+        }
+      });
+      return;
+    }
+
+    void restoreArchivedEntry(entry, false);
+  }, [board, restoreArchivedEntry]);
 
   const onCreateChecklist = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -1855,6 +2606,20 @@ export function BoardDetailPage(): JSX.Element {
     }
   };
 
+  const onDownloadAllAttachments = useCallback(async (card: BoardCard): Promise<void> => {
+    const attachments = sortAttachments(card.attachments ?? []);
+    if (attachments.length === 0) return;
+    try {
+      for (const attachment of attachments) {
+        await downloadAttachment(attachment.id, attachment.originalName);
+      }
+      setError(null);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : "Failed to download attachments");
+    }
+  }, []);
+
+
   const onDeleteAttachment = async (attachmentId: string): Promise<void> => {
     if (!selectedCardWithList) return;
     try {
@@ -1897,6 +2662,8 @@ export function BoardDetailPage(): JSX.Element {
     setCardDraft(draft);
     lastSyncedCardRef.current = draft;
     setCardSaveStatus("saved");
+    setNewCardComment("");
+    setCardCommentMentions([]);
     setNewChecklistTitle("");
     setNewChecklistItemTitles({});
     setChecklistTitleDrafts({});
@@ -1912,6 +2679,8 @@ export function BoardDetailPage(): JSX.Element {
     setSelectedCardId(null);
     setCardDraft(null);
     setCardSaveStatus("idle");
+    setNewCardComment("");
+    setCardCommentMentions([]);
     clearCardAutosaveTimeout();
     lastSyncedCardRef.current = null;
     setNewChecklistTitle("");
@@ -2041,19 +2810,63 @@ export function BoardDetailPage(): JSX.Element {
     );
   }
 
+
+  const boardComments = board.comments ?? [];
+
   return (
     <>
       <div className={`-mx-4 -my-4 space-y-6 px-4 py-4 lg:-mx-6 lg:-my-6 lg:px-6 lg:py-6 ${activeSurfaceClass}`}>
         <div className={`h-28 rounded-xl ${activeBannerClass}`} />
 
-        <div className="flex items-center justify-between gap-3">
-          <div>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-3">
             <h2 className="text-2xl font-semibold tracking-tight">{boardName}</h2>
-            <p className="text-sm text-muted-foreground">Cards are now live: create, drag, and edit in place.</p>
+            <div className="space-y-2">
+              {boardComments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No board notes yet.</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {boardComments.map((comment) => (
+                    <CommentNote
+                      key={comment.id}
+                      comment={comment}
+                      expanded={expandedCommentIds.has(comment.id)}
+                      onToggle={() => toggleCommentExpanded(comment.id)}
+                      onReact={(emoji) => onToggleCommentReaction(comment.id, emoji)}
+                      onDelete={() => setCommentToDelete(comment)}
+                      variant="default"
+                    />
+                  ))}
+                </div>
+              )}
+              <div className="space-y-2">
+                <form className="flex flex-wrap gap-2" onSubmit={onCreateBoardComment}>
+                  <Input
+                    value={newBoardComment}
+                    onChange={(event) => setNewBoardComment(event.target.value)}
+                    placeholder="Add a board note"
+                  />
+                  <Button type="submit" className="gap-1">
+                    <Plus className="h-4 w-4" />
+                    Add note
+                  </Button>
+                </form>
+                <MentionPicker
+                  members={boardMembers}
+                  selectedIds={boardCommentMentions}
+                  onToggle={onToggleBoardMention}
+                />
+              </div>
+            </div>
           </div>
-          <Link to="/boards">
-            <Button type="button" variant="ghost">Back to boards</Button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="secondary" onClick={openArchivedLists}>
+              Archived lists
+            </Button>
+            <Link to="/boards">
+              <Button type="button" variant="ghost">Back to boards</Button>
+            </Link>
+          </div>
         </div>
 
         {error && (
@@ -2123,6 +2936,14 @@ export function BoardDetailPage(): JSX.Element {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
+                              <Button
+                                type="button" variant="ghost" size="sm"
+                                className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700"
+                                onClick={() => { void onArchiveList(list.id); }}
+                                title="Archive list"
+                              >
+                                <Archive className="h-4 w-4" />
+                              </Button>
                               <button
                                 type="button"
                                 {...dragHandleProps}
@@ -2166,11 +2987,73 @@ export function BoardDetailPage(): JSX.Element {
                             </button>
                           </div>
 
-                          <SortableContext
-                            items={list.cards.map((c) => c.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            <div className="space-y-2 rounded-md border border-dashed border-border/70 p-2">
+                          <div className="space-y-2">
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Notes</p>
+                            {(() => {
+                              const listComments = list.comments ?? [];
+                              const showAll = expandedListCommentGroups.has(list.id);
+                              const visibleComments = showAll ? listComments : listComments.slice(0, 2);
+
+                              if (listComments.length === 0) {
+                                return <p className="text-xs text-muted-foreground">No list notes yet.</p>;
+                              }
+
+                              return (
+                                <div className="flex flex-wrap gap-1">
+                                  {visibleComments.map((comment) => (
+                                    <CommentNote
+                                      key={comment.id}
+                                      comment={comment}
+                                      expanded={expandedCommentIds.has(comment.id)}
+                                      onToggle={() => toggleCommentExpanded(comment.id)}
+                                      onReact={(emoji) => onToggleCommentReaction(comment.id, emoji)}
+                                      onDelete={() => setCommentToDelete(comment)}
+                                      variant="compact"
+                                    />
+                                  ))}
+                                  {listComments.length > 2 && (
+                                    <button
+                                      type="button"
+                                      className="basis-full text-[10px] text-muted-foreground underline underline-offset-2"
+                                      onClick={() => toggleListCommentGroup(list.id)}
+                                    >
+                                      {showAll ? "Show less" : `Show all (${listComments.length})`}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                            <form
+                              className="grid gap-2 sm:grid-cols-[1fr_auto]"
+                              onSubmit={(event) => { void onCreateListComment(list.id, event); }}
+                            >
+                              <Input
+                                value={newListCommentDrafts[list.id] ?? ""}
+                                onChange={(event) => {
+                                  const value = event.target.value;
+                                  setNewListCommentDrafts((current) => ({ ...current, [list.id]: value }));
+                                }}
+                                placeholder="Add list note"
+                              />
+                              <Button type="submit" variant="secondary" className="gap-1">
+                                <Plus className="h-4 w-4" />
+                                Note
+                              </Button>
+                            </form>
+                            <MentionPicker
+                              members={boardMembers}
+                              selectedIds={listCommentMentions[list.id] ?? []}
+                              onToggle={(member) => onToggleListMention(list.id, member)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cards</p>
+                            <SortableContext
+                              items={list.cards.map((c) => c.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <div className="space-y-2 rounded-md border border-dashed border-border/70 p-2">
                               {list.cards.length === 0 ? (
                                 <ListDropZone listId={list.id} isCardDrag={activeCardId !== null} />
                               ) : (
@@ -2183,11 +3066,19 @@ export function BoardDetailPage(): JSX.Element {
                                     retentionMinutes={retentionTotalMinutes}
                                     onChecklistItemToggle={onToggleChecklistItem}
                                     onChecklistOpen={openCardEditor}
+                                    expandedCommentIds={expandedCommentIds}
+                                    onToggleComment={toggleCommentExpanded}
+                                    onReact={onToggleCommentReaction}
+                                    onDeleteComment={(comment) => setCommentToDelete(comment)}
+                                    expandedCardCommentGroups={expandedCardCommentGroups}
+                                    onToggleCardCommentGroup={toggleCardCommentGroup}
+                                    onDownloadAllAttachments={onDownloadAllAttachments}
                                   />
                                 ))
                               )}
-                            </div>
-                          </SortableContext>
+                              </div>
+                            </SortableContext>
+                          </div>
 
                           <form
                             className="grid gap-2 sm:grid-cols-[1fr_auto]"
@@ -2217,8 +3108,19 @@ export function BoardDetailPage(): JSX.Element {
             {/* The floating card that follows your cursor */}
             <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>
               {activeCard ? (
-                <div className="rotate-1 rounded-md border border-border/70 bg-background px-3 py-2 shadow-2xl opacity-95 ring-2 ring-primary/30">
-                  <CardSummary card={activeCard} nowMs={nowMs} retentionMinutes={retentionTotalMinutes} showChecklists={false} />
+                <div className={`rotate-1 rounded-md border border-border/70 ${coverColorSurfaceClasses[activeCard.coverColor ?? "none"]} px-3 py-2 shadow-2xl opacity-95 ring-2 ring-primary/30`}>
+                  <CardSummary
+                    card={activeCard}
+                    nowMs={nowMs}
+                    retentionMinutes={retentionTotalMinutes}
+                    showChecklists={false}
+                    expandedCommentIds={expandedCommentIds}
+                    onToggleComment={toggleCommentExpanded}
+                    onReact={onToggleCommentReaction}
+                    onDeleteComment={(comment) => setCommentToDelete(comment)}
+                    expandedCardCommentGroups={expandedCardCommentGroups}
+                    onToggleCardCommentGroup={toggleCardCommentGroup}
+                  />
                 </div>
               ) : activeList ? (
                 <div className="w-80 rotate-1 rounded-xl border border-border/70 bg-card/90 p-4 shadow-2xl opacity-95 ring-2 ring-primary/30">
@@ -2235,7 +3137,6 @@ export function BoardDetailPage(): JSX.Element {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <CardTitle>Board Settings</CardTitle>
-                <CardDescription>Collapsed by default so list work stays front and center.</CardDescription>
               </div>
               <Button
                 type="button" variant="secondary" size="sm"
@@ -2270,7 +3171,7 @@ export function BoardDetailPage(): JSX.Element {
               </div>
 
               <div className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3">
-                <div className="space-y-1">
+                <div className="flex flex-wrap gap-1">
                   <p className="text-sm font-medium">Done card retention</p>
                   <p className="text-xs text-muted-foreground">Set how long completed cards remain before cleanup.</p>
                 </div>
@@ -2335,6 +3236,54 @@ export function BoardDetailPage(): JSX.Element {
                 </div>
               </div>
 
+              <div className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3">
+                <div className="flex flex-wrap gap-1">
+                  <p className="text-sm font-medium">Archive retention</p>
+                  <p className="text-xs text-muted-foreground">How long archived lists and cards remain before cleanup.</p>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <label className="space-y-1 text-xs text-muted-foreground">
+                    <span>Days</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={365}
+                      value={archiveRetentionDays}
+                      onChange={(event) => {
+                        const value = parseRetentionInput(event.target.value);
+                        applyArchiveRetentionParts(value, archiveRetentionHours, archiveRetentionMinutesPart);
+                      }}
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-muted-foreground">
+                    <span>Hours</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={23}
+                      value={archiveRetentionHours}
+                      onChange={(event) => {
+                        const value = parseRetentionInput(event.target.value);
+                        applyArchiveRetentionParts(archiveRetentionDays, value, archiveRetentionMinutesPart);
+                      }}
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-muted-foreground">
+                    <span>Minutes</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={archiveRetentionMinutesPart}
+                      onChange={(event) => {
+                        const value = parseRetentionInput(event.target.value);
+                        applyArchiveRetentionParts(archiveRetentionDays, archiveRetentionHours, value);
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
 
               <div className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -2423,9 +3372,14 @@ export function BoardDetailPage(): JSX.Element {
                 <p className="text-xs text-muted-foreground">
                   {isAutosavingBoard ? "Saving..." : "Changes save automatically"}
                 </p>
-                <Button type="button" variant="ghost" onClick={() => setIsDeleteBoardOpen(true)}>
-                  Delete board
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setIsArchiveBoardOpen(true)}>
+                    Archive board
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={() => setIsDeleteBoardOpen(true)}>
+                    Delete board
+                  </Button>
+                </div>
               </div>
             </CardContent>
           )}
@@ -2443,6 +3397,16 @@ export function BoardDetailPage(): JSX.Element {
                   <CardDescription>{selectedCardWithList.list.name}</CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-amber-600 hover:text-amber-700"
+                    onClick={() => { void onArchiveCard(); }}
+                    aria-label="Archive card"
+                  >
+                    <Archive className="mr-1 h-4 w-4" />
+                    Archive
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -2468,7 +3432,7 @@ export function BoardDetailPage(): JSX.Element {
               </div>
             </CardHeader>
             <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-              <div className="space-y-1">
+              <div className="flex flex-wrap gap-1">
                 <p className="text-xs text-muted-foreground">Title</p>
                 <Input
                   value={cardDraft.title}
@@ -2476,7 +3440,7 @@ export function BoardDetailPage(): JSX.Element {
                   placeholder="Card title"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="flex flex-wrap gap-1">
                 <p className="text-xs text-muted-foreground">Description</p>
                 <textarea
                   value={cardDraft.description}
@@ -2672,6 +3636,48 @@ export function BoardDetailPage(): JSX.Element {
               </div>
 
               <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  Comments
+                </div>
+                {(selectedCardWithList.card.comments ?? []).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No comments yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(selectedCardWithList.card.comments ?? []).map((comment) => (
+                      <CommentNote
+                        key={comment.id}
+                        comment={comment}
+                        expanded={expandedCommentIds.has(comment.id)}
+                        onToggle={() => toggleCommentExpanded(comment.id)}
+                        onReact={(emoji) => onToggleCommentReaction(comment.id, emoji)}
+                        onDelete={() => setCommentToDelete(comment)}
+                      />
+                    ))}
+                  </div>
+                )}
+                <form className="space-y-2" onSubmit={onCreateCardComment}>
+                  <textarea
+                    value={newCardComment}
+                    onChange={(event) => setNewCardComment(event.target.value)}
+                    placeholder="Add a comment"
+                    className="min-h-[96px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <MentionPicker
+                      members={boardMembers}
+                      selectedIds={cardCommentMentions}
+                      onToggle={onToggleCardMention}
+                    />
+                    <Button type="submit" variant="secondary" size="sm" className="gap-1">
+                      <Plus className="h-4 w-4" />
+                      Add comment
+                    </Button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <ListChecks className="h-4 w-4 text-muted-foreground" />
@@ -2721,7 +3727,7 @@ export function BoardDetailPage(): JSX.Element {
                             </Button>
                           </div>
 
-                          <div className="space-y-1">
+                          <div className="flex flex-wrap gap-1">
                             <div className="h-1.5 w-full rounded-full bg-muted/60">
                               <div
                                 className="h-1.5 rounded-full bg-emerald-500/80"
@@ -2826,12 +3832,117 @@ export function BoardDetailPage(): JSX.Element {
         </div>
       )}
 
+      {isArchivedOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <Card className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden">
+            <CardHeader className="flex flex-row items-start justify-between gap-3">
+              <div>
+                <CardTitle>Archived lists</CardTitle>
+                <CardDescription>Restore archived lists and cards before they are cleaned up.</CardDescription>
+              </div>
+              <Button type="button" variant="ghost" onClick={() => setIsArchivedOpen(false)}>
+                Close
+              </Button>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+              {archivedLoading ? (
+                <p className="text-sm text-muted-foreground">Loading archived lists...</p>
+              ) : archivedError ? (
+                <p className="text-sm text-destructive">{archivedError}</p>
+              ) : archivedLists.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No archived lists yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {archivedLists.map((entry) => {
+                    const entryCountdown = entry.kind === "list"
+                      ? getArchiveCountdownLabel(entry.archivedAt, nowMs, archiveRetentionTotalMinutes)
+                      : "";
+
+                    return (
+                      <div key={entry.id} className="rounded-lg border border-border/60 bg-background/80 p-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{entry.name}</p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2">
+                              <p className="text-xs text-muted-foreground">
+                                {entry.kind === "list" ? "Archived list" : "Archived cards"}
+                              </p>
+                              {entryCountdown && (
+                                <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                                  {entryCountdown}
+                                </span>
+                              )}
+                            </div>
+                            {entry.archivedAt && (
+                              <p className="text-[11px] text-muted-foreground">
+                                Archived {new Date(entry.archivedAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <Button type="button" size="sm" onClick={() => requestRestoreArchivedEntry(entry)}>
+                            Restore
+                          </Button>
+                        </div>
+                        {entry.cards.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {entry.cards.map((card) => {
+                              const cardCountdown = getArchiveCountdownLabel(card.archivedAt, nowMs, archiveRetentionTotalMinutes);
+                              return (
+                                <div
+                                  key={card.id}
+                                  className="flex items-center gap-2 rounded-md border border-border/50 bg-card/70 px-2 py-1 text-xs text-muted-foreground"
+                                >
+                                  <span className="font-medium text-foreground">{card.title}</span>
+                                  {entry.kind === "cards" && cardCountdown && (
+                                    <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                                      {cardCountdown}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {showSavedNotice && (
         <div className="pointer-events-none fixed bottom-5 right-5 z-40 rounded-full border border-emerald-300/60 bg-emerald-100/90 px-4 py-2 text-sm font-medium text-emerald-900 shadow-lg backdrop-blur">
           Saved
         </div>
       )}
 
+      <ConfirmDialog
+        open={restoreConflict !== null}
+        title="Name conflict"
+        description={restoreConflict?.message ?? ""}
+        confirmLabel="Restore with new name"
+        cancelLabel="Cancel"
+        onCancel={() => setRestoreConflict(null)}
+        onConfirm={() => {
+          restoreConflict?.onConfirm();
+          setRestoreConflict(null);
+        }}
+      />
+      <ConfirmDialog
+        open={isArchiveBoardOpen}
+        title="Archive board"
+        description={`Archive "${board.name}"? You can restore it for 7 days.`}
+        confirmLabel="Archive"
+        cancelLabel="Cancel"
+        onCancel={() => setIsArchiveBoardOpen(false)}
+        onConfirm={() => {
+          setIsArchiveBoardOpen(false);
+          void onArchiveBoard();
+        }}
+      />
       <ConfirmDialog
         open={isDeleteBoardOpen}
         title="Delete board"
@@ -2847,6 +3958,15 @@ export function BoardDetailPage(): JSX.Element {
         confirmLabel="Delete" cancelLabel="Keep"
         onCancel={() => setCardToDelete(null)}
         onConfirm={() => { void onDeleteCard(); }}
+      />
+      <ConfirmDialog
+        open={commentToDelete !== null}
+        title="Delete comment"
+        description={`Delete "${commentToDelete ? getCommentSnippet(commentToDelete.body) : "this comment"}"?`}
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        onCancel={() => setCommentToDelete(null)}
+        onConfirm={() => { void onDeleteComment(); }}
       />
       <ConfirmDialog
         open={checklistToDelete !== null}

@@ -10,13 +10,15 @@ const labelColorSchema = z.enum(labelColors);
 const cardCoverColorSchema = z.enum(cardCoverColors);
 
 const retentionMinutesSchema = z.number().int().min(1).max(525600);
+const archiveRetentionMinutesSchema = z.number().int().min(1).max(525600);
 
 export const createBoardSchema = z.object({
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(500).optional(),
   background: boardBackgroundSchema.default("teal-gradient"),
   retentionMode: retentionModeSchema.default("card_and_attachments"),
-  retentionMinutes: retentionMinutesSchema.default(7 * 24 * 60)
+  retentionMinutes: retentionMinutesSchema.default(7 * 24 * 60),
+  archiveRetentionMinutes: archiveRetentionMinutesSchema.default(7 * 24 * 60)
 });
 
 export const updateBoardSchema = z
@@ -25,14 +27,16 @@ export const updateBoardSchema = z
     description: z.string().trim().max(500).optional(),
     background: boardBackgroundSchema.optional(),
     retentionMode: retentionModeSchema.optional(),
-    retentionMinutes: retentionMinutesSchema.optional()
+    retentionMinutes: retentionMinutesSchema.optional(),
+    archiveRetentionMinutes: archiveRetentionMinutesSchema.optional()
   })
   .refine((value) =>
     value.name !== undefined ||
     value.description !== undefined ||
     value.background !== undefined ||
     value.retentionMode !== undefined ||
-    value.retentionMinutes !== undefined, {
+    value.retentionMinutes !== undefined ||
+    value.archiveRetentionMinutes !== undefined, {
     message: "At least one field is required"
   });
 
@@ -113,6 +117,23 @@ export const assignAssigneeSchema = z.object({
   userId: z.string().uuid()
 });
 
+export const createCommentSchema = z.object({
+  body: z.string().trim().min(1).max(2000),
+  mentions: z.array(z.string().uuid()).optional()
+});
+
+export const updateCommentSchema = z.object({
+  body: z.string().trim().min(1).max(2000)
+});
+
+export const commentReactionSchema = z.object({
+  emoji: z.string().trim().min(1).max(40)
+});
+
+export const restoreArchiveSchema = z.object({
+  renameConflicts: z.boolean().optional()
+});
+
 export const createChecklistSchema = z.object({
   title: z.string().trim().min(1).max(120)
 });
@@ -151,6 +172,10 @@ export type CreateLabelInput = z.infer<typeof createLabelSchema>;
 export type UpdateLabelInput = z.infer<typeof updateLabelSchema>;
 export type AssignLabelInput = z.infer<typeof assignLabelSchema>;
 export type AssignAssigneeInput = z.infer<typeof assignAssigneeSchema>;
+export type CreateCommentInput = z.infer<typeof createCommentSchema>;
+export type UpdateCommentInput = z.infer<typeof updateCommentSchema>;
+export type CommentReactionInput = z.infer<typeof commentReactionSchema>;
+export type RestoreArchiveInput = z.infer<typeof restoreArchiveSchema>;
 export type UpdateCardInput = z.infer<typeof updateCardSchema>;
 export type UpdateChecklistInput = z.infer<typeof updateChecklistSchema>;
 export type UpdateChecklistItemInput = z.infer<typeof updateChecklistItemSchema>;

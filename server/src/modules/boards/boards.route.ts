@@ -3,15 +3,23 @@ import multer from "multer";
 
 import { requireAuth } from "../../middleware/require-auth.js";
 import {
+  archiveBoard,
+  archiveCard,
+  archiveList,
   assignLabelToCard,
   assignMemberToCard,
+  cleanupExpiredCards,
   createAttachments,
   createBoard,
+  createBoardComment,
+  deleteComment,
   createCard,
+  createCardComment,
   createChecklist,
   createChecklistItem,
   createLabel,
   createList,
+  createListComment,
   deleteAttachment,
   deleteBoard,
   deleteCard,
@@ -19,14 +27,18 @@ import {
   deleteChecklistItem,
   deleteLabel,
   deleteList,
+  getArchivedLists,
   getAttachmentDownloadInfo,
   getBoardById,
-  cleanupExpiredCards,
   getBoards,
   moveCard,
   removeLabelFromCard,
   removeMemberFromCard,
   reorderLists,
+  restoreBoard,
+  restoreCard,
+  restoreList,
+  toggleCommentReaction,
   updateBoard,
   updateCard,
   updateChecklist,
@@ -37,14 +49,17 @@ import {
 import {
   assignAssigneeSchema,
   assignLabelSchema,
+  commentReactionSchema,
   createBoardSchema,
   createCardSchema,
   createChecklistItemSchema,
   createChecklistSchema,
+  createCommentSchema,
   createLabelSchema,
   createListSchema,
   moveCardSchema,
   reorderListsSchema,
+  restoreArchiveSchema,
   updateBoardSchema,
   updateCardSchema,
   updateChecklistItemSchema,
@@ -102,6 +117,59 @@ boardsRouter.patch("/:boardId", (req, res, next) => {
     const data = updateBoard(req.params.boardId, body);
 
     res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.get("/:boardId/archived-lists", (req, res, next) => {
+  try {
+    const data = getArchivedLists(req.params.boardId);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/:boardId/archive", (req, res, next) => {
+  try {
+    const data = archiveBoard(req.params.boardId);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/:boardId/restore", (req, res, next) => {
+  try {
+    const data = restoreBoard(req.params.boardId);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/:boardId/comments", (req, res, next) => {
+  try {
+    const body = createCommentSchema.parse(req.body);
+    const data = createBoardComment(req.params.boardId, body, req.auth!.userId);
+
+    res.status(201).json({
       success: true,
       data
     });
@@ -226,6 +294,47 @@ boardsRouter.delete("/lists/:listId", (req, res, next) => {
   }
 });
 
+boardsRouter.post("/lists/:listId/archive", (req, res, next) => {
+  try {
+    archiveList(req.params.listId);
+
+    res.status(200).json({
+      success: true,
+      data: { message: "List archived" }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/lists/:listId/restore", (req, res, next) => {
+  try {
+    const body = restoreArchiveSchema.parse(req.body ?? {});
+    const data = restoreList(req.params.listId, body.renameConflicts ?? false);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/lists/:listId/comments", (req, res, next) => {
+  try {
+    const body = createCommentSchema.parse(req.body);
+    const data = createListComment(req.params.listId, body, req.auth!.userId);
+
+    res.status(201).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 boardsRouter.post("/lists/:listId/cards", (req, res, next) => {
   try {
     const body = createCardSchema.parse(req.body);
@@ -244,6 +353,76 @@ boardsRouter.patch("/cards/:cardId", (req, res, next) => {
   try {
     const body = updateCardSchema.parse(req.body);
     const data = updateCard(req.params.cardId, body);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/cards/:cardId/archive", (req, res, next) => {
+  try {
+    const data = archiveCard(req.params.cardId, req.auth!.userId, req.auth!.role);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/cards/:cardId/restore", (req, res, next) => {
+  try {
+    const body = restoreArchiveSchema.parse(req.body ?? {});
+    const data = restoreCard(req.params.cardId, body.renameConflicts ?? false);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/cards/:cardId/comments", (req, res, next) => {
+  try {
+    const body = createCommentSchema.parse(req.body);
+    const data = createCardComment(req.params.cardId, body, req.auth!.userId);
+
+    res.status(201).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.delete("/comments/:commentId", (req, res, next) => {
+  try {
+    deleteComment(req.params.commentId, req.auth!.userId, req.auth!.role);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: "Comment deleted"
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/comments/:commentId/reactions", (req, res, next) => {
+  try {
+    const body = commentReactionSchema.parse(req.body);
+    const data = toggleCommentReaction(req.params.commentId, req.auth!.userId, body);
 
     res.status(200).json({
       success: true,

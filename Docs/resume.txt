@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-13 12:33:49 +05:30
+Last checkpoint update: 2026-03-13 18:06:00 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -9,10 +9,11 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 1.1, 1.2, 1.3: complete
   - Phase 2.1, 2.2, 2.3: complete
   - Phase 3.1, 3.2, 3.3: complete (dnd-kit for cards)
-  - Phase 4: in progress
+  - Phase 4: complete
   - Phase 4.1 (Checklists): complete
   - Phase 4.2 (Attachments + retention + list DnD + card autosave): complete
   - Phase 4.3 (Labels + assignments + cover colors): complete
+  - Phase 4.4 (comments + archive/restore + due date to assigned users): complete
 
 - Phase 4.1 implementation highlights:
   - Server schema: checklists + checklist_items tables with relations and test DB setup
@@ -39,7 +40,7 @@ Purpose: Resume from this exact project state, not from zero.
 
 ## 2) Resume-Next Priority
 
-- Phase 4.4: Comments + Due Dates + Archive/Restore.
+- Start Phase 5: Team & Collaboration.
 
 ## 3) User Preferences to Preserve on Resume
 
@@ -124,7 +125,7 @@ Note: db `-shm` and `-wal` files are runtime artifacts; do not delete without us
 
 ## 8) Immediate User-Facing Follow-up Item
 
-- Continue Phase 4.3: Labels + Assignments + Cover Colors.
+- Start Phase 5: Team & Collaboration.
 
 ## 9) Resume Command Pack
 

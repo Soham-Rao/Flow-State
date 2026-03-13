@@ -5,3 +5,5 @@ discord roles
 sohamsrao ✔️
 computerproject ✔️
 abman ✔️
+storage 1 ✔️
+storage 2

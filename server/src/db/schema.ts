@@ -47,6 +47,8 @@ export const boards = sqliteTable("boards", {
     .notNull()
     .default("card_and_attachments"),
   retentionMinutes: integer("retention_minutes").notNull().default(7 * 24 * 60),
+  archiveRetentionMinutes: integer("archive_retention_minutes").notNull().default(7 * 24 * 60),
+  archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
   createdBy: text("created_by")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -62,6 +64,7 @@ export const lists = sqliteTable("lists", {
   name: text("name").notNull(),
   position: integer("position").notNull().default(0),
   isDoneList: integer("is_done_list", { mode: "boolean" }).notNull().default(false),
+  archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
 });
@@ -157,6 +160,46 @@ export const attachments = sqliteTable("attachments", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
 });
 
+
+export const comments = sqliteTable("comments", {
+  id: text("id").primaryKey(),
+  boardId: text("board_id")
+    .notNull()
+    .references(() => boards.id, { onDelete: "cascade" }),
+  listId: text("list_id").references(() => lists.id, { onDelete: "cascade" }),
+  cardId: text("card_id").references(() => cards.id, { onDelete: "cascade" }),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  body: text("body").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
+export const commentReactions = sqliteTable("comment_reactions", {
+  commentId: text("comment_id")
+    .notNull()
+    .references(() => comments.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  emoji: text("emoji").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.commentId, table.userId, table.emoji] })
+}));
+
+export const commentMentions = sqliteTable("comment_mentions", {
+  commentId: text("comment_id")
+    .notNull()
+    .references(() => comments.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.commentId, table.userId] })
+}));
 
 export const usersRelations = relations(users, ({ many }) => ({
   boards: many(boards),

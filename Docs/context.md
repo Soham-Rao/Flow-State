@@ -265,11 +265,11 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 3.1: Card Backend APIs & Rules | ✅ Completed | 2026-03-12 | 2026-03-12 | Card CRUD + move endpoints/services, done-list countdown transitions, and server integration tests (`server/tests/cards.test.ts`) |
 | Phase 3.2: Card Frontend UI & Drag-and-Drop | ✅ Completed | 2026-03-12 | 2026-03-12 | Board detail now renders cards, supports quick add, card modal edit/delete, and card DnD within and across lists with optimistic updates |
 | Phase 3.3: Card Tests & Docs | ✅ Completed | 2026-03-12 | 2026-03-12 | Added client card workflow tests and updated implementation checklists/progress docs; pending user-run test execution |
-| Phase 4: Task Features | 🟡 In Progress | 2026-03-12 | — | Split into sub-phases starting with checklists |
+| Phase 4: Task Features | ✅ Completed | 2026-03-12 | 2026-03-13 | Checklists, attachments, labels, assignments, cover colors, comments, archive/restore, and retention UI completed |
 | Phase 4.1: Checklists | ✅ Completed | 2026-03-12 | 2026-03-12 | Checklist data model + API, board card preview with collapsible progress, and card modal CRUD + progress |
 | Phase 4.2: Attachments | ✅ Completed | 2026-03-13 | 2026-03-13 | Added attachments API + UI, retention settings, and cleanup support |
 | Phase 4.3: Labels + Assignments + Cover Colors | ✅ Completed | 2026-03-13 | 2026-03-13 | Labels/assignees/cover colors wired end-to-end with schema + API + UI and polish fixes |
-| Phase 4.4: Comments + Due Dates + Archive/Restore | ⬜ Not Started | — | — | — |
+| Phase 4.4: Comments + Due Dates + Archive/Restore | ✅ Completed | 2026-03-13 | 2026-03-13 | Comments with mentions/reactions, archive/restore flows, and retention countdown badges |
 | Phase 5: Team & Collaboration | ⬜ Not Started | — | — | — |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
@@ -323,6 +323,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 | Date | Update |
 |------|--------|
+| 2026-03-13 | Phase 4.4 completed: comments with reactions/mentions and delete, archive/restore for boards/lists/cards, retention countdown badges, and UI polish for comments/cards; Phase 4 marked complete. |
 | 2026-03-13 | Phase 4.2 verified complete (attachments, retention settings, list DnD, card autosave, due-date normalization); Phase 4.3 started with labels/assignments/cover colors (schema + API + UI work in progress). |
 | 2026-03-13 | Phase 4.3 completed: labels CRUD, assignee toggles, and cover colors integrated end-to-end with schema/type fixes and polish passes. |
 | 2026-03-12 | Phase 3 verified complete after user-run tests; card drag-and-drop finalized with dnd-kit and docs updated. |

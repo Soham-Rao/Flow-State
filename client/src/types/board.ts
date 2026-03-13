@@ -41,6 +41,8 @@ export interface BoardSummary {
   background: BoardBackground;
   retentionMode: RetentionMode;
   retentionMinutes: number;
+  archiveRetentionMinutes: number;
+  archivedAt: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -95,6 +97,24 @@ export interface BoardMember {
   createdAt: string;
 }
 
+export interface CommentReaction {
+  emoji: string;
+  count: number;
+}
+
+export interface BoardComment {
+  id: string;
+  boardId: string;
+  listId: string | null;
+  cardId: string | null;
+  author: BoardMember;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  reactions: CommentReaction[];
+  mentions: BoardMember[];
+}
+
 export interface BoardCard {
   id: string;
   listId: string;
@@ -113,6 +133,7 @@ export interface BoardCard {
   attachments: BoardAttachment[];
   labels: BoardLabel[];
   assignees: BoardMember[];
+  comments: BoardComment[];
 }
 
 export interface BoardList {
@@ -121,9 +142,11 @@ export interface BoardList {
   name: string;
   position: number;
   isDoneList: boolean;
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
   cards: BoardCard[];
+  comments: BoardComment[];
 }
 
 export interface BoardDetail {
@@ -133,12 +156,15 @@ export interface BoardDetail {
   background: BoardBackground;
   retentionMode: RetentionMode;
   retentionMinutes: number;
+  archiveRetentionMinutes: number;
+  archivedAt: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
   lists: BoardList[];
   labels: BoardLabel[];
   members: BoardMember[];
+  comments: BoardComment[];
 }
 
 export interface MoveCardResult {
@@ -146,4 +172,13 @@ export interface MoveCardResult {
   destinationListId: string;
   sourceCards: BoardCard[];
   destinationCards: BoardCard[];
+}
+
+export interface ArchivedListEntry {
+  id: string;
+  sourceListId: string;
+  name: string;
+  archivedAt: string | null;
+  kind: "list" | "cards";
+  cards: BoardCard[];
 }
