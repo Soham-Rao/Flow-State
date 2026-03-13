@@ -1,24 +1,35 @@
 import { z } from "zod";
 
-import { cardPriorities } from "../../db/schema.js";
+import { cardPriorities, retentionModes } from "../../db/schema.js";
 import { boardBackgrounds } from "./boards.constants.js";
 
 const boardBackgroundSchema = z.enum(boardBackgrounds);
 const cardPrioritySchema = z.enum(cardPriorities);
+const retentionModeSchema = z.enum(retentionModes);
+const retentionMinutesSchema = z.number().int().min(1).max(525600);
 
 export const createBoardSchema = z.object({
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(500).optional(),
-  background: boardBackgroundSchema.default("teal-gradient")
+  background: boardBackgroundSchema.default("teal-gradient"),
+  retentionMode: retentionModeSchema.default("card_and_attachments"),
+  retentionMinutes: retentionMinutesSchema.default(7 * 24 * 60)
 });
 
 export const updateBoardSchema = z
   .object({
     name: z.string().trim().min(2).max(120).optional(),
     description: z.string().trim().max(500).optional(),
-    background: boardBackgroundSchema.optional()
+    background: boardBackgroundSchema.optional(),
+    retentionMode: retentionModeSchema.optional(),
+    retentionMinutes: retentionMinutesSchema.optional()
   })
-  .refine((value) => value.name !== undefined || value.description !== undefined || value.background !== undefined, {
+  .refine((value) =>
+    value.name !== undefined ||
+    value.description !== undefined ||
+    value.background !== undefined ||
+    value.retentionMode !== undefined ||
+    value.retentionMinutes !== undefined, {
     message: "At least one field is required"
   });
 

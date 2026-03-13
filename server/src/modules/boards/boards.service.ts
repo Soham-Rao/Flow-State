@@ -1,9 +1,11 @@
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 
-import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { boards, cards, checklists, checklistItems, lists, type UserRole } from "../../db/schema.js";
+import { attachments, boards, cards, checklists, checklistItems, lists, type RetentionMode, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type {
   CreateBoardInput,
@@ -25,6 +27,8 @@ interface BoardSummary {
   name: string;
   description: string | null;
   background: string;
+  retentionMode: RetentionMode;
+  retentionMinutes: number;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -44,6 +48,20 @@ interface CardRecord {
   doneEnteredAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+interface BoardAttachment {
+  id: string;
+  cardId: string;
+  originalName: string;
+  mimeType: string | null;
+  size: number;
+  createdAt: Date;
+}
+
+interface AttachmentRecord extends BoardAttachment {
+  storedName: string;
+  storagePath: string;
 }
 
 interface BoardChecklistItem {
@@ -68,6 +86,7 @@ interface BoardChecklist {
 
 export interface BoardCard extends CardRecord {
   checklists: BoardChecklist[];
+  attachments: BoardAttachment[];
 }
 
 interface BoardList {
@@ -86,6 +105,8 @@ interface BoardDetail {
   name: string;
   description: string | null;
   background: string;
+  retentionMode: RetentionMode;
+  retentionMinutes: number;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -111,6 +132,10 @@ const defaultLists = [
   { name: "Done", isDoneList: true }
 ] as const;
 
+const DEFAULT_RETENTION_MINUTES = 7 * 24 * 60;
+const DEFAULT_RETENTION_MODE: RetentionMode = "card_and_attachments";
+const UPLOADS_ROOT = path.resolve(process.cwd(), "uploads");
+
 function normalizeOptionalDescription(value: string | undefined): string | null {
   if (value === undefined) {
     return null;
@@ -124,12 +149,55 @@ function clampIndex(value: number, min: number, max: number): number {
   if (value < min) {
     return min;
   }
-
   if (value > max) {
     return max;
   }
 
   return value;
+}
+
+
+function normalizeDueDate(value: Date | null | undefined): Date | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const time = value.getTime();
+  if (Number.isNaN(time) || time <= 0) return new Date();
+  return value;
+}
+
+function clampRetentionMinutes(value: number | undefined): number {
+  if (value === undefined || Number.isNaN(value)) {
+    return DEFAULT_RETENTION_MINUTES;
+  }
+
+  if (value < 1) {
+    return 1;
+  }
+
+  return Math.min(value, 525600);
+}
+
+function buildAttachmentStoragePath(boardId: string, cardId: string, storedName: string): string {
+  return path.join(boardId, cardId, storedName);
+}
+
+function resolveAttachmentPath(storagePath: string): string {
+  return path.join(UPLOADS_ROOT, storagePath);
+}
+
+async function ensureAttachmentDirectory(filePath: string): Promise<void> {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+}
+
+async function removeFileIfExists(filePath: string): Promise<void> {
+  try {
+    await fs.unlink(filePath);
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err.code !== "ENOENT") {
+      throw error;
+    }
+  }
 }
 
 function assertBoardExists(boardId: string): void {
@@ -243,6 +311,44 @@ function getChecklistItemsForChecklists(checklistIds: string[]): Map<string, Boa
   return itemsByChecklistId;
 }
 
+function getAttachmentsForCards(cardIds: string[]): Map<string, BoardAttachment[]> {
+  if (cardIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      id: attachments.id,
+      cardId: attachments.cardId,
+      originalName: attachments.originalName,
+      storedName: attachments.storedName,
+      mimeType: attachments.mimeType,
+      size: attachments.size,
+      storagePath: attachments.storagePath,
+      createdAt: attachments.createdAt
+    })
+    .from(attachments)
+    .where(inArray(attachments.cardId, cardIds))
+    .orderBy(asc(attachments.createdAt))
+    .all() as AttachmentRecord[];
+
+  const attachmentsByCardId = new Map<string, BoardAttachment[]>();
+  for (const attachment of rows) {
+    const list = attachmentsByCardId.get(attachment.cardId) ?? [];
+    list.push({
+      id: attachment.id,
+      cardId: attachment.cardId,
+      originalName: attachment.originalName,
+      mimeType: attachment.mimeType,
+      size: attachment.size,
+      createdAt: attachment.createdAt
+    });
+    attachmentsByCardId.set(attachment.cardId, list);
+  }
+
+  return attachmentsByCardId;
+}
+
 function getChecklistsForCards(cardIds: string[]): Map<string, BoardChecklist[]> {
   if (cardIds.length === 0) {
     return new Map();
@@ -283,10 +389,13 @@ function getChecklistsForCards(cardIds: string[]): Map<string, BoardChecklist[]>
 function attachChecklistsToCards(cards: CardRecord[]): BoardCard[] {
   const cardIds = cards.map((card) => card.id);
   const checklistsByCardId = getChecklistsForCards(cardIds);
+  const attachmentsByCardId = getAttachmentsForCards(cardIds);
 
   return cards.map((card) => ({
     ...card,
-    checklists: checklistsByCardId.get(card.id) ?? []
+    dueDate: normalizeDueDate(card.dueDate) ?? null,
+    checklists: checklistsByCardId.get(card.id) ?? [],
+    attachments: attachmentsByCardId.get(card.id) ?? []
   }));
 }
 
@@ -340,6 +449,62 @@ function getChecklistItemById(itemId: string): BoardChecklistItem {
   return item as BoardChecklistItem;
 }
 
+function getAttachmentRecordById(attachmentId: string): AttachmentRecord {
+  const attachment = db
+    .select({
+      id: attachments.id,
+      cardId: attachments.cardId,
+      originalName: attachments.originalName,
+      storedName: attachments.storedName,
+      mimeType: attachments.mimeType,
+      size: attachments.size,
+      storagePath: attachments.storagePath,
+      createdAt: attachments.createdAt
+    })
+    .from(attachments)
+    .where(eq(attachments.id, attachmentId))
+    .limit(1)
+    .get();
+
+  if (!attachment) {
+    throw new ApiError(404, "Attachment not found");
+  }
+
+  return attachment as AttachmentRecord;
+}
+
+function getCardBoardContext(cardId: string): { cardId: string; boardId: string } {
+  const row = db
+    .select({ cardId: cards.id, boardId: lists.boardId })
+    .from(cards)
+    .innerJoin(lists, eq(cards.listId, lists.id))
+    .where(and(eq(cards.id, cardId), isNull(cards.archivedAt)))
+    .limit(1)
+    .get();
+
+  if (!row) {
+    throw new ApiError(404, "Card not found");
+  }
+
+  return row as { cardId: string; boardId: string };
+}
+
+async function deleteAttachmentsForCard(cardId: string): Promise<void> {
+  const records = db
+    .select({
+      id: attachments.id,
+      storagePath: attachments.storagePath
+    })
+    .from(attachments)
+    .where(eq(attachments.cardId, cardId))
+    .all() as Array<{ id: string; storagePath: string }>;
+
+  await Promise.all(
+    records.map((record) => removeFileIfExists(resolveAttachmentPath(record.storagePath)))
+  );
+
+  db.delete(attachments).where(eq(attachments.cardId, cardId)).run();
+}
 
 function getCardsForList(listId: string): BoardCard[] {
   const rows = db
@@ -377,6 +542,8 @@ export function getBoards(): BoardSummary[] {
       name: boards.name,
       description: boards.description,
       background: boards.background,
+      retentionMode: boards.retentionMode,
+      retentionMinutes: boards.retentionMinutes,
       createdBy: boards.createdBy,
       createdAt: boards.createdAt,
       updatedAt: boards.updatedAt
@@ -409,6 +576,8 @@ export function getBoardById(boardId: string): BoardDetail {
       name: boards.name,
       description: boards.description,
       background: boards.background,
+      retentionMode: boards.retentionMode,
+      retentionMinutes: boards.retentionMinutes,
       createdBy: boards.createdBy,
       createdAt: boards.createdAt,
       updatedAt: boards.updatedAt
@@ -479,6 +648,8 @@ export function getBoardById(boardId: string): BoardDetail {
 export function createBoard(input: CreateBoardInput, userId: string): BoardDetail {
   const now = new Date();
   const boardId = crypto.randomUUID();
+  const retentionMinutes = clampRetentionMinutes(input.retentionMinutes);
+  const retentionMode = input.retentionMode ?? DEFAULT_RETENTION_MODE;
 
   db.transaction((tx) => {
     tx.insert(boards)
@@ -487,6 +658,8 @@ export function createBoard(input: CreateBoardInput, userId: string): BoardDetai
         name: input.name.trim(),
         description: normalizeOptionalDescription(input.description),
         background: input.background,
+        retentionMode,
+        retentionMinutes,
         createdBy: userId,
         createdAt: now,
         updatedAt: now
@@ -518,6 +691,8 @@ export function updateBoard(boardId: string, input: UpdateBoardInput): BoardDeta
     name?: string;
     description?: string | null;
     background?: string;
+    retentionMode?: RetentionMode;
+    retentionMinutes?: number;
     updatedAt: Date;
   } = {
     updatedAt: new Date()
@@ -533,6 +708,14 @@ export function updateBoard(boardId: string, input: UpdateBoardInput): BoardDeta
 
   if (input.background !== undefined) {
     updatePayload.background = input.background;
+  }
+
+  if (input.retentionMode !== undefined) {
+    updatePayload.retentionMode = input.retentionMode;
+  }
+
+  if (input.retentionMinutes !== undefined) {
+    updatePayload.retentionMinutes = clampRetentionMinutes(input.retentionMinutes);
   }
 
   db.update(boards).set(updatePayload).where(eq(boards.id, boardId)).run();
@@ -620,6 +803,21 @@ export function updateList(listId: string, input: UpdateListInput): BoardList {
     .set(updatePayload)
     .where(and(eq(lists.id, listId), eq(lists.boardId, existing.boardId)))
     .run();
+
+  if (input.isDoneList !== undefined && input.isDoneList !== existing.isDoneList) {
+    const now = new Date();
+    if (input.isDoneList) {
+      db.update(cards)
+        .set({ doneEnteredAt: now, updatedAt: now })
+        .where(and(eq(cards.listId, listId), isNull(cards.archivedAt), isNull(cards.doneEnteredAt)))
+        .run();
+    } else {
+      db.update(cards)
+        .set({ doneEnteredAt: null, updatedAt: now })
+        .where(and(eq(cards.listId, listId), isNull(cards.archivedAt), isNotNull(cards.doneEnteredAt)))
+        .run();
+    }
+  }
 
   const updated = db
     .select({
@@ -726,7 +924,7 @@ export function createCard(listId: string, input: CreateCardInput, userId: strin
       title: input.title.trim(),
       description: normalizeOptionalDescription(input.description),
       priority: input.priority,
-      dueDate: input.dueDate ?? null,
+      dueDate: normalizeDueDate(input.dueDate) ?? null,
       position: (maxPositionRow?.maxPosition ?? -1) + 1,
       createdBy: userId,
       doneEnteredAt: list.isDoneList ? now : null,
@@ -764,7 +962,7 @@ export function updateCard(cardId: string, input: UpdateCardInput): BoardCard {
   }
 
   if (input.dueDate !== undefined) {
-    updatePayload.dueDate = input.dueDate;
+    updatePayload.dueDate = normalizeDueDate(input.dueDate) ?? null;
   }
 
   db.update(cards).set(updatePayload).where(eq(cards.id, cardId)).run();
@@ -867,6 +1065,7 @@ export function updateChecklistItem(itemId: string, input: UpdateChecklistItemIn
     updatedAt: new Date()
   };
 
+
   if (input.title !== undefined) {
     updatePayload.title = input.title.trim();
   }
@@ -888,12 +1087,84 @@ export function deleteChecklistItem(itemId: string): void {
   }
 }
 
-export function deleteCard(cardId: string, requesterUserId: string, requesterRole: UserRole): void {
+export async function createAttachments(
+  cardId: string,
+  files: Express.Multer.File[]
+): Promise<BoardAttachment[]> {
+  assertCardExists(cardId);
+
+  if (!files || files.length === 0) {
+    throw new ApiError(400, "No attachments provided");
+  }
+
+  const { boardId } = getCardBoardContext(cardId);
+  const now = new Date();
+  const created: BoardAttachment[] = [];
+
+  for (const file of files) {
+    const attachmentId = crypto.randomUUID();
+    const originalName = path.basename(file.originalname || "attachment");
+    const extension = path.extname(originalName);
+    const storedName = `${attachmentId}${extension}`;
+    const storagePath = buildAttachmentStoragePath(boardId, cardId, storedName);
+    const absolutePath = resolveAttachmentPath(storagePath);
+
+    await ensureAttachmentDirectory(absolutePath);
+    await fs.writeFile(absolutePath, file.buffer);
+
+    db.insert(attachments)
+      .values({
+        id: attachmentId,
+        cardId,
+        originalName,
+        storedName,
+        mimeType: file.mimetype ?? null,
+        size: file.size ?? 0,
+        storagePath,
+        createdAt: now
+      })
+      .run();
+
+    created.push({
+      id: attachmentId,
+      cardId,
+      originalName,
+      mimeType: file.mimetype ?? null,
+      size: file.size ?? 0,
+      createdAt: now
+    });
+  }
+
+  return created;
+}
+
+export function getAttachmentDownloadInfo(attachmentId: string): { filePath: string; originalName: string } {
+  const attachment = getAttachmentRecordById(attachmentId);
+  return {
+    filePath: resolveAttachmentPath(attachment.storagePath),
+    originalName: attachment.originalName
+  };
+}
+
+export async function deleteAttachment(attachmentId: string): Promise<void> {
+  const attachment = getAttachmentRecordById(attachmentId);
+  await removeFileIfExists(resolveAttachmentPath(attachment.storagePath));
+
+  const result = db.delete(attachments).where(eq(attachments.id, attachmentId)).run();
+
+  if (result.changes === 0) {
+    throw new ApiError(404, "Attachment not found");
+  }
+}
+
+export async function deleteCard(cardId: string, requesterUserId: string, requesterRole: UserRole): Promise<void> {
   const existing = assertCardExists(cardId);
 
   if (requesterRole !== "admin" && existing.createdBy !== requesterUserId) {
     throw new ApiError(403, "You can only delete cards you created");
   }
+
+  await deleteAttachmentsForCard(cardId);
 
   const result = db.delete(cards).where(eq(cards.id, cardId)).run();
 
@@ -996,6 +1267,41 @@ export function moveCard(input: MoveCardInput): MoveCardResult {
     destinationCards: getCardsForList(destinationList.id)
   };
 }
+export async function cleanupExpiredCards(now: Date = new Date()): Promise<void> {
+  const rows = db
+    .select({
+      cardId: cards.id,
+      doneEnteredAt: cards.doneEnteredAt,
+      retentionMode: boards.retentionMode,
+      retentionMinutes: boards.retentionMinutes
+    })
+    .from(cards)
+    .innerJoin(lists, eq(cards.listId, lists.id))
+    .innerJoin(boards, eq(lists.boardId, boards.id))
+    .where(and(isNull(cards.archivedAt), isNotNull(cards.doneEnteredAt)))
+    .all() as Array<{
+      cardId: string;
+      doneEnteredAt: Date | null;
+      retentionMode: RetentionMode | null;
+      retentionMinutes: number | null;
+    }>;
 
+  const nowMs = now.getTime();
 
+  for (const row of rows) {
+    if (!row.doneEnteredAt) continue;
+    const retentionMinutes = clampRetentionMinutes(row.retentionMinutes ?? DEFAULT_RETENTION_MINUTES);
+    const expiresAt = row.doneEnteredAt.getTime() + retentionMinutes * 60 * 1000;
+    if (nowMs < expiresAt) continue;
+
+    const mode = row.retentionMode ?? DEFAULT_RETENTION_MODE;
+    if (mode === "attachments_only") {
+      await deleteAttachmentsForCard(row.cardId);
+      continue;
+    }
+
+    await deleteAttachmentsForCard(row.cardId);
+    db.delete(cards).where(eq(cards.id, row.cardId)).run();
+  }
+}
 

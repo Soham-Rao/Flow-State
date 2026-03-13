@@ -1,7 +1,9 @@
 import { apiRequest } from "@/lib/api-client";
+import { getSessionToken } from "@/lib/session";
 import type {
   BoardBackground,
   BoardCard,
+  BoardAttachment,
   BoardDetail,
   BoardList,
   BoardSummary,
@@ -11,16 +13,22 @@ import type {
   MoveCardResult
 } from "@/types/board";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
+
 interface CreateBoardInput {
   name: string;
   description?: string;
   background: BoardBackground;
+  retentionMode?: "attachments_only" | "card_and_attachments";
+  retentionMinutes?: number;
 }
 
 interface UpdateBoardInput {
   name?: string;
   description?: string;
   background?: BoardBackground;
+  retentionMode?: "attachments_only" | "card_and_attachments";
+  retentionMinutes?: number;
 }
 
 interface CreateListInput {
@@ -222,4 +230,56 @@ export function deleteChecklistItem(itemId: string): Promise<{ message: string }
     method: "DELETE",
     auth: true
   });
+}
+
+
+export async function createAttachments(cardId: string, files: File[]): Promise<BoardAttachment[]> {
+  const token = getSessionToken();
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+
+  const response = await fetch(`${API_BASE_URL}/boards/cards/${cardId}/attachments`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { success?: boolean; data?: BoardAttachment[]; error?: { message?: string } }
+    | null;
+
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error?.message ?? "Attachment upload failed");
+  }
+
+  return payload.data ?? [];
+}
+
+export async function deleteAttachment(attachmentId: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/boards/attachments/${attachmentId}`, {
+    method: "DELETE",
+    auth: true
+  });
+}
+
+export async function downloadAttachment(attachmentId: string, filename: string): Promise<void> {
+  const token = getSessionToken();
+  const response = await fetch(`${API_BASE_URL}/boards/attachments/${attachmentId}/download`, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to download attachment");
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }

@@ -9,12 +9,15 @@ export type BoardBackground =
   | "sunset-grid";
 
 export type CardPriority = "low" | "medium" | "high" | "urgent";
+export type RetentionMode = "attachments_only" | "card_and_attachments";
 
 export interface BoardSummary {
   id: string;
   name: string;
   description: string | null;
   background: BoardBackground;
+  retentionMode: RetentionMode;
+  retentionMinutes: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -42,6 +45,15 @@ export interface Checklist {
   items: ChecklistItem[];
 }
 
+export interface BoardAttachment {
+  id: string;
+  cardId: string;
+  originalName: string;
+  mimeType: string | null;
+  size: number;
+  createdAt: string;
+}
+
 export interface BoardCard {
   id: string;
   listId: string;
@@ -56,6 +68,7 @@ export interface BoardCard {
   createdAt: string;
   updatedAt: string;
   checklists: Checklist[];
+  attachments: BoardAttachment[];
 }
 
 export interface BoardList {
@@ -74,6 +87,8 @@ export interface BoardDetail {
   name: string;
   description: string | null;
   background: BoardBackground;
+  retentionMode: RetentionMode;
+  retentionMinutes: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

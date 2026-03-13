@@ -9,11 +9,14 @@ import * as boardsApi from "@/lib/boards-api";
 vi.mock("@/lib/boards-api", () => ({
   getBoardById: vi.fn(),
   createList: vi.fn(),
+  deleteAttachment: vi.fn(),
   deleteBoard: vi.fn(),
   deleteList: vi.fn(),
+  downloadAttachment: vi.fn(),
   reorderLists: vi.fn(),
   updateBoard: vi.fn(),
   updateList: vi.fn(),
+  createAttachments: vi.fn(),
   createCard: vi.fn(),
   updateCard: vi.fn(),
   deleteCard: vi.fn(),
@@ -57,7 +60,8 @@ const baseCard: BoardCard = {
   doneEnteredAt: null,
   createdAt: "2026-03-12T10:00:00.000Z",
   updatedAt: "2026-03-12T10:00:00.000Z",
-  checklists: []
+  checklists: [],
+  attachments: []
 };
 
 const listOne: BoardList = {
@@ -87,6 +91,8 @@ const baseBoard: BoardDetail = {
   name: "Product Board",
   description: "",
   background: "teal-gradient",
+  retentionMode: "card_and_attachments",
+  retentionMinutes: 10080,
   createdBy: "user-1",
   createdAt: "2026-03-12T10:00:00.000Z",
   updatedAt: "2026-03-12T10:00:00.000Z",
@@ -231,20 +237,22 @@ describe("BoardDetailPage cards", () => {
 
     expect(await screen.findByText("Edit Card")).toBeInTheDocument();
 
+    vi.useFakeTimers();
+
     fireEvent.change(screen.getByPlaceholderText("Card title"), {
       target: { value: "Updated card title" }
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await vi.advanceTimersByTimeAsync(2100);
 
-    await waitFor(() => {
-      expect(updateCardMock).toHaveBeenCalledWith(
-        "card-1",
-        expect.objectContaining({
-          title: "Updated card title"
-        })
-      );
-    });
+    expect(updateCardMock).toHaveBeenCalledWith(
+      "card-1",
+      expect.objectContaining({
+        title: "Updated card title"
+      })
+    );
+
+    vi.useRealTimers();
 
     expect(await screen.findByText("Updated card title")).toBeInTheDocument();
   });

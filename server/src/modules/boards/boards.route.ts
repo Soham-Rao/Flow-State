@@ -1,18 +1,23 @@
 import { Router } from "express";
+import multer from "multer";
 
 import { requireAuth } from "../../middleware/require-auth.js";
 import {
+  createAttachments,
   createBoard,
   createCard,
   createChecklist,
   createChecklistItem,
   createList,
+  deleteAttachment,
   deleteBoard,
   deleteCard,
   deleteChecklist,
   deleteChecklistItem,
   deleteList,
+  getAttachmentDownloadInfo,
   getBoardById,
+  cleanupExpiredCards,
   getBoards,
   moveCard,
   reorderLists,
@@ -39,6 +44,8 @@ import {
 
 export const boardsRouter = Router();
 
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
+
 boardsRouter.use(requireAuth);
 
 boardsRouter.get("/", (_req, res) => {
@@ -64,8 +71,9 @@ boardsRouter.post("/", (req, res, next) => {
   }
 });
 
-boardsRouter.get("/:boardId", (req, res, next) => {
+boardsRouter.get("/:boardId", async (req, res, next) => {
   try {
+    await cleanupExpiredCards();
     const data = getBoardById(req.params.boardId);
 
     res.status(200).json({
@@ -205,14 +213,52 @@ boardsRouter.post("/cards/move", (req, res, next) => {
   }
 });
 
-boardsRouter.delete("/cards/:cardId", (req, res, next) => {
+boardsRouter.delete("/cards/:cardId", async (req, res, next) => {
   try {
-    deleteCard(req.params.cardId, req.auth!.userId, req.auth!.role);
+    await deleteCard(req.params.cardId, req.auth!.userId, req.auth!.role);
 
     res.status(200).json({
       success: true,
       data: {
         message: "Card deleted"
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/cards/:cardId/attachments", upload.array("files", 10), async (req, res, next) => {
+  try {
+    const files = (req.files ?? []) as Express.Multer.File[];
+    const data = await createAttachments(req.params.cardId, files);
+
+    res.status(201).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.get("/attachments/:attachmentId/download", (req, res, next) => {
+  try {
+    const attachment = getAttachmentDownloadInfo(req.params.attachmentId);
+    res.download(attachment.filePath, attachment.originalName);
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.delete("/attachments/:attachmentId", async (req, res, next) => {
+  try {
+    await deleteAttachment(req.params.attachmentId);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: "Attachment deleted"
       }
     });
   } catch (error) {

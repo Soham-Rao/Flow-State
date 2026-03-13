@@ -3,6 +3,7 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const userRoles = ["admin", "member"] as const;
 export const cardPriorities = ["low", "medium", "high", "urgent"] as const;
+export const retentionModes = ["attachments_only", "card_and_attachments"] as const;
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -19,6 +20,10 @@ export const boards = sqliteTable("boards", {
   name: text("name").notNull(),
   description: text("description"),
   background: text("background").notNull().default("teal-gradient"),
+  retentionMode: text("retention_mode", { enum: retentionModes })
+    .notNull()
+    .default("card_and_attachments"),
+  retentionMinutes: integer("retention_minutes").notNull().default(7 * 24 * 60),
   createdBy: text("created_by")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -79,6 +84,19 @@ export const checklistItems = sqliteTable("checklist_items", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
 });
 
+export const attachments = sqliteTable("attachments", {
+  id: text("id").primaryKey(),
+  cardId: text("card_id")
+    .notNull()
+    .references(() => cards.id, { onDelete: "cascade" }),
+  originalName: text("original_name").notNull(),
+  storedName: text("stored_name").notNull(),
+  mimeType: text("mime_type"),
+  size: integer("size").notNull().default(0),
+  storagePath: text("storage_path").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
 
 export const usersRelations = relations(users, ({ many }) => ({
   boards: many(boards),
@@ -110,7 +128,8 @@ export const cardsRelations = relations(cards, ({ one, many }) => ({
     fields: [cards.createdBy],
     references: [users.id]
   }),
-  checklists: many(checklists)
+  checklists: many(checklists),
+  attachments: many(attachments)
 }));
 
 export const checklistsRelations = relations(checklists, ({ one, many }) => ({
@@ -128,4 +147,13 @@ export const checklistItemsRelations = relations(checklistItems, ({ one }) => ({
   })
 }));
 
+
+export const attachmentsRelations = relations(attachments, ({ one }) => ({
+  card: one(cards, {
+    fields: [attachments.cardId],
+    references: [cards.id]
+  })
+}));
+
 export type UserRole = (typeof userRoles)[number];
+export type RetentionMode = (typeof retentionModes)[number];

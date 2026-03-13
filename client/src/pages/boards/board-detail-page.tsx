@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { CalendarClock, Check, ChevronDown, ChevronUp, GripVertical, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, ChevronUp, Download, GripVertical, ListChecks, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -27,15 +27,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { boardBackgroundPresets, getBoardBackgroundClass, getBoardSurfaceClass } from "@/lib/board-backgrounds";
 import {
+  createAttachments,
   createCard,
   createChecklist,
   createChecklistItem,
   createList,
+  deleteAttachment,
   deleteBoard,
   deleteCard,
   deleteChecklist,
   deleteChecklistItem,
   deleteList,
+  downloadAttachment,
   getBoardById,
   moveCard,
   reorderLists,
@@ -45,12 +48,14 @@ import {
   updateChecklistItem,
   updateList
 } from "@/lib/boards-api";
-import type { BoardBackground, BoardCard, BoardDetail, BoardList, CardPriority, Checklist, ChecklistItem } from "@/types/board";
+import type { BoardAttachment, BoardBackground, BoardCard, BoardDetail, BoardList, CardPriority, Checklist, ChecklistItem, RetentionMode } from "@/types/board";
 
 interface BoardDraft {
   name: string;
   description: string;
   background: BoardBackground;
+  retentionMode: RetentionMode;
+  retentionMinutes: number;
 }
 
 interface CardDraft {
@@ -61,10 +66,13 @@ interface CardDraft {
 }
 
 const AUTO_SAVE_DELAY_MS = 750;
+const CARD_AUTO_SAVE_DELAY_MS = 2000;
 const SAVED_TOAST_SHOW_DELAY_MS = 250;
 const SAVED_TOAST_VISIBLE_MS = 1500;
-const DONE_RETENTION_DAYS = 7;
-const DONE_RETENTION_MS = DONE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const MIN_RETENTION_MINUTES = 1;
+const MAX_RETENTION_MINUTES = 525600;
+const MINUTES_PER_HOUR = 60;
+const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
 
 
 function sortChecklistItems(items: ChecklistItem[]): ChecklistItem[] {
@@ -100,27 +108,35 @@ function sortBoardListsWithCards(values: BoardList[]): BoardList[] {
   }));
 }
 
-function moveListIds(listIds: string[], sourceId: string, targetId: string): string[] {
-  const sourceIndex = listIds.indexOf(sourceId);
-  const targetIndex = listIds.indexOf(targetId);
+const LIST_DRAG_PREFIX = "list:";
 
-  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
-    return listIds;
-  }
+function toListDragId(listId: string): string {
+  return `${LIST_DRAG_PREFIX}${listId}`;
+}
 
-  const nextIds = [...listIds];
-  const [source] = nextIds.splice(sourceIndex, 1);
-  nextIds.splice(targetIndex, 0, source);
+function isListDragId(id: unknown): id is string {
+  return typeof id === "string" && id.startsWith(LIST_DRAG_PREFIX);
+}
 
-  return nextIds;
+function fromListDragId(id: string): string {
+  return id.slice(LIST_DRAG_PREFIX.length);
+}
+
+function normalizeDragOverId(id: string): string {
+  return isListDragId(id) ? fromListDragId(id) : id;
+}
+
+function formatDateTimeLocalValue(date: Date): string {
+  const timezoneOffsetMs = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
 }
 
 function formatDueDateForInput(value: string | null): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  const timezoneOffsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
+  const safeDate = date.getTime() <= 0 ? new Date() : date;
+  return formatDateTimeLocalValue(safeDate);
 }
 
 function toIsoFromDateTimeInput(value: string): string | null {
@@ -131,11 +147,58 @@ function toIsoFromDateTimeInput(value: string): string | null {
 }
 
 
-function getTimeLeftLabel(doneEnteredAt: string, nowMs: number): string {
+function clampRetentionMinutes(value: number): number {
+  if (Number.isNaN(value) || value < MIN_RETENTION_MINUTES) {
+    return MIN_RETENTION_MINUTES;
+  }
+
+  return Math.min(Math.floor(value), MAX_RETENTION_MINUTES);
+}
+
+function splitRetentionMinutes(totalMinutes: number): { days: number; hours: number; minutes: number } {
+  const safeTotal = clampRetentionMinutes(totalMinutes);
+  const days = Math.floor(safeTotal / MINUTES_PER_DAY);
+  const hours = Math.floor((safeTotal % MINUTES_PER_DAY) / MINUTES_PER_HOUR);
+  const minutes = safeTotal % MINUTES_PER_HOUR;
+  return { days, hours, minutes };
+}
+
+function toRetentionMinutes(days: number, hours: number, minutes: number): number {
+  const safeDays = Math.max(0, Math.floor(days));
+  const safeHours = Math.max(0, Math.floor(hours));
+  const safeMinutes = Math.max(0, Math.floor(minutes));
+  const total = safeDays * MINUTES_PER_DAY + safeHours * MINUTES_PER_HOUR + safeMinutes;
+  return clampRetentionMinutes(total);
+}
+
+function parseRetentionInput(value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  const precision = unitIndex === 0 || size >= 10 ? 0 : 1;
+  return `${size.toFixed(precision)} ${units[unitIndex]}`;
+}
+
+function sortAttachments(attachments: BoardAttachment[]): BoardAttachment[] {
+  return [...attachments].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+function getTimeLeftLabel(doneEnteredAt: string, nowMs: number, retentionMinutes: number): string {
   const enteredAtMs = new Date(doneEnteredAt).getTime();
   if (Number.isNaN(enteredAtMs)) return "";
-  const remainingMs = DONE_RETENTION_MS - (nowMs - enteredAtMs);
-  if (remainingMs <= 0) return "0s left";
+  const retentionMs = clampRetentionMinutes(retentionMinutes) * 60 * 1000;
+  const remainingMs = retentionMs - (nowMs - enteredAtMs);
+  if (remainingMs <= 0) return "Files deleted";
 
   const second = 1000;
   const minute = 60 * second;
@@ -172,12 +235,13 @@ function formatDueDateLabel(value: string | null): string | null {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
+  const safeDate = date.getTime() <= 0 ? new Date() : date;
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit"
-  }).format(date);
+  }).format(safeDate);
 }
 
 function getPriorityBadgeClass(priority: CardPriority): string {
@@ -214,6 +278,16 @@ function buildCardDraft(card: BoardCard): CardDraft {
   };
 }
 
+function isCardDraftEqual(a: CardDraft | null, b: CardDraft | null): boolean {
+  if (!a || !b) return false;
+  return (
+    a.title === b.title &&
+    a.description === b.description &&
+    a.priority === b.priority &&
+    a.dueDate === b.dueDate
+  );
+}
+
 function getCardFromBoard(
   board: BoardDetail | null,
   cardId: string | null
@@ -232,12 +306,14 @@ function getCardFromBoard(
 function CardSummary({
   card,
   nowMs,
+  retentionMinutes,
   showChecklists = true,
   onChecklistItemToggle,
   onChecklistOpen
 }: {
   card: BoardCard;
   nowMs: number;
+  retentionMinutes: number;
   showChecklists?: boolean;
   onChecklistItemToggle?: (
     cardId: string,
@@ -276,7 +352,7 @@ function CardSummary({
         )}
         {card.doneEnteredAt && (
           <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[11px] text-rose-700">
-            {getTimeLeftLabel(card.doneEnteredAt, nowMs)}
+            {getTimeLeftLabel(card.doneEnteredAt, nowMs, retentionMinutes)}
           </span>
         )}
       </div>
@@ -366,12 +442,14 @@ function SortableCard({
   card,
   onEdit,
   nowMs,
+  retentionMinutes,
   onChecklistItemToggle,
   onChecklistOpen,
 }: {
   card: BoardCard;
   onEdit: (card: BoardCard) => void;
   nowMs: number;
+  retentionMinutes: number;
   onChecklistItemToggle?: (
     cardId: string,
     checklistId: string,
@@ -408,7 +486,7 @@ function SortableCard({
             }
           }}
         >
-          <CardSummary card={card} nowMs={nowMs} onChecklistItemToggle={onChecklistItemToggle} onChecklistOpen={onChecklistOpen} />
+          <CardSummary card={card} nowMs={nowMs} retentionMinutes={retentionMinutes} onChecklistItemToggle={onChecklistItemToggle} onChecklistOpen={onChecklistOpen} />
         </div>
 
         {/* Drag handle — only this area initiates drag */}
@@ -428,22 +506,63 @@ function SortableCard({
 }
 
 // ---------------------------------------------------------------------------
-// ListDropZone — makes an empty list accept drops
+// SortableListContainer — wraps a list with dnd-kit drag handle
 // ---------------------------------------------------------------------------
-function ListDropZone({ listId }: { listId: string }): JSX.Element {
-  const { setNodeRef, isOver } = useDroppable({ id: listId });
+function SortableListContainer({
+  listId,
+  children,
+}: {
+  listId: string;
+  children: (options: {
+    dragHandleProps: React.HTMLAttributes<HTMLButtonElement>;
+    isDragging: boolean;
+  }) => React.ReactNode;
+}): JSX.Element {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: toListDragId(listId)
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground transition-colors ${
-        isOver ? "border-primary/50 bg-primary/5" : "border-border/50 bg-background/70"
-      }`}
+      style={style}
+      data-list-id={listId}
+      data-testid={`list-${listId}`}
+      className={isDragging ? "opacity-60" : undefined}
     >
-      {isOver ? "Drop here" : "No cards yet. Add one below."}
+      {children({
+        dragHandleProps: {
+          ...attributes,
+          ...listeners
+        },
+        isDragging
+      })}
     </div>
   );
 }
 
+// ---------------------------------------------------------------------------
+// ListDropZone — makes an empty list accept drops
+// ---------------------------------------------------------------------------
+function ListDropZone({ listId, isCardDrag }: { listId: string; isCardDrag: boolean }): JSX.Element {
+  const { setNodeRef, isOver } = useDroppable({ id: listId });
+  const active = isOver && isCardDrag;
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground transition-colors ${
+        active ? "border-primary/50 bg-primary/5" : "border-border/50 bg-background/70"
+      }`}
+    >
+      {active ? "Drop here" : "No cards yet. Add one below."}
+    </div>
+  );
+}
 // ---------------------------------------------------------------------------
 // BoardDetailPage
 // ---------------------------------------------------------------------------
@@ -458,6 +577,10 @@ export function BoardDetailPage(): JSX.Element {
   const [boardName, setBoardName] = useState("");
   const [boardDescription, setBoardDescription] = useState("");
   const [boardBackground, setBoardBackground] = useState<BoardBackground>("teal-gradient");
+  const [retentionMode, setRetentionMode] = useState<RetentionMode>("card_and_attachments");
+  const [retentionDays, setRetentionDays] = useState(7);
+  const [retentionHours, setRetentionHours] = useState(0);
+  const [retentionMinutesPart, setRetentionMinutesPart] = useState(0);
 
   const [newListName, setNewListName] = useState("");
   const [newListDone, setNewListDone] = useState(false);
@@ -467,7 +590,9 @@ export function BoardDetailPage(): JSX.Element {
   const [newCardTitles, setNewCardTitles] = useState<Record<string, string>>({});
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [cardDraft, setCardDraft] = useState<CardDraft | null>(null);
-  const [isCardSaving, setIsCardSaving] = useState(false);
+  const [cardSaveStatus, setCardSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
 
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [newChecklistItemTitles, setNewChecklistItemTitles] = useState<Record<string, string>>({});
@@ -481,13 +606,13 @@ export function BoardDetailPage(): JSX.Element {
   const [checklistItemToDelete, setChecklistItemToDelete] = useState<{ item: ChecklistItem; cardId: string } | null>(null);
   const [scrollToChecklistId, setScrollToChecklistId] = useState<string | null>(null);
 
-  // List drag (HTML5 DnD — kept as-is since it works)
-  const [draggingListId, setDraggingListId] = useState<string | null>(null);
-  const [dragOverListId, setDragOverListId] = useState<string | null>(null);
+  // List drag (dnd-kit)
+  const [activeListId, setActiveListId] = useState<string | null>(null);
 
   // Card drag (dnd-kit)
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const preDragListsRef = useRef<BoardList[] | null>(null);
+  const preDragListOrderRef = useRef<BoardList[] | null>(null);
 
   const [isAutosavingBoard, setIsAutosavingBoard] = useState(false);
   const [listSavingIds, setListSavingIds] = useState<Set<string>>(new Set());
@@ -498,8 +623,12 @@ export function BoardDetailPage(): JSX.Element {
   const listAutoSaveTimeoutsRef = useRef<Record<string, number>>({});
   const listInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const checklistSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const cardAutoSaveTimeoutRef = useRef<number | null>(null);
+  const lastSyncedCardRef = useRef<CardDraft | null>(null);
   const savedShowTimeoutRef = useRef<number | null>(null);
   const savedHideTimeoutRef = useRef<number | null>(null);
+  const lastCleanupSyncRef = useRef(0);
 
   const lastSyncedBoardRef = useRef<BoardDraft | null>(null);
   const currentDraftBoardRef = useRef<BoardDraft | null>(null);
@@ -520,6 +649,11 @@ export function BoardDetailPage(): JSX.Element {
     [board]
   );
 
+  const retentionTotalMinutes = useMemo(
+    () => toRetentionMinutes(retentionDays, retentionHours, retentionMinutesPart),
+    [retentionDays, retentionHours, retentionMinutesPart]
+  );
+
   const selectedCardWithList = useMemo(
     () => getCardFromBoard(board, selectedCardId),
     [board, selectedCardId]
@@ -528,6 +662,16 @@ export function BoardDetailPage(): JSX.Element {
   const selectedCardChecklists = useMemo(
     () => selectedCardWithList?.card.checklists ?? [],
     [selectedCardWithList]
+  );
+
+  const selectedCardAttachments = useMemo(
+    () => selectedCardWithList?.card.attachments ?? [],
+    [selectedCardWithList]
+  );
+
+  const activeList = useMemo(
+    () => (activeListId ? orderedLists.find((list) => list.id === activeListId) ?? null : null),
+    [orderedLists, activeListId]
   );
 
   // The card currently being dragged (for the DragOverlay ghost)
@@ -560,6 +704,13 @@ export function BoardDetailPage(): JSX.Element {
     }
   }, []);
 
+  const clearCardAutosaveTimeout = useCallback((): void => {
+    if (cardAutoSaveTimeoutRef.current !== null) {
+      window.clearTimeout(cardAutoSaveTimeoutRef.current);
+      cardAutoSaveTimeoutRef.current = null;
+    }
+  }, []);
+
   const triggerSavedNotice = useCallback((): void => {
     setShowSavedNotice(false);
     clearSavedNoticeTimers();
@@ -584,12 +735,25 @@ export function BoardDetailPage(): JSX.Element {
     listAutoSaveTimeoutsRef.current = {};
   };
 
+  const applyRetentionParts = useCallback((days: number, hours: number, minutes: number): void => {
+    const totalMinutes = toRetentionMinutes(days, hours, minutes);
+    const nextParts = splitRetentionMinutes(totalMinutes);
+    setRetentionDays(nextParts.days);
+    setRetentionHours(nextParts.hours);
+    setRetentionMinutesPart(nextParts.minutes);
+  }, []);
+
   const hydrateBoardState = useCallback((data: BoardDetail): void => {
     const sortedLists = sortBoardListsWithCards(data.lists);
     setBoard({ ...data, lists: sortedLists });
     setBoardName(data.name);
     setBoardDescription(data.description ?? "");
     setBoardBackground(data.background);
+    setRetentionMode(data.retentionMode ?? "card_and_attachments");
+    const retentionParts = splitRetentionMinutes(data.retentionMinutes ?? MIN_RETENTION_MINUTES);
+    setRetentionDays(retentionParts.days);
+    setRetentionHours(retentionParts.hours);
+    setRetentionMinutesPart(retentionParts.minutes);
     setListNameDrafts(Object.fromEntries(sortedLists.map((list) => [list.id, list.name])));
 
     setNewCardTitles((current) => {
@@ -607,7 +771,9 @@ export function BoardDetailPage(): JSX.Element {
     const syncedDraft: BoardDraft = {
       name: data.name.trim(),
       description: (data.description ?? "").trim(),
-      background: data.background
+      background: data.background,
+      retentionMode: data.retentionMode ?? "card_and_attachments",
+      retentionMinutes: clampRetentionMinutes(data.retentionMinutes ?? MIN_RETENTION_MINUTES)
     };
     lastSyncedBoardRef.current = syncedDraft;
     currentDraftBoardRef.current = syncedDraft;
@@ -637,6 +803,16 @@ export function BoardDetailPage(): JSX.Element {
       updateCardInBoard(cardId, (card) => ({
         ...card,
         checklists: sortChecklists(updater(card.checklists ?? []))
+      }));
+    },
+    [updateCardInBoard]
+  );
+
+  const updateCardAttachments = useCallback(
+    (cardId: string, updater: (attachments: BoardAttachment[]) => BoardAttachment[]): void => {
+      updateCardInBoard(cardId, (card) => ({
+        ...card,
+        attachments: sortAttachments(updater(card.attachments ?? []))
       }));
     },
     [updateCardInBoard]
@@ -676,6 +852,16 @@ export function BoardDetailPage(): JSX.Element {
     }
   }, [boardId, hydrateBoardState]);
 
+  const refreshBoardSilently = useCallback(async (): Promise<void> => {
+    if (!boardId) return;
+    try {
+      const data = await getBoardById(boardId);
+      hydrateBoardState(data);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Failed to refresh board");
+    }
+  }, [boardId, hydrateBoardState]);
+
   useEffect(() => { void loadBoard(); }, [loadBoard]);
 
   useEffect(() => {
@@ -693,6 +879,27 @@ export function BoardDetailPage(): JSX.Element {
   }, [hasDoneCards]);
 
   useEffect(() => {
+    if (!board || !hasDoneCards) return;
+    const retentionMs = clampRetentionMinutes(retentionTotalMinutes) * 60 * 1000;
+    if (!Number.isFinite(retentionMs) || retentionMs <= 0) return;
+
+    const hasExpired = board.lists.some((list) =>
+      list.cards.some((card) => {
+        if (!card.doneEnteredAt) return false;
+        const enteredAt = new Date(card.doneEnteredAt).getTime();
+        if (Number.isNaN(enteredAt)) return false;
+        return nowMs - enteredAt >= retentionMs;
+      })
+    );
+
+    if (!hasExpired) return;
+    if (nowMs - lastCleanupSyncRef.current < 2000) return;
+
+    lastCleanupSyncRef.current = nowMs;
+    void refreshBoardSilently();
+  }, [board, hasDoneCards, nowMs, retentionTotalMinutes, refreshBoardSilently]);
+
+  useEffect(() => {
     if (!selectedCardId) return;
     if (!selectedCardWithList) {
       setSelectedCardId(null);
@@ -703,6 +910,8 @@ export function BoardDetailPage(): JSX.Element {
       setChecklistItemTitleDrafts({});
       setChecklistToDelete(null);
       setChecklistItemToDelete(null);
+      setAttachmentError(null);
+      setIsUploadingAttachments(false);
     }
   }, [selectedCardId, selectedCardWithList]);
 
@@ -714,7 +923,9 @@ export function BoardDetailPage(): JSX.Element {
     const hasChanges =
       draft.name !== synced.name ||
       draft.description !== synced.description ||
-      draft.background !== synced.background;
+      draft.background !== synced.background ||
+      draft.retentionMode !== synced.retentionMode ||
+      draft.retentionMinutes !== synced.retentionMinutes;
     if (!hasChanges) return;
     if (draft.name.length < 2) { setError("Board name must be at least 2 characters."); return; }
     setIsAutosavingBoard(true);
@@ -722,7 +933,9 @@ export function BoardDetailPage(): JSX.Element {
       const updated = await updateBoard(boardId, {
         name: draft.name,
         description: draft.description,
-        background: draft.background
+        background: draft.background,
+        retentionMode: draft.retentionMode,
+        retentionMinutes: draft.retentionMinutes
       });
       hydrateBoardState(updated);
       setError(null);
@@ -775,7 +988,9 @@ export function BoardDetailPage(): JSX.Element {
     const nextDraft: BoardDraft = {
       name: boardName.trim(),
       description: boardDescription.trim(),
-      background: boardBackground
+      background: boardBackground,
+      retentionMode,
+      retentionMinutes: retentionTotalMinutes
     };
     currentDraftBoardRef.current = nextDraft;
     const synced = lastSyncedBoardRef.current;
@@ -783,7 +998,9 @@ export function BoardDetailPage(): JSX.Element {
       synced !== null &&
       (nextDraft.name !== synced.name ||
         nextDraft.description !== synced.description ||
-        nextDraft.background !== synced.background);
+        nextDraft.background !== synced.background ||
+        nextDraft.retentionMode !== synced.retentionMode ||
+        nextDraft.retentionMinutes !== synced.retentionMinutes);
     if (!hasChanges) return;
     setShowSavedNotice(false);
     clearSavedNoticeTimers();
@@ -795,15 +1012,16 @@ export function BoardDetailPage(): JSX.Element {
         autoSaveTimeoutRef.current = null;
       }
     };
-  }, [boardId, boardName, boardDescription, boardBackground, runBoardAutosave, clearSavedNoticeTimers]);
+  }, [boardId, boardName, boardDescription, boardBackground, retentionMode, retentionTotalMinutes, runBoardAutosave, clearSavedNoticeTimers]);
 
   useEffect(() => {
     return () => {
       if (autoSaveTimeoutRef.current !== null) window.clearTimeout(autoSaveTimeoutRef.current);
       clearAllListAutosaveTimeouts();
       clearSavedNoticeTimers();
+      clearCardAutosaveTimeout();
     };
-  }, [clearSavedNoticeTimers]);
+  }, [clearSavedNoticeTimers, clearCardAutosaveTimeout]);
 
   // -------------------------------------------------------------------------
   // dnd-kit card drag handlers
@@ -811,6 +1029,7 @@ export function BoardDetailPage(): JSX.Element {
 
   const onCardDragStart = useCallback((event: DragStartEvent): void => {
     setActiveCardId(event.active.id as string);
+    setActiveListId(null);
     // Snapshot the board before any drag changes so we can revert on error
     preDragListsRef.current = board?.lists ?? null;
   }, [board]);
@@ -824,7 +1043,7 @@ export function BoardDetailPage(): JSX.Element {
     if (!over || !board) return;
 
     const activeId = active.id as string;
-    const overId = over.id as string;
+    const overId = normalizeDragOverId(over.id as string);
     if (activeId === overId) return;
 
     const sourceList = board.lists.find((l) => l.cards.some((c) => c.id === activeId));
@@ -879,7 +1098,7 @@ export function BoardDetailPage(): JSX.Element {
     if (!over || !board || !boardId) return;
 
     const activeId = active.id as string;
-    const overId = over.id as string;
+    const overId = normalizeDragOverId(over.id as string);
 
     // Find which list has this card right now (may have changed in onCardDragOver)
     const currentList = board.lists.find((l) => l.cards.some((c) => c.id === activeId));
@@ -956,31 +1175,116 @@ export function BoardDetailPage(): JSX.Element {
   }, [board, boardId, triggerSavedNotice]);
 
   // -------------------------------------------------------------------------
-  // List drag (HTML5 DnD — unchanged)
+  // List drag (dnd-kit)
   // -------------------------------------------------------------------------
-  const onDropList = async (targetListId: string): Promise<void> => {
-    if (!boardId || !board || !draggingListId) return;
-    if (draggingListId === targetListId) return;
-    const currentIds = orderedLists.map((list) => list.id);
-    const nextIds = moveListIds(currentIds, draggingListId, targetListId);
-    if (currentIds.join(":") === nextIds.join(":")) return;
-    const byId = new Map(board.lists.map((list) => [list.id, list]));
+  const onListDragStart = useCallback((event: DragStartEvent): void => {
+    const activeId = event.active.id as string;
+    if (!isListDragId(activeId)) return;
+    setActiveListId(fromListDragId(activeId));
+    setActiveCardId(null);
+    preDragListOrderRef.current = board?.lists ?? null;
+  }, [board]);
+
+  const onListDragOver = useCallback((event: DragOverEvent): void => {
+    const { active, over } = event;
+    if (!over || !board) return;
+
+    const activeId = fromListDragId(active.id as string);
+    const overId = over.id as string;
+
+    let targetListId: string;
+    if (isListDragId(overId)) {
+      targetListId = fromListDragId(overId);
+    } else {
+      // overId is either a plain list ID (from ListDropZone) or a card ID
+      const isDirectListId = board.lists.some((l) => l.id === overId);
+      if (isDirectListId) {
+        targetListId = overId;
+      } else {
+        const parentList = board.lists.find((l) => l.cards.some((c) => c.id === overId));
+        if (!parentList) return;
+        targetListId = parentList.id;
+      }
+    }
+
+    if (activeId === targetListId) return;
+
+    const currentIds = orderedLists.map((l) => l.id);
+    const oldIndex = currentIds.indexOf(activeId);
+    const newIndex = currentIds.indexOf(targetListId);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const nextIds = arrayMove(currentIds, oldIndex, newIndex);
+    const byId = new Map(board.lists.map((l) => [l.id, l]));
     const optimisticLists = nextIds
-      .map((id, index) => { const found = byId.get(id); return found ? { ...found, position: index } : null; })
-      .filter((list): list is BoardList => list !== null);
-    const previousLists = board.lists;
-    setBoard((current) => current ? { ...current, lists: optimisticLists } : current);
+      .map((id, index) => {
+        const found = byId.get(id);
+        return found ? { ...found, position: index } : null;
+      })
+      .filter((l): l is BoardList => l !== null);
+
+    setBoard((current) => (current ? { ...current, lists: optimisticLists } : current));
+  }, [board, orderedLists]);
+
+  const onListDragEnd = useCallback(async (): Promise<void> => {
+    const prevLists = preDragListOrderRef.current;
+    setActiveListId(null);
+    preDragListOrderRef.current = null;
+
+    if (!board || !boardId) return;
+
+    // Order is already applied optimistically in onListDragOver — just persist it
+    const currentIds = board.lists
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((l) => l.id);
+    const originalIds = prevLists
+      ?.slice()
+      .sort((a, b) => a.position - b.position)
+      .map((l) => l.id) ?? currentIds;
+
+    if (currentIds.join(":") === originalIds.join(":")) return;
+
     try {
-      const updatedLists = await reorderLists(boardId, nextIds);
-      setBoard((current) => current ? { ...current, lists: sortBoardListsWithCards(updatedLists) } : current);
+      const updatedLists = await reorderLists(boardId, currentIds);
+      setBoard((current) => (current ? { ...current, lists: sortBoardListsWithCards(updatedLists) } : current));
       setError(null);
       triggerSavedNotice();
     } catch (reorderError) {
       setError(reorderError instanceof Error ? reorderError.message : "Failed to reorder lists");
-      setBoard((current) => current ? { ...current, lists: previousLists } : current);
+      if (prevLists) {
+        setBoard((current) => (current ? { ...current, lists: prevLists } : current));
+      }
     }
-  };
+  }, [board, boardId, triggerSavedNotice]);
 
+  // -------------------------------------------------------------------------
+  // dnd-kit shared handlers
+  // -------------------------------------------------------------------------
+  const onDragStart = useCallback((event: DragStartEvent): void => {
+    if (isListDragId(event.active.id)) {
+      onListDragStart(event);
+      return;
+    }
+    onCardDragStart(event);
+  }, [onCardDragStart, onListDragStart]);
+
+  const onDragOver = useCallback((event: DragOverEvent): void => {
+    if (isListDragId(event.active.id)) {
+      onListDragOver(event);
+      return;
+    }
+    onCardDragOver(event);
+  }, [onCardDragOver, onListDragOver]);
+
+  const onDragEnd = useCallback(async (event: DragEndEvent): Promise<void> => {
+    if (isListDragId(event.active.id)) {
+      await onListDragEnd();
+      return;
+    }
+    await onCardDragEnd(event);
+  }, [onCardDragEnd, onListDragEnd]);
+  
   // -------------------------------------------------------------------------
   // CRUD handlers
   // -------------------------------------------------------------------------
@@ -1021,7 +1325,12 @@ export function BoardDetailPage(): JSX.Element {
       const updated = await updateList(listId, { isDoneList: !isDoneList });
       setBoard((current) => {
         if (!current) return current;
-        return { ...current, lists: current.lists.map((list) => list.id === updated.id ? { ...updated, cards: list.cards } : list) };
+        return {
+          ...current,
+          lists: current.lists.map((list) =>
+            list.id === updated.id ? { ...updated, cards: sortCardsByPosition(updated.cards ?? []) } : list
+          )
+        };
       });
       setError(null);
       triggerSavedNotice();
@@ -1256,6 +1565,47 @@ export function BoardDetailPage(): JSX.Element {
     }
   };
 
+  const onUploadAttachments = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    if (!selectedCardWithList) return;
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) return;
+    setIsUploadingAttachments(true);
+    setAttachmentError(null);
+    try {
+      const created = await createAttachments(selectedCardWithList.card.id, files);
+      updateCardAttachments(selectedCardWithList.card.id, (current) => [...current, ...created]);
+      triggerSavedNotice();
+    } catch (uploadError) {
+      setAttachmentError(uploadError instanceof Error ? uploadError.message : "Failed to upload attachments");
+    } finally {
+      setIsUploadingAttachments(false);
+      event.target.value = "";
+    }
+  };
+
+  const onDownloadAttachment = async (attachment: BoardAttachment): Promise<void> => {
+    try {
+      await downloadAttachment(attachment.id, attachment.originalName);
+      setAttachmentError(null);
+    } catch (downloadError) {
+      setAttachmentError(downloadError instanceof Error ? downloadError.message : "Failed to download attachment");
+    }
+  };
+
+  const onDeleteAttachment = async (attachmentId: string): Promise<void> => {
+    if (!selectedCardWithList) return;
+    try {
+      await deleteAttachment(attachmentId);
+      updateCardAttachments(selectedCardWithList.card.id, (current) =>
+        current.filter((attachment) => attachment.id !== attachmentId)
+      );
+      setAttachmentError(null);
+      triggerSavedNotice();
+    } catch (deleteError) {
+      setAttachmentError(deleteError instanceof Error ? deleteError.message : "Failed to delete attachment");
+    }
+  };
+
   useEffect(() => {
     if (!selectedCardWithList || !cardDraft) return;
     const handleKeyDown = (event: KeyboardEvent): void => {
@@ -1279,41 +1629,58 @@ export function BoardDetailPage(): JSX.Element {
   }, [scrollToChecklistId, selectedCardWithList, cardDraft]);
 
   const openCardEditor = (card: BoardCard, checklistId?: string): void => {
+    const draft = buildCardDraft(card);
     setSelectedCardId(card.id);
-    setCardDraft(buildCardDraft(card));
+    setCardDraft(draft);
+    lastSyncedCardRef.current = draft;
+    setCardSaveStatus("saved");
     setNewChecklistTitle("");
     setNewChecklistItemTitles({});
     setChecklistTitleDrafts({});
     setChecklistItemTitleDrafts({});
     setChecklistToDelete(null);
     setChecklistItemToDelete(null);
+    setAttachmentError(null);
+    setIsUploadingAttachments(false);
     setScrollToChecklistId(checklistId ?? null);
   };
 
   const closeCardEditor = (): void => {
     setSelectedCardId(null);
     setCardDraft(null);
-    setIsCardSaving(false);
+    setCardSaveStatus("idle");
+    clearCardAutosaveTimeout();
+    lastSyncedCardRef.current = null;
     setNewChecklistTitle("");
     setNewChecklistItemTitles({});
     setChecklistTitleDrafts({});
     setChecklistItemTitleDrafts({});
     setChecklistToDelete(null);
     setChecklistItemToDelete(null);
+    setAttachmentError(null);
+    setIsUploadingAttachments(false);
     setScrollToChecklistId(null);
   };
 
-  const onSaveCard = async (): Promise<void> => {
-    if (!selectedCardWithList || !cardDraft) return;
-    const title = cardDraft.title.trim();
-    if (title.length < 1) { setError("Card title cannot be empty."); return; }
-    const dueDateIso = toIsoFromDateTimeInput(cardDraft.dueDate);
-    setIsCardSaving(true);
+  const runCardAutosave = useCallback(async (draft: CardDraft, cardId: string): Promise<void> => {
+    if (!selectedCardWithList || selectedCardWithList.card.id !== cardId) return;
+    const title = draft.title.trim();
+    if (title.length < 1) {
+      setError("Card title cannot be empty.");
+      setCardSaveStatus("idle");
+      return;
+    }
+    const dueDateIso = toIsoFromDateTimeInput(draft.dueDate);
+    if (draft.dueDate && !dueDateIso) {
+      setCardSaveStatus("idle");
+      return;
+    }
+    setCardSaveStatus("saving");
     try {
-      const updated = await updateCard(selectedCardWithList.card.id, {
+      const updated = await updateCard(cardId, {
         title,
-        description: trimOrNull(cardDraft.description),
-        priority: cardDraft.priority,
+        description: trimOrNull(draft.description),
+        priority: draft.priority,
         dueDate: dueDateIso
       });
       setBoard((current) => {
@@ -1326,15 +1693,40 @@ export function BoardDetailPage(): JSX.Element {
           })
         };
       });
-      setCardDraft(buildCardDraft(updated));
+      const nextDraft = buildCardDraft(updated);
+      lastSyncedCardRef.current = nextDraft;
+      setCardDraft(nextDraft);
       setError(null);
+      setCardSaveStatus("saved");
       triggerSavedNotice();
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "Failed to update card");
-    } finally {
-      setIsCardSaving(false);
+      setCardSaveStatus("idle");
     }
-  };
+  }, [selectedCardWithList, triggerSavedNotice]);
+
+  useEffect(() => {
+    if (!selectedCardWithList || !cardDraft) return;
+    const synced = lastSyncedCardRef.current;
+    if (synced && isCardDraftEqual(cardDraft, synced)) {
+      clearCardAutosaveTimeout();
+      setCardSaveStatus("saved");
+      return;
+    }
+    const dueDateIso = toIsoFromDateTimeInput(cardDraft.dueDate);
+    if (cardDraft.dueDate && !dueDateIso) {
+      clearCardAutosaveTimeout();
+      return;
+    }
+    clearCardAutosaveTimeout();
+    setCardSaveStatus("saving");
+    cardAutoSaveTimeoutRef.current = window.setTimeout(() => {
+      void runCardAutosave(cardDraft, selectedCardWithList.card.id);
+    }, CARD_AUTO_SAVE_DELAY_MS);
+    return () => {
+      clearCardAutosaveTimeout();
+    };
+  }, [cardDraft, selectedCardWithList, runCardAutosave, clearCardAutosaveTimeout]);
 
   const onDeleteCard = async (): Promise<void> => {
     if (!cardToDelete) return;
@@ -1434,150 +1826,140 @@ export function BoardDetailPage(): JSX.Element {
           <DndContext
             sensors={cardSensors}
             collisionDetection={closestCenter}
-            onDragStart={onCardDragStart}
-            onDragOver={onCardDragOver}
-            onDragEnd={(e) => { void onCardDragEnd(e); }}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDragEnd={onDragEnd}
           >
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {orderedLists.map((list) => (
-                <div
-                  key={list.id}
-                  data-list-id={list.id}
-                  data-testid={`list-${list.id}`}
-                  className={dragOverListId === list.id ? "rounded-lg ring-2 ring-primary/40" : ""}
-                  onDragOver={(event) => {
-                    // HTML5 DnD — list reordering only
-                    if (!draggingListId) return;
-                    event.preventDefault();
-                    if (draggingListId !== list.id) setDragOverListId(list.id);
-                  }}
-                  onDrop={(event) => {
-                    if (!draggingListId) return;
-                    event.preventDefault();
-                    void onDropList(list.id);
-                    setDragOverListId(null);
-                    setDraggingListId(null);
-                  }}
-                >
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base font-semibold">
-                          {listNameDrafts[list.id] ?? list.name}
-                        </CardTitle>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            type="button" variant="ghost" size="sm" className="h-8 w-8 p-0"
-                            onClick={() => { void onToggleListEdit(list); }}
-                            title={editingListId === list.id ? "Done editing" : "Edit list name"}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button" variant="ghost" size="sm"
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                            onClick={() => setListToDelete(list)}
-                            title="Delete list"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          {/* HTML5 drag handle for list reordering */}
-                          <button
-                            type="button"
-                            draggable
-                            onDragStart={() => setDraggingListId(list.id)}
-                            onDragEnd={() => { setDraggingListId(null); setDragOverListId(null); }}
-                            className="rounded-md p-1 text-muted-foreground hover:bg-secondary/70"
-                            title="Drag to reorder list"
-                          >
-                            <GripVertical className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </CardHeader>
+            <SortableContext
+              items={orderedLists.map((list) => toListDragId(list.id))}
+            >
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {orderedLists.map((list) => (
+                  <SortableListContainer key={list.id} listId={list.id}>
+                    {({ dragHandleProps }) => (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-base font-semibold">
+                              {listNameDrafts[list.id] ?? list.name}
+                            </CardTitle>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button" variant="ghost" size="sm" className="h-8 w-8 p-0"
+                                onClick={() => { void onToggleListEdit(list); }}
+                                title={editingListId === list.id ? "Done editing" : "Edit list name"}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button" variant="ghost" size="sm"
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                onClick={() => setListToDelete(list)}
+                                title="Delete list"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <button
+                                type="button"
+                                {...dragHandleProps}
+                                className="rounded-md p-1 text-muted-foreground hover:bg-secondary/70 cursor-grab active:cursor-grabbing"
+                                title="Drag to reorder list"
+                              >
+                                <GripVertical className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </CardHeader>
 
-                    <CardContent className="space-y-3">
-                      {editingListId === list.id && (
-                        <div className="space-y-2">
-                          <Input
-                            ref={(node) => { listInputRefs.current[list.id] = node; }}
-                            value={listNameDrafts[list.id] ?? list.name}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setListNameDrafts((c) => ({ ...c, [list.id]: value }));
-                              scheduleListNameAutosave(list.id, value);
-                            }}
-                            onBlur={() => { void closeListEditor(list); }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") { e.preventDefault(); void closeListEditor(list); }
-                              if (e.key === "Escape") { e.preventDefault(); cancelListEditor(list); }
-                            }}
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            {listSavingIds.has(list.id) ? "Saving..." : "Autosaves after a short pause."}
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{list.isDoneList ? "Done list" : "Active list"}</span>
-                        <button type="button" className="underline underline-offset-2"
-                          onClick={() => void onToggleDone(list.id, list.isDoneList)}>
-                          Toggle
-                        </button>
-                      </div>
-
-                      {/* Card list — wrapped in SortableContext for this list */}
-                      <SortableContext
-                        items={list.cards.map((c) => c.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        <div className="space-y-2 rounded-md border border-dashed border-border/70 p-2">
-                          {list.cards.length === 0 ? (
-                            <ListDropZone listId={list.id} />
-                          ) : (
-                            list.cards.map((card) => (
-                              <SortableCard
-                                key={card.id}
-                                card={card}
-                                onEdit={openCardEditor}
-                                nowMs={nowMs}
-                                onChecklistItemToggle={onToggleChecklistItem}
-                                onChecklistOpen={openCardEditor}
+                        <CardContent className="space-y-3">
+                          {editingListId === list.id && (
+                            <div className="space-y-2">
+                              <Input
+                                ref={(node) => { listInputRefs.current[list.id] = node; }}
+                                value={listNameDrafts[list.id] ?? list.name}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setListNameDrafts((c) => ({ ...c, [list.id]: value }));
+                                  scheduleListNameAutosave(list.id, value);
+                                }}
+                                onBlur={() => { void closeListEditor(list); }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") { e.preventDefault(); void closeListEditor(list); }
+                                  if (e.key === "Escape") { e.preventDefault(); cancelListEditor(list); }
+                                }}
                               />
-                            ))
+                              <p className="text-xs text-muted-foreground">
+                                {listSavingIds.has(list.id) ? "Saving..." : "Autosaves after a short pause."}
+                              </p>
+                            </div>
                           )}
-                        </div>
-                      </SortableContext>
 
-                      <form
-                        className="grid gap-2 sm:grid-cols-[1fr_auto]"
-                        onSubmit={(e) => { void onCreateCard(list.id, e); }}
-                      >
-                        <Input
-                          value={newCardTitles[list.id] ?? ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setNewCardTitles((c) => ({ ...c, [list.id]: value }));
-                          }}
-                          placeholder="New card title"
-                        />
-                        <Button type="submit" className="gap-1">
-                          <Plus className="h-4 w-4" />
-                          Add Card
-                        </Button>
-                      </form>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
-            </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{list.isDoneList ? "Done list" : "Active list"}</span>
+                            <button type="button" className="underline underline-offset-2"
+                              onClick={() => void onToggleDone(list.id, list.isDoneList)}>
+                              Toggle
+                            </button>
+                          </div>
+
+                          <SortableContext
+                            items={list.cards.map((c) => c.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="space-y-2 rounded-md border border-dashed border-border/70 p-2">
+                              {list.cards.length === 0 ? (
+                                <ListDropZone listId={list.id} isCardDrag={activeCardId !== null} />
+                              ) : (
+                                list.cards.map((card) => (
+                                  <SortableCard
+                                    key={card.id}
+                                    card={card}
+                                    onEdit={openCardEditor}
+                                    nowMs={nowMs}
+                                    retentionMinutes={retentionTotalMinutes}
+                                    onChecklistItemToggle={onToggleChecklistItem}
+                                    onChecklistOpen={openCardEditor}
+                                  />
+                                ))
+                              )}
+                            </div>
+                          </SortableContext>
+
+                          <form
+                            className="grid gap-2 sm:grid-cols-[1fr_auto]"
+                            onSubmit={(e) => { void onCreateCard(list.id, e); }}
+                          >
+                            <Input
+                              value={newCardTitles[list.id] ?? ""}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setNewCardTitles((c) => ({ ...c, [list.id]: value }));
+                              }}
+                              placeholder="New card title"
+                            />
+                            <Button type="submit" className="gap-1">
+                              <Plus className="h-4 w-4" />
+                              Add Card
+                            </Button>
+                          </form>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </SortableListContainer>
+                ))}
+              </div>
+            </SortableContext>
 
             {/* The floating card that follows your cursor */}
             <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>
               {activeCard ? (
                 <div className="rotate-1 rounded-md border border-border/70 bg-background px-3 py-2 shadow-2xl opacity-95 ring-2 ring-primary/30">
-                  <CardSummary card={activeCard} nowMs={nowMs} showChecklists={false} />
+                  <CardSummary card={activeCard} nowMs={nowMs} retentionMinutes={retentionTotalMinutes} showChecklists={false} />
+                </div>
+              ) : activeList ? (
+                <div className="w-80 rotate-1 rounded-xl border border-border/70 bg-card/90 p-4 shadow-2xl opacity-95 ring-2 ring-primary/30">
+                  <p className="text-sm font-semibold text-foreground">{activeList.name}</p>
+                  <p className="text-xs text-muted-foreground">{activeList.cards.length} cards</p>
                 </div>
               ) : null}
             </DragOverlay>
@@ -1622,6 +2004,73 @@ export function BoardDetailPage(): JSX.Element {
                   </button>
                 ))}
               </div>
+
+              <div className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Done card retention</p>
+                  <p className="text-xs text-muted-foreground">Set how long completed cards remain before cleanup.</p>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <label className="space-y-1 text-xs text-muted-foreground">
+                    <span>Days</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={365}
+                      value={retentionDays}
+                      onChange={(event) => {
+                        const value = parseRetentionInput(event.target.value);
+                        applyRetentionParts(value, retentionHours, retentionMinutesPart);
+                      }}
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-muted-foreground">
+                    <span>Hours</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={23}
+                      value={retentionHours}
+                      onChange={(event) => {
+                        const value = parseRetentionInput(event.target.value);
+                        applyRetentionParts(retentionDays, value, retentionMinutesPart);
+                      }}
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-muted-foreground">
+                    <span>Minutes</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={retentionMinutesPart}
+                      onChange={(event) => {
+                        const value = parseRetentionInput(event.target.value);
+                        applyRetentionParts(retentionDays, retentionHours, value);
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    variant={retentionMode === "card_and_attachments" ? "default" : "secondary"}
+                    onClick={() => setRetentionMode("card_and_attachments")}
+                  >
+                    Delete card + attachments
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={retentionMode === "attachments_only" ? "default" : "secondary"}
+                    onClick={() => setRetentionMode("attachments_only")}
+                  >
+                    Delete attachments only
+                  </Button>
+                </div>
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
                   {isAutosavingBoard ? "Saving..." : "Changes save automatically"}
@@ -1657,9 +2106,16 @@ export function BoardDetailPage(): JSX.Element {
                     Delete
                   </Button>
                   <Button type="button" variant="ghost" onClick={closeCardEditor}>Close</Button>
-                  <Button type="button" onClick={() => void onSaveCard()} disabled={isCardSaving}>
-                    {isCardSaving ? "Saving..." : "Save changes"}
-                  </Button>
+                  <div className="flex items-center gap-2 text-xs font-medium">
+                    {cardSaveStatus === "saving" ? (
+                      <span className="text-muted-foreground">Saving...</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-emerald-600">
+                        <Check className="h-3.5 w-3.5" />
+                        Saved
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -1704,6 +2160,79 @@ export function BoardDetailPage(): JSX.Element {
                   />
                 </label>
               </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Paperclip className="h-4 w-4 text-muted-foreground" />
+                    Attachments
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isUploadingAttachments && (
+                      <span className="text-xs text-muted-foreground">Uploading...</span>
+                    )}
+                    <input
+                      ref={attachmentInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(event) => { void onUploadAttachments(event); }}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => attachmentInputRef.current?.click()}
+                      disabled={isUploadingAttachments}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add files
+                    </Button>
+                  </div>
+                </div>
+
+                {attachmentError && (
+                  <p className="text-xs text-destructive">{attachmentError}</p>
+                )}
+
+                {selectedCardAttachments.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No attachments yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedCardAttachments.map((attachment) => (
+                      <div key={attachment.id} className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background/80 px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">{attachment.originalName}</p>
+                          <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => { void onDownloadAttachment(attachment); }}
+                          >
+                            <Download className="h-4 w-4" />
+                            Download
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1 text-red-600 hover:text-red-700"
+                            onClick={() => { void onDeleteAttachment(attachment.id); }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-medium">

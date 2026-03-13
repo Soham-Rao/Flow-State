@@ -267,7 +267,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 3.3: Card Tests & Docs | ✅ Completed | 2026-03-12 | 2026-03-12 | Added client card workflow tests and updated implementation checklists/progress docs; pending user-run test execution |
 | Phase 4: Task Features | 🟡 In Progress | 2026-03-12 | — | Split into sub-phases starting with checklists |
 | Phase 4.1: Checklists | ✅ Completed | 2026-03-12 | 2026-03-12 | Checklist data model + API, board card preview with collapsible progress, and card modal CRUD + progress |
-| Phase 4.2: Attachments | ⬜ Not Started | — | — | — |
+| Phase 4.2: Attachments | ✅ Completed | 2026-03-13 | 2026-03-13 | Added attachments API + UI, retention settings, and cleanup support |
 | Phase 4.3: Labels + Assignments + Cover Colors | ⬜ Not Started | — | — | — |
 | Phase 4.4: Comments + Due Dates + Archive/Restore | ⬜ Not Started | — | — | — |
 | Phase 5: Team & Collaboration | ⬜ Not Started | — | — | — |
@@ -348,3 +348,4 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Implemented Phase 3.2 frontend card workflows on board detail: per-list card rendering, quick add, card edit modal (title/description/priority/due date), in-app card delete confirmation, and drag-and-drop within/across lists with optimistic state + rollback. |
 | 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |
 | 2026-03-12 | Phase 4.1 delivered: checklists data model + API, board card collapsible checklist previews with progress bars, card modal checklist CRUD, and new client/server checklist tests (user-run pending). |
+| 2026-03-13 | Phase 4.2 delivered: attachments (upload/download/delete), board-level retention settings (day/hour/min + mode toggle), retention-aware time-left labels, attachment cleanup on card deletion, and new attachments API test. User to run tests. |

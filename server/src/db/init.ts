@@ -17,6 +17,8 @@ export function initializeDatabase(): void {
       name TEXT NOT NULL,
       description TEXT,
       background TEXT NOT NULL DEFAULT 'teal-gradient',
+      retention_mode TEXT NOT NULL DEFAULT 'card_and_attachments',
+      retention_minutes INTEGER NOT NULL DEFAULT 10080,
       created_by TEXT NOT NULL,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
@@ -72,22 +74,60 @@ export function initializeDatabase(): void {
       FOREIGN KEY (checklist_id) REFERENCES checklists(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS attachments (
+      id TEXT PRIMARY KEY,
+      card_id TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      mime_type TEXT,
+      size INTEGER NOT NULL DEFAULT 0,
+      storage_path TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_lists_board_id ON lists(board_id);
     CREATE INDEX IF NOT EXISTS idx_cards_list_id ON cards(list_id);
     CREATE INDEX IF NOT EXISTS idx_cards_done_entered_at ON cards(done_entered_at);
 
     CREATE INDEX IF NOT EXISTS idx_checklists_card_id ON checklists(card_id);
     CREATE INDEX IF NOT EXISTS idx_checklist_items_checklist_id ON checklist_items(checklist_id);
+    CREATE INDEX IF NOT EXISTS idx_attachments_card_id ON attachments(card_id);
   `);
+
+  const boardColumns = sqlite.prepare("PRAGMA table_info(boards)").all() as Array<{ name: string }>;
+  const boardColumnNames = new Set(boardColumns.map((column) => column.name));
+
+  if (!boardColumnNames.has("retention_mode")) {
+    sqlite.exec("ALTER TABLE boards ADD COLUMN retention_mode TEXT NOT NULL DEFAULT 'card_and_attachments'");
+  }
+
+  if (!boardColumnNames.has("retention_minutes")) {
+    sqlite.exec("ALTER TABLE boards ADD COLUMN retention_minutes INTEGER NOT NULL DEFAULT 10080");
+  }
+
 }
 
 export function clearDatabaseForTests(): void {
   sqlite.exec(`
     DELETE FROM checklist_items;
     DELETE FROM checklists;
+    DELETE FROM attachments;
     DELETE FROM cards;
     DELETE FROM lists;
     DELETE FROM boards;
     DELETE FROM users;
   `);
+
+  const boardColumns = sqlite.prepare("PRAGMA table_info(boards)").all() as Array<{ name: string }>;
+  const boardColumnNames = new Set(boardColumns.map((column) => column.name));
+
+  if (!boardColumnNames.has("retention_mode")) {
+    sqlite.exec("ALTER TABLE boards ADD COLUMN retention_mode TEXT NOT NULL DEFAULT 'card_and_attachments'");
+  }
+
+  if (!boardColumnNames.has("retention_minutes")) {
+    sqlite.exec("ALTER TABLE boards ADD COLUMN retention_minutes INTEGER NOT NULL DEFAULT 10080");
+  }
+
 }

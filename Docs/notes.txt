@@ -1,5 +1,10 @@
 allow deleting only file or both, as toggleable in board settings 
 
-test time when 
+test time when 7d -> 1m dummy
 
 discord roles   
+
+
+sohamsrao ✔️
+computerproject ✔️
+abman ✔️
