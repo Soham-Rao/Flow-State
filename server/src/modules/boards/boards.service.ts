@@ -5,13 +5,16 @@ import path from "node:path";
 import { and, asc, count, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { attachments, boards, cards, checklists, checklistItems, lists, type RetentionMode, type UserRole } from "../../db/schema.js";
+import { attachments, boards, cardAssignees, cardLabels, cards, checklists, checklistItems, labels, lists, users, type CardCoverColor, type LabelColor, type RetentionMode, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type {
+  AssignAssigneeInput,
+  AssignLabelInput,
   CreateBoardInput,
   CreateCardInput,
   CreateChecklistInput,
   CreateChecklistItemInput,
+  CreateLabelInput,
   CreateListInput,
   MoveCardInput,
   ReorderListsInput,
@@ -19,6 +22,7 @@ import type {
   UpdateCardInput,
   UpdateChecklistInput,
   UpdateChecklistItemInput,
+  UpdateLabelInput,
   UpdateListInput
 } from "./boards.schema.js";
 
@@ -41,6 +45,7 @@ interface CardRecord {
   title: string;
   description: string | null;
   priority: "low" | "medium" | "high" | "urgent";
+  coverColor: CardCoverColor | null;
   dueDate: Date | null;
   position: number;
   createdBy: string;
@@ -58,6 +63,24 @@ interface BoardAttachment {
   size: number;
   createdAt: Date;
 }
+
+interface BoardLabel {
+  id: string;
+  boardId: string;
+  name: string;
+  color: LabelColor;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface BoardMember {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  createdAt: Date;
+}
+
 
 interface AttachmentRecord extends BoardAttachment {
   storedName: string;
@@ -87,6 +110,8 @@ interface BoardChecklist {
 export interface BoardCard extends CardRecord {
   checklists: BoardChecklist[];
   attachments: BoardAttachment[];
+  labels: BoardLabel[];
+  assignees: BoardMember[];
 }
 
 interface BoardList {
@@ -111,6 +136,8 @@ interface BoardDetail {
   createdAt: Date;
   updatedAt: Date;
   lists: BoardList[];
+  labels: BoardLabel[];
+  members: BoardMember[];
 }
 
 interface ListRecord {
@@ -162,6 +189,12 @@ function normalizeDueDate(value: Date | null | undefined): Date | null | undefin
   if (value === null) return null;
   const time = value.getTime();
   if (Number.isNaN(time) || time <= 0) return new Date();
+  return value;
+}
+
+function normalizeCoverColor(value: CardCoverColor | null | undefined): CardCoverColor | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === "none") return null;
   return value;
 }
 
@@ -231,6 +264,7 @@ function assertCardExists(cardId: string): CardRecord {
       title: cards.title,
       description: cards.description,
       priority: cards.priority,
+      coverColor: cards.coverColor,
       dueDate: cards.dueDate,
       position: cards.position,
       createdBy: cards.createdBy,
@@ -249,6 +283,79 @@ function assertCardExists(cardId: string): CardRecord {
   }
 
   return card as CardRecord;
+}
+
+function assertLabelExists(labelId: string): BoardLabel {
+  const label = db
+    .select({
+      id: labels.id,
+      boardId: labels.boardId,
+      name: labels.name,
+      color: labels.color,
+      createdAt: labels.createdAt,
+      updatedAt: labels.updatedAt
+    })
+    .from(labels)
+    .where(eq(labels.id, labelId))
+    .limit(1)
+    .get();
+
+  if (!label) {
+    throw new ApiError(404, "Label not found");
+  }
+
+  return label;
+}
+
+function assertUserExists(userId: string): BoardMember {
+  const member = db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+    .get();
+
+  if (!member) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return member;
+}
+
+function getLabelsForBoard(boardId: string): BoardLabel[] {
+  return db
+    .select({
+      id: labels.id,
+      boardId: labels.boardId,
+      name: labels.name,
+      color: labels.color,
+      createdAt: labels.createdAt,
+      updatedAt: labels.updatedAt
+    })
+    .from(labels)
+    .where(eq(labels.boardId, boardId))
+    .orderBy(asc(labels.createdAt))
+    .all();
+}
+
+function getBoardMembers(): BoardMember[] {
+  return db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt
+    })
+    .from(users)
+    .orderBy(asc(users.name))
+    .all();
 }
 
 function assertChecklistExists(checklistId: string): { id: string; cardId: string } {
@@ -349,6 +456,81 @@ function getAttachmentsForCards(cardIds: string[]): Map<string, BoardAttachment[
   return attachmentsByCardId;
 }
 
+
+function getLabelsForCards(cardIds: string[]): Map<string, BoardLabel[]> {
+  if (cardIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      cardId: cardLabels.cardId,
+      id: labels.id,
+      boardId: labels.boardId,
+      name: labels.name,
+      color: labels.color,
+      createdAt: labels.createdAt,
+      updatedAt: labels.updatedAt
+    })
+    .from(cardLabels)
+    .innerJoin(labels, eq(cardLabels.labelId, labels.id))
+    .where(inArray(cardLabels.cardId, cardIds))
+    .orderBy(asc(labels.createdAt))
+    .all();
+
+  const labelsByCardId = new Map<string, BoardLabel[]>();
+  for (const row of rows) {
+    const list = labelsByCardId.get(row.cardId) ?? [];
+    list.push({
+      id: row.id,
+      boardId: row.boardId,
+      name: row.name,
+      color: row.color,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt
+    });
+    labelsByCardId.set(row.cardId, list);
+  }
+
+  return labelsByCardId;
+}
+
+function getAssigneesForCards(cardIds: string[]): Map<string, BoardMember[]> {
+  if (cardIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      cardId: cardAssignees.cardId,
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+      createdAt: users.createdAt
+    })
+    .from(cardAssignees)
+    .innerJoin(users, eq(cardAssignees.userId, users.id))
+    .where(inArray(cardAssignees.cardId, cardIds))
+    .orderBy(asc(users.name))
+    .all();
+
+  const assigneesByCardId = new Map<string, BoardMember[]>();
+  for (const row of rows) {
+    const list = assigneesByCardId.get(row.cardId) ?? [];
+    list.push({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      createdAt: row.createdAt
+    });
+    assigneesByCardId.set(row.cardId, list);
+  }
+
+  return assigneesByCardId;
+}
+
 function getChecklistsForCards(cardIds: string[]): Map<string, BoardChecklist[]> {
   if (cardIds.length === 0) {
     return new Map();
@@ -390,12 +572,16 @@ function attachChecklistsToCards(cards: CardRecord[]): BoardCard[] {
   const cardIds = cards.map((card) => card.id);
   const checklistsByCardId = getChecklistsForCards(cardIds);
   const attachmentsByCardId = getAttachmentsForCards(cardIds);
+  const labelsByCardId = getLabelsForCards(cardIds);
+  const assigneesByCardId = getAssigneesForCards(cardIds);
 
   return cards.map((card) => ({
     ...card,
     dueDate: normalizeDueDate(card.dueDate) ?? null,
     checklists: checklistsByCardId.get(card.id) ?? [],
-    attachments: attachmentsByCardId.get(card.id) ?? []
+    attachments: attachmentsByCardId.get(card.id) ?? [],
+    labels: labelsByCardId.get(card.id) ?? [],
+    assignees: assigneesByCardId.get(card.id) ?? []
   }));
 }
 
@@ -514,6 +700,7 @@ function getCardsForList(listId: string): BoardCard[] {
       title: cards.title,
       description: cards.description,
       priority: cards.priority,
+      coverColor: cards.coverColor,
       dueDate: cards.dueDate,
       position: cards.position,
       createdBy: cards.createdBy,
@@ -613,6 +800,7 @@ export function getBoardById(boardId: string): BoardDetail {
       title: cards.title,
       description: cards.description,
       priority: cards.priority,
+      coverColor: cards.coverColor,
       dueDate: cards.dueDate,
       position: cards.position,
       createdBy: cards.createdBy,
@@ -641,7 +829,9 @@ export function getBoardById(boardId: string): BoardDetail {
     lists: boardLists.map((list) => ({
       ...list,
       cards: cardsByListId.get(list.id) ?? []
-    }))
+    })),
+    labels: getLabelsForBoard(boardId),
+    members: getBoardMembers()
   };
 }
 
@@ -729,6 +919,136 @@ export function deleteBoard(boardId: string): void {
   if (result.changes === 0) {
     throw new ApiError(404, "Board not found");
   }
+}
+
+
+export function createLabel(boardId: string, input: CreateLabelInput): BoardLabel {
+  assertBoardExists(boardId);
+
+  const now = new Date();
+  const labelId = crypto.randomUUID();
+
+  db.insert(labels)
+    .values({
+      id: labelId,
+      boardId,
+      name: input.name.trim(),
+      color: input.color,
+      createdAt: now,
+      updatedAt: now
+    })
+    .run();
+
+  return assertLabelExists(labelId);
+}
+
+export function updateLabel(labelId: string, input: UpdateLabelInput): BoardLabel {
+  assertLabelExists(labelId);
+
+  const updatePayload: { name?: string; color?: LabelColor; updatedAt: Date } = {
+    updatedAt: new Date()
+  };
+
+  if (input.name !== undefined) {
+    updatePayload.name = input.name.trim();
+  }
+
+  if (input.color !== undefined) {
+    updatePayload.color = input.color;
+  }
+
+  db.update(labels).set(updatePayload).where(eq(labels.id, labelId)).run();
+
+  return assertLabelExists(labelId);
+}
+
+export function deleteLabel(labelId: string): void {
+  const result = db.delete(labels).where(eq(labels.id, labelId)).run();
+
+  if (result.changes === 0) {
+    throw new ApiError(404, "Label not found");
+  }
+}
+
+export function assignLabelToCard(cardId: string, input: AssignLabelInput): BoardCard {
+  assertCardExists(cardId);
+  const label = assertLabelExists(input.labelId);
+  const { boardId } = getCardBoardContext(cardId);
+
+  if (label.boardId !== boardId) {
+    throw new ApiError(400, "Label does not belong to this board");
+  }
+
+  const existing = db
+    .select({ cardId: cardLabels.cardId })
+    .from(cardLabels)
+    .where(and(eq(cardLabels.cardId, cardId), eq(cardLabels.labelId, input.labelId)))
+    .limit(1)
+    .get();
+
+  if (!existing) {
+    db.insert(cardLabels)
+      .values({
+        cardId,
+        labelId: input.labelId,
+        createdAt: new Date()
+      })
+      .run();
+  }
+
+  return getCardById(cardId);
+}
+
+export function removeLabelFromCard(cardId: string, labelId: string): BoardCard {
+  assertCardExists(cardId);
+  const result = db
+    .delete(cardLabels)
+    .where(and(eq(cardLabels.cardId, cardId), eq(cardLabels.labelId, labelId)))
+    .run();
+
+  if (result.changes === 0) {
+    throw new ApiError(404, "Label assignment not found");
+  }
+
+  return getCardById(cardId);
+}
+
+export function assignMemberToCard(cardId: string, input: AssignAssigneeInput): BoardCard {
+  assertCardExists(cardId);
+  assertUserExists(input.userId);
+
+  const existing = db
+    .select({ cardId: cardAssignees.cardId })
+    .from(cardAssignees)
+    .where(and(eq(cardAssignees.cardId, cardId), eq(cardAssignees.userId, input.userId)))
+    .limit(1)
+    .get();
+
+  if (!existing) {
+    db.insert(cardAssignees)
+      .values({
+        cardId,
+        userId: input.userId,
+        createdAt: new Date()
+      })
+      .run();
+  }
+
+  return getCardById(cardId);
+}
+
+export function removeMemberFromCard(cardId: string, userId: string): BoardCard {
+  assertCardExists(cardId);
+  const result = db
+    .delete(cardAssignees)
+    .where(and(eq(cardAssignees.cardId, cardId), eq(cardAssignees.userId, userId)))
+    .run();
+
+  if (result.changes === 0) {
+    throw new ApiError(404, "Assignee not found");
+  }
+
+  return getCardById(cardId);
 }
 
 export function createList(boardId: string, input: CreateListInput): BoardList {
@@ -924,6 +1244,7 @@ export function createCard(listId: string, input: CreateCardInput, userId: strin
       title: input.title.trim(),
       description: normalizeOptionalDescription(input.description),
       priority: input.priority,
+      coverColor: normalizeCoverColor(input.coverColor) ?? null,
       dueDate: normalizeDueDate(input.dueDate) ?? null,
       position: (maxPositionRow?.maxPosition ?? -1) + 1,
       createdBy: userId,
@@ -943,6 +1264,7 @@ export function updateCard(cardId: string, input: UpdateCardInput): BoardCard {
     title?: string;
     description?: string | null;
     priority?: "low" | "medium" | "high" | "urgent";
+    coverColor?: CardCoverColor | null;
     dueDate?: Date | null;
     updatedAt: Date;
   } = {
@@ -959,6 +1281,10 @@ export function updateCard(cardId: string, input: UpdateCardInput): BoardCard {
 
   if (input.priority !== undefined) {
     updatePayload.priority = input.priority;
+  }
+
+  if (input.coverColor !== undefined) {
+    updatePayload.coverColor = normalizeCoverColor(input.coverColor) ?? null;
   }
 
   if (input.dueDate !== undefined) {
@@ -1304,4 +1630,5 @@ export async function cleanupExpiredCards(now: Date = new Date()): Promise<void>
     db.delete(cards).where(eq(cards.id, row.cardId)).run();
   }
 }
+
 

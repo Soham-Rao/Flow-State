@@ -26,7 +26,14 @@ vi.mock("@/lib/boards-api", () => ({
   deleteChecklist: vi.fn(),
   createChecklistItem: vi.fn(),
   updateChecklistItem: vi.fn(),
-  deleteChecklistItem: vi.fn()
+  deleteChecklistItem: vi.fn(),
+  createLabel: vi.fn(),
+  updateLabel: vi.fn(),
+  deleteLabel: vi.fn(),
+  assignLabelToCard: vi.fn(),
+  removeLabelFromCard: vi.fn(),
+  assignMemberToCard: vi.fn(),
+  removeMemberFromCard: vi.fn()
 }));
 
 const getBoardByIdMock = vi.mocked(boardsApi.getBoardById);
@@ -53,6 +60,7 @@ const baseCard: BoardCard = {
   title: "Initial card",
   description: "",
   priority: "medium",
+  coverColor: "none",
   dueDate: null,
   position: 0,
   createdBy: "user-1",
@@ -61,7 +69,9 @@ const baseCard: BoardCard = {
   createdAt: "2026-03-12T10:00:00.000Z",
   updatedAt: "2026-03-12T10:00:00.000Z",
   checklists: [],
-  attachments: []
+  attachments: [],
+  labels: [],
+  assignees: []
 };
 
 const listOne: BoardList = {
@@ -96,7 +106,9 @@ const baseBoard: BoardDetail = {
   createdBy: "user-1",
   createdAt: "2026-03-12T10:00:00.000Z",
   updatedAt: "2026-03-12T10:00:00.000Z",
-  lists: [listOne, listTwo]
+  lists: [listOne, listTwo],
+  labels: [],
+  members: []
 };
 
 function cloneBoard(): BoardDetail {

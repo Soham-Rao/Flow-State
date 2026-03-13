@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { CalendarClock, Check, ChevronDown, ChevronUp, Download, GripVertical, ListChecks, Paperclip, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, ChevronUp, Download, GripVertical, ListChecks, Paperclip, Pencil, Plus, Tag, Trash2, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -27,28 +27,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { boardBackgroundPresets, getBoardBackgroundClass, getBoardSurfaceClass } from "@/lib/board-backgrounds";
 import {
+  assignLabelToCard,
+  assignMemberToCard,
   createAttachments,
   createCard,
   createChecklist,
   createChecklistItem,
+  createLabel,
   createList,
   deleteAttachment,
   deleteBoard,
   deleteCard,
   deleteChecklist,
   deleteChecklistItem,
+  deleteLabel,
   deleteList,
   downloadAttachment,
   getBoardById,
   moveCard,
+  removeLabelFromCard,
+  removeMemberFromCard,
   reorderLists,
   updateBoard,
   updateCard,
   updateChecklist,
   updateChecklistItem,
+  updateLabel,
   updateList
 } from "@/lib/boards-api";
-import type { BoardAttachment, BoardBackground, BoardCard, BoardDetail, BoardList, CardPriority, Checklist, ChecklistItem, RetentionMode } from "@/types/board";
+import type { BoardAttachment, BoardBackground, BoardCard, BoardDetail, BoardLabel, BoardList, BoardMember, CardCoverColor, CardPriority, Checklist, ChecklistItem, LabelColor, RetentionMode } from "@/types/board";
 
 interface BoardDraft {
   name: string;
@@ -62,6 +69,7 @@ interface CardDraft {
   title: string;
   description: string;
   priority: CardPriority;
+  coverColor: CardCoverColor;
   dueDate: string;
 }
 
@@ -73,6 +81,56 @@ const MIN_RETENTION_MINUTES = 1;
 const MAX_RETENTION_MINUTES = 525600;
 const MINUTES_PER_HOUR = 60;
 const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
+
+const labelColors: LabelColor[] = [
+  "slate",
+  "blue",
+  "teal",
+  "green",
+  "amber",
+  "orange",
+  "red",
+  "purple",
+  "pink"
+];
+
+const labelColorStyles: Record<LabelColor, { chip: string; dot: string }> = {
+  slate: { chip: "border-slate-300 bg-slate-200 text-slate-900", dot: "bg-slate-400" },
+  blue: { chip: "border-blue-200 bg-blue-100 text-blue-900", dot: "bg-blue-500" },
+  teal: { chip: "border-teal-200 bg-teal-100 text-teal-900", dot: "bg-teal-500" },
+  green: { chip: "border-emerald-200 bg-emerald-100 text-emerald-900", dot: "bg-emerald-500" },
+  amber: { chip: "border-amber-200 bg-amber-100 text-amber-900", dot: "bg-amber-500" },
+  orange: { chip: "border-orange-200 bg-orange-100 text-orange-900", dot: "bg-orange-500" },
+  red: { chip: "border-rose-200 bg-rose-100 text-rose-900", dot: "bg-rose-500" },
+  purple: { chip: "border-purple-200 bg-purple-100 text-purple-900", dot: "bg-purple-500" },
+  pink: { chip: "border-pink-200 bg-pink-100 text-pink-900", dot: "bg-pink-500" }
+};
+
+const coverColors: CardCoverColor[] = [
+  "none",
+  "slate",
+  "blue",
+  "teal",
+  "green",
+  "amber",
+  "orange",
+  "red",
+  "purple",
+  "pink"
+];
+
+const coverColorClasses: Record<CardCoverColor, string> = {
+  none: "bg-transparent",
+  slate: "bg-slate-500",
+  blue: "bg-blue-500",
+  teal: "bg-teal-500",
+  green: "bg-emerald-500",
+  amber: "bg-amber-500",
+  orange: "bg-orange-500",
+  red: "bg-rose-500",
+  purple: "bg-purple-500",
+  pink: "bg-pink-500"
+};
 
 
 function sortChecklistItems(items: ChecklistItem[]): ChecklistItem[] {
@@ -189,6 +247,13 @@ function formatFileSize(bytes: number): string {
   return `${size.toFixed(precision)} ${units[unitIndex]}`;
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+}
+
 function sortAttachments(attachments: BoardAttachment[]): BoardAttachment[] {
   return [...attachments].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
@@ -274,6 +339,7 @@ function buildCardDraft(card: BoardCard): CardDraft {
     title: card.title,
     description: card.description ?? "",
     priority: card.priority,
+    coverColor: card.coverColor ?? "none",
     dueDate: formatDueDateForInput(card.dueDate)
   };
 }
@@ -284,6 +350,7 @@ function isCardDraftEqual(a: CardDraft | null, b: CardDraft | null): boolean {
     a.title === b.title &&
     a.description === b.description &&
     a.priority === b.priority &&
+    a.coverColor === b.coverColor &&
     a.dueDate === b.dueDate
   );
 }
@@ -339,7 +406,23 @@ function CardSummary({
   };
   return (
     <>
+      {card.coverColor && card.coverColor !== "none" && (
+        <div className={`mb-2 h-1.5 w-full rounded-full ${coverColorClasses[card.coverColor]}`} />
+      )}
       <p className="line-clamp-2 text-sm font-medium text-foreground">{card.title}</p>
+      {card.labels.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {card.labels.map((label) => (
+            <span
+              key={label.id}
+              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${labelColorStyles[label.color].chip}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${labelColorStyles[label.color].dot}`} />
+              {label.name}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${getPriorityBadgeClass(card.priority)}`}>
           {getPriorityLabel(card.priority)}
@@ -354,6 +437,19 @@ function CardSummary({
           <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[11px] text-rose-700">
             {getTimeLeftLabel(card.doneEnteredAt, nowMs, retentionMinutes)}
           </span>
+        )}
+        {card.assignees.length > 0 && (
+          <div className="flex items-center gap-1">
+            {card.assignees.map((assignee) => (
+              <span
+                key={assignee.id}
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-700"
+                title={assignee.name}
+              >
+                {getInitials(assignee.name)}
+              </span>
+            ))}
+          </div>
         )}
       </div>
       {checklists.length > 0 && (
@@ -582,6 +678,13 @@ export function BoardDetailPage(): JSX.Element {
   const [retentionHours, setRetentionHours] = useState(0);
   const [retentionMinutesPart, setRetentionMinutesPart] = useState(0);
 
+  const [newLabelName, setNewLabelName] = useState("");
+  const [newLabelColor, setNewLabelColor] = useState<LabelColor>("blue");
+  const [labelDrafts, setLabelDrafts] = useState<Record<string, string>>({});
+  const [labelColorDrafts, setLabelColorDrafts] = useState<Record<string, LabelColor>>({});
+  const [labelSavingIds, setLabelSavingIds] = useState<Set<string>>(new Set());
+  const [labelToDelete, setLabelToDelete] = useState<BoardLabel | null>(null);
+
   const [newListName, setNewListName] = useState("");
   const [newListDone, setNewListDone] = useState(false);
   const [listNameDrafts, setListNameDrafts] = useState<Record<string, string>>({});
@@ -621,6 +724,7 @@ export function BoardDetailPage(): JSX.Element {
 
   const autoSaveTimeoutRef = useRef<number | null>(null);
   const listAutoSaveTimeoutsRef = useRef<Record<string, number>>({});
+  const labelAutoSaveTimeoutsRef = useRef<Record<string, number>>({});
   const listInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const checklistSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
@@ -668,6 +772,9 @@ export function BoardDetailPage(): JSX.Element {
     () => selectedCardWithList?.card.attachments ?? [],
     [selectedCardWithList]
   );
+
+  const boardLabels = useMemo(() => board?.labels ?? [], [board]);
+  const boardMembers = useMemo<BoardMember[]>(() => board?.members ?? [], [board]);
 
   const activeList = useMemo(
     () => (activeListId ? orderedLists.find((list) => list.id === activeListId) ?? null : null),
@@ -735,6 +842,19 @@ export function BoardDetailPage(): JSX.Element {
     listAutoSaveTimeoutsRef.current = {};
   };
 
+  const clearLabelAutosaveTimeout = (labelId: string): void => {
+    const timeout = labelAutoSaveTimeoutsRef.current[labelId];
+    if (timeout !== undefined) {
+      window.clearTimeout(timeout);
+      delete labelAutoSaveTimeoutsRef.current[labelId];
+    }
+  };
+
+  const clearAllLabelAutosaveTimeouts = (): void => {
+    Object.values(labelAutoSaveTimeoutsRef.current).forEach((t) => window.clearTimeout(t));
+    labelAutoSaveTimeoutsRef.current = {};
+  };
+
   const applyRetentionParts = useCallback((days: number, hours: number, minutes: number): void => {
     const totalMinutes = toRetentionMinutes(days, hours, minutes);
     const nextParts = splitRetentionMinutes(totalMinutes);
@@ -755,6 +875,11 @@ export function BoardDetailPage(): JSX.Element {
     setRetentionHours(retentionParts.hours);
     setRetentionMinutesPart(retentionParts.minutes);
     setListNameDrafts(Object.fromEntries(sortedLists.map((list) => [list.id, list.name])));
+
+    const boardLabels = data.labels ?? [];
+    setLabelDrafts(Object.fromEntries(boardLabels.map((label) => [label.id, label.name])));
+    setLabelColorDrafts(Object.fromEntries(boardLabels.map((label) => [label.id, label.color])));
+    setLabelSavingIds(new Set());
 
     setNewCardTitles((current) => {
       const next = { ...current };
@@ -794,6 +919,25 @@ export function BoardDetailPage(): JSX.Element {
           ...list,
           cards: list.cards.map((card) => (card.id === cardId ? updater(card) : card))
         }))
+      };
+    });
+  }, []);
+
+  const replaceCardInBoard = useCallback((updated: BoardCard): void => {
+    setBoard((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        lists: current.lists.map((list) => {
+          if (list.id === updated.listId) {
+            const exists = list.cards.some((card) => card.id === updated.id);
+            const nextCards = exists
+              ? list.cards.map((card) => (card.id === updated.id ? updated : card))
+              : [...list.cards, updated];
+            return { ...list, cards: sortCardsByPosition(nextCards) };
+          }
+          return { ...list, cards: list.cards.filter((card) => card.id !== updated.id) };
+        })
       };
     });
   }, []);
@@ -983,6 +1127,45 @@ export function BoardDetailPage(): JSX.Element {
     }, AUTO_SAVE_DELAY_MS);
   }, [runListNameAutosave]);
 
+  const runLabelAutosave = useCallback(async (labelId: string, name: string, color: LabelColor): Promise<void> => {
+    const trimmed = name.trim();
+    if (trimmed.length < 1) return;
+
+    setLabelSavingIds((c) => new Set(c).add(labelId));
+    try {
+      const updated = await updateLabel(labelId, { name: trimmed, color });
+      setBoard((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          labels: current.labels.map((label) => (label.id === updated.id ? updated : label)),
+          lists: current.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              labels: card.labels.map((label) => (label.id === updated.id ? updated : label))
+            }))
+          }))
+        };
+      });
+      setLabelDrafts((c) => ({ ...c, [updated.id]: updated.name }));
+      setLabelColorDrafts((c) => ({ ...c, [updated.id]: updated.color as LabelColor }));
+      setError(null);
+      triggerSavedNotice();
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Failed to update label");
+    } finally {
+      setLabelSavingIds((c) => { const n = new Set(c); n.delete(labelId); return n; });
+    }
+  }, [triggerSavedNotice]);
+
+  const scheduleLabelAutosave = useCallback((labelId: string, name: string, color: LabelColor): void => {
+    clearLabelAutosaveTimeout(labelId);
+    labelAutoSaveTimeoutsRef.current[labelId] = window.setTimeout(() => {
+      void runLabelAutosave(labelId, name, color);
+    }, AUTO_SAVE_DELAY_MS);
+  }, [runLabelAutosave]);
+
   useEffect(() => {
     if (!initializedBoardRef.current || !boardId) return;
     const nextDraft: BoardDraft = {
@@ -1018,6 +1201,7 @@ export function BoardDetailPage(): JSX.Element {
     return () => {
       if (autoSaveTimeoutRef.current !== null) window.clearTimeout(autoSaveTimeoutRef.current);
       clearAllListAutosaveTimeouts();
+      clearAllLabelAutosaveTimeouts();
       clearSavedNoticeTimers();
       clearCardAutosaveTimeout();
     };
@@ -1413,6 +1597,85 @@ export function BoardDetailPage(): JSX.Element {
     }
   };
 
+
+  const onCreateLabel = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    if (!boardId) return;
+    const name = newLabelName.trim();
+    if (name.length < 1) {
+      setError("Label name cannot be empty.");
+      return;
+    }
+    try {
+      const created = await createLabel(boardId, { name, color: newLabelColor });
+      setBoard((current) => (current ? { ...current, labels: [...current.labels, created] } : current));
+      setLabelDrafts((c) => ({ ...c, [created.id]: created.name }));
+      setLabelColorDrafts((c) => ({ ...c, [created.id]: created.color as LabelColor }));
+      setNewLabelName("");
+      setError(null);
+      triggerSavedNotice();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Failed to create label");
+    }
+  };
+
+  const onDeleteLabel = async (): Promise<void> => {
+    if (!labelToDelete) return;
+    try {
+      await deleteLabel(labelToDelete.id);
+      clearLabelAutosaveTimeout(labelToDelete.id);
+      setBoard((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          labels: current.labels.filter((label) => label.id !== labelToDelete.id),
+          lists: current.lists.map((list) => ({
+            ...list,
+            cards: list.cards.map((card) => ({
+              ...card,
+              labels: card.labels.filter((label) => label.id !== labelToDelete.id)
+            }))
+          }))
+        };
+      });
+      setLabelDrafts((c) => { const n = { ...c }; delete n[labelToDelete.id]; return n; });
+      setLabelColorDrafts((c) => { const n = { ...c }; delete n[labelToDelete.id]; return n; });
+      setLabelSavingIds((c) => { const n = new Set(c); n.delete(labelToDelete.id); return n; });
+      setLabelToDelete(null);
+      setError(null);
+      triggerSavedNotice();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete label");
+    }
+  };
+
+  const onToggleCardLabel = async (cardId: string, labelId: string, nextValue: boolean): Promise<void> => {
+    try {
+      const updated = nextValue
+        ? await assignLabelToCard(cardId, labelId)
+        : await removeLabelFromCard(cardId, labelId);
+      replaceCardInBoard(updated);
+      setError(null);
+      triggerSavedNotice();
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : "Failed to update label");
+    }
+  };
+
+  const onToggleAssignee = async (cardId: string, userId: string, nextValue: boolean): Promise<void> => {
+    try {
+      const updated = nextValue
+        ? await assignMemberToCard(cardId, userId)
+        : await removeMemberFromCard(cardId, userId);
+      replaceCardInBoard(updated);
+      setError(null);
+      triggerSavedNotice();
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : "Failed to update assignees");
+    }
+  };
+
+
   const onCreateChecklist = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     if (!selectedCardWithList) return;
@@ -1681,6 +1944,7 @@ export function BoardDetailPage(): JSX.Element {
         title,
         description: trimOrNull(draft.description),
         priority: draft.priority,
+        coverColor: draft.coverColor,
         dueDate: dueDateIso
       });
       setBoard((current) => {
@@ -2071,6 +2335,90 @@ export function BoardDetailPage(): JSX.Element {
                 </div>
               </div>
 
+
+              <div className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  Labels
+                </div>
+
+                <form className="grid gap-2 sm:grid-cols-[1fr_auto_auto]" onSubmit={onCreateLabel}>
+                  <Input
+                    value={newLabelName}
+                    onChange={(event) => setNewLabelName(event.target.value)}
+                    placeholder="New label name"
+                  />
+                  <select
+                    value={newLabelColor}
+                    onChange={(event) => setNewLabelColor(event.target.value as LabelColor)}
+                    className="h-10 rounded-md border border-input bg-card px-3 text-sm"
+                  >
+                    {labelColors.map((color) => (
+                      <option key={color} value={color}>
+                        {color.charAt(0).toUpperCase() + color.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                  <Button type="submit" className="gap-1">
+                    <Plus className="h-4 w-4" />
+                    Add label
+                  </Button>
+                </form>
+
+                {boardLabels.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No labels yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {boardLabels.map((label) => {
+                      const draftName = labelDrafts[label.id] ?? label.name;
+                      const draftColor = labelColorDrafts[label.id] ?? label.color;
+                      return (
+                        <div key={label.id} className="flex flex-wrap items-center gap-2">
+                          <span className={`h-2.5 w-2.5 rounded-full ${labelColorStyles[draftColor].dot}`} />
+                          <Input
+                            value={draftName}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setLabelDrafts((c) => ({ ...c, [label.id]: value }));
+                              scheduleLabelAutosave(label.id, value, draftColor);
+                            }}
+                            className="h-9 max-w-[220px]"
+                          />
+                          <select
+                            value={draftColor}
+                            onChange={(event) => {
+                              const value = event.target.value as LabelColor;
+                              setLabelColorDrafts((c) => ({ ...c, [label.id]: value }));
+                              scheduleLabelAutosave(label.id, draftName, value);
+                            }}
+                            className="h-9 rounded-md border border-input bg-card px-2 text-xs"
+                          >
+                            {labelColors.map((color) => (
+                              <option key={color} value={color}>
+                                {color.charAt(0).toUpperCase() + color.slice(1)}
+                              </option>
+                            ))}
+                          </select>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            onClick={() => setLabelToDelete(label)}
+                            title="Delete label"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          {labelSavingIds.has(label.id) && (
+                            <span className="text-xs text-muted-foreground">Saving...</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
                   {isAutosavingBoard ? "Saving..." : "Changes save automatically"}
@@ -2160,6 +2508,96 @@ export function BoardDetailPage(): JSX.Element {
                   />
                 </label>
               </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <span>Cover color</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {coverColors.map((color) => {
+                    const isSelected = cardDraft.coverColor === color;
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setCardDraft((c) => (c ? { ...c, coverColor: color } : c))}
+                        className={`h-8 w-10 rounded-full border ${isSelected ? "border-primary ring-2 ring-primary/40" : "border-border"}`}
+                        aria-pressed={isSelected}
+                        title={color === "none" ? "No cover" : `${color} cover`}
+                      >
+                        <span
+                          className={`mx-auto block h-3 w-8 rounded-full ${coverColorClasses[color]}`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Tag className="h-4 w-4 text-muted-foreground" />
+                  Labels
+                </div>
+                {boardLabels.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No labels yet. Create one in board settings.</p>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {boardLabels.map((label) => {
+                      const isSelected = selectedCardWithList.card.labels.some((item) => item.id === label.id);
+                      return (
+                        <label key={label.id} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(event) => {
+                              void onToggleCardLabel(selectedCardWithList.card.id, label.id, event.target.checked);
+                            }}
+                          />
+                          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${labelColorStyles[label.color].chip}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${labelColorStyles[label.color].dot}`} />
+                            {label.name}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  Assignees
+                </div>
+                {boardMembers.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No members available.</p>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {boardMembers.map((member) => {
+                      const isSelected = selectedCardWithList.card.assignees.some((item) => item.id === member.id);
+                      return (
+                        <label key={member.id} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(event) => {
+                              void onToggleAssignee(selectedCardWithList.card.id, member.id, event.target.checked);
+                            }}
+                          />
+                          <span className="inline-flex items-center gap-2">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
+                              {getInitials(member.name)}
+                            </span>
+                            <span className="text-xs">{member.name}</span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-medium">

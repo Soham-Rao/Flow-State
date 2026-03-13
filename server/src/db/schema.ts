@@ -1,9 +1,32 @@
 import { relations } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const userRoles = ["admin", "member"] as const;
 export const cardPriorities = ["low", "medium", "high", "urgent"] as const;
 export const retentionModes = ["attachments_only", "card_and_attachments"] as const;
+export const labelColors = [
+  "slate",
+  "blue",
+  "teal",
+  "green",
+  "amber",
+  "orange",
+  "red",
+  "purple",
+  "pink"
+] as const;
+export const cardCoverColors = [
+  "none",
+  "slate",
+  "blue",
+  "teal",
+  "green",
+  "amber",
+  "orange",
+  "red",
+  "purple",
+  "pink"
+] as const;
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -51,6 +74,7 @@ export const cards = sqliteTable("cards", {
   title: text("title").notNull(),
   description: text("description"),
   priority: text("priority", { enum: cardPriorities }).notNull().default("medium"),
+  coverColor: text("cover_color", { enum: cardCoverColors }),
   dueDate: integer("due_date", { mode: "timestamp_ms" }),
   position: integer("position").notNull().default(0),
   createdBy: text("created_by")
@@ -83,6 +107,42 @@ export const checklistItems = sqliteTable("checklist_items", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
 });
+
+export const labels = sqliteTable("labels", {
+  id: text("id").primaryKey(),
+  boardId: text("board_id")
+    .notNull()
+    .references(() => boards.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  color: text("color", { enum: labelColors }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
+export const cardLabels = sqliteTable("card_labels", {
+  cardId: text("card_id")
+    .notNull()
+    .references(() => cards.id, { onDelete: "cascade" }),
+  labelId: text("label_id")
+    .notNull()
+    .references(() => labels.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.cardId, table.labelId] })
+}));
+
+export const cardAssignees = sqliteTable("card_assignees", {
+  cardId: text("card_id")
+    .notNull()
+    .references(() => cards.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.cardId, table.userId] })
+}));
+
 
 export const attachments = sqliteTable("attachments", {
   id: text("id").primaryKey(),
@@ -157,3 +217,5 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
 
 export type UserRole = (typeof userRoles)[number];
 export type RetentionMode = (typeof retentionModes)[number];
+export type LabelColor = (typeof labelColors)[number];
+export type CardCoverColor = (typeof cardCoverColors)[number];

@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-13 01:00:55 +05:30
+Last checkpoint update: 2026-03-13 12:33:49 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -10,7 +10,9 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 2.1, 2.2, 2.3: complete
   - Phase 3.1, 3.2, 3.3: complete (dnd-kit for cards)
   - Phase 4: in progress
-  - Phase 4.1 (Checklists): implemented on server + client
+  - Phase 4.1 (Checklists): complete
+  - Phase 4.2 (Attachments + retention + list DnD + card autosave): complete
+  - Phase 4.3 (Labels + assignments + cover colors): complete
 
 - Phase 4.1 implementation highlights:
   - Server schema: checklists + checklist_items tables with relations and test DB setup
@@ -20,12 +22,14 @@ Purpose: Resume from this exact project state, not from zero.
 
 - Recent UI/UX work:
   - Card editor modal is scrollable with max height
-  - Sticky header in card modal with `Delete`, `Close`, `Save changes` actions
+  - Sticky header in card modal with `Delete`, `Close`, and autosave status (`Saving...` / `Saved`)
   - Checklist items can be toggled directly in card previews
   - Clicking checklist body (expanded) opens card editor + autoscrolls to that checklist
   - `Esc` closes the card editor
-  - Header delete button now has `aria-label="Delete card"` to satisfy tests
-  - User confirmed all tests pass and checklist body click -> editor + autoscroll works
+  - List drag-and-drop now uses dnd-kit (animated reordering)
+  - Done timer label shows `Files deleted` after expiry
+  - Due dates normalize epoch/1970 values to today (backend + UI)
+  - Phase 4.3 complete: label management UI + CRUD, assignee toggles, and cover color controls wired end-to-end
 
 - Test location change:
   - Client tests moved from `client/src/...` to `client/tests/...`
@@ -35,8 +39,7 @@ Purpose: Resume from this exact project state, not from zero.
 
 ## 2) Resume-Next Priority
 
-- Phase 4.2: Attachments (upload + metadata + delete + modal UI).
-- Phase 4.3: Labels + Assignments + Cover Colors (board-level CRUD, assign to cards, filter/visuals).
+- Phase 4.4: Comments + Due Dates + Archive/Restore.
 
 ## 3) User Preferences to Preserve on Resume
 
@@ -121,7 +124,7 @@ Note: db `-shm` and `-wal` files are runtime artifacts; do not delete without us
 
 ## 8) Immediate User-Facing Follow-up Item
 
-- Start Phase 4.2: Attachments (server + client + UI).
+- Continue Phase 4.3: Labels + Assignments + Cover Colors.
 
 ## 9) Resume Command Pack
 

@@ -268,7 +268,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 4: Task Features | 🟡 In Progress | 2026-03-12 | — | Split into sub-phases starting with checklists |
 | Phase 4.1: Checklists | ✅ Completed | 2026-03-12 | 2026-03-12 | Checklist data model + API, board card preview with collapsible progress, and card modal CRUD + progress |
 | Phase 4.2: Attachments | ✅ Completed | 2026-03-13 | 2026-03-13 | Added attachments API + UI, retention settings, and cleanup support |
-| Phase 4.3: Labels + Assignments + Cover Colors | ⬜ Not Started | — | — | — |
+| Phase 4.3: Labels + Assignments + Cover Colors | ✅ Completed | 2026-03-13 | 2026-03-13 | Labels/assignees/cover colors wired end-to-end with schema + API + UI and polish fixes |
 | Phase 4.4: Comments + Due Dates + Archive/Restore | ⬜ Not Started | — | — | — |
 | Phase 5: Team & Collaboration | ⬜ Not Started | — | — | — |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
@@ -323,6 +323,8 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 | Date | Update |
 |------|--------|
+| 2026-03-13 | Phase 4.2 verified complete (attachments, retention settings, list DnD, card autosave, due-date normalization); Phase 4.3 started with labels/assignments/cover colors (schema + API + UI work in progress). |
+| 2026-03-13 | Phase 4.3 completed: labels CRUD, assignee toggles, and cover colors integrated end-to-end with schema/type fixes and polish passes. |
 | 2026-03-12 | Phase 3 verified complete after user-run tests; card drag-and-drop finalized with dnd-kit and docs updated. |
 | 2026-03-12 | Confirmed implementation defaults: Bun, TypeScript for client/server, plain workspace structure, first-signup auto-admin, edit yes/delete restricted, done-list cleanup trigger, email invite flow. Added execution checklist to `Docs/instructions.md` and added progress logging policy. |
 | 2026-03-12 | Implemented Phase 1.1 scaffold: Bun workspaces, client React+Vite+Tailwind+shadcn-style shell, server Express+TS health API, lint configs, and baseline tests. Lint and TypeScript checks passed. Client build/test execution in sandbox hit `spawn EPERM`; runtime/build/test verification deferred to user environment and full-phase test cadence. |

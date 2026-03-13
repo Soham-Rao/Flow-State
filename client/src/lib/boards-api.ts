@@ -1,12 +1,15 @@
 import { apiRequest } from "@/lib/api-client";
 import { getSessionToken } from "@/lib/session";
 import type {
+  BoardAttachment,
   BoardBackground,
   BoardCard,
-  BoardAttachment,
   BoardDetail,
+  BoardLabel,
   BoardList,
   BoardSummary,
+  CardCoverColor,
+  LabelColor,
   CardPriority,
   Checklist,
   ChecklistItem,
@@ -36,6 +39,17 @@ interface CreateListInput {
   isDoneList: boolean;
 }
 
+
+interface CreateLabelInput {
+  name: string;
+  color: LabelColor;
+}
+
+interface UpdateLabelInput {
+  name?: string;
+  color?: LabelColor;
+}
+
 interface UpdateListInput {
   name?: string;
   isDoneList?: boolean;
@@ -45,6 +59,7 @@ interface CreateCardInput {
   title: string;
   description?: string;
   priority?: CardPriority;
+  coverColor?: CardCoverColor;
   dueDate?: string;
 }
 
@@ -52,6 +67,7 @@ interface UpdateCardInput {
   title?: string;
   description?: string;
   priority?: CardPriority;
+  coverColor?: CardCoverColor | null;
   dueDate?: string | null;
 }
 
@@ -163,6 +179,61 @@ export function updateCard(cardId: string, input: UpdateCardInput): Promise<Boar
     body: JSON.stringify(input)
   });
 }
+
+
+export function createLabel(boardId: string, input: CreateLabelInput): Promise<BoardLabel> {
+  return apiRequest<BoardLabel>(`/boards/${boardId}/labels`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function updateLabel(labelId: string, input: UpdateLabelInput): Promise<BoardLabel> {
+  return apiRequest<BoardLabel>(`/boards/labels/${labelId}`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export function deleteLabel(labelId: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/boards/labels/${labelId}`, {
+    method: "DELETE",
+    auth: true
+  });
+}
+
+export function assignLabelToCard(cardId: string, labelId: string): Promise<BoardCard> {
+  return apiRequest<BoardCard>(`/boards/cards/${cardId}/labels`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ labelId })
+  });
+}
+
+export function removeLabelFromCard(cardId: string, labelId: string): Promise<BoardCard> {
+  return apiRequest<BoardCard>(`/boards/cards/${cardId}/labels/${labelId}`, {
+    method: "DELETE",
+    auth: true
+  });
+}
+
+export function assignMemberToCard(cardId: string, userId: string): Promise<BoardCard> {
+  return apiRequest<BoardCard>(`/boards/cards/${cardId}/assignees`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ userId })
+  });
+}
+
+export function removeMemberFromCard(cardId: string, userId: string): Promise<BoardCard> {
+  return apiRequest<BoardCard>(`/boards/cards/${cardId}/assignees/${userId}`, {
+    method: "DELETE",
+    auth: true
+  });
+}
+
 
 export function deleteCard(cardId: string): Promise<{ message: string }> {
   return apiRequest<{ message: string }>(`/boards/cards/${cardId}`, {

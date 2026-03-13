@@ -1,11 +1,14 @@
 import { z } from "zod";
 
-import { cardPriorities, retentionModes } from "../../db/schema.js";
+import { cardCoverColors, cardPriorities, labelColors, retentionModes } from "../../db/schema.js";
 import { boardBackgrounds } from "./boards.constants.js";
 
 const boardBackgroundSchema = z.enum(boardBackgrounds);
 const cardPrioritySchema = z.enum(cardPriorities);
 const retentionModeSchema = z.enum(retentionModes);
+const labelColorSchema = z.enum(labelColors);
+const cardCoverColorSchema = z.enum(cardCoverColors);
+
 const retentionMinutesSchema = z.number().int().min(1).max(525600);
 
 export const createBoardSchema = z.object({
@@ -55,6 +58,7 @@ export const createCardSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(5000).optional(),
   priority: cardPrioritySchema.default("medium"),
+  coverColor: cardCoverColorSchema.optional(),
   dueDate: z.coerce.date().optional()
 });
 
@@ -63,6 +67,7 @@ export const updateCardSchema = z
     title: z.string().trim().min(1).max(160).optional(),
     description: z.string().trim().max(5000).optional(),
     priority: cardPrioritySchema.optional(),
+    coverColor: z.union([cardCoverColorSchema, z.null()]).optional(),
     dueDate: z.union([z.coerce.date(), z.null()]).optional()
   })
   .refine(
@@ -70,6 +75,7 @@ export const updateCardSchema = z
       value.title !== undefined ||
       value.description !== undefined ||
       value.priority !== undefined ||
+      value.coverColor !== undefined ||
       value.dueDate !== undefined,
     {
       message: "At least one field is required"
@@ -83,6 +89,29 @@ export const moveCardSchema = z.object({
   destinationIndex: z.number().int().min(0)
 });
 
+
+
+export const createLabelSchema = z.object({
+  name: z.string().trim().min(1).max(40),
+  color: labelColorSchema
+});
+
+export const updateLabelSchema = z
+  .object({
+    name: z.string().trim().min(1).max(40).optional(),
+    color: labelColorSchema.optional()
+  })
+  .refine((value) => value.name !== undefined || value.color !== undefined, {
+    message: "At least one field is required"
+  });
+
+export const assignLabelSchema = z.object({
+  labelId: z.string().uuid()
+});
+
+export const assignAssigneeSchema = z.object({
+  userId: z.string().uuid()
+});
 
 export const createChecklistSchema = z.object({
   title: z.string().trim().min(1).max(120)
@@ -118,6 +147,10 @@ export type ReorderListsInput = z.infer<typeof reorderListsSchema>;
 export type CreateCardInput = z.infer<typeof createCardSchema>;
 export type CreateChecklistInput = z.infer<typeof createChecklistSchema>;
 export type CreateChecklistItemInput = z.infer<typeof createChecklistItemSchema>;
+export type CreateLabelInput = z.infer<typeof createLabelSchema>;
+export type UpdateLabelInput = z.infer<typeof updateLabelSchema>;
+export type AssignLabelInput = z.infer<typeof assignLabelSchema>;
+export type AssignAssigneeInput = z.infer<typeof assignAssigneeSchema>;
 export type UpdateCardInput = z.infer<typeof updateCardSchema>;
 export type UpdateChecklistInput = z.infer<typeof updateChecklistSchema>;
 export type UpdateChecklistItemInput = z.infer<typeof updateChecklistItemSchema>;

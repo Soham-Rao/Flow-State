@@ -10,6 +10,29 @@ export type BoardBackground =
 
 export type CardPriority = "low" | "medium" | "high" | "urgent";
 export type RetentionMode = "attachments_only" | "card_and_attachments";
+export type LabelColor =
+  | "slate"
+  | "blue"
+  | "teal"
+  | "green"
+  | "amber"
+  | "orange"
+  | "red"
+  | "purple"
+  | "pink";
+
+export type CardCoverColor =
+  | "none"
+  | "slate"
+  | "blue"
+  | "teal"
+  | "green"
+  | "amber"
+  | "orange"
+  | "red"
+  | "purple"
+  | "pink";
+
 
 export interface BoardSummary {
   id: string;
@@ -52,6 +75,24 @@ export interface BoardAttachment {
   mimeType: string | null;
   size: number;
   createdAt: string;
+
+}
+
+export interface BoardLabel {
+  id: string;
+  boardId: string;
+  name: string;
+  color: LabelColor;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BoardMember {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "member";
+  createdAt: string;
 }
 
 export interface BoardCard {
@@ -60,6 +101,7 @@ export interface BoardCard {
   title: string;
   description: string | null;
   priority: CardPriority;
+  coverColor: CardCoverColor | null;
   dueDate: string | null;
   position: number;
   createdBy: string;
@@ -69,6 +111,8 @@ export interface BoardCard {
   updatedAt: string;
   checklists: Checklist[];
   attachments: BoardAttachment[];
+  labels: BoardLabel[];
+  assignees: BoardMember[];
 }
 
 export interface BoardList {
@@ -93,6 +137,8 @@ export interface BoardDetail {
   createdAt: string;
   updatedAt: string;
   lists: BoardList[];
+  labels: BoardLabel[];
+  members: BoardMember[];
 }
 
 export interface MoveCardResult {

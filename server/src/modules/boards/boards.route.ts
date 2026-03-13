@@ -3,35 +3,45 @@ import multer from "multer";
 
 import { requireAuth } from "../../middleware/require-auth.js";
 import {
+  assignLabelToCard,
+  assignMemberToCard,
   createAttachments,
   createBoard,
   createCard,
   createChecklist,
   createChecklistItem,
+  createLabel,
   createList,
   deleteAttachment,
   deleteBoard,
   deleteCard,
   deleteChecklist,
   deleteChecklistItem,
+  deleteLabel,
   deleteList,
   getAttachmentDownloadInfo,
   getBoardById,
   cleanupExpiredCards,
   getBoards,
   moveCard,
+  removeLabelFromCard,
+  removeMemberFromCard,
   reorderLists,
   updateBoard,
   updateCard,
   updateChecklist,
   updateChecklistItem,
+  updateLabel,
   updateList
 } from "./boards.service.js";
 import {
+  assignAssigneeSchema,
+  assignLabelSchema,
   createBoardSchema,
   createCardSchema,
   createChecklistItemSchema,
   createChecklistSchema,
+  createLabelSchema,
   createListSchema,
   moveCardSchema,
   reorderListsSchema,
@@ -39,6 +49,7 @@ import {
   updateCardSchema,
   updateChecklistItemSchema,
   updateChecklistSchema,
+  updateLabelSchema,
   updateListSchema
 } from "./boards.schema.js";
 
@@ -113,6 +124,50 @@ boardsRouter.delete("/:boardId", (req, res, next) => {
     next(error);
   }
 });
+
+boardsRouter.post("/:boardId/labels", (req, res, next) => {
+  try {
+    const body = createLabelSchema.parse(req.body);
+    const data = createLabel(req.params.boardId, body);
+
+    res.status(201).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.patch("/labels/:labelId", (req, res, next) => {
+  try {
+    const body = updateLabelSchema.parse(req.body);
+    const data = updateLabel(req.params.labelId, body);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.delete("/labels/:labelId", (req, res, next) => {
+  try {
+    deleteLabel(req.params.labelId);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        message: "Label deleted"
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 boardsRouter.post("/:boardId/lists", (req, res, next) => {
   try {
@@ -198,6 +253,62 @@ boardsRouter.patch("/cards/:cardId", (req, res, next) => {
     next(error);
   }
 });
+
+
+boardsRouter.post("/cards/:cardId/labels", (req, res, next) => {
+  try {
+    const body = assignLabelSchema.parse(req.body);
+    const data = assignLabelToCard(req.params.cardId, body);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.delete("/cards/:cardId/labels/:labelId", (req, res, next) => {
+  try {
+    const data = removeLabelFromCard(req.params.cardId, req.params.labelId);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.post("/cards/:cardId/assignees", (req, res, next) => {
+  try {
+    const body = assignAssigneeSchema.parse(req.body);
+    const data = assignMemberToCard(req.params.cardId, body);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsRouter.delete("/cards/:cardId/assignees/:userId", (req, res, next) => {
+  try {
+    const data = removeMemberFromCard(req.params.cardId, req.params.userId);
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 boardsRouter.post("/cards/move", (req, res, next) => {
   try {
