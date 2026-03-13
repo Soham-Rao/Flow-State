@@ -1,11 +1,28 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;600;700&display=swap");
+@import "@fontsource/space-grotesk/400.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/space-grotesk/700.css";
 
+@import "@fontsource/fraunces/400.css";
+@import "@fontsource/fraunces/600.css";
+@import "@fontsource/fraunces/700.css";
+
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-sans/700.css";
+
+@import "@fontsource/merriweather/400.css";
+@import "@fontsource/merriweather/700.css";
+
+/* stylelint-disable at-rule-no-unknown */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
 
 :root {
-  --font-ui: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-ui: "Space Grotesk", "Segoe UI", sans-serif;
   --background: 204 100% 99%;
   --foreground: 210 20% 15%;
   --card: 0 0% 100%;
@@ -27,11 +44,19 @@
 }
 
 :root[data-font="grotesk"] {
-  --font-ui: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-ui: "Space Grotesk", "Segoe UI", sans-serif;
 }
 
 :root[data-font="serif"] {
-  --font-ui: "Fraunces", "Iowan Old Style", "Georgia", serif;
+  --font-ui: "Fraunces", "Iowan Old Style", serif;
+}
+
+:root[data-font="plex"] {
+  --font-ui: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+:root[data-font="merriweather"] {
+  --font-ui: "Merriweather", "Georgia", serif;
 }
 
 :root[data-spacing="tight"] {
@@ -55,11 +80,14 @@
 }
 
 * {
-  @apply border-border;
+  border-color: hsl(var(--border));
 }
 
 body {
-  @apply bg-background text-foreground antialiased;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-ui);
   letter-spacing: var(--ui-letter-spacing);
   line-height: var(--ui-line-height);

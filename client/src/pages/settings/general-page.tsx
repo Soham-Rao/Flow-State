@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const FONT_STORAGE_KEY = "flowstate:font";
 const SPACING_STORAGE_KEY = "flowstate:spacing";
 
-type FontOption = "grotesk" | "serif";
+type FontOption = "grotesk" | "serif" | "plex" | "merriweather";
 
 type SpacingOption = "tight" | "compact" | "default" | "spacious";
 
@@ -20,6 +20,16 @@ const fontOptions: Array<{ value: FontOption; label: string; description: string
     value: "serif",
     label: "Fraunces",
     description: "Editorial serif"
+  },
+  {
+    value: "plex",
+    label: "IBM Plex Sans",
+    description: "Professional sans"
+  },
+  {
+    value: "merriweather",
+    label: "Merriweather",
+    description: "Readable serif"
   }
 ];
 
@@ -46,6 +56,13 @@ const spacingOptions: Array<{ value: SpacingOption; label: string; description: 
   }
 ];
 
+function normalizeStoredFont(value: string | null): FontOption {
+  if (value === "dm-sans") return "plex";
+  if (value === "playfair") return "merriweather";
+  if (value === "plex" || value === "merriweather" || value === "serif" || value === "grotesk") return value;
+  return "grotesk";
+}
+
 function applyFont(value: FontOption): void {
   document.documentElement.dataset.font = value;
 }
@@ -63,7 +80,7 @@ export function GeneralSettingsPage(): JSX.Element {
 
   useEffect(() => {
     try {
-      const storedFont = (localStorage.getItem(FONT_STORAGE_KEY) as FontOption | null) ?? "grotesk";
+      const storedFont = normalizeStoredFont(localStorage.getItem(FONT_STORAGE_KEY));
       const storedSpacing = (localStorage.getItem(SPACING_STORAGE_KEY) as SpacingOption | null) ?? "default";
       setSelectedFont(storedFont);
       setBaselineFont(storedFont);

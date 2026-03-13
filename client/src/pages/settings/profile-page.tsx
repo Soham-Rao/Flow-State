@@ -109,6 +109,8 @@ export function ProfileSettingsPage(): JSX.Element {
     return "Keep your details up to date for teammates.";
   }, [status, error]);
 
+  const usernameError = status === "error" && (error ?? "").toLowerCase().includes("username") ? error : null;
+
   const onChange = (key: keyof ProfileFormState) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({
       ...prev,
@@ -173,7 +175,7 @@ export function ProfileSettingsPage(): JSX.Element {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Username</label>
                 <Input value={form.username} onChange={onChange("username")} placeholder="Username" />
-                <p className="text-xs text-muted-foreground">Unique handle for the workspace. Mentions use @username.</p>
+                <p className={`text-xs ${usernameError ? "text-red-600" : "text-muted-foreground"}`}>{usernameError ?? "Unique handle for the workspace. Mentions use @username."}</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Display name</label>

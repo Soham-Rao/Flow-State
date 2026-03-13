@@ -684,6 +684,8 @@ function attachCommentRelations(rows: CommentRow[]): BoardComment[] {
     author: {
       id: row.authorId,
       name: row.authorName,
+      displayName: row.authorDisplayName,
+      username: row.authorUsername,
       email: row.authorEmail,
       role: row.authorRole,
       createdAt: row.authorCreatedAt
