@@ -1,11 +1,27 @@
 import { sqlite } from "./connection.js";
 
+function safeAddColumn(sql: string): void {
+  try {
+    sqlite.exec(sql);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("duplicate column name")) {
+      throw error;
+    }
+  }
+}
+
 export function initializeDatabase(): void {
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
+      username TEXT,
+      display_name TEXT,
+      bio TEXT,
+      age INTEGER,
+      date_of_birth INTEGER,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL CHECK (role IN ('admin', 'member')) DEFAULT 'member',
       created_at INTEGER NOT NULL,
@@ -26,6 +42,23 @@ export function initializeDatabase(): void {
       updated_at INTEGER NOT NULL,
       FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS invites (
+      id TEXT PRIMARY KEY,
+      token TEXT NOT NULL UNIQUE,
+      email TEXT,
+      role TEXT NOT NULL CHECK (role IN ('admin', 'member')) DEFAULT 'member',
+      created_by TEXT NOT NULL,
+      accepted_by TEXT,
+      accepted_at INTEGER,
+      revoked_at INTEGER,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (accepted_by) REFERENCES users(id) ON DELETE SET NULL
+    );
+
 
     CREATE TABLE IF NOT EXISTS lists (
       id TEXT PRIMARY KEY,
@@ -170,32 +203,58 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_comments_board_id ON comments(board_id);
     CREATE INDEX IF NOT EXISTS idx_comments_list_id ON comments(list_id);
     CREATE INDEX IF NOT EXISTS idx_comments_card_id ON comments(card_id);
+    CREATE INDEX IF NOT EXISTS idx_invites_email ON invites(email);
+    CREATE INDEX IF NOT EXISTS idx_invites_expires_at ON invites(expires_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_unique ON users(username) WHERE username IS NOT NULL;
   `);
 
   const boardColumns = sqlite.prepare("PRAGMA table_info(boards)").all() as Array<{ name: string }>;
   const boardColumnNames = new Set(boardColumns.map((column) => column.name));
 
   if (!boardColumnNames.has("retention_mode")) {
-    sqlite.exec("ALTER TABLE boards ADD COLUMN retention_mode TEXT NOT NULL DEFAULT 'card_and_attachments'");
+    safeAddColumn("ALTER TABLE boards ADD COLUMN retention_mode TEXT NOT NULL DEFAULT 'card_and_attachments'");
   }
 
   if (!boardColumnNames.has("retention_minutes")) {
-    sqlite.exec("ALTER TABLE boards ADD COLUMN retention_minutes INTEGER NOT NULL DEFAULT 10080");
+    safeAddColumn("ALTER TABLE boards ADD COLUMN retention_minutes INTEGER NOT NULL DEFAULT 10080");
   }
 
   if (!boardColumnNames.has("archive_retention_minutes")) {
-    sqlite.exec("ALTER TABLE boards ADD COLUMN archive_retention_minutes INTEGER NOT NULL DEFAULT 10080");
+    safeAddColumn("ALTER TABLE boards ADD COLUMN archive_retention_minutes INTEGER NOT NULL DEFAULT 10080");
   }
 
   if (!boardColumnNames.has("archived_at")) {
-    sqlite.exec("ALTER TABLE boards ADD COLUMN archived_at INTEGER");
+    safeAddColumn("ALTER TABLE boards ADD COLUMN archived_at INTEGER");
+  }
+
+  const userColumns = sqlite.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+  const userColumnNames = new Set(userColumns.map((column) => column.name));
+
+  if (!userColumnNames.has("username")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN username TEXT");
+  }
+
+  if (!userColumnNames.has("display_name")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN display_name TEXT");
+  }
+
+  if (!userColumnNames.has("bio")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN bio TEXT");
+  }
+
+  if (!userColumnNames.has("age")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN age INTEGER");
+  }
+
+  if (!userColumnNames.has("date_of_birth")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN date_of_birth INTEGER");
   }
 
   const listColumns = sqlite.prepare("PRAGMA table_info(lists)").all() as Array<{ name: string }>;
   const listColumnNames = new Set(listColumns.map((column) => column.name));
 
   if (!listColumnNames.has("archived_at")) {
-    sqlite.exec("ALTER TABLE lists ADD COLUMN archived_at INTEGER");
+    safeAddColumn("ALTER TABLE lists ADD COLUMN archived_at INTEGER");
   }
 
   sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_board_name_active ON lists(board_id, name) WHERE archived_at IS NULL");
@@ -204,13 +263,14 @@ export function initializeDatabase(): void {
   const cardColumnNames = new Set(cardColumns.map((column) => column.name));
 
   if (!cardColumnNames.has("cover_color")) {
-    sqlite.exec("ALTER TABLE cards ADD COLUMN cover_color TEXT");
+    safeAddColumn("ALTER TABLE cards ADD COLUMN cover_color TEXT");
   }
 
 }
 
 export function clearDatabaseForTests(): void {
   sqlite.exec(`
+    DELETE FROM invites;
     DELETE FROM comment_mentions;
     DELETE FROM comment_reactions;
     DELETE FROM comments;
@@ -230,18 +290,49 @@ export function clearDatabaseForTests(): void {
   const boardColumnNames = new Set(boardColumns.map((column) => column.name));
 
   if (!boardColumnNames.has("retention_mode")) {
-    sqlite.exec("ALTER TABLE boards ADD COLUMN retention_mode TEXT NOT NULL DEFAULT 'card_and_attachments'");
+    safeAddColumn("ALTER TABLE boards ADD COLUMN retention_mode TEXT NOT NULL DEFAULT 'card_and_attachments'");
   }
 
   if (!boardColumnNames.has("retention_minutes")) {
-    sqlite.exec("ALTER TABLE boards ADD COLUMN retention_minutes INTEGER NOT NULL DEFAULT 10080");
+    safeAddColumn("ALTER TABLE boards ADD COLUMN retention_minutes INTEGER NOT NULL DEFAULT 10080");
+  }
+
+  if (!boardColumnNames.has("archive_retention_minutes")) {
+    safeAddColumn("ALTER TABLE boards ADD COLUMN archive_retention_minutes INTEGER NOT NULL DEFAULT 10080");
+  }
+
+  if (!boardColumnNames.has("archived_at")) {
+    safeAddColumn("ALTER TABLE boards ADD COLUMN archived_at INTEGER");
+  }
+
+  const userColumns = sqlite.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
+  const userColumnNames = new Set(userColumns.map((column) => column.name));
+
+  if (!userColumnNames.has("username")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN username TEXT");
+  }
+
+  if (!userColumnNames.has("display_name")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN display_name TEXT");
+  }
+
+  if (!userColumnNames.has("bio")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN bio TEXT");
+  }
+
+  if (!userColumnNames.has("age")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN age INTEGER");
+  }
+
+  if (!userColumnNames.has("date_of_birth")) {
+    safeAddColumn("ALTER TABLE users ADD COLUMN date_of_birth INTEGER");
   }
 
   const cardColumns = sqlite.prepare("PRAGMA table_info(cards)").all() as Array<{ name: string }>;
   const cardColumnNames = new Set(cardColumns.map((column) => column.name));
 
   if (!cardColumnNames.has("cover_color")) {
-    sqlite.exec("ALTER TABLE cards ADD COLUMN cover_color TEXT");
+    safeAddColumn("ALTER TABLE cards ADD COLUMN cover_color TEXT");
   }
 
 }

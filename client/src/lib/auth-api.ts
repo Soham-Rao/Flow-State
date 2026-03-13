@@ -5,11 +5,21 @@ interface RegisterInput {
   name: string;
   email: string;
   password: string;
+  inviteToken?: string;
 }
 
 interface LoginInput {
   email: string;
   password: string;
+}
+
+interface UpdateProfileInput {
+  name?: string;
+  username?: string | null;
+  displayName?: string | null;
+  bio?: string | null;
+  age?: number | null;
+  dateOfBirth?: string | null;
 }
 
 export function register(input: RegisterInput): Promise<AuthResponse> {
@@ -37,5 +47,13 @@ export function getCurrentUser(): Promise<AuthUser> {
   return apiRequest<AuthUser>("/auth/me", {
     method: "GET",
     auth: true
+  });
+}
+
+export function updateProfile(input: UpdateProfileInput): Promise<AuthUser> {
+  return apiRequest<AuthUser>("/auth/me", {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(input)
   });
 }

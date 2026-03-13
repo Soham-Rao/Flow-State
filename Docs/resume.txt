@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-13 18:06:00 +05:30
+Last checkpoint update: 2026-03-14 02:08:35 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -14,6 +14,9 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 4.2 (Attachments + retention + list DnD + card autosave): complete
   - Phase 4.3 (Labels + assignments + cover colors): complete
   - Phase 4.4 (comments + archive/restore + due date to assigned users): complete
+  - Phase 5.1 (@mentions): complete
+  - Phase 5.2 (Invitations): complete
+  - Phase 5.3 (Roles + settings): in progress
 
 - Phase 4.1 implementation highlights:
   - Server schema: checklists + checklist_items tables with relations and test DB setup
@@ -32,6 +35,21 @@ Purpose: Resume from this exact project state, not from zero.
   - Due dates normalize epoch/1970 values to today (backend + UI)
   - Phase 4.3 complete: label management UI + CRUD, assignee toggles, and cover color controls wired end-to-end
 
+- Phase 5.1 + 5.2 progress:
+  - App-wide @mentions autocomplete + parsing + bold rendering complete
+  - Invitation system groundwork complete (invites table, admin create/list/revoke, invite lookup, register with invite token)
+  - Invitations are now managed from the dashboard with status modal + shareable links
+  - Registrations remain open (invite optional; invite-only later)
+
+- Phase 5.3 progress:
+  - Header now shows display name + role with a profile dropdown
+  - Settings sidebar section + Profile/General/Advanced pages scaffolded
+  - Profile settings wired to backend updates (general/advanced UI only for now)
+  - Username uniqueness enforced; @mentions now use @username (suggestions show display name + @username)
+  - Display name is used across the UI (full name stored but not displayed)
+  - Sidebar stays visible while main content scrolls
+  - Typography settings now include font + spacing with persistence (letter-spacing + line-height applied)
+
 - Test location change:
   - Client tests moved from `client/src/...` to `client/tests/...`
   - Added `client/tsconfig.test.json`
@@ -40,7 +58,9 @@ Purpose: Resume from this exact project state, not from zero.
 
 ## 2) Resume-Next Priority
 
-- Start Phase 5: Team & Collaboration.
+- Future note: add email invites later (SMTP/transactional provider), likely alongside invite-only mode.
+
+- Continue Phase 5.3: roles + settings (wire general settings + role management).
 
 ## 3) User Preferences to Preserve on Resume
 
@@ -125,7 +145,7 @@ Note: db `-shm` and `-wal` files are runtime artifacts; do not delete without us
 
 ## 8) Immediate User-Facing Follow-up Item
 
-- Start Phase 5: Team & Collaboration.
+- Continue Phase 5.3: roles + settings (wire general settings + role management).
 
 ## 9) Resume Command Pack
 

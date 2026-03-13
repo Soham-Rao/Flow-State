@@ -4,6 +4,9 @@ import { AppShell } from "@/components/layout/app-shell";
 import { BoardDetailPage } from "@/pages/boards/board-detail-page";
 import { BoardsPage } from "@/pages/boards/boards-page";
 import { HomePage } from "@/pages/home-page";
+import { AdvancedSettingsPage } from "@/pages/settings/advanced-page";
+import { GeneralSettingsPage } from "@/pages/settings/general-page";
+import { ProfileSettingsPage } from "@/pages/settings/profile-page";
 import { LoginPage } from "@/pages/login-page";
 import { RegisterPage } from "@/pages/register-page";
 import { AuthGate } from "@/routes/auth-gate";
@@ -43,6 +46,31 @@ export function AppRouter(): JSX.Element {
             element={
               <WithShell>
                 <BoardDetailPage />
+              </WithShell>
+            }
+          />
+
+          <Route
+            path="/settings/profile"
+            element={
+              <WithShell>
+                <ProfileSettingsPage />
+              </WithShell>
+            }
+          />
+          <Route
+            path="/settings/general"
+            element={
+              <WithShell>
+                <GeneralSettingsPage />
+              </WithShell>
+            }
+          />
+          <Route
+            path="/settings/advanced"
+            element={
+              <WithShell>
+                <AdvancedSettingsPage />
               </WithShell>
             }
           />

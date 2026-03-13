@@ -24,8 +24,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MentionsField } from "@/components/mentions/mentions-input";
 import { Input } from "@/components/ui/input";
 import { boardBackgroundPresets, getBoardBackgroundClass, getBoardSurfaceClass } from "@/lib/board-backgrounds";
+import { extractMentionIds } from "@/lib/mentions";
 import {
   archiveBoard,
   archiveCard,
@@ -224,6 +226,28 @@ function formatDueDateForInput(value: string | null): string {
   return formatDateTimeLocalValue(safeDate);
 }
 
+
+function clampYearInDateInput(value: string): string {
+  if (!value) {
+    return value;
+  }
+
+  const [datePart, timePart] = value.split("T");
+  const segments = datePart.split("-");
+  if (segments.length < 3) {
+    return value;
+  }
+
+  const [year, month, day] = segments;
+  if (year.length <= 4) {
+    return value;
+  }
+
+  const trimmedYear = year.slice(0, 4);
+  const rebuiltDate = `${trimmedYear}-${month}-${day}`;
+  return timePart ? `${rebuiltDate}T${timePart}` : rebuiltDate;
+}
+
 function toIsoFromDateTimeInput(value: string): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -281,19 +305,46 @@ function getInitials(name: string): string {
   return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
 }
 
+function getMemberDisplayName(member: BoardMember): string {
+  return member.displayName || member.username || "Member";
+}
+
 function getCommentSnippet(body: string): string {
   const trimmed = body.trim();
   if (trimmed.length <= 80) return trimmed;
   return `${trimmed.slice(0, 77)}...`;
 }
 
-const COMMENT_REACTION_CHOICES = ["👍", "🎉", "❤️"];
+const MENTION_RENDER_TOKEN = /@[\p{L}\p{N}._'-]+/gu;
 
-function appendMention(body: string, name: string): string {
-  const tag = `@${name}`;
-  if (body.includes(tag)) return body;
-  return body.trim().length > 0 ? `${body} ${tag}` : tag;
+function renderMentionBody(body: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+
+  for (const match of body.matchAll(MENTION_RENDER_TOKEN)) {
+    const index = match.index ?? 0;
+    if (index > 0 && !/\s/.test(body[index - 1] ?? "")) {
+      continue;
+    }
+    if (index > lastIndex) {
+      parts.push(body.slice(lastIndex, index));
+    }
+    parts.push(
+      <span key={`${index}-${match[0]}`} className="font-semibold">
+        {match[0]}
+      </span>
+    );
+    lastIndex = index + match[0].length;
+  }
+
+  if (lastIndex < body.length) {
+    parts.push(body.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : body;
 }
+
+const COMMENT_REACTION_CHOICES = ["👍", "🎉", "❤️"];
 
 function CommentNote({
   comment,
@@ -311,6 +362,7 @@ function CommentNote({
   variant?: "default" | "compact";
 }): JSX.Element {
   const displayBody = expanded ? comment.body : getCommentSnippet(comment.body);
+  const renderedBody = renderMentionBody(displayBody);
   const reactionCounts = new Map(comment.reactions.map((reaction) => [reaction.emoji, reaction.count]));
   const showReactionPicker = Boolean(onReact && expanded);
   const reactionEmojis = showReactionPicker
@@ -331,8 +383,8 @@ function CommentNote({
         }}
         className="inline-flex w-auto max-w-[240px] min-w-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50/80 px-2 py-1 text-[10px] text-amber-900 shadow-sm transition hover:bg-amber-50"
       >
-        <span className="font-semibold">{comment.author.name}</span>
-        <span className="truncate text-amber-800">{displayBody}</span>
+        <span className="font-semibold">{getMemberDisplayName(comment.author)}</span>
+        <span className="truncate text-amber-800">{renderedBody}</span>
         {reactionSummary.length > 0 && (
           <span className="ml-auto text-[9px] text-amber-700">{reactionSummary}</span>
         )}
@@ -358,7 +410,7 @@ function CommentNote({
       className="w-full rounded-md border border-amber-200 bg-amber-50/80 px-2.5 py-2 text-left text-xs text-amber-950 shadow-sm transition hover:bg-amber-50"
     >
       <div className="flex items-center justify-between gap-2 text-[10px] text-amber-700">
-        <span className="font-semibold text-amber-900">{comment.author.name}</span>
+        <span className="font-semibold text-amber-900">{getMemberDisplayName(comment.author)}</span>
         <div className="flex items-center gap-2">
           <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
           {expanded && (
@@ -387,7 +439,7 @@ function CommentNote({
           )}
         </div>
       </div>
-      <p className="mt-1 text-xs text-amber-950">{displayBody}</p>
+      <p className="mt-1 text-xs text-amber-950">{renderedBody}</p>
       {expanded && reactionEmojis.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
           {reactionEmojis.map((emoji) => {
@@ -420,38 +472,6 @@ function CommentNote({
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-function MentionPicker({
-  members,
-  selectedIds,
-  onToggle
-}: {
-  members: BoardMember[];
-  selectedIds: string[];
-  onToggle: (member: BoardMember) => void;
-}): JSX.Element | null {
-  if (members.length === 0) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
-      <span className="mr-1">Mentions:</span>
-      {members.map((member) => {
-        const displayName = member.name.split(/\s+/)[0] ?? member.name;
-        const selected = selectedIds.includes(member.id);
-        return (
-          <button
-            key={member.id}
-            type="button"
-            onClick={() => onToggle(member)}
-            className={`rounded-full border px-2 py-0.5 text-[10px] ${selected ? "border-sky-300 bg-sky-100 text-sky-900" : "border-border/60 bg-white/70 text-muted-foreground"}`}
-            title={member.name}
-          >
-            @{displayName}
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -489,6 +509,7 @@ function getTimeLeftLabel(doneEnteredAt: string, nowMs: number, retentionMinutes
 
   const secondsLeft = Math.max(1, Math.ceil(remainingMs / second));
   return `${secondsLeft}s left`;
+}
 
 function getArchiveCountdownLabel(archivedAt: string | null, nowMs: number, retentionMinutes: number, expiredLabel = "Deleting soon"): string {
   if (!archivedAt) return "";
@@ -521,34 +542,6 @@ function getArchiveCountdownLabel(archivedAt: string | null, nowMs: number, rete
   const secondsLeft = Math.max(1, Math.ceil(remainingMs / second));
   return `${secondsLeft}s left`;
 }
-
-}
-
-function getArchiveCountdownLabel(archivedAt: string | null, nowMs: number, retentionMinutes: number, expiredLabel = "Deleting soon"): string {
-  if (!archivedAt) return "";
-  const archivedAtMs = new Date(archivedAt).getTime();
-  if (Number.isNaN(archivedAtMs)) return "";
-  const retentionMs = clampRetentionMinutes(retentionMinutes) * 60 * 1000;
-  const remainingMs = retentionMs - (nowMs - archivedAtMs);
-  if (remainingMs <= 0) return expiredLabel;
-
-  const second = 1000;
-  const minute = 60 * second;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (remainingMs >= 2 * day) {
-    return `${Math.ceil(remainingMs / day)}d left`;
-  }
-  if (remainingMs >= 2 * hour) {
-    return `${Math.ceil(remainingMs / hour)}h left`;
-  }
-  if (remainingMs >= 2 * minute) {
-    return `${Math.ceil(remainingMs / minute)}m left`;
-  }
-  return `${Math.max(1, Math.ceil(remainingMs / second))}s left`;
-}
-
 
 function getChecklistProgress(checklist: Checklist): { done: number; total: number; percent: number } {
   const total = checklist.items?.length ?? 0;
@@ -709,9 +702,9 @@ function CardSummary({
                   <span
                     key={assignee.id}
                     className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-700"
-                    title={assignee.name}
+                    title={getMemberDisplayName(assignee)}
                   >
-                    {getInitials(assignee.name)}
+                    {getInitials(getMemberDisplayName(assignee))}
                   </span>
                 ))}
               </div>
@@ -1051,9 +1044,6 @@ export function BoardDetailPage(): JSX.Element {
   const [expandedCommentIds, setExpandedCommentIds] = useState<Set<string>>(new Set());
   const [expandedListCommentGroups, setExpandedListCommentGroups] = useState<Set<string>>(new Set());
   const [expandedCardCommentGroups, setExpandedCardCommentGroups] = useState<Set<string>>(new Set());
-  const [boardCommentMentions, setBoardCommentMentions] = useState<string[]>([]);
-  const [listCommentMentions, setListCommentMentions] = useState<Record<string, string[]>>({});
-  const [cardCommentMentions, setCardCommentMentions] = useState<string[]>([]);
 
   const [archivedLists, setArchivedLists] = useState<ArchivedListEntry[]>([]);
   const [isArchivedOpen, setIsArchivedOpen] = useState(false);
@@ -1147,6 +1137,19 @@ export function BoardDetailPage(): JSX.Element {
     () => toRetentionMinutes(archiveRetentionDays, archiveRetentionHours, archiveRetentionMinutesPart),
     [archiveRetentionDays, archiveRetentionHours, archiveRetentionMinutesPart]
   );
+
+  const hasExpired = useMemo(() => {
+    if (!board) return false;
+    const retentionMs = clampRetentionMinutes(retentionTotalMinutes) * 60 * 1000;
+    return board.lists.some((list) =>
+      list.cards.some((card) => {
+        if (!card.doneEnteredAt) return false;
+        const enteredAtMs = new Date(card.doneEnteredAt).getTime();
+        if (Number.isNaN(enteredAtMs)) return false;
+        return nowMs - enteredAtMs >= retentionMs;
+      })
+    );
+  }, [board, nowMs, retentionTotalMinutes]);
 
   const selectedCardWithList = useMemo(
     () => getCardFromBoard(board, selectedCardId),
@@ -1281,41 +1284,6 @@ export function BoardDetailPage(): JSX.Element {
     });
   }, []);
 
-  const onToggleBoardMention = (member: BoardMember): void => {
-    setBoardCommentMentions((current) => {
-      const hasMention = current.includes(member.id);
-      if (!hasMention) {
-        setNewBoardComment((body) => appendMention(body, member.name));
-      }
-      return hasMention ? current.filter((id) => id !== member.id) : [...current, member.id];
-    });
-  };
-
-  const onToggleListMention = (listId: string, member: BoardMember): void => {
-    setListCommentMentions((current) => {
-      const existing = current[listId] ?? [];
-      const hasMention = existing.includes(member.id);
-      if (!hasMention) {
-        setNewListCommentDrafts((drafts) => ({
-          ...drafts,
-          [listId]: appendMention(drafts[listId] ?? "", member.name)
-        }));
-      }
-      const next = hasMention ? existing.filter((id) => id !== member.id) : [...existing, member.id];
-      return { ...current, [listId]: next };
-    });
-  };
-
-  const onToggleCardMention = (member: BoardMember): void => {
-    setCardCommentMentions((current) => {
-      const hasMention = current.includes(member.id);
-      if (!hasMention) {
-        setNewCardComment((body) => appendMention(body, member.name));
-      }
-      return hasMention ? current.filter((id) => id !== member.id) : [...current, member.id];
-    });
-  };
-
   const applyRetentionParts = useCallback((days: number, hours: number, minutes: number): void => {
     const totalMinutes = toRetentionMinutes(days, hours, minutes);
     const nextParts = splitRetentionMinutes(totalMinutes);
@@ -1375,35 +1343,6 @@ export function BoardDetailPage(): JSX.Element {
       }
       return next;
     });
-
-    setListCommentMentions((current) => {
-      const next = { ...current };
-      for (const list of sortedLists) {
-        if (!next[list.id]) next[list.id] = [];
-      }
-      for (const key of Object.keys(next)) {
-        if (!sortedLists.some((list) => list.id === key)) delete next[key];
-      }
-      return next;
-    });
-
-    listSyncedNamesRef.current = Object.fromEntries(sortedLists.map((list) => [list.id, list.name]));
-    const syncedDraft: BoardDraft = {
-      name: data.name.trim(),
-      description: (data.description ?? "").trim(),
-      background: data.background,
-      retentionMode: data.retentionMode ?? "card_and_attachments",
-      retentionMinutes: clampRetentionMinutes(data.retentionMinutes ?? MIN_RETENTION_MINUTES),
-      archiveRetentionMinutes: clampRetentionMinutes(data.archiveRetentionMinutes ?? MIN_RETENTION_MINUTES)
-    };
-    lastSyncedBoardRef.current = syncedDraft;
-    currentDraftBoardRef.current = syncedDraft;
-    initializedBoardRef.current = true;
-    setListSavingIds(new Set());
-    setEditingListId((current) => {
-      if (!current) return current;
-      return sortedLists.some((list) => list.id === current) ? current : null;
-    });
   }, []);
 
   const updateCardInBoard = useCallback((cardId: string, updater: (card: BoardCard) => BoardCard): void => {
@@ -1425,18 +1364,55 @@ export function BoardDetailPage(): JSX.Element {
       return {
         ...current,
         lists: current.lists.map((list) => {
-          if (list.id === updated.listId) {
-            const exists = list.cards.some((card) => card.id === updated.id);
-            const nextCards = exists
-              ? list.cards.map((card) => (card.id === updated.id ? updated : card))
-              : [...list.cards, updated];
-            return { ...list, cards: sortCardsByPosition(nextCards) };
-          }
-          return { ...list, cards: list.cards.filter((card) => card.id !== updated.id) };
+          if (list.id !== updated.listId) return list;
+          const exists = list.cards.some((card) => card.id === updated.id);
+          const nextCards = exists
+            ? list.cards.map((card) => (card.id === updated.id ? updated : card))
+            : [...list.cards, updated];
+          return { ...list, cards: sortCardsByPosition(nextCards) };
         })
       };
     });
   }, []);
+
+  const updateCardChecklists = useCallback(
+    (cardId: string, updater: (checklists: Checklist[]) => Checklist[]): void => {
+      updateCardInBoard(cardId, (card) => ({
+        ...card,
+        checklists: sortChecklists(updater(card.checklists ?? []))
+      }));
+    },
+    [updateCardInBoard]
+  );
+
+  const updateChecklistInCard = useCallback(
+    (cardId: string, checklistId: string, updater: (checklist: Checklist) => Checklist): void => {
+      updateCardChecklists(cardId, (checklists) =>
+        checklists.map((checklist) => (checklist.id === checklistId ? updater(checklist) : checklist))
+      );
+    },
+    [updateCardChecklists]
+  );
+
+  const updateChecklistItemsInCard = useCallback(
+    (cardId: string, checklistId: string, updater: (items: ChecklistItem[]) => ChecklistItem[]): void => {
+      updateChecklistInCard(cardId, checklistId, (checklist) => ({
+        ...checklist,
+        items: sortChecklistItems(updater(checklist.items ?? []))
+      }));
+    },
+    [updateChecklistInCard]
+  );
+
+  const updateCardAttachments = useCallback(
+    (cardId: string, updater: (attachments: BoardAttachment[]) => BoardAttachment[]): void => {
+      updateCardInBoard(cardId, (card) => ({
+        ...card,
+        attachments: sortAttachments(updater(card.attachments ?? []))
+      }));
+    },
+    [updateCardInBoard]
+  );
 
   const removeCommentFromBoard = useCallback((comment: BoardComment): void => {
     setBoard((current) => {
@@ -1466,128 +1442,61 @@ export function BoardDetailPage(): JSX.Element {
   const replaceCommentInBoard = useCallback((updated: BoardComment): void => {
     setBoard((current) => {
       if (!current) return current;
-      const nextBoardComments = (current.comments ?? []).map((comment) =>
-        comment.id === updated.id ? updated : comment
-      );
+      const isBoardComment = !updated.listId && !updated.cardId;
       return {
         ...current,
-        comments: nextBoardComments,
+        comments: isBoardComment
+          ? (current.comments ?? []).map((entry) => (entry.id === updated.id ? updated : entry))
+          : current.comments,
         lists: current.lists.map((list) => ({
           ...list,
-          comments: (list.comments ?? []).map((comment) =>
-            comment.id === updated.id ? updated : comment
-          ),
+          comments: updated.listId === list.id
+            ? (list.comments ?? []).map((entry) => (entry.id === updated.id ? updated : entry))
+            : list.comments,
           cards: list.cards.map((card) => ({
             ...card,
-            comments: (card.comments ?? []).map((comment) =>
-              comment.id === updated.id ? updated : comment
-            )
+            comments: updated.cardId === card.id
+              ? (card.comments ?? []).map((entry) => (entry.id === updated.id ? updated : entry))
+              : card.comments
           }))
         }))
       };
     });
   }, []);
 
-  const updateCardChecklists = useCallback(
-    (cardId: string, updater: (checklists: Checklist[]) => Checklist[]): void => {
-      updateCardInBoard(cardId, (card) => ({
-        ...card,
-        checklists: sortChecklists(updater(card.checklists ?? []))
-      }));
-    },
-    [updateCardInBoard]
-  );
-
-  const updateCardAttachments = useCallback(
-    (cardId: string, updater: (attachments: BoardAttachment[]) => BoardAttachment[]): void => {
-      updateCardInBoard(cardId, (card) => ({
-        ...card,
-        attachments: sortAttachments(updater(card.attachments ?? []))
-      }));
-    },
-    [updateCardInBoard]
-  );
-
-  const updateChecklistInCard = useCallback(
-    (cardId: string, checklistId: string, updater: (checklist: Checklist) => Checklist): void => {
-      updateCardChecklists(cardId, (checklists) =>
-        checklists.map((checklist) => (checklist.id === checklistId ? updater(checklist) : checklist))
-      );
-    },
-    [updateCardChecklists]
-  );
-
-  const updateChecklistItemsInCard = useCallback(
-    (cardId: string, checklistId: string, updater: (items: ChecklistItem[]) => ChecklistItem[]): void => {
-      updateChecklistInCard(cardId, checklistId, (checklist) => ({
-        ...checklist,
-        items: sortChecklistItems(updater(checklist.items ?? []))
-      }));
-    },
-    [updateChecklistInCard]
-  );
-
-
-  const loadBoard = useCallback(async (): Promise<void> => {
-    if (!boardId) return;
-    setLoading(true);
-    setError(null);
+  const loadBoard = useCallback(async (showLoading: boolean): Promise<void> => {
+    if (!boardId) {
+      if (showLoading) setLoading(false);
+      return;
+    }
+    if (showLoading) setLoading(true);
     try {
       const data = await getBoardById(boardId);
       hydrateBoardState(data);
+      setError(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load board");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [boardId, hydrateBoardState]);
 
   const refreshBoardSilently = useCallback(async (): Promise<void> => {
-    if (!boardId) return;
-    try {
-      const data = await getBoardById(boardId);
-      hydrateBoardState(data);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to refresh board");
-    }
-  }, [boardId, hydrateBoardState]);
-
-  useEffect(() => { void loadBoard(); }, [loadBoard]);
+    await loadBoard(false);
+  }, [loadBoard]);
 
   useEffect(() => {
-    if (!editingListId) return;
-    focusListInput(editingListId);
-  }, [editingListId, focusListInput]);
-
-
-  useEffect(() => {
-    if (!hasDoneCards) return;
-    const interval = window.setInterval(() => {
-      setNowMs(Date.now());
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [hasDoneCards]);
+    void loadBoard(true);
+  }, [loadBoard]);
 
   useEffect(() => {
     if (!board || !hasDoneCards) return;
-    const retentionMs = clampRetentionMinutes(retentionTotalMinutes) * 60 * 1000;
-    if (!Number.isFinite(retentionMs) || retentionMs <= 0) return;
-
-    const hasExpired = board.lists.some((list) =>
-      list.cards.some((card) => {
-        if (!card.doneEnteredAt) return false;
-        const enteredAt = new Date(card.doneEnteredAt).getTime();
-        if (Number.isNaN(enteredAt)) return false;
-        return nowMs - enteredAt >= retentionMs;
-      })
-    );
-
     if (!hasExpired) return;
     if (nowMs - lastCleanupSyncRef.current < 2000) return;
 
     lastCleanupSyncRef.current = nowMs;
     void refreshBoardSilently();
-  }, [board, hasDoneCards, nowMs, retentionTotalMinutes, refreshBoardSilently]);
+  }, [board, hasDoneCards, hasExpired, nowMs, refreshBoardSilently]);
 
   useEffect(() => {
     if (!selectedCardId) return;
@@ -2046,7 +1955,6 @@ export function BoardDetailPage(): JSX.Element {
       });
       setListNameDrafts((c) => ({ ...c, [created.id]: created.name }));
       setNewCardTitles((c) => ({ ...c, [created.id]: "" }));
-      setListCommentMentions((c) => ({ ...c, [created.id]: [] }));
       setNewListName("");
       setNewListDone(false);
       setError(null);
@@ -2115,7 +2023,6 @@ export function BoardDetailPage(): JSX.Element {
       });
       setListNameDrafts((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
       setNewCardTitles((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
-      setListCommentMentions((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
       setListSavingIds((c) => { const n = new Set(c); n.delete(listToDelete.id); return n; });
       if (editingListId === listToDelete.id) setEditingListId(null);
       setListToDelete(null);
@@ -2235,10 +2142,10 @@ export function BoardDetailPage(): JSX.Element {
     const body = newBoardComment.trim();
     if (body.length < 1) return;
     try {
-      const created = await createBoardComment(boardId, { body, mentions: boardCommentMentions });
+      const mentions = extractMentionIds(body, boardMembers);
+      const created = await createBoardComment(boardId, { body, mentions });
       setBoard((current) => current ? { ...current, comments: [...(current.comments ?? []), created] } : current);
       setNewBoardComment("");
-      setBoardCommentMentions([]);
       setError(null);
       triggerSavedNotice();
     } catch (createError) {
@@ -2250,7 +2157,7 @@ export function BoardDetailPage(): JSX.Element {
     event.preventDefault();
     const body = (newListCommentDrafts[listId] ?? "").trim();
     if (body.length < 1) return;
-    const mentions = listCommentMentions[listId] ?? [];
+    const mentions = extractMentionIds(body, boardMembers);
     try {
       const created = await createListComment(listId, { body, mentions });
       setBoard((current) => {
@@ -2263,7 +2170,6 @@ export function BoardDetailPage(): JSX.Element {
         };
       });
       setNewListCommentDrafts((current) => ({ ...current, [listId]: "" }));
-      setListCommentMentions((current) => ({ ...current, [listId]: [] }));
       setError(null);
       triggerSavedNotice();
     } catch (createError) {
@@ -2277,13 +2183,13 @@ export function BoardDetailPage(): JSX.Element {
     const body = newCardComment.trim();
     if (body.length < 1) return;
     try {
-      const created = await createCardComment(selectedCardWithList.card.id, { body, mentions: cardCommentMentions });
+      const mentions = extractMentionIds(body, boardMembers);
+      const created = await createCardComment(selectedCardWithList.card.id, { body, mentions });
       updateCardInBoard(selectedCardWithList.card.id, (card) => ({
         ...card,
         comments: [...(card.comments ?? []), created]
       }));
       setNewCardComment("");
-      setCardCommentMentions([]);
       setError(null);
       triggerSavedNotice();
     } catch (createError) {
@@ -2663,7 +2569,6 @@ export function BoardDetailPage(): JSX.Element {
     lastSyncedCardRef.current = draft;
     setCardSaveStatus("saved");
     setNewCardComment("");
-    setCardCommentMentions([]);
     setNewChecklistTitle("");
     setNewChecklistItemTitles({});
     setChecklistTitleDrafts({});
@@ -2680,7 +2585,6 @@ export function BoardDetailPage(): JSX.Element {
     setCardDraft(null);
     setCardSaveStatus("idle");
     setNewCardComment("");
-    setCardCommentMentions([]);
     clearCardAutosaveTimeout();
     lastSyncedCardRef.current = null;
     setNewChecklistTitle("");
@@ -2841,9 +2745,10 @@ export function BoardDetailPage(): JSX.Element {
               )}
               <div className="space-y-2">
                 <form className="flex flex-wrap gap-2" onSubmit={onCreateBoardComment}>
-                  <Input
+                  <MentionsField
                     value={newBoardComment}
-                    onChange={(event) => setNewBoardComment(event.target.value)}
+                    onChange={(value) => setNewBoardComment(value)}
+                    members={boardMembers}
                     placeholder="Add a board note"
                   />
                   <Button type="submit" className="gap-1">
@@ -2851,11 +2756,6 @@ export function BoardDetailPage(): JSX.Element {
                     Add note
                   </Button>
                 </form>
-                <MentionPicker
-                  members={boardMembers}
-                  selectedIds={boardCommentMentions}
-                  onToggle={onToggleBoardMention}
-                />
               </div>
             </div>
           </div>
@@ -3027,12 +2927,12 @@ export function BoardDetailPage(): JSX.Element {
                               className="grid gap-2 sm:grid-cols-[1fr_auto]"
                               onSubmit={(event) => { void onCreateListComment(list.id, event); }}
                             >
-                              <Input
+                              <MentionsField
                                 value={newListCommentDrafts[list.id] ?? ""}
-                                onChange={(event) => {
-                                  const value = event.target.value;
+                                onChange={(value) => {
                                   setNewListCommentDrafts((current) => ({ ...current, [list.id]: value }));
                                 }}
+                                members={boardMembers}
                                 placeholder="Add list note"
                               />
                               <Button type="submit" variant="secondary" className="gap-1">
@@ -3040,11 +2940,6 @@ export function BoardDetailPage(): JSX.Element {
                                 Note
                               </Button>
                             </form>
-                            <MentionPicker
-                              members={boardMembers}
-                              selectedIds={listCommentMentions[list.id] ?? []}
-                              onToggle={(member) => onToggleListMention(list.id, member)}
-                            />
                           </div>
 
                           <div className="space-y-2">
@@ -3468,7 +3363,7 @@ export function BoardDetailPage(): JSX.Element {
                   <Input
                     type="datetime-local"
                     value={cardDraft.dueDate}
-                    onChange={(e) => { const v = e.target.value; setCardDraft((c) => c ? { ...c, dueDate: v } : c); }}
+                    onChange={(e) => { const v = clampYearInDateInput(e.target.value); setCardDraft((c) => c ? { ...c, dueDate: v } : c); }}
                   />
                 </label>
               </div>
@@ -3551,9 +3446,9 @@ export function BoardDetailPage(): JSX.Element {
                           />
                           <span className="inline-flex items-center gap-2">
                             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
-                              {getInitials(member.name)}
+                              {getInitials(getMemberDisplayName(member))}
                             </span>
-                            <span className="text-xs">{member.name}</span>
+                            <span className="text-xs">{getMemberDisplayName(member)}</span>
                           </span>
                         </label>
                       );
@@ -3657,18 +3552,15 @@ export function BoardDetailPage(): JSX.Element {
                   </div>
                 )}
                 <form className="space-y-2" onSubmit={onCreateCardComment}>
-                  <textarea
+                  <MentionsField
                     value={newCardComment}
-                    onChange={(event) => setNewCardComment(event.target.value)}
+                    onChange={(value) => setNewCardComment(value)}
+                    members={boardMembers}
                     placeholder="Add a comment"
-                    className="min-h-[96px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+                    multiline
+                    className="min-h-[96px] w-full"
                   />
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <MentionPicker
-                      members={boardMembers}
-                      selectedIds={cardCommentMentions}
-                      onToggle={onToggleCardMention}
-                    />
                     <Button type="submit" variant="secondary" size="sm" className="gap-1">
                       <Plus className="h-4 w-4" />
                       Add comment
@@ -3995,3 +3887,29 @@ export function BoardDetailPage(): JSX.Element {
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

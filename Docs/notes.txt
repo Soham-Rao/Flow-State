@@ -1,9 +1,13 @@
 donwload all button 
-discord roles   
+discord roles, also guest - only slack part
+slack seperate tab 
+one thread - messages keep coming, replies are its own thread, only 1 level deep
 
 
-sohamsrao ✔️
-computerproject ✔️
-abman ✔️
-storage 1 ✔️
-storage 2
+sohamsrao ✔️ 0
+computerproject ✔️ 0
+abman ✔️ 0
+storage 1 ✔️ 0 
+storage 2 
+storage 3 
+storage p 

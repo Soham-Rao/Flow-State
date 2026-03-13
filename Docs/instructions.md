@@ -22,6 +22,16 @@
 
 ---
 
+## Phase 5.1 Plan - @ Mentions (App-wide)
+
+1. Add a shared mentions trigger that activates on `@` in comment inputs and uses a single user search source.
+2. Build a reusable mentions suggestion popover component (keyboard + mouse selection).
+3. Store mentions in content (`@Full Name`) and persist mention userIds on create/update.
+4. Use board members as the mention source for now; no new backend endpoints yet.
+5. Add small unit tests for mention parsing and insertion behavior.
+
+---
+
 ## Phase 1 Summary
 
 - [x] Phase 1.1 implemented.

@@ -1,8 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  --font-ui: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
   --background: 204 100% 99%;
   --foreground: 210 20% 15%;
   --card: 0 0% 100%;
@@ -19,6 +22,36 @@
   --input: 197 37% 85%;
   --ring: 194 78% 38%;
   --radius: 0.75rem;
+  --ui-letter-spacing: 0em;
+  --ui-line-height: 1.6;
+}
+
+:root[data-font="grotesk"] {
+  --font-ui: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+:root[data-font="serif"] {
+  --font-ui: "Fraunces", "Iowan Old Style", "Georgia", serif;
+}
+
+:root[data-spacing="tight"] {
+  --ui-letter-spacing: -0.01em;
+  --ui-line-height: 1.35;
+}
+
+:root[data-spacing="compact"] {
+  --ui-letter-spacing: -0.005em;
+  --ui-line-height: 1.45;
+}
+
+:root[data-spacing="default"] {
+  --ui-letter-spacing: 0em;
+  --ui-line-height: 1.6;
+}
+
+:root[data-spacing="spacious"] {
+  --ui-letter-spacing: 0.01em;
+  --ui-line-height: 1.8;
 }
 
 * {
@@ -27,6 +60,9 @@
 
 body {
   @apply bg-background text-foreground antialiased;
+  font-family: var(--font-ui);
+  letter-spacing: var(--ui-letter-spacing);
+  line-height: var(--ui-line-height);
   min-height: 100vh;
   background-image:
     radial-gradient(circle at 10% 12%, rgba(14, 116, 144, 0.15), transparent 42%),

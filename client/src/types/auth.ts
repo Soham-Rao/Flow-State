@@ -5,6 +5,11 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  username: string | null;
+  displayName: string | null;
+  bio: string | null;
+  age: number | null;
+  dateOfBirth: string | null;
   createdAt: string;
 }
 

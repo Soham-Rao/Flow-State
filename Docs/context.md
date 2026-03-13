@@ -270,7 +270,11 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 4.2: Attachments | ✅ Completed | 2026-03-13 | 2026-03-13 | Added attachments API + UI, retention settings, and cleanup support |
 | Phase 4.3: Labels + Assignments + Cover Colors | ✅ Completed | 2026-03-13 | 2026-03-13 | Labels/assignees/cover colors wired end-to-end with schema + API + UI and polish fixes |
 | Phase 4.4: Comments + Due Dates + Archive/Restore | ✅ Completed | 2026-03-13 | 2026-03-13 | Comments with mentions/reactions, archive/restore flows, and retention countdown badges |
-| Phase 5: Team & Collaboration | ⬜ Not Started | — | — | — |
+| Phase 5: Team & Collaboration | 🟨 In Progress | 2026-03-13 | — | Phase 5.2 completed, Phase 5.3 in progress |
+| Phase 5.1: @ Mentions Autocomplete (App-wide) | ✅ Completed | 2026-03-13 | 2026-03-13 | Autocomplete on `@` anywhere + mention notifications |
+| Phase 5.2: Invitation System | ✅ Completed | 2026-03-13 | 2026-03-14 | Admin invite flow + shareable links |
+| Phase 5.3: Roles & Permissions | 🟨 In Progress | 2026-03-14 | — | Role creation + assignment + permission gating |
+| Phase 5.4: Threads Section | ⬜ Not Started | — | — | Sidebar section groundwork |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
 | Phase 8: Time Tracking & Focus | ⬜ Not Started | — | — | — |

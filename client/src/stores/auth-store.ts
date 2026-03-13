@@ -10,11 +10,21 @@ interface RegisterInput {
   name: string;
   email: string;
   password: string;
+  inviteToken?: string;
 }
 
 interface LoginInput {
   email: string;
   password: string;
+}
+
+interface UpdateProfileInput {
+  name?: string;
+  username?: string | null;
+  displayName?: string | null;
+  bio?: string | null;
+  age?: number | null;
+  dateOfBirth?: string | null;
 }
 
 interface AuthState {
@@ -26,6 +36,7 @@ interface AuthState {
   register: (input: RegisterInput) => Promise<void>;
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (input: UpdateProfileInput) => Promise<void>;
   clearError: () => void;
 }
 
@@ -97,6 +108,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to login";
       set(setUnauthenticated(message));
+      throw error;
+    }
+  },
+
+  updateProfile: async (input) => {
+    try {
+      const updated = await authApi.updateProfile(input);
+      set((state) => ({
+        user: state.user ? { ...state.user, ...updated } : updated
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update profile";
+      set({ error: message });
       throw error;
     }
   },

@@ -80,6 +80,8 @@ interface BoardLabel {
 interface BoardMember {
   id: string;
   name: string;
+  displayName: string | null;
+  username: string | null;
   email: string;
   role: UserRole;
   createdAt: Date;
@@ -114,6 +116,8 @@ type CommentRow = {
   updatedAt: Date;
   authorId: string;
   authorName: string;
+  authorDisplayName: string | null;
+  authorUsername: string | null;
   authorEmail: string;
   authorRole: UserRole;
   authorCreatedAt: Date;
@@ -467,6 +471,8 @@ function assertUserExists(userId: string): BoardMember {
     .select({
       id: users.id,
       name: users.name,
+      displayName: users.displayName,
+      username: users.username,
       email: users.email,
       role: users.role,
       createdAt: users.createdAt
@@ -504,6 +510,8 @@ function getBoardMembers(): BoardMember[] {
     .select({
       id: users.id,
       name: users.name,
+      displayName: users.displayName,
+      username: users.username,
       email: users.email,
       role: users.role,
       createdAt: users.createdAt
@@ -634,6 +642,8 @@ function getCommentMentionsForComments(commentIds: string[]): Map<string, BoardM
       commentId: commentMentions.commentId,
       id: users.id,
       name: users.name,
+      displayName: users.displayName,
+      username: users.username,
       email: users.email,
       role: users.role,
       createdAt: users.createdAt
@@ -649,6 +659,8 @@ function getCommentMentionsForComments(commentIds: string[]): Map<string, BoardM
     list.push({
       id: row.id,
       name: row.name,
+      displayName: row.displayName,
+      username: row.username,
       email: row.email,
       role: row.role,
       createdAt: row.createdAt
@@ -696,6 +708,8 @@ function getCommentsForBoard(boardId: string): BoardComment[] {
       updatedAt: comments.updatedAt,
       authorId: users.id,
       authorName: users.name,
+      authorDisplayName: users.displayName,
+      authorUsername: users.username,
       authorEmail: users.email,
       authorRole: users.role,
       authorCreatedAt: users.createdAt
@@ -725,6 +739,8 @@ function getCommentsForLists(listIds: string[]): Map<string, BoardComment[]> {
       updatedAt: comments.updatedAt,
       authorId: users.id,
       authorName: users.name,
+      authorDisplayName: users.displayName,
+      authorUsername: users.username,
       authorEmail: users.email,
       authorRole: users.role,
       authorCreatedAt: users.createdAt
@@ -762,6 +778,8 @@ function getCommentsForCards(cardIds: string[]): Map<string, BoardComment[]> {
       updatedAt: comments.updatedAt,
       authorId: users.id,
       authorName: users.name,
+      authorDisplayName: users.displayName,
+      authorUsername: users.username,
       authorEmail: users.email,
       authorRole: users.role,
       authorCreatedAt: users.createdAt
@@ -795,6 +813,8 @@ function getCommentById(commentId: string): BoardComment {
       updatedAt: comments.updatedAt,
       authorId: users.id,
       authorName: users.name,
+      authorDisplayName: users.displayName,
+      authorUsername: users.username,
       authorEmail: users.email,
       authorRole: users.role,
       authorCreatedAt: users.createdAt
@@ -899,6 +919,8 @@ function getAssigneesForCards(cardIds: string[]): Map<string, BoardMember[]> {
       cardId: cardAssignees.cardId,
       id: users.id,
       name: users.name,
+      displayName: users.displayName,
+      username: users.username,
       email: users.email,
       role: users.role,
       createdAt: users.createdAt
@@ -915,6 +937,8 @@ function getAssigneesForCards(cardIds: string[]): Map<string, BoardMember[]> {
     list.push({
       id: row.id,
       name: row.name,
+      displayName: row.displayName,
+      username: row.username,
       email: row.email,
       role: row.role,
       createdAt: row.createdAt

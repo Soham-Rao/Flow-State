@@ -92,6 +92,8 @@ export interface BoardLabel {
 export interface BoardMember {
   id: string;
   name: string;
+  displayName: string | null;
+  username: string | null;
   email: string;
   role: "admin" | "member";
   createdAt: string;

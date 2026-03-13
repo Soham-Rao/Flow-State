@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { lookupInvite } from "@/lib/invites-api";
 import { useAuthStore } from "@/stores/auth-store";
+import type { InviteLookup } from "@/types/invite";
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -15,6 +17,11 @@ export function RegisterPage(): JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("invite") ?? undefined;
+  const [inviteInfo, setInviteInfo] = useState<InviteLookup | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   const status = useAuthStore((state) => state.status);
   const apiError = useAuthStore((state) => state.error);
@@ -23,6 +30,36 @@ export function RegisterPage(): JSX.Element {
 
   const navigate = useNavigate();
   const isSubmitting = status === "loading";
+
+  useEffect(() => {
+    if (!inviteToken) {
+      setInviteInfo(null);
+      setInviteError(null);
+      return;
+    }
+
+    setInviteLoading(true);
+    setInviteError(null);
+
+    lookupInvite(inviteToken)
+      .then((data) => {
+        setInviteInfo(data);
+        if (data.status !== "pending") {
+          setInviteError("Invite is no longer valid.");
+          return;
+        }
+        if (data.email && !email) {
+          setEmail(data.email);
+        }
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : "Invite is invalid";
+        setInviteError(message);
+      })
+      .finally(() => {
+        setInviteLoading(false);
+      });
+  }, [inviteToken]);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -56,7 +93,8 @@ export function RegisterPage(): JSX.Element {
       await register({
         name: normalizedName,
         email: normalizedEmail,
-        password
+        password,
+        inviteToken: inviteToken && !inviteError ? inviteToken : undefined
       });
       navigate("/");
     } catch {
@@ -128,6 +166,18 @@ export function RegisterPage(): JSX.Element {
               <p className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {formError ?? apiError}
               </p>
+            )}
+
+            {inviteToken && (
+              <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+                {inviteLoading
+                  ? "Checking invite..."
+                  : inviteError
+                    ? inviteError
+                    : inviteInfo?.email
+                      ? `Invite for ${inviteInfo.email}`
+                      : "Invite link detected."}
+              </div>
             )}
 
             <p className="text-xs text-muted-foreground">Use a valid email and password with at least 8 characters.</p>

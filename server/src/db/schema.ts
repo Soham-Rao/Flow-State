@@ -32,11 +32,33 @@ export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
+  username: text("username").unique(),
+  displayName: text("display_name"),
+  bio: text("bio"),
+  age: integer("age"),
+  dateOfBirth: integer("date_of_birth", { mode: "timestamp_ms" }),
   passwordHash: text("password_hash").notNull(),
   role: text("role", { enum: userRoles }).notNull().default("member"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
 });
+
+export const invites = sqliteTable("invites", {
+  id: text("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  email: text("email"),
+  role: text("role", { enum: userRoles }).notNull().default("member"),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  acceptedBy: text("accepted_by").references(() => users.id, { onDelete: "set null" }),
+  acceptedAt: integer("accepted_at", { mode: "timestamp_ms" }),
+  revokedAt: integer("revoked_at", { mode: "timestamp_ms" }),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
 
 export const boards = sqliteTable("boards", {
   id: text("id").primaryKey(),
