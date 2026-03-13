@@ -5,8 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const FONT_STORAGE_KEY = "flowstate:font";
 const SPACING_STORAGE_KEY = "flowstate:spacing";
+const THEME_STORAGE_KEY = "flowstate:theme";
 
 type FontOption = "grotesk" | "serif" | "plex" | "merriweather";
+
+type ThemeOption = "light" | "dark" | "system";
 
 type SpacingOption = "tight" | "compact" | "default" | "spacious";
 
@@ -63,6 +66,22 @@ function normalizeStoredFont(value: string | null): FontOption {
   return "grotesk";
 }
 
+function normalizeStoredTheme(value: string | null): ThemeOption {
+  if (value === "light" || value === "dark" || value === "system") return value;
+  return "system";
+}
+
+function resolveTheme(value: ThemeOption): "light" | "dark" {
+  if (value === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  return value;
+}
+
+function applyTheme(value: ThemeOption): void {
+  document.documentElement.dataset.theme = resolveTheme(value);
+}
+
 function applyFont(value: FontOption): void {
   document.documentElement.dataset.font = value;
 }
@@ -76,25 +95,33 @@ export function GeneralSettingsPage(): JSX.Element {
   const [baselineFont, setBaselineFont] = useState<FontOption>("grotesk");
   const [selectedSpacing, setSelectedSpacing] = useState<SpacingOption>("default");
   const [baselineSpacing, setBaselineSpacing] = useState<SpacingOption>("default");
+  const [selectedTheme, setSelectedTheme] = useState<ThemeOption>("system");
+  const [baselineTheme, setBaselineTheme] = useState<ThemeOption>("system");
   const [status, setStatus] = useState<"idle" | "saved">("idle");
 
   useEffect(() => {
     try {
       const storedFont = normalizeStoredFont(localStorage.getItem(FONT_STORAGE_KEY));
       const storedSpacing = (localStorage.getItem(SPACING_STORAGE_KEY) as SpacingOption | null) ?? "default";
+      const storedTheme = normalizeStoredTheme(localStorage.getItem(THEME_STORAGE_KEY));
       setSelectedFont(storedFont);
       setBaselineFont(storedFont);
       setSelectedSpacing(storedSpacing);
       setBaselineSpacing(storedSpacing);
+      setSelectedTheme(storedTheme);
+      setBaselineTheme(storedTheme);
       applyFont(storedFont);
       applySpacing(storedSpacing);
+      applyTheme(storedTheme);
     } catch {
       applyFont("grotesk");
       applySpacing("default");
+      applyTheme("system");
     }
   }, []);
 
-  const hasUnsavedChanges = selectedFont !== baselineFont || selectedSpacing !== baselineSpacing;
+  const hasUnsavedChanges =
+    selectedFont !== baselineFont || selectedSpacing !== baselineSpacing || selectedTheme !== baselineTheme;
 
   const helperText = useMemo(() => {
     if (status === "saved" && !hasUnsavedChanges) {
@@ -108,13 +135,16 @@ export function GeneralSettingsPage(): JSX.Element {
     try {
       localStorage.setItem(FONT_STORAGE_KEY, selectedFont);
       localStorage.setItem(SPACING_STORAGE_KEY, selectedSpacing);
+      localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
     } catch {
       // ignore storage failures
     }
     applyFont(selectedFont);
     applySpacing(selectedSpacing);
+    applyTheme(selectedTheme);
     setBaselineFont(selectedFont);
     setBaselineSpacing(selectedSpacing);
+    setBaselineTheme(selectedTheme);
     setStatus("saved");
   };
 
@@ -152,9 +182,36 @@ export function GeneralSettingsPage(): JSX.Element {
             <CardDescription>Pick a theme that fits your focus.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Button variant="secondary" type="button">Light</Button>
-            <Button variant="secondary" type="button">Dark</Button>
-            <Button variant="secondary" type="button">System</Button>
+            <Button
+              variant={selectedTheme === "light" ? "default" : "secondary"}
+              type="button"
+              onClick={() => {
+                setSelectedTheme("light");
+                setStatus("idle");
+              }}
+            >
+              Light
+            </Button>
+            <Button
+              variant={selectedTheme === "dark" ? "default" : "secondary"}
+              type="button"
+              onClick={() => {
+                setSelectedTheme("dark");
+                setStatus("idle");
+              }}
+            >
+              Dark
+            </Button>
+            <Button
+              variant={selectedTheme === "system" ? "default" : "secondary"}
+              type="button"
+              onClick={() => {
+                setSelectedTheme("system");
+                setStatus("idle");
+              }}
+            >
+              System
+            </Button>
           </CardContent>
         </Card>
 

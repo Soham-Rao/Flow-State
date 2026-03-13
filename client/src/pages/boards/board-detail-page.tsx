@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MentionsField } from "@/components/mentions/mentions-input";
 import { Input } from "@/components/ui/input";
-import { boardBackgroundPresets, getBoardBackgroundClass, getBoardSurfaceClass } from "@/lib/board-backgrounds";
+import { boardBackgroundPresets, getBoardBackgroundClass, getBoardSurfaceClass, type BoardBackgroundPreset } from "@/lib/board-backgrounds";
 import { extractMentionIds } from "@/lib/mentions";
 import {
   archiveBoard,
@@ -110,15 +110,15 @@ const labelColors: LabelColor[] = [
 ];
 
 const labelColorStyles: Record<LabelColor, { chip: string; dot: string }> = {
-  slate: { chip: "border-slate-300 bg-slate-200 text-slate-900", dot: "bg-slate-400" },
-  blue: { chip: "border-blue-200 bg-blue-100 text-blue-900", dot: "bg-blue-500" },
-  teal: { chip: "border-teal-200 bg-teal-100 text-teal-900", dot: "bg-teal-500" },
-  green: { chip: "border-emerald-200 bg-emerald-100 text-emerald-900", dot: "bg-emerald-500" },
-  amber: { chip: "border-amber-200 bg-amber-100 text-amber-900", dot: "bg-amber-500" },
-  orange: { chip: "border-orange-200 bg-orange-100 text-orange-900", dot: "bg-orange-500" },
-  red: { chip: "border-rose-200 bg-rose-100 text-rose-900", dot: "bg-rose-500" },
-  purple: { chip: "border-purple-200 bg-purple-100 text-purple-900", dot: "bg-purple-500" },
-  pink: { chip: "border-pink-200 bg-pink-100 text-pink-900", dot: "bg-pink-500" }
+  slate: { chip: "label-chip-slate", dot: "label-dot-slate" },
+  blue: { chip: "label-chip-blue", dot: "label-dot-blue" },
+  teal: { chip: "label-chip-teal", dot: "label-dot-teal" },
+  green: { chip: "label-chip-green", dot: "label-dot-green" },
+  amber: { chip: "label-chip-amber", dot: "label-dot-amber" },
+  orange: { chip: "label-chip-orange", dot: "label-dot-orange" },
+  red: { chip: "label-chip-red", dot: "label-dot-red" },
+  purple: { chip: "label-chip-purple", dot: "label-dot-purple" },
+  pink: { chip: "label-chip-pink", dot: "label-dot-pink" }
 };
 
 const coverColors: CardCoverColor[] = [
@@ -149,15 +149,15 @@ const coverColorClasses: Record<CardCoverColor, string> = {
 
 const coverColorSurfaceClasses: Record<CardCoverColor, string> = {
   none: "bg-background/90",
-  slate: "bg-gradient-to-br from-slate-50 via-slate-100/70 to-white",
-  blue: "bg-gradient-to-br from-blue-50 via-sky-100/70 to-white",
-  teal: "bg-gradient-to-br from-teal-50 via-cyan-100/70 to-white",
-  green: "bg-gradient-to-br from-emerald-50 via-emerald-100/70 to-white",
-  amber: "bg-gradient-to-br from-amber-50 via-amber-100/70 to-white",
-  orange: "bg-gradient-to-br from-orange-50 via-orange-100/70 to-white",
-  red: "bg-gradient-to-br from-rose-50 via-rose-100/70 to-white",
-  purple: "bg-gradient-to-br from-purple-50 via-purple-100/70 to-white",
-  pink: "bg-gradient-to-br from-pink-50 via-pink-100/70 to-white"
+  slate: "card-cover-surface-slate",
+  blue: "card-cover-surface-blue",
+  teal: "card-cover-surface-teal",
+  green: "card-cover-surface-green",
+  amber: "card-cover-surface-amber",
+  orange: "card-cover-surface-orange",
+  red: "card-cover-surface-red",
+  purple: "card-cover-surface-purple",
+  pink: "card-cover-surface-pink"
 };
 
 
@@ -381,12 +381,12 @@ function CommentNote({
           event.stopPropagation();
           onToggle();
         }}
-        className="inline-flex w-auto max-w-[240px] min-w-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50/80 px-2 py-1 text-[10px] text-amber-900 shadow-sm transition hover:bg-amber-50"
+        className="inline-flex w-auto max-w-[240px] min-w-0 items-center gap-1.5 rounded-full border comment-note comment-note-compact px-2 py-1 text-[10px] shadow-sm transition"
       >
         <span className="font-semibold">{getMemberDisplayName(comment.author)}</span>
-        <span className="truncate text-amber-800">{renderedBody}</span>
+        <span className="truncate comment-note-muted">{renderedBody}</span>
         {reactionSummary.length > 0 && (
-          <span className="ml-auto text-[9px] text-amber-700">{reactionSummary}</span>
+          <span className="ml-auto text-[9px] comment-note-subtle">{reactionSummary}</span>
         )}
       </button>
     );
@@ -407,16 +407,16 @@ function CommentNote({
           onToggle();
         }
       }}
-      className="w-full rounded-md border border-amber-200 bg-amber-50/80 px-2.5 py-2 text-left text-xs text-amber-950 shadow-sm transition hover:bg-amber-50"
+      className="w-full rounded-md border comment-note comment-note-block px-2.5 py-2 text-left text-xs shadow-sm transition"
     >
-      <div className="flex items-center justify-between gap-2 text-[10px] text-amber-700">
-        <span className="font-semibold text-amber-900">{getMemberDisplayName(comment.author)}</span>
+      <div className="flex items-center justify-between gap-2 text-[10px] comment-note-subtle">
+        <span className="font-semibold comment-note-strong">{getMemberDisplayName(comment.author)}</span>
         <div className="flex items-center gap-2">
           <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
           {expanded && (
             <button
               type="button"
-              className="text-[10px] text-amber-700 hover:text-amber-900"
+              className="text-[10px] comment-note-action"
               onClick={(event) => {
                 event.stopPropagation();
                 onToggle();
@@ -428,7 +428,7 @@ function CommentNote({
           {expanded && onDelete && (
             <button
               type="button"
-              className="text-[10px] text-rose-600 hover:text-rose-700"
+              className="text-[10px] comment-note-delete"
               onClick={(event) => {
                 event.stopPropagation();
                 onDelete();
@@ -439,15 +439,15 @@ function CommentNote({
           )}
         </div>
       </div>
-      <p className="mt-1 text-xs text-amber-950">{renderedBody}</p>
+      <p className="mt-1 text-xs comment-note-strong">{renderedBody}</p>
       {expanded && reactionEmojis.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
           {reactionEmojis.map((emoji) => {
             const count = reactionCounts.get(emoji) ?? 0;
             const label = count > 0 ? `${emoji} ${count}` : emoji;
             const chipClass = count > 0
-              ? "border-amber-200 bg-white/80 text-amber-800"
-              : "border-amber-100 bg-white/70 text-amber-700";
+              ? "comment-note-chip comment-note-chip-active"
+              : "comment-note-chip";
 
             return showReactionPicker ? (
               <button
@@ -565,11 +565,11 @@ function formatDueDateLabel(value: string | null): string | null {
 
 function getPriorityBadgeClass(priority: CardPriority): string {
   switch (priority) {
-    case "low":    return "border-emerald-400/50 bg-emerald-100/75 text-emerald-900";
-    case "medium": return "border-sky-400/50 bg-sky-100/75 text-sky-900";
-    case "high":   return "border-amber-400/50 bg-amber-100/75 text-amber-900";
-    case "urgent": return "border-rose-400/50 bg-rose-100/75 text-rose-900";
-    default:       return "border-border bg-secondary text-secondary-foreground";
+    case "low":    return "priority-badge priority-badge-low";
+    case "medium": return "priority-badge priority-badge-medium";
+    case "high":   return "priority-badge priority-badge-high";
+    case "urgent": return "priority-badge priority-badge-urgent";
+    default:       return "priority-badge";
   }
 }
 
@@ -692,7 +692,7 @@ function CardSummary({
               </span>
             )}
             {card.doneEnteredAt && (
-              <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[11px] text-rose-700">
+              <span className="rounded-full border badge-rose px-2 py-0.5 text-[11px]">
                 {getTimeLeftLabel(card.doneEnteredAt, nowMs, retentionMinutes)}
               </span>
             )}
@@ -701,7 +701,7 @@ function CardSummary({
                 {card.assignees.map((assignee) => (
                   <span
                     key={assignee.id}
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-700"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full avatar-chip text-[10px] font-semibold"
                     title={getMemberDisplayName(assignee)}
                   >
                     {getInitials(getMemberDisplayName(assignee))}
@@ -3053,7 +3053,7 @@ export function BoardDetailPage(): JSX.Element {
                 className="min-h-[88px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
               />
               <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                {boardBackgroundPresets.map((preset) => (
+                {boardBackgroundPresets.map((preset: BoardBackgroundPreset) => (
                   <button
                     key={preset.id} type="button"
                     onClick={() => setBoardBackground(preset.id)}
@@ -3445,7 +3445,7 @@ export function BoardDetailPage(): JSX.Element {
                             }}
                           />
                           <span className="inline-flex items-center gap-2">
-                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-700">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full avatar-chip text-[11px] font-semibold">
                               {getInitials(getMemberDisplayName(member))}
                             </span>
                             <span className="text-xs">{getMemberDisplayName(member)}</span>
@@ -3760,7 +3760,7 @@ export function BoardDetailPage(): JSX.Element {
                                 {entry.kind === "list" ? "Archived list" : "Archived cards"}
                               </p>
                               {entryCountdown && (
-                                <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                                <span className="rounded-full border badge-rose px-2 py-0.5 text-[10px] font-semibold">
                                   {entryCountdown}
                                 </span>
                               )}
@@ -3786,7 +3786,7 @@ export function BoardDetailPage(): JSX.Element {
                                 >
                                   <span className="font-medium text-foreground">{card.title}</span>
                                   {entry.kind === "cards" && cardCountdown && (
-                                    <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                                    <span className="rounded-full border badge-rose px-2 py-0.5 text-[10px] font-semibold">
                                       {cardCountdown}
                                     </span>
                                   )}
@@ -3806,7 +3806,7 @@ export function BoardDetailPage(): JSX.Element {
       )}
 
       {showSavedNotice && (
-        <div className="pointer-events-none fixed bottom-5 right-5 z-40 rounded-full border border-emerald-300/60 bg-emerald-100/90 px-4 py-2 text-sm font-medium text-emerald-900 shadow-lg backdrop-blur">
+        <div className="pointer-events-none fixed bottom-5 right-5 z-40 rounded-full border badge-emerald px-4 py-2 text-sm font-medium shadow-lg backdrop-blur">
           Saved
         </div>
       )}

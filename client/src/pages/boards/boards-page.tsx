@@ -5,7 +5,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { boardBackgroundPresets, getBoardBackgroundClass } from "@/lib/board-backgrounds";
+import { boardBackgroundPresets, getBoardBackgroundClass, type BoardBackgroundPreset } from "@/lib/board-backgrounds";
 import { archiveBoard, createBoard, deleteBoard, getBoards, restoreBoard } from "@/lib/boards-api";
 import type { BoardBackground, BoardSummary } from "@/types/board";
 
@@ -238,11 +238,11 @@ export function BoardsPage(): JSX.Element {
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="line-clamp-1 text-lg">{board.name}</CardTitle>
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                        <span className="rounded-full border badge-amber px-2 py-0.5 text-[10px] font-semibold">
                           Archived
                         </span>
                         {countdownLabel && (
-                          <span className="rounded-full border border-rose-300/70 bg-rose-50/90 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                          <span className="rounded-full border badge-rose px-2 py-0.5 text-[10px] font-semibold">
                             {countdownLabel}
                           </span>
                         )}
@@ -290,7 +290,7 @@ export function BoardsPage(): JSX.Element {
                   />
 
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {boardBackgroundPresets.map((preset) => (
+                    {boardBackgroundPresets.map((preset: BoardBackgroundPreset) => (
                       <button
                         key={preset.id}
                         type="button"
