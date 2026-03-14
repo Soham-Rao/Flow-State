@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, SkipForward, Sparkles, Timer, TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ type SessionMode = "focus" | "break";
 interface FocusSessionEntry {
   id: string;
   mode: SessionMode;
-  durationMinutes: number;
+  durationSeconds: number;
   completedAt: string;
 }
 
@@ -28,6 +28,21 @@ const formatTime = (totalSeconds: number): string => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+};
+
+const formatDuration = (totalSeconds: number): string => {
+  const clamped = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(clamped / 3600);
+  const minutes = Math.floor((clamped % 3600) / 60);
+  const seconds = clamped % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${seconds}s`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
 };
 
 const createId = (): string => {
@@ -47,6 +62,9 @@ export function FocusPage(): JSX.Element {
   const [remainingSeconds, setRemainingSeconds] = useState(DEFAULT_FOCUS_MINUTES * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [history, setHistory] = useState<FocusSessionEntry[]>([]);
+  const [sessionId, setSessionId] = useState(() => createId());
+  const lastRecordedSessionId = useRef<string | null>(null);
+  const lastDurationKey = useRef<string>("focus:90-break:10-mode:focus");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -56,7 +74,7 @@ export function FocusPage(): JSX.Element {
       const parsed = JSON.parse(stored) as Partial<{
         focusMinutes: number;
         breakMinutes: number;
-        history: FocusSessionEntry[];
+        history: Array<FocusSessionEntry & { durationMinutes?: number }>;
       }>;
       if (typeof parsed.focusMinutes === "number" && parsed.focusMinutes > 0) {
         setFocusMinutes(parsed.focusMinutes);
@@ -65,7 +83,26 @@ export function FocusPage(): JSX.Element {
         setBreakMinutes(parsed.breakMinutes);
       }
       if (Array.isArray(parsed.history)) {
-        setHistory(parsed.history);
+        const normalizedHistory = parsed.history
+          .map((entry) => {
+            const durationSeconds =
+              typeof entry.durationSeconds === "number"
+                ? entry.durationSeconds
+                : typeof entry.durationMinutes === "number"
+                  ? Math.round(entry.durationMinutes * 60)
+                  : 0;
+            if (!entry.id || !entry.completedAt) {
+              return null;
+            }
+            return {
+              id: entry.id,
+              mode: entry.mode,
+              durationSeconds,
+              completedAt: entry.completedAt
+            } satisfies FocusSessionEntry;
+          })
+          .filter((entry): entry is FocusSessionEntry => Boolean(entry) && entry.durationSeconds > 0);
+        setHistory(normalizedHistory);
       }
     } catch {
       // Ignore malformed local storage payloads.
@@ -80,37 +117,55 @@ export function FocusPage(): JSX.Element {
 
   useEffect(() => {
     if (isRunning) return;
+    const nextKey = `focus:${focusMinutes}-break:${breakMinutes}-mode:${mode}`;
+    if (nextKey === lastDurationKey.current) return;
+    lastDurationKey.current = nextKey;
     const nextDuration = (mode === "focus" ? focusMinutes : breakMinutes) * 60;
     setRemainingSeconds(nextDuration);
   }, [breakMinutes, focusMinutes, isRunning, mode]);
 
-  const addHistoryEntry = useCallback(
-    (completedMode: SessionMode) => {
-      const duration = completedMode === "focus" ? focusMinutes : breakMinutes;
+  const totalSeconds = (mode === "focus" ? focusMinutes : breakMinutes) * 60;
+  const progress = totalSeconds > 0 ? Math.min(1, Math.max(0, 1 - remainingSeconds / totalSeconds)) : 0;
+
+  const recordSession = useCallback(
+    (elapsedSeconds?: number) => {
+      if (lastRecordedSessionId.current === sessionId) {
+        return;
+      }
+      const spentSeconds = Math.max(
+        0,
+        Math.floor(elapsedSeconds ?? Math.max(0, totalSeconds - remainingSeconds))
+      );
+      if (spentSeconds <= 0) {
+        return;
+      }
+
       const entry: FocusSessionEntry = {
         id: createId(),
-        mode: completedMode,
-        durationMinutes: duration,
+        mode,
+        durationSeconds: spentSeconds,
         completedAt: new Date().toISOString()
       };
       setHistory((prev) => [entry, ...prev].slice(0, 200));
+      lastRecordedSessionId.current = sessionId;
     },
-    [breakMinutes, focusMinutes]
+    [mode, remainingSeconds, sessionId, totalSeconds]
   );
 
   const advanceSession = useCallback(
-    (recordEntry: boolean) => {
-      const completedMode = mode;
-      if (recordEntry) {
-        addHistoryEntry(completedMode);
+    (options?: { record?: boolean; elapsedSeconds?: number }) => {
+      if (options?.record) {
+        recordSession(options.elapsedSeconds);
       }
 
-      const nextMode = completedMode === "focus" ? "break" : "focus";
+      const nextMode = mode === "focus" ? "break" : "focus";
       setMode(nextMode);
       setRemainingSeconds((nextMode === "focus" ? focusMinutes : breakMinutes) * 60);
       setIsRunning(false);
+      setSessionId(createId());
+      lastDurationKey.current = `focus:${focusMinutes}-break:${breakMinutes}-mode:${nextMode}`;
     },
-    [addHistoryEntry, breakMinutes, focusMinutes, mode]
+    [breakMinutes, focusMinutes, mode, recordSession]
   );
 
   useEffect(() => {
@@ -119,7 +174,7 @@ export function FocusPage(): JSX.Element {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
           window.clearInterval(timerId);
-          advanceSession(true);
+          advanceSession({ record: true, elapsedSeconds: totalSeconds });
           return 0;
         }
         return prev - 1;
@@ -127,10 +182,7 @@ export function FocusPage(): JSX.Element {
     }, 1000);
 
     return () => window.clearInterval(timerId);
-  }, [advanceSession, isRunning]);
-
-  const totalSeconds = (mode === "focus" ? focusMinutes : breakMinutes) * 60;
-  const progress = totalSeconds > 0 ? Math.min(1, Math.max(0, 1 - remainingSeconds / totalSeconds)) : 0;
+  }, [advanceSession, isRunning, totalSeconds]);
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -141,29 +193,29 @@ export function FocusPage(): JSX.Element {
     weekStart.setDate(weekStart.getDate() - diff);
     weekStart.setHours(0, 0, 0, 0);
 
-    let todayFocusMinutes = 0;
-    let weekFocusMinutes = 0;
-    let totalFocusMinutes = 0;
+    let todayFocusSeconds = 0;
+    let weekFocusSeconds = 0;
+    let totalFocusSeconds = 0;
     let focusSessions = 0;
 
     for (const entry of history) {
       if (entry.mode !== "focus") continue;
       focusSessions += 1;
-      totalFocusMinutes += entry.durationMinutes;
+      totalFocusSeconds += entry.durationSeconds;
       const entryDate = new Date(entry.completedAt);
       if (entryDate >= todayStart) {
-        todayFocusMinutes += entry.durationMinutes;
+        todayFocusSeconds += entry.durationSeconds;
       }
       if (entryDate >= weekStart) {
-        weekFocusMinutes += entry.durationMinutes;
+        weekFocusSeconds += entry.durationSeconds;
       }
     }
 
     return {
       focusSessions,
-      totalFocusMinutes,
-      todayFocusMinutes,
-      weekFocusMinutes
+      totalFocusSeconds,
+      todayFocusSeconds,
+      weekFocusSeconds
     };
   }, [history]);
 
@@ -182,6 +234,7 @@ export function FocusPage(): JSX.Element {
     setBreakMinutes(presetBreak);
     if (!isRunning) {
       setRemainingSeconds((mode === "focus" ? presetFocus : presetBreak) * 60);
+      lastDurationKey.current = `focus:${presetFocus}-break:${presetBreak}-mode:${mode}`;
     }
   };
 
@@ -198,7 +251,11 @@ export function FocusPage(): JSX.Element {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <Card className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 via-sky-400/10 to-indigo-400/20 dark:from-emerald-500/20 dark:via-slate-900/10 dark:to-blue-500/20" />
+          <div
+            className={`absolute inset-0 focus-timer-surface ${
+              mode === "focus" ? "focus-timer-focus" : "focus-timer-break"
+            } ${isRunning ? "focus-timer-running" : ""}`}
+          />
           <CardHeader className="relative space-y-2">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               <span
@@ -248,12 +305,21 @@ export function FocusPage(): JSX.Element {
                   onClick={() => {
                     setIsRunning(false);
                     setRemainingSeconds((mode === "focus" ? focusMinutes : breakMinutes) * 60);
+                    setSessionId(createId());
+                    lastDurationKey.current = `focus:${focusMinutes}-break:${breakMinutes}-mode:${mode}`;
                   }}
                 >
                   <RotateCcw className="h-4 w-4" />
                   Reset
                 </Button>
-                <Button variant="ghost" className="gap-2" onClick={() => advanceSession(false)}>
+                <Button
+                  variant="ghost"
+                  className="gap-2"
+                  onClick={() => {
+                    const elapsedSeconds = Math.max(0, totalSeconds - remainingSeconds);
+                    advanceSession({ record: true, elapsedSeconds });
+                  }}
+                >
                   <SkipForward className="h-4 w-4" />
                   Skip to {nextModeLabel}
                 </Button>
@@ -350,15 +416,15 @@ export function FocusPage(): JSX.Element {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border bg-card/60 p-3">
                   <p className="text-xs text-muted-foreground">Today</p>
-                  <p className="text-xl font-semibold">{stats.todayFocusMinutes} min</p>
+                  <p className="text-xl font-semibold">{formatDuration(stats.todayFocusSeconds)}</p>
                 </div>
                 <div className="rounded-lg border bg-card/60 p-3">
                   <p className="text-xs text-muted-foreground">This week</p>
-                  <p className="text-xl font-semibold">{stats.weekFocusMinutes} min</p>
+                  <p className="text-xl font-semibold">{formatDuration(stats.weekFocusSeconds)}</p>
                 </div>
                 <div className="rounded-lg border bg-card/60 p-3">
                   <p className="text-xs text-muted-foreground">Total focus</p>
-                  <p className="text-xl font-semibold">{stats.totalFocusMinutes} min</p>
+                  <p className="text-xl font-semibold">{formatDuration(stats.totalFocusSeconds)}</p>
                 </div>
                 <div className="rounded-lg border bg-card/60 p-3">
                   <p className="text-xs text-muted-foreground">Focus sessions</p>
@@ -382,7 +448,7 @@ export function FocusPage(): JSX.Element {
                           {new Date(entry.completedAt).toLocaleString()}
                         </p>
                       </div>
-                      <span className="font-semibold">{entry.durationMinutes} min</span>
+                      <span className="font-semibold">{formatDuration(entry.durationSeconds)}</span>
                     </div>
                   ))}
                   {history.length === 0 && (
@@ -399,3 +465,4 @@ export function FocusPage(): JSX.Element {
     </div>
   );
 }
+

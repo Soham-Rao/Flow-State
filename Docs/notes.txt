@@ -11,6 +11,7 @@ hovering over username - profile
 slack seperate tab 
 one thread - messages keep coming, replies are its own thread, only 1 level deep
 
+after phase 7, for 8 do team collab version of timer - seeing stats and other stuff
 
 sohamsrao ✔️ 0
 computerproject ✔️ 0

@@ -278,7 +278,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 5.4: Threads Section | ⬜ Not Started | — | — | Sidebar section groundwork |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
-| Phase 8: Time Tracking & Focus | 🟨 In Progress | 2026-03-14 | — | Focus mode Pomodoro UI with personal history/stats (local only) |
+| Phase 8: Time Tracking & Focus | ✅ Completed | 2026-03-14 | 2026-03-14 | Focus mode Pomodoro UI with personal history/stats (local only) |
 | Phase 9: Rich Text, Search, Shortcuts | ⬜ Not Started | — | — | — |
 | Phase 10: Dashboard & Templates | ⬜ Not Started | — | — | — |
 | Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
@@ -328,6 +328,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 | Date | Update |
 |------|--------|
+| 2026-03-14 | Phase 8 completed: focus mode Pomodoro with configurable sessions, animated backgrounds, partial-session tracking, and client tests. |
 | 2026-03-14 | Phase 8 started: focus mode Pomodoro page with configurable session lengths and local-only history/stats. |
 | 2026-03-14 | Phase 5.3 completed: roles/permissions system with admin/member/guest defaults, role assignment + management UI, permission gating, and migration hardening; user-run tests pass. |
 | 2026-03-13 | Phase 4.4 completed: comments with reactions/mentions and delete, archive/restore for boards/lists/cards, retention countdown badges, and UI polish for comments/cards; Phase 4 marked complete. |

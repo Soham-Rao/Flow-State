@@ -655,3 +655,58 @@ body {
 }
 
 
+
+.focus-timer-surface {
+  background-size: 200% 200%;
+  transition: background 0.4s ease, opacity 0.4s ease;
+}
+
+.focus-timer-focus {
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(16, 185, 129, 0.28), transparent 42%),
+    radial-gradient(circle at 88% 20%, rgba(56, 189, 248, 0.2), transparent 40%),
+    linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(59, 130, 246, 0.08));
+}
+
+:root[data-theme="dark"] .focus-timer-focus {
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(16, 185, 129, 0.26), transparent 42%),
+    radial-gradient(circle at 88% 20%, rgba(14, 116, 144, 0.25), transparent 40%),
+    linear-gradient(135deg, rgba(15, 118, 110, 0.24), rgba(30, 64, 175, 0.12));
+}
+
+.focus-timer-break {
+  background-image:
+    radial-gradient(circle at 14% 18%, rgba(251, 146, 60, 0.24), transparent 42%),
+    radial-gradient(circle at 88% 24%, rgba(244, 114, 182, 0.18), transparent 38%),
+    linear-gradient(135deg, rgba(249, 115, 22, 0.16), rgba(236, 72, 153, 0.08));
+}
+
+:root[data-theme="dark"] .focus-timer-break {
+  background-image:
+    radial-gradient(circle at 14% 18%, rgba(234, 88, 12, 0.28), transparent 42%),
+    radial-gradient(circle at 88% 24%, rgba(190, 24, 93, 0.22), transparent 38%),
+    linear-gradient(135deg, rgba(154, 52, 18, 0.22), rgba(147, 51, 234, 0.12));
+}
+
+.focus-timer-running {
+  animation: focusTimerFlow 12s ease-in-out infinite;
+}
+
+@keyframes focusTimerFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-timer-running {
+    animation: none;
+  }
+}
