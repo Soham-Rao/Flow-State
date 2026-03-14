@@ -1,5 +1,13 @@
-donwload all button 
 discord roles, also guest - only slack part
+
+view existing roles ✔️
+group permissions by type ✔️
+open window, instead of it being displayed like this ✔️
+show only after invite accepted not for pending ✔️
+multi assign, better ui, discord description 
+
+hovering over username - profile
+
 slack seperate tab 
 one thread - messages keep coming, replies are its own thread, only 1 level deep
 
@@ -8,6 +16,10 @@ sohamsrao ✔️ 0
 computerproject ✔️ 0
 abman ✔️ 0
 storage 1 ✔️ 0 
-storage 2 
-storage 3 
-storage p 
+storage 2 ✔️ 0
+storage 3 ✔️ 0
+storage p ✔️ 75
+
+
+---
+

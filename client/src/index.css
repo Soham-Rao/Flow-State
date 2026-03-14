@@ -135,113 +135,98 @@
 
 .board-surface-teal-gradient {
   background-image:
-    radial-gradient(circle_at_8%_8%, rgba(6, 182, 212, 0.29), transparent 38%),
-    radial-gradient(circle_at_92%_16%, rgba(59, 130, 246, 0.24), transparent 40%),
+    radial-gradient(circle at 8% 8%, rgba(6, 182, 212, 0.29), transparent 38%),
+    radial-gradient(circle at 92% 16%, rgba(59, 130, 246, 0.24), transparent 40%),
     linear-gradient(180deg, rgba(236, 254, 255, 0.9), rgba(239, 246, 255, 0.9));
 }
-
 :root[data-theme="dark"] .board-surface-teal-gradient {
   background-image:
-    radial-gradient(circle_at_8%_8%, rgba(14, 116, 144, 0.35), transparent 38%),
-    radial-gradient(circle_at_92%_16%, rgba(30, 64, 175, 0.28), transparent 40%),
+    radial-gradient(circle at 8% 8%, rgba(14, 116, 144, 0.35), transparent 38%),
+    radial-gradient(circle at 92% 16%, rgba(30, 64, 175, 0.28), transparent 40%),
     linear-gradient(180deg, rgba(10, 16, 28, 0.96), rgba(4, 8, 20, 0.96));
 }
-
 .board-surface-ocean-glow {
   background-image:
-    radial-gradient(circle_at_12%_12%, rgba(20, 184, 166, 0.28), transparent 40%),
-    radial-gradient(circle_at_88%_18%, rgba(99, 102, 241, 0.24), transparent 38%),
+    radial-gradient(circle at 12% 12%, rgba(20, 184, 166, 0.28), transparent 40%),
+    radial-gradient(circle at 88% 18%, rgba(99, 102, 241, 0.24), transparent 38%),
     linear-gradient(180deg, rgba(236, 253, 245, 0.9), rgba(238, 242, 255, 0.9));
 }
-
 :root[data-theme="dark"] .board-surface-ocean-glow {
   background-image:
-    radial-gradient(circle_at_12%_12%, rgba(15, 118, 110, 0.3), transparent 40%),
-    radial-gradient(circle_at_88%_18%, rgba(99, 102, 241, 0.28), transparent 38%),
+    radial-gradient(circle at 12% 12%, rgba(15, 118, 110, 0.3), transparent 40%),
+    radial-gradient(circle at 88% 18%, rgba(99, 102, 241, 0.28), transparent 38%),
     linear-gradient(180deg, rgba(9, 15, 32, 0.96), rgba(5, 7, 18, 0.96));
 }
-
 .board-surface-slate-minimal {
   background-image:
-    radial-gradient(circle_at_10%_10%, rgba(71, 85, 105, 0.26), transparent 40%),
-    radial-gradient(circle_at_86%_20%, rgba(30, 41, 59, 0.22), transparent 38%),
+    radial-gradient(circle at 10% 10%, rgba(71, 85, 105, 0.26), transparent 40%),
+    radial-gradient(circle at 86% 20%, rgba(30, 41, 59, 0.22), transparent 38%),
     linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.9));
 }
-
 :root[data-theme="dark"] .board-surface-slate-minimal {
   background-image:
-    radial-gradient(circle_at_10%_10%, rgba(71, 85, 105, 0.28), transparent 40%),
-    radial-gradient(circle_at_86%_20%, rgba(15, 23, 42, 0.24), transparent 38%),
+    radial-gradient(circle at 10% 10%, rgba(71, 85, 105, 0.28), transparent 40%),
+    radial-gradient(circle at 86% 20%, rgba(15, 23, 42, 0.24), transparent 38%),
     linear-gradient(180deg, rgba(9, 12, 20, 0.96), rgba(4, 6, 12, 0.96));
 }
-
 .board-surface-ember-horizon {
   background-image:
-    radial-gradient(circle_at_14%_12%, rgba(239, 68, 68, 0.24), transparent 36%),
-    radial-gradient(circle_at_86%_18%, rgba(251, 146, 60, 0.26), transparent 40%),
+    radial-gradient(circle at 14% 12%, rgba(239, 68, 68, 0.24), transparent 36%),
+    radial-gradient(circle at 86% 18%, rgba(251, 146, 60, 0.26), transparent 40%),
     linear-gradient(180deg, rgba(255, 247, 237, 0.9), rgba(255, 251, 235, 0.9));
 }
-
 :root[data-theme="dark"] .board-surface-ember-horizon {
   background-image:
-    radial-gradient(circle_at_14%_12%, rgba(239, 68, 68, 0.28), transparent 36%),
-    radial-gradient(circle_at_86%_18%, rgba(251, 146, 60, 0.3), transparent 40%),
+    radial-gradient(circle at 14% 12%, rgba(239, 68, 68, 0.28), transparent 36%),
+    radial-gradient(circle at 86% 18%, rgba(251, 146, 60, 0.3), transparent 40%),
     linear-gradient(180deg, rgba(24, 10, 4, 0.96), rgba(14, 6, 3, 0.96));
 }
-
 .board-surface-mint-breeze {
   background-image:
-    radial-gradient(circle_at_12%_10%, rgba(16, 185, 129, 0.28), transparent 40%),
-    radial-gradient(circle_at_90%_20%, rgba(6, 182, 212, 0.24), transparent 38%),
+    radial-gradient(circle at 12% 10%, rgba(16, 185, 129, 0.28), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(6, 182, 212, 0.24), transparent 38%),
     linear-gradient(180deg, rgba(236, 253, 245, 0.9), rgba(236, 254, 255, 0.9));
 }
-
 :root[data-theme="dark"] .board-surface-mint-breeze {
   background-image:
-    radial-gradient(circle_at_12%_10%, rgba(16, 185, 129, 0.3), transparent 40%),
-    radial-gradient(circle_at_90%_20%, rgba(6, 182, 212, 0.26), transparent 38%),
+    radial-gradient(circle at 12% 10%, rgba(16, 185, 129, 0.3), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(6, 182, 212, 0.26), transparent 38%),
     linear-gradient(180deg, rgba(8, 20, 16, 0.96), rgba(6, 16, 18, 0.96));
 }
-
 .board-surface-rose-aurora {
   background-image:
-    radial-gradient(circle_at_10%_10%, rgba(244, 63, 94, 0.26), transparent 40%),
-    radial-gradient(circle_at_88%_18%, rgba(217, 70, 239, 0.22), transparent 38%),
+    radial-gradient(circle at 10% 10%, rgba(244, 63, 94, 0.26), transparent 40%),
+    radial-gradient(circle at 88% 18%, rgba(217, 70, 239, 0.22), transparent 38%),
     linear-gradient(180deg, rgba(255, 241, 242, 0.9), rgba(253, 242, 248, 0.9));
 }
-
 :root[data-theme="dark"] .board-surface-rose-aurora {
   background-image:
-    radial-gradient(circle_at_10%_10%, rgba(244, 63, 94, 0.3), transparent 40%),
-    radial-gradient(circle_at_88%_18%, rgba(217, 70, 239, 0.28), transparent 38%),
+    radial-gradient(circle at 10% 10%, rgba(244, 63, 94, 0.3), transparent 40%),
+    radial-gradient(circle at 88% 18%, rgba(217, 70, 239, 0.28), transparent 38%),
     linear-gradient(180deg, rgba(24, 8, 20, 0.96), rgba(12, 6, 14, 0.96));
 }
-
 .board-surface-cobalt-dawn {
   background-image:
-    radial-gradient(circle_at_14%_12%, rgba(59, 130, 246, 0.28), transparent 40%),
-    radial-gradient(circle_at_86%_18%, rgba(139, 92, 246, 0.2), transparent 38%),
+    radial-gradient(circle at 14% 12%, rgba(59, 130, 246, 0.28), transparent 40%),
+    radial-gradient(circle at 86% 18%, rgba(139, 92, 246, 0.2), transparent 38%),
     linear-gradient(180deg, rgba(239, 246, 255, 0.9), rgba(243, 244, 255, 0.9));
 }
-
 :root[data-theme="dark"] .board-surface-cobalt-dawn {
   background-image:
-    radial-gradient(circle_at_14%_12%, rgba(59, 130, 246, 0.3), transparent 40%),
-    radial-gradient(circle_at_86%_18%, rgba(139, 92, 246, 0.26), transparent 38%),
+    radial-gradient(circle at 14% 12%, rgba(59, 130, 246, 0.3), transparent 40%),
+    radial-gradient(circle at 86% 18%, rgba(139, 92, 246, 0.26), transparent 38%),
     linear-gradient(180deg, rgba(9, 12, 28, 0.96), rgba(5, 7, 18, 0.96));
 }
-
 .board-surface-sunset-grid {
   background-image:
-    radial-gradient(circle_at_10%_10%, rgba(251, 146, 60, 0.24), transparent 36%),
-    radial-gradient(circle_at_86%_20%, rgba(244, 63, 94, 0.2), transparent 40%),
+    radial-gradient(circle at 10% 10%, rgba(251, 146, 60, 0.24), transparent 36%),
+    radial-gradient(circle at 86% 20%, rgba(244, 63, 94, 0.2), transparent 40%),
     linear-gradient(180deg, rgba(255, 247, 237, 0.9), rgba(255, 241, 242, 0.9));
 }
-
 :root[data-theme="dark"] .board-surface-sunset-grid {
   background-image:
-    radial-gradient(circle_at_10%_10%, rgba(251, 146, 60, 0.3), transparent 36%),
-    radial-gradient(circle_at_86%_20%, rgba(244, 63, 94, 0.26), transparent 40%),
+    radial-gradient(circle at 10% 10%, rgba(251, 146, 60, 0.3), transparent 36%),
+    radial-gradient(circle at 86% 20%, rgba(244, 63, 94, 0.26), transparent 40%),
     linear-gradient(180deg, rgba(24, 10, 6, 0.96), rgba(14, 6, 8, 0.96));
 }
 

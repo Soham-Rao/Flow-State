@@ -40,7 +40,7 @@ describe("Auth API", () => {
     expect(response.body.data.token).toEqual(expect.any(String));
   });
 
-  it("registers second user as member", async () => {
+  it("registers second user as guest", async () => {
     await request(app).post("/api/auth/register").send({
       name: "Admin",
       email: "admin@example.com",
@@ -54,7 +54,7 @@ describe("Auth API", () => {
     });
 
     expect(response.status).toBe(201);
-    expect(response.body.data.user.role).toBe("member");
+    expect(response.body.data.user.role).toBe("guest");
   });
 
   it("logs in and returns a token", async () => {

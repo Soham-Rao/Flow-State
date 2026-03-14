@@ -22,6 +22,30 @@ async function registerAndGetAuth(email: string, name = "User"): Promise<AuthCon
   };
 }
 
+async function getRoleIdByName(token: string, name: string): Promise<string> {
+  const response = await request(app)
+    .get("/api/roles")
+    .set("Authorization", `Bearer ${token}`);
+
+  const role = (response.body.data as Array<{ id: string; name: string }>).find((entry) => entry.name === name);
+  if (!role) {
+    throw new Error(`Role ${name} not found`);
+  }
+
+  return role.id;
+}
+
+async function assignRoles(token: string, userId: string, roleIds: string[]): Promise<void> {
+  const response = await request(app)
+    .patch(`/api/roles/assignments/users/${userId}`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({ roleIds });
+
+  if (response.status !== 200) {
+    throw new Error("Failed to assign roles");
+  }
+}
+
 async function createBoardWithDefaults(token: string): Promise<{
   boardId: string;
   todoListId: string;
@@ -189,6 +213,10 @@ describe("Cards API", () => {
     const admin = await registerAndGetAuth("admin@example.com", "Admin User");
     const memberOne = await registerAndGetAuth("member-one@example.com", "Member One");
     const memberTwo = await registerAndGetAuth("member-two@example.com", "Member Two");
+
+    const memberRoleId = await getRoleIdByName(admin.token, "Member");
+    await assignRoles(admin.token, memberOne.userId, [memberRoleId]);
+    await assignRoles(admin.token, memberTwo.userId, [memberRoleId]);
 
     const { todoListId } = await createBoardWithDefaults(memberOne.token);
 

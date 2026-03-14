@@ -1180,9 +1180,14 @@ export function BoardDetailPage(): JSX.Element {
     [board, activeCardId]
   );
 
-  const activeBannerClass = useMemo(() => getBoardBackgroundClass(boardBackground), [boardBackground]);
-  const activeSurfaceClass = useMemo(() => getBoardSurfaceClass(boardBackground), [boardBackground]);
+  const resolvedBoardBackground = board?.background ?? boardBackground;
+  const activeBannerClass = useMemo(() => getBoardBackgroundClass(resolvedBoardBackground), [resolvedBoardBackground]);
+  const activeSurfaceClass = useMemo(() => getBoardSurfaceClass(resolvedBoardBackground), [resolvedBoardBackground]);
 
+  const applyBoardBackground = useCallback((next: BoardBackground): void => {
+    setBoardBackground(next);
+    setBoard((current) => (current ? { ...current, background: next } : current));
+  }, []);
   const focusListInput = useCallback((listId: string): void => {
     window.requestAnimationFrame(() => {
       const input = listInputRefs.current[listId];
@@ -1192,6 +1197,11 @@ export function BoardDetailPage(): JSX.Element {
       input.setSelectionRange(cursorAt, cursorAt);
     });
   }, []);
+
+  useEffect(() => {
+    if (!editingListId) return;
+    focusListInput(editingListId);
+  }, [editingListId, focusListInput]);
 
   const clearSavedNoticeTimers = useCallback((): void => {
     if (savedShowTimeoutRef.current !== null) {
@@ -1316,6 +1326,17 @@ export function BoardDetailPage(): JSX.Element {
     setArchiveRetentionHours(archiveRetentionParts.hours);
     setArchiveRetentionMinutesPart(archiveRetentionParts.minutes);
     setListNameDrafts(Object.fromEntries(sortedLists.map((list) => [list.id, list.name])));
+    const syncedDraft: BoardDraft = {
+      name: data.name,
+      description: data.description ?? "",
+      background: data.background,
+      retentionMode: data.retentionMode ?? "card_and_attachments",
+      retentionMinutes: data.retentionMinutes ?? MIN_RETENTION_MINUTES,
+      archiveRetentionMinutes: data.archiveRetentionMinutes ?? MIN_RETENTION_MINUTES
+    };
+    lastSyncedBoardRef.current = syncedDraft;
+    currentDraftBoardRef.current = syncedDraft;
+    initializedBoardRef.current = true;
 
     const boardLabels = data.labels ?? [];
     setLabelDrafts(Object.fromEntries(boardLabels.map((label) => [label.id, label.name])));
@@ -2553,6 +2574,18 @@ export function BoardDetailPage(): JSX.Element {
   }, [selectedCardWithList, cardDraft]);
 
   useEffect(() => {
+    if (!isArchivedOpen) return;
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsArchivedOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isArchivedOpen]);
+
+  useEffect(() => {
     if (!scrollToChecklistId || !selectedCardWithList || !cardDraft) return;
     const target = checklistSectionRefs.current[scrollToChecklistId];
     if (!target) return;
@@ -3056,7 +3089,7 @@ export function BoardDetailPage(): JSX.Element {
                 {boardBackgroundPresets.map((preset: BoardBackgroundPreset) => (
                   <button
                     key={preset.id} type="button"
-                    onClick={() => setBoardBackground(preset.id)}
+                    onClick={() => applyBoardBackground(preset.id)}
                     className={`overflow-hidden rounded-md border text-left ${boardBackground === preset.id ? "border-primary ring-2 ring-primary/40" : "border-border"}`}
                   >
                     <div className={`h-10 ${preset.className}`} />
@@ -3283,8 +3316,14 @@ export function BoardDetailPage(): JSX.Element {
 
       {/* Card editor modal */}
       {selectedCardWithList && cardDraft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <Card className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeCardEditor();
+            }
+          }}
+        >
+          <Card className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden" onMouseDown={(event) => event.stopPropagation()}>
             <CardHeader className="sticky top-0 z-10 shrink-0 border-b border-border/60 bg-card/95 backdrop-blur">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -3725,8 +3764,14 @@ export function BoardDetailPage(): JSX.Element {
       )}
 
       {isArchivedOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <Card className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsArchivedOpen(false);
+            }
+          }}
+        >
+          <Card className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden" onMouseDown={(event) => event.stopPropagation()}>
             <CardHeader className="flex flex-row items-start justify-between gap-3">
               <div>
                 <CardTitle>Archived lists</CardTitle>
@@ -3887,6 +3932,9 @@ export function BoardDetailPage(): JSX.Element {
     </>
   );
 }
+
+
+
 
 
 

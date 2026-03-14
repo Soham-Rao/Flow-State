@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { assertPermission, getUserPermissions } from "../../utils/permissions.js";
 import {
   archiveBoard,
   archiveCard,
@@ -74,17 +75,23 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 
 
 boardsRouter.use(requireAuth);
 
-boardsRouter.get("/", (_req, res) => {
-  const data = getBoards();
+boardsRouter.get("/", (req, res, next) => {
+  try {
+    assertPermission(req.auth!.userId, "view_boards");
+    const data = getBoards();
 
-  res.status(200).json({
-    success: true,
-    data
-  });
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 boardsRouter.post("/", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "create_boards");
     const body = createBoardSchema.parse(req.body);
     const data = createBoard(body, req.auth!.userId);
 
@@ -99,6 +106,7 @@ boardsRouter.post("/", (req, res, next) => {
 
 boardsRouter.get("/:boardId", async (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "view_boards");
     await cleanupExpiredCards();
     const data = getBoardById(req.params.boardId);
 
@@ -113,6 +121,7 @@ boardsRouter.get("/:boardId", async (req, res, next) => {
 
 boardsRouter.patch("/:boardId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "edit_boards");
     const body = updateBoardSchema.parse(req.body);
     const data = updateBoard(req.params.boardId, body);
 
@@ -127,6 +136,7 @@ boardsRouter.patch("/:boardId", (req, res, next) => {
 
 boardsRouter.get("/:boardId/archived-lists", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "view_boards");
     const data = getArchivedLists(req.params.boardId);
 
     res.status(200).json({
@@ -140,6 +150,7 @@ boardsRouter.get("/:boardId/archived-lists", (req, res, next) => {
 
 boardsRouter.post("/:boardId/archive", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "delete_boards");
     const data = archiveBoard(req.params.boardId);
 
     res.status(200).json({
@@ -153,6 +164,7 @@ boardsRouter.post("/:boardId/archive", (req, res, next) => {
 
 boardsRouter.post("/:boardId/restore", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "delete_boards");
     const data = restoreBoard(req.params.boardId);
 
     res.status(200).json({
@@ -166,6 +178,7 @@ boardsRouter.post("/:boardId/restore", (req, res, next) => {
 
 boardsRouter.post("/:boardId/comments", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "comment");
     const body = createCommentSchema.parse(req.body);
     const data = createBoardComment(req.params.boardId, body, req.auth!.userId);
 
@@ -180,6 +193,7 @@ boardsRouter.post("/:boardId/comments", (req, res, next) => {
 
 boardsRouter.delete("/:boardId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "delete_boards");
     deleteBoard(req.params.boardId);
 
     res.status(200).json({
@@ -195,6 +209,7 @@ boardsRouter.delete("/:boardId", (req, res, next) => {
 
 boardsRouter.post("/:boardId/labels", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_labels");
     const body = createLabelSchema.parse(req.body);
     const data = createLabel(req.params.boardId, body);
 
@@ -209,6 +224,7 @@ boardsRouter.post("/:boardId/labels", (req, res, next) => {
 
 boardsRouter.patch("/labels/:labelId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_labels");
     const body = updateLabelSchema.parse(req.body);
     const data = updateLabel(req.params.labelId, body);
 
@@ -223,6 +239,7 @@ boardsRouter.patch("/labels/:labelId", (req, res, next) => {
 
 boardsRouter.delete("/labels/:labelId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_labels");
     deleteLabel(req.params.labelId);
 
     res.status(200).json({
@@ -239,6 +256,7 @@ boardsRouter.delete("/labels/:labelId", (req, res, next) => {
 
 boardsRouter.post("/:boardId/lists", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_lists");
     const body = createListSchema.parse(req.body);
     const data = createList(req.params.boardId, body);
 
@@ -253,6 +271,7 @@ boardsRouter.post("/:boardId/lists", (req, res, next) => {
 
 boardsRouter.post("/:boardId/lists/reorder", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_lists");
     const body = reorderListsSchema.parse(req.body);
     const data = reorderLists(req.params.boardId, body);
 
@@ -267,6 +286,7 @@ boardsRouter.post("/:boardId/lists/reorder", (req, res, next) => {
 
 boardsRouter.patch("/lists/:listId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_lists");
     const body = updateListSchema.parse(req.body);
     const data = updateList(req.params.listId, body);
 
@@ -281,6 +301,7 @@ boardsRouter.patch("/lists/:listId", (req, res, next) => {
 
 boardsRouter.delete("/lists/:listId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_lists");
     deleteList(req.params.listId);
 
     res.status(200).json({
@@ -296,6 +317,7 @@ boardsRouter.delete("/lists/:listId", (req, res, next) => {
 
 boardsRouter.post("/lists/:listId/archive", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_lists");
     archiveList(req.params.listId);
 
     res.status(200).json({
@@ -309,6 +331,7 @@ boardsRouter.post("/lists/:listId/archive", (req, res, next) => {
 
 boardsRouter.post("/lists/:listId/restore", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_lists");
     const body = restoreArchiveSchema.parse(req.body ?? {});
     const data = restoreList(req.params.listId, body.renameConflicts ?? false);
 
@@ -323,6 +346,7 @@ boardsRouter.post("/lists/:listId/restore", (req, res, next) => {
 
 boardsRouter.post("/lists/:listId/comments", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "comment");
     const body = createCommentSchema.parse(req.body);
     const data = createListComment(req.params.listId, body, req.auth!.userId);
 
@@ -337,6 +361,7 @@ boardsRouter.post("/lists/:listId/comments", (req, res, next) => {
 
 boardsRouter.post("/lists/:listId/cards", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "create_cards");
     const body = createCardSchema.parse(req.body);
     const data = createCard(req.params.listId, body, req.auth!.userId);
 
@@ -351,6 +376,7 @@ boardsRouter.post("/lists/:listId/cards", (req, res, next) => {
 
 boardsRouter.patch("/cards/:cardId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "edit_cards");
     const body = updateCardSchema.parse(req.body);
     const data = updateCard(req.params.cardId, body);
 
@@ -365,7 +391,12 @@ boardsRouter.patch("/cards/:cardId", (req, res, next) => {
 
 boardsRouter.post("/cards/:cardId/archive", (req, res, next) => {
   try {
-    const data = archiveCard(req.params.cardId, req.auth!.userId, req.auth!.role);
+    const permissions = getUserPermissions(req.auth!.userId);
+    const data = archiveCard(req.params.cardId, {
+      userId: req.auth!.userId,
+      canDeleteAny: permissions.has("delete_cards_any"),
+      canDeleteOwn: permissions.has("delete_cards_own")
+    });
 
     res.status(200).json({
       success: true,
@@ -378,8 +409,13 @@ boardsRouter.post("/cards/:cardId/archive", (req, res, next) => {
 
 boardsRouter.post("/cards/:cardId/restore", (req, res, next) => {
   try {
+    const permissions = getUserPermissions(req.auth!.userId);
     const body = restoreArchiveSchema.parse(req.body ?? {});
-    const data = restoreCard(req.params.cardId, body.renameConflicts ?? false);
+    const data = restoreCard(req.params.cardId, body.renameConflicts ?? false, {
+      userId: req.auth!.userId,
+      canDeleteAny: permissions.has("delete_cards_any"),
+      canDeleteOwn: permissions.has("delete_cards_own")
+    });
 
     res.status(200).json({
       success: true,
@@ -392,6 +428,7 @@ boardsRouter.post("/cards/:cardId/restore", (req, res, next) => {
 
 boardsRouter.post("/cards/:cardId/comments", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "comment");
     const body = createCommentSchema.parse(req.body);
     const data = createCardComment(req.params.cardId, body, req.auth!.userId);
 
@@ -406,7 +443,12 @@ boardsRouter.post("/cards/:cardId/comments", (req, res, next) => {
 
 boardsRouter.delete("/comments/:commentId", (req, res, next) => {
   try {
-    deleteComment(req.params.commentId, req.auth!.userId, req.auth!.role);
+    const permissions = getUserPermissions(req.auth!.userId);
+    deleteComment(req.params.commentId, {
+      userId: req.auth!.userId,
+      canDeleteAny: permissions.has("delete_comments"),
+      canDeleteOwn: permissions.has("edit_comments")
+    });
 
     res.status(200).json({
       success: true,
@@ -421,6 +463,7 @@ boardsRouter.delete("/comments/:commentId", (req, res, next) => {
 
 boardsRouter.post("/comments/:commentId/reactions", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "react");
     const body = commentReactionSchema.parse(req.body);
     const data = toggleCommentReaction(req.params.commentId, req.auth!.userId, body);
 
@@ -436,6 +479,7 @@ boardsRouter.post("/comments/:commentId/reactions", (req, res, next) => {
 
 boardsRouter.post("/cards/:cardId/labels", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_labels");
     const body = assignLabelSchema.parse(req.body);
     const data = assignLabelToCard(req.params.cardId, body);
 
@@ -450,6 +494,7 @@ boardsRouter.post("/cards/:cardId/labels", (req, res, next) => {
 
 boardsRouter.delete("/cards/:cardId/labels/:labelId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_labels");
     const data = removeLabelFromCard(req.params.cardId, req.params.labelId);
 
     res.status(200).json({
@@ -463,6 +508,7 @@ boardsRouter.delete("/cards/:cardId/labels/:labelId", (req, res, next) => {
 
 boardsRouter.post("/cards/:cardId/assignees", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "assign_members");
     const body = assignAssigneeSchema.parse(req.body);
     const data = assignMemberToCard(req.params.cardId, body);
 
@@ -477,6 +523,7 @@ boardsRouter.post("/cards/:cardId/assignees", (req, res, next) => {
 
 boardsRouter.delete("/cards/:cardId/assignees/:userId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "assign_members");
     const data = removeMemberFromCard(req.params.cardId, req.params.userId);
 
     res.status(200).json({
@@ -491,6 +538,7 @@ boardsRouter.delete("/cards/:cardId/assignees/:userId", (req, res, next) => {
 
 boardsRouter.post("/cards/move", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "edit_cards");
     const body = moveCardSchema.parse(req.body);
     const data = moveCard(body);
 
@@ -505,7 +553,12 @@ boardsRouter.post("/cards/move", (req, res, next) => {
 
 boardsRouter.delete("/cards/:cardId", async (req, res, next) => {
   try {
-    await deleteCard(req.params.cardId, req.auth!.userId, req.auth!.role);
+    const permissions = getUserPermissions(req.auth!.userId);
+    await deleteCard(req.params.cardId, {
+      userId: req.auth!.userId,
+      canDeleteAny: permissions.has("delete_cards_any"),
+      canDeleteOwn: permissions.has("delete_cards_own")
+    });
 
     res.status(200).json({
       success: true,
@@ -520,6 +573,7 @@ boardsRouter.delete("/cards/:cardId", async (req, res, next) => {
 
 boardsRouter.post("/cards/:cardId/attachments", upload.array("files", 10), async (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "upload_files");
     const files = (req.files ?? []) as Express.Multer.File[];
     const data = await createAttachments(req.params.cardId, files);
 
@@ -534,6 +588,7 @@ boardsRouter.post("/cards/:cardId/attachments", upload.array("files", 10), async
 
 boardsRouter.get("/attachments/:attachmentId/download", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "view_boards");
     const attachment = getAttachmentDownloadInfo(req.params.attachmentId);
     res.download(attachment.filePath, attachment.originalName);
   } catch (error) {
@@ -543,6 +598,7 @@ boardsRouter.get("/attachments/:attachmentId/download", (req, res, next) => {
 
 boardsRouter.delete("/attachments/:attachmentId", async (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "upload_files");
     await deleteAttachment(req.params.attachmentId);
 
     res.status(200).json({
@@ -558,6 +614,7 @@ boardsRouter.delete("/attachments/:attachmentId", async (req, res, next) => {
 
 boardsRouter.post("/cards/:cardId/checklists", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_checklists");
     const body = createChecklistSchema.parse(req.body);
     const data = createChecklist(req.params.cardId, body);
 
@@ -572,6 +629,7 @@ boardsRouter.post("/cards/:cardId/checklists", (req, res, next) => {
 
 boardsRouter.patch("/checklists/:checklistId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_checklists");
     const body = updateChecklistSchema.parse(req.body);
     const data = updateChecklist(req.params.checklistId, body);
 
@@ -586,6 +644,7 @@ boardsRouter.patch("/checklists/:checklistId", (req, res, next) => {
 
 boardsRouter.delete("/checklists/:checklistId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_checklists");
     deleteChecklist(req.params.checklistId);
 
     res.status(200).json({
@@ -601,6 +660,7 @@ boardsRouter.delete("/checklists/:checklistId", (req, res, next) => {
 
 boardsRouter.post("/checklists/:checklistId/items", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_checklists");
     const body = createChecklistItemSchema.parse(req.body);
     const data = createChecklistItem(req.params.checklistId, body);
 
@@ -615,6 +675,7 @@ boardsRouter.post("/checklists/:checklistId/items", (req, res, next) => {
 
 boardsRouter.patch("/checklist-items/:itemId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_checklists");
     const body = updateChecklistItemSchema.parse(req.body);
     const data = updateChecklistItem(req.params.itemId, body);
 
@@ -629,6 +690,7 @@ boardsRouter.patch("/checklist-items/:itemId", (req, res, next) => {
 
 boardsRouter.delete("/checklist-items/:itemId", (req, res, next) => {
   try {
+    assertPermission(req.auth!.userId, "manage_checklists");
     deleteChecklistItem(req.params.itemId);
 
     res.status(200).json({

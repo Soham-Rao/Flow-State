@@ -76,6 +76,19 @@ export function BoardsPage(): JSX.Element {
     void loadBoards(true);
   }, []);
 
+  useEffect(() => {
+    if (!isCreateOpen) return;
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsCreateOpen(false);
+        resetCreateForm();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isCreateOpen]);
+
   const resetCreateForm = (): void => {
     setName("");
     setDescription("");
@@ -266,8 +279,15 @@ export function BoardsPage(): JSX.Element {
         )}
 
         {isCreateOpen && (
-          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4">
-            <Card className="w-full max-w-lg">
+          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setIsCreateOpen(false);
+                resetCreateForm();
+              }
+            }}
+          >
+            <Card className="w-full max-w-lg" onMouseDown={(event) => event.stopPropagation()}>
               <CardHeader>
                 <CardTitle>Create board</CardTitle>
                 <CardDescription>Choose a name, short description, and visual background.</CardDescription>

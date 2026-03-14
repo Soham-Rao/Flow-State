@@ -142,6 +142,18 @@ export function HomePage(): JSX.Element {
     void loadInvites();
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (!isInviteModalOpen) return;
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsInviteModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isInviteModalOpen]);
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -229,8 +241,14 @@ export function HomePage(): JSX.Element {
       </div>
 
       {isInviteModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4">
-          <Card className="w-full max-w-3xl">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsInviteModalOpen(false);
+            }
+          }}
+        >
+          <Card className="w-full max-w-3xl" onMouseDown={(event) => event.stopPropagation()}>
             <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>Invite status</CardTitle>

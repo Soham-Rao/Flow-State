@@ -1,7 +1,42 @@
 import { relations } from "drizzle-orm";
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const userRoles = ["admin", "member"] as const;
+export const userRoles = ["admin", "member", "guest"] as const;
+export const rolePermissions = [
+  "manage_workspace",
+  "manage_roles",
+  "invite_users",
+  "remove_users",
+  "view_activity_logs",
+  "view_boards",
+  "create_boards",
+  "edit_boards",
+  "delete_boards",
+  "manage_lists",
+  "create_cards",
+  "edit_cards",
+  "delete_cards_any",
+  "delete_cards_own",
+  "assign_members",
+  "set_due_dates",
+  "manage_checklists",
+  "upload_files",
+  "manage_labels",
+  "comment",
+  "edit_comments",
+  "delete_comments",
+  "react",
+  "mention_users",
+  "mention_roles",
+  "view_threads",
+  "create_threads",
+  "reply_threads",
+  "delete_threads",
+  "pin_threads",
+  "view_settings"
+] as const;
+export const roleScopeTypes = ["global", "board", "section", "card"] as const;
+export const roleScopeAccess = ["allow", "deny"] as const;
 export const cardPriorities = ["low", "medium", "high", "urgent"] as const;
 export const retentionModes = ["attachments_only", "card_and_attachments"] as const;
 export const labelColors = [
@@ -38,7 +73,7 @@ export const users = sqliteTable("users", {
   age: integer("age"),
   dateOfBirth: integer("date_of_birth", { mode: "timestamp_ms" }),
   passwordHash: text("password_hash").notNull(),
-  role: text("role", { enum: userRoles }).notNull().default("member"),
+  role: text("role", { enum: userRoles }).notNull().default("guest"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
 });
@@ -47,7 +82,7 @@ export const invites = sqliteTable("invites", {
   id: text("id").primaryKey(),
   token: text("token").notNull().unique(),
   email: text("email"),
-  role: text("role", { enum: userRoles }).notNull().default("member"),
+  role: text("role", { enum: userRoles }).notNull().default("guest"),
   createdBy: text("created_by")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -60,6 +95,63 @@ export const invites = sqliteTable("invites", {
 });
 
 
+export const roles = sqliteTable("roles", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  color: text("color").notNull(),
+  priority: integer("priority").notNull().default(1),
+  mentionable: integer("mentionable", { mode: "boolean" }).notNull().default(false),
+  isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
+export const rolePermissionsTable = sqliteTable("role_permissions", {
+  roleId: text("role_id")
+    .notNull()
+    .references(() => roles.id, { onDelete: "cascade" }),
+  permission: text("permission", { enum: rolePermissions }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.roleId, table.permission] })
+}));
+
+export const userRoleAssignments = sqliteTable("user_roles", {
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  roleId: text("role_id")
+    .notNull()
+    .references(() => roles.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.roleId] })
+}));
+
+export const inviteRoleAssignments = sqliteTable("invite_roles", {
+  inviteId: text("invite_id")
+    .notNull()
+    .references(() => invites.id, { onDelete: "cascade" }),
+  roleId: text("role_id")
+    .notNull()
+    .references(() => roles.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.inviteId, table.roleId] })
+}));
+
+export const roleScopeOverrides = sqliteTable("role_scope_overrides", {
+  roleId: text("role_id")
+    .notNull()
+    .references(() => roles.id, { onDelete: "cascade" }),
+  scopeType: text("scope_type", { enum: roleScopeTypes }).notNull(),
+  scopeId: text("scope_id").notNull(),
+  permission: text("permission", { enum: rolePermissions }).notNull(),
+  access: text("access", { enum: roleScopeAccess }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.roleId, table.scopeType, table.scopeId, table.permission] })
+}));
 export const boards = sqliteTable("boards", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -281,6 +373,12 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
 }));
 
 export type UserRole = (typeof userRoles)[number];
+export type RolePermission = (typeof rolePermissions)[number];
+export type RoleScopeType = (typeof roleScopeTypes)[number];
+export type RoleScopeAccess = (typeof roleScopeAccess)[number];
 export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
+
+
+

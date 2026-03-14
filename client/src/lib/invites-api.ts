@@ -28,3 +28,11 @@ export async function lookupInvite(token: string): Promise<InviteLookup> {
     method: "GET"
   });
 }
+
+export async function updateInviteRoles(inviteId: string, roleIds: string[]): Promise<InviteSummary> {
+  return apiRequest<InviteSummary>(`/invites/${inviteId}/roles`, {
+    method: "PATCH",
+    body: JSON.stringify({ roleIds }),
+    auth: true
+  });
+}

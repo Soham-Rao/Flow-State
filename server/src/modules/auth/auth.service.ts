@@ -8,6 +8,7 @@ import { users, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { signAccessToken } from "../../utils/jwt.js";
 import { consumeInvite, validateInviteForRegistration } from "../invites/invites.service.js";
+import { getSystemRoleIds, setUserRoles } from "../roles/roles.service.js";
 import type { LoginBody, RegisterBody, UpdateProfileBody } from "./auth.schema.js";
 
 interface PublicUser {
@@ -74,7 +75,9 @@ export async function registerUser(input: RegisterBody): Promise<AuthResponse> {
     .from(users)
     .all();
 
-  const role: UserRole = totalUsers === 0 ? "admin" : (invite?.role ?? "member");
+  const { adminRoleId, memberRoleId, guestRoleId } = getSystemRoleIds();
+  const roleIds = totalUsers === 0 ? [adminRoleId] : (invite?.roleIds ?? [guestRoleId]);
+  const role: UserRole = roleIds.includes(adminRoleId) ? "admin" : roleIds.includes(memberRoleId) ? "member" : "guest";
   const passwordHash = await bcrypt.hash(input.password, 12);
   const now = new Date();
   const userId = crypto.randomUUID();
@@ -90,6 +93,7 @@ export async function registerUser(input: RegisterBody): Promise<AuthResponse> {
       updatedAt: now
     })
     .run();
+  setUserRoles(userId, roleIds);
 
   const created = db
     .select({
@@ -273,3 +277,12 @@ export function updateProfile(userId: string, input: UpdateProfileBody): PublicU
 
   return toPublicUser(user);
 }
+
+
+
+
+
+
+
+
+

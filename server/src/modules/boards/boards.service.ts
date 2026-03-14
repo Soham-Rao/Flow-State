@@ -1745,10 +1745,11 @@ function createCommentRecord(params: {
   return getCommentById(commentId);
 }
 
-export function deleteComment(commentId: string, requesterUserId: string, requesterRole: UserRole): void {
+export function deleteComment(commentId: string, requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }): void {
   const comment = assertCommentExists(commentId);
 
-  if (requesterRole !== "admin" && comment.authorId !== requesterUserId) {
+  const canDelete = requester.canDeleteAny || (requester.canDeleteOwn && comment.authorId === requester.userId);
+  if (!canDelete) {
     throw new ApiError(403, "You can only delete comments you created");
   }
 
@@ -1758,7 +1759,6 @@ export function deleteComment(commentId: string, requesterUserId: string, reques
     tx.delete(comments).where(eq(comments.id, commentId)).run();
   });
 }
-
 export function createBoardComment(boardId: string, input: CreateCommentInput, authorId: string): BoardComment {
   assertBoardExists(boardId);
 
@@ -2365,10 +2365,14 @@ export async function deleteAttachment(attachmentId: string): Promise<void> {
   }
 }
 
-export async function deleteCard(cardId: string, requesterUserId: string, requesterRole: UserRole): Promise<void> {
+export async function deleteCard(
+  cardId: string,
+  requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }
+): Promise<void> {
   const existing = assertCardExists(cardId);
 
-  if (requesterRole !== "admin" && existing.createdBy !== requesterUserId) {
+  const canDelete = requester.canDeleteAny || (requester.canDeleteOwn && existing.createdBy === requester.userId);
+  if (!canDelete) {
     throw new ApiError(403, "You can only delete cards you created");
   }
 
@@ -2380,11 +2384,14 @@ export async function deleteCard(cardId: string, requesterUserId: string, reques
     throw new ApiError(404, "Card not found");
   }
 }
-
-export function archiveCard(cardId: string, requesterUserId: string, requesterRole: UserRole): BoardCard {
+export function archiveCard(
+  cardId: string,
+  requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }
+): BoardCard {
   const existing = assertCardExists(cardId);
 
-  if (requesterRole !== "admin" && existing.createdBy !== requesterUserId) {
+  const canArchive = requester.canDeleteAny || (requester.canDeleteOwn && existing.createdBy === requester.userId);
+  if (!canArchive) {
     throw new ApiError(403, "You can only archive cards you created");
   }
 
@@ -2395,11 +2402,19 @@ export function archiveCard(cardId: string, requesterUserId: string, requesterRo
 
   return getCardByIdIncludingArchived(cardId);
 }
-
-export function restoreCard(cardId: string, renameConflicts: boolean): BoardCard {
+export function restoreCard(
+  cardId: string,
+  renameConflicts: boolean,
+  requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }
+): BoardCard {
   const card = getCardByIdIncludingArchived(cardId);
   if (!card.archivedAt) {
     return card;
+  }
+
+  const canRestore = requester.canDeleteAny || (requester.canDeleteOwn && card.createdBy === requester.userId);
+  if (!canRestore) {
+    throw new ApiError(403, "You can only restore cards you created");
   }
 
   const list = getListRecord(card.listId);
@@ -2436,7 +2451,6 @@ export function restoreCard(cardId: string, renameConflicts: boolean): BoardCard
 
   return getCardById(cardId);
 }
-
 export function moveCard(input: MoveCardInput): MoveCardResult {
   const sourceList = assertListExists(input.sourceListId);
   const destinationList = assertListExists(input.destinationListId);
@@ -2673,4 +2687,5 @@ async function cleanupArchivedBoards(now: Date): Promise<void> {
     db.delete(boards).where(eq(boards.id, row.boardId)).run();
   }
 }
+
 

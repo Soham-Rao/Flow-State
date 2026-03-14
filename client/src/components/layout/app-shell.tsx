@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, ChevronDown, Command, LayoutDashboard, ListTodo, LogOut, Settings, Sliders, Timer, User } from "lucide-react";
+import { Bell, ChevronDown, Command, LayoutDashboard, ListTodo, LogOut, MessageCircle, Settings, Sliders, Timer, User } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ interface AppShellProps {
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/boards", label: "Boards", icon: ListTodo },
-  { to: "/", label: "Focus", icon: Timer }
+  { to: "/focus", label: "Focus", icon: Timer }
 ];
 
 const settingsItems = [
@@ -48,8 +48,18 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
       }
     };
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [menuOpen]);
 
   const onLogout = async (): Promise<void> => {
@@ -88,6 +98,27 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
             </NavLink>
           ))}
         </nav>
+
+        <div className="mt-8">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Threads
+          </p>
+          <nav className="grid gap-2">
+            <NavLink
+              to="/threads"
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-secondary text-secondary-foreground"
+                    : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
+                }`
+              }
+            >
+              <MessageCircle className="h-4 w-4" />
+              Threads
+            </NavLink>
+          </nav>
+        </div>
 
         <div className="mt-8">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">

@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "member";
+export type UserRole = "admin" | "member" | "guest";
 
 export interface AuthUser {
   id: string;
@@ -17,3 +17,4 @@ export interface AuthResponse {
   token: string;
   user: AuthUser;
 }
+

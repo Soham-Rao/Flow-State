@@ -9,6 +9,7 @@ import { notFoundMiddleware } from "./middleware/not-found.js";
 import { authRouter } from "./modules/auth/auth.route.js";
 import { boardsRouter } from "./modules/boards/boards.route.js";
 import { invitesRouter } from "./modules/invites/invites.route.js";
+import { rolesRouter } from "./modules/roles/roles.route.js";
 import { healthRouter } from "./routes/health.route.js";
 
 export const app = express();
@@ -27,6 +28,8 @@ app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/boards", boardsRouter);
 app.use("/api/invites", invitesRouter);
+app.use("/api/roles", rolesRouter);
 
 app.use(notFoundMiddleware);
 app.use(errorHandler);
+

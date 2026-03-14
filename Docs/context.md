@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-03-13
+> Last updated: 2026-03-14
 
 ---
 
@@ -37,6 +37,7 @@ Think → Plan phase (use instructions.md for notes if needed)
 ### Critical Rules
 - **NEVER start Phase N+1 before Phase N is fully audited, corrected, and tested.**
 - **Git commit at the end of every completed phase cycle.** Descriptive messages like `Phase 1: Foundation & Auth` or `Phase 3.2: Drag-and-drop implementation`.
+- **Do not run git commands without explicit permission; read-only git show/git diff allowed.**
 
 ---
 
@@ -270,14 +271,14 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 4.2: Attachments | ✅ Completed | 2026-03-13 | 2026-03-13 | Added attachments API + UI, retention settings, and cleanup support |
 | Phase 4.3: Labels + Assignments + Cover Colors | ✅ Completed | 2026-03-13 | 2026-03-13 | Labels/assignees/cover colors wired end-to-end with schema + API + UI and polish fixes |
 | Phase 4.4: Comments + Due Dates + Archive/Restore | ✅ Completed | 2026-03-13 | 2026-03-13 | Comments with mentions/reactions, archive/restore flows, and retention countdown badges |
-| Phase 5: Team & Collaboration | 🟨 In Progress | 2026-03-13 | — | Phase 5.2 completed, Phase 5.3 in progress |
+| Phase 5: Team & Collaboration | 🟨 In Progress | 2026-03-13 | — | Phase 5.2–5.3 completed; Phase 5.4 not started |
 | Phase 5.1: @ Mentions Autocomplete (App-wide) | ✅ Completed | 2026-03-13 | 2026-03-13 | Autocomplete on `@` anywhere + mention notifications |
 | Phase 5.2: Invitation System | ✅ Completed | 2026-03-13 | 2026-03-14 | Admin invite flow + shareable links |
-| Phase 5.3: Roles & Permissions | 🟨 In Progress | 2026-03-14 | — | Role creation + assignment + permission gating |
+| Phase 5.3: Roles & Permissions | ✅ Completed | 2026-03-14 | 2026-03-14 | Roles/permissions system, management UI, and permission gating |
 | Phase 5.4: Threads Section | ⬜ Not Started | — | — | Sidebar section groundwork |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
-| Phase 8: Time Tracking & Focus | ⬜ Not Started | — | — | — |
+| Phase 8: Time Tracking & Focus | 🟨 In Progress | 2026-03-14 | — | Focus mode Pomodoro UI with personal history/stats (local only) |
 | Phase 9: Rich Text, Search, Shortcuts | ⬜ Not Started | — | — | — |
 | Phase 10: Dashboard & Templates | ⬜ Not Started | — | — | — |
 | Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
@@ -327,6 +328,8 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 | Date | Update |
 |------|--------|
+| 2026-03-14 | Phase 8 started: focus mode Pomodoro page with configurable session lengths and local-only history/stats. |
+| 2026-03-14 | Phase 5.3 completed: roles/permissions system with admin/member/guest defaults, role assignment + management UI, permission gating, and migration hardening; user-run tests pass. |
 | 2026-03-13 | Phase 4.4 completed: comments with reactions/mentions and delete, archive/restore for boards/lists/cards, retention countdown badges, and UI polish for comments/cards; Phase 4 marked complete. |
 | 2026-03-13 | Phase 4.2 verified complete (attachments, retention settings, list DnD, card autosave, due-date normalization); Phase 4.3 started with labels/assignments/cover colors (schema + API + UI work in progress). |
 | 2026-03-13 | Phase 4.3 completed: labels CRUD, assignee toggles, and cover colors integrated end-to-end with schema/type fixes and polish passes. |
@@ -356,3 +359,5 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |
 | 2026-03-12 | Phase 4.1 delivered: checklists data model + API, board card collapsible checklist previews with progress bars, card modal checklist CRUD, and new client/server checklist tests (user-run pending). |
 | 2026-03-13 | Phase 4.2 delivered: attachments (upload/download/delete), board-level retention settings (day/hour/min + mode toggle), retention-aware time-left labels, attachment cleanup on card deletion, and new attachments API test. User to run tests. |
+
+
