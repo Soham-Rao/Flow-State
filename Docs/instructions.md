@@ -3,7 +3,7 @@
 > Working checklist for active implementation.
 > Update this file during a phase.
 > Update `Docs/context.md` at the end of each implementation cycle.
-> Last updated: 2026-03-12
+> Last updated: 2026-03-14
 
 ---
 
@@ -140,4 +140,121 @@
 - [x] Card modal checklist UI + board-view collapsible previews with progress bars.
 - [x] Client API + types updated for checklists.
 - [x] Added client + server checklist tests (user-run pending).
+
+---
+
+## Phase 5.4 Plan - Threads (DMs First)
+
+Scope: Deliver the Threads foundation with **DMs only**, channel groundwork (no channels yet), one-level reply threads, mention counters, placeholder presence UI, and permission/override scaffolding. DMs should use **basic encryption at rest** (not full E2E yet). Prioritize low-latency UX and minimal payloads.
+
+### A. Data Model & Schema (Server)
+1. **Thread containers**
+   - `thread_conversations`: id, type (`dm` | `channel`), name (nullable), createdAt, updatedAt, lastMessageAt.
+   - `thread_members`: conversationId, userId, role (member/admin), createdAt.
+2. **Messages**
+   - `thread_messages`: id, conversationId, authorId, body, bodyEncrypted (nullable), bodyFormat (`plain` for now), createdAt, updatedAt, deletedAt (nullable).
+   - `thread_attachments`: id, messageId, filename, mimeType, size, storagePath, createdAt.
+   - `thread_voice_notes`: id, messageId, durationSec, storagePath, createdAt.
+3. **One-level reply threads**
+   - `thread_replies`: id, parentMessageId, authorId, body/bodyEncrypted, createdAt, updatedAt.
+   - **Rule**: replies are only attached to a **parent message**. Replies **cannot** create subthreads. Replies inside a reply mention the user but remain within same reply list.
+4. **Mentions + counters**
+   - `thread_mentions`: id, messageId, mentionedUserId, createdAt, seenAt (nullable).
+   - `thread_reply_mentions`: id, replyId, mentionedUserId, createdAt, seenAt (nullable).
+   - Optional: `thread_mention_counters`: userId, unreadCount, updatedAt (for fast badge).
+5. **DM encryption (basic)**
+   - For `dm` conversations only: store body in `bodyEncrypted` and leave `body` empty.
+   - Add `encryption_version` on messages (or table-level default) for future upgrades.
+6. **Permissions & overrides groundwork**
+   - Extend role permissions with thread actions:
+     - view_threads, create_threads, reply_threads, delete_threads
+     - dm_read, dm_write, dm_encrypt (placeholder)
+     - channel_read, channel_write (placeholders for later)
+   - Add `thread_scope_overrides` (existing overrides table or new) with subject + allow/deny.
+
+### B. Service Layer & API (Server)
+1. **Conversation discovery**
+   - List all DMs for current user; include the other participant and last message snippet.
+   - Also expose list of users to start DM (including self).
+2. **Message CRUD**
+   - Create DM message (encrypt if dm).
+   - Create reply (single-level only).
+   - Edit/delete message and reply (soft delete now).
+3. **Mentions**
+   - Parse mentions from body; insert mention rows.
+   - Mark mentions seen on read (decrement counters).
+4. **Counters**
+   - Return unread mention count in `/me` or a dedicated endpoint.
+5. **Latency**
+   - Use indexed queries (conversationId + createdAt).
+   - Cursor pagination for messages (latest N).
+   - Avoid N+1 by joining minimal user fields.
+
+### C. Client Architecture & State
+1. **Threads UI layout**
+   - Left panel: tabs **DMs** (active), **Channels** (placeholder).
+   - DM list: all users; allow self DM.
+   - Main panel: conversation header, message list, reply thread drawer.
+2. **Message composition**
+   - Text input, attachments, voice note (UI placeholder).
+   - Reply button on message opens 1-level reply panel.
+3. **Reply thread UX**
+   - Show parent message + reply list; replies tagged with @mention to user being replied to.
+4. **Presence placeholders**
+   - Badge on avatar (green/empty/red). No real-time yet.
+5. **Mention counters**
+   - Badge on sidebar Threads section and per conversation.
+   - Decrement when user opens that DM/thread.
+
+### D. Basic DM Encryption (Not Full E2E)
+1. Server-side encryption util (symmetric, env-based key).
+2. Encrypt on write, decrypt on read (DM only).
+3. Store `bodyEncrypted`, set `body` null.
+4. Keep channels unencrypted for now.
+5. Add version tag for future upgrades.
+
+### E. Permissions + Overrides (Wire-up)
+1. Gate DM list and message creation by role permissions.
+2. Thread overrides: allow explicit access to a DM/channel even if base role denies.
+3. UI: hide actions if permissions missing.
+
+### F. Tests (Server + Client)
+1. API tests: create DM, post message, reply, mentions, counters, decrypt.
+2. Client tests: thread UI renders, reply panel opens, mention badge decrements.
+
+---
+
+## Phase 5.4 Checklist - Threads (DMs First)
+
+### Schema & Data
+- [ ] Add `thread_conversations`, `thread_members`, `thread_messages`, `thread_replies` tables.
+- [ ] Add mentions tables + indexes.
+- [ ] Add DM encryption fields + version marker.
+- [ ] Add overrides table or extend existing overrides schema.
+
+### Backend API
+- [ ] List DM conversations for user.
+- [ ] List all users for DM picker (including self).
+- [ ] Create DM message with encryption.
+- [ ] Create reply for a message (single level only).
+- [ ] Parse mentions + create mention records.
+- [ ] Mark mentions as seen when viewing DM/thread.
+- [ ] Return mention count for badges.
+
+### Client UI
+- [ ] Threads page layout with DMs list and placeholders for Channels.
+- [ ] DM conversation view with message list + compose input.
+- [ ] Reply thread panel (one level).
+- [ ] Presence badge placeholders (online/idle/dnd/focus).
+- [ ] Mention counter badges (threads + per DM).
+
+### Permissions
+- [ ] Add role permissions for DM/thread actions.
+- [ ] Enforce permission gating for DM view + send.
+- [ ] Wire overrides to allow access per conversation.
+
+### Tests
+- [ ] Server tests for DM message encryption + reply thread rules.
+- [ ] Server tests for mention counters (increment + decrement).
+- [ ] Client tests for Threads UI render + reply panel + badge decrement.
 

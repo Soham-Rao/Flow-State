@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 
+import { UserHoverCard } from "@/components/users/user-hover-card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { filterMentionCandidates, findMentionQuery, insertMention, type MentionQuery } from "@/lib/mentions";
@@ -12,6 +13,7 @@ interface MentionsFieldProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   multiline?: boolean;
   rows?: number;
   "data-testid"?: string;
@@ -26,6 +28,7 @@ export function MentionsField({
   placeholder,
   className,
   disabled,
+  onKeyDown,
   multiline,
   rows,
   "data-testid": dataTestId
@@ -71,33 +74,40 @@ export function MentionsField({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
-    if (!isOpen) return;
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActiveIndex((current) => (current + 1) % suggestions.length);
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActiveIndex((current) => (current - 1 + suggestions.length) % suggestions.length);
-      return;
-    }
-
-    if (event.key === "Enter" || event.key === "Tab") {
-      event.preventDefault();
-      const selected = suggestions[activeIndex];
-      if (selected) {
-        handleSelect(selected);
+    if (isOpen) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveIndex((current) => (current + 1) % suggestions.length);
+        onKeyDown?.(event);
+        return;
       }
-      return;
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveIndex((current) => (current - 1 + suggestions.length) % suggestions.length);
+        onKeyDown?.(event);
+        return;
+      }
+
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault();
+        const selected = suggestions[activeIndex];
+        if (selected) {
+          handleSelect(selected);
+        }
+        onKeyDown?.(event);
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setQueryInfo(null);
+        onKeyDown?.(event);
+        return;
+      }
     }
 
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setQueryInfo(null);
-    }
+    onKeyDown?.(event);
   };
 
   const handleBlur = (): void => {
@@ -159,8 +169,13 @@ export function MentionsField({
                       active ? "bg-slate-100 text-slate-900" : "text-slate-700 hover:bg-slate-50"
                     )}
                   >
-                    <span className="font-medium">{member.displayName ?? member.username ?? "Member"}</span>
-                    <span className="text-[10px] text-slate-500">@{member.username ?? "unknown"}</span>
+                    <UserHoverCard user={member}>
+                      <span className="flex w-full items-center justify-between gap-2">
+                        <span className="font-medium">{member.displayName ?? member.username ?? "Member"}</span>
+                        <span className="text-[10px] text-slate-500">@{member.username ?? "unknown"}</span>
+                      </span>
+                    </UserHoverCard>
+                    
                   </button>
                 </li>
               );
@@ -171,5 +186,6 @@ export function MentionsField({
     </div>
   );
 }
+
 
 

@@ -33,70 +33,82 @@ const MEMBER_ROLE_PERMISSIONS = [
   "view_threads",
   "create_threads",
   "reply_threads",
+  "dm_read",
+  "dm_write",
+  "dm_encrypt",
   "view_settings"
 ];
 
 const GUEST_ROLE_PERMISSIONS = [
-  "view_boards"
+  "view_boards",
+  "dm_read",
+  "dm_write"
 ];
 
 function ensureDefaultRoles(): { adminRoleId: string; memberRoleId: string; guestRoleId: string } {
-  const now = Date.now();
-  const existingRoles = sqlite.prepare("SELECT id, name FROM roles").all() as Array<{ id: string; name: string }>;
-  let adminRoleId = existingRoles.find((role) => role.name === ADMIN_ROLE_NAME)?.id;
-  let memberRoleId = existingRoles.find((role) => role.name === MEMBER_ROLE_NAME)?.id;
-  let guestRoleId = existingRoles.find((role) => role.name === GUEST_ROLE_NAME)?.id;
+  return sqlite.transaction(() => {
+    const now = Date.now();
+    const existingRoles = sqlite.prepare("SELECT id, name FROM roles").all() as Array<{ id: string; name: string }>;
+    let adminRoleId = existingRoles.find((role) => role.name === ADMIN_ROLE_NAME)?.id;
+    let memberRoleId = existingRoles.find((role) => role.name === MEMBER_ROLE_NAME)?.id;
+    let guestRoleId = existingRoles.find((role) => role.name === GUEST_ROLE_NAME)?.id;
 
-  if (!adminRoleId) {
-    adminRoleId = crypto.randomUUID();
-    sqlite.prepare("INSERT INTO roles (id, name, color, priority, mentionable, is_system, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .run(adminRoleId, ADMIN_ROLE_NAME, ADMIN_ROLE_COLOR, ADMIN_ROLE_PRIORITY, 0, 1, now, now);
-  }
+    if (!adminRoleId) {
+      adminRoleId = crypto.randomUUID();
+      sqlite.prepare("INSERT INTO roles (id, name, color, priority, mentionable, is_system, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+        .run(adminRoleId, ADMIN_ROLE_NAME, ADMIN_ROLE_COLOR, ADMIN_ROLE_PRIORITY, 0, 1, now, now);
+    }
 
-  if (!memberRoleId) {
-    memberRoleId = crypto.randomUUID();
-    sqlite.prepare("INSERT INTO roles (id, name, color, priority, mentionable, is_system, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .run(memberRoleId, MEMBER_ROLE_NAME, MEMBER_ROLE_COLOR, MEMBER_ROLE_PRIORITY, 0, 1, now, now);
-  }
+    if (!memberRoleId) {
+      memberRoleId = crypto.randomUUID();
+      sqlite.prepare("INSERT INTO roles (id, name, color, priority, mentionable, is_system, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+        .run(memberRoleId, MEMBER_ROLE_NAME, MEMBER_ROLE_COLOR, MEMBER_ROLE_PRIORITY, 0, 1, now, now);
+    }
 
-  if (!guestRoleId) {
-    guestRoleId = crypto.randomUUID();
-    sqlite.prepare("INSERT INTO roles (id, name, color, priority, mentionable, is_system, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .run(guestRoleId, GUEST_ROLE_NAME, GUEST_ROLE_COLOR, GUEST_ROLE_PRIORITY, 0, 1, now, now);
-  }
+    if (!guestRoleId) {
+      guestRoleId = crypto.randomUUID();
+      sqlite.prepare("INSERT INTO roles (id, name, color, priority, mentionable, is_system, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+        .run(guestRoleId, GUEST_ROLE_NAME, GUEST_ROLE_COLOR, GUEST_ROLE_PRIORITY, 0, 1, now, now);
+    }
 
-  const insertPermission = sqlite.prepare("INSERT OR IGNORE INTO role_permissions (role_id, permission, created_at) VALUES (?, ?, ?)");
-  for (const permission of rolePermissions) {
-    insertPermission.run(adminRoleId, permission, now);
-  }
-  for (const permission of MEMBER_ROLE_PERMISSIONS) {
-    insertPermission.run(memberRoleId, permission, now);
-  }
-  for (const permission of GUEST_ROLE_PERMISSIONS) {
-    insertPermission.run(guestRoleId, permission, now);
-  }
+    const insertPermission = sqlite.prepare("INSERT OR IGNORE INTO role_permissions (role_id, permission, created_at) VALUES (?, ?, ?)");
+    for (const permission of rolePermissions) {
+      insertPermission.run(adminRoleId, permission, now);
+    }
+    for (const permission of MEMBER_ROLE_PERMISSIONS) {
+      insertPermission.run(memberRoleId, permission, now);
+    }
+    for (const permission of GUEST_ROLE_PERMISSIONS) {
+      insertPermission.run(guestRoleId, permission, now);
+    }
 
-  return { adminRoleId, memberRoleId, guestRoleId };
+    return { adminRoleId, memberRoleId, guestRoleId };
+  })();
 }
 function ensureUserRoleAssignments(adminRoleId: string, memberRoleId: string, guestRoleId: string): void {
-  const usersRows = sqlite.prepare("SELECT id, role FROM users").all() as Array<{ id: string; role: string }>;
-  const roleByLegacy: Record<string, string> = { admin: adminRoleId, member: memberRoleId, guest: guestRoleId };
-  const insertUserRole = sqlite.prepare("INSERT OR IGNORE INTO user_roles (user_id, role_id, created_at) VALUES (?, ?, ?)");
+  sqlite.transaction(() => {
+    const usersRows = sqlite.prepare("SELECT id, role FROM users").all() as Array<{ id: string; role: string }>;
+    const roleByLegacy: Record<string, string> = { admin: adminRoleId, member: memberRoleId, guest: guestRoleId };
+    const insertUserRole = sqlite.prepare("INSERT OR IGNORE INTO user_roles (user_id, role_id, created_at) VALUES (?, ?, ?)");
 
-  for (const user of usersRows) {
-    const roleId = roleByLegacy[user.role] ?? guestRoleId;
-    insertUserRole.run(user.id, roleId, Date.now());
-  }
+    for (const user of usersRows) {
+      const roleId = roleByLegacy[user.role] ?? guestRoleId;
+      insertUserRole.run(user.id, roleId, Date.now());
+    }
+  })();
 }
-function ensureInviteRoleAssignments(adminRoleId: string, memberRoleId: string, guestRoleId: string): void {
-  const inviteRows = sqlite.prepare("SELECT id, role FROM invites").all() as Array<{ id: string; role: string }>;
-  const roleByLegacy: Record<string, string> = { admin: adminRoleId, member: memberRoleId, guest: guestRoleId };
-  const insertInviteRole = sqlite.prepare("INSERT OR IGNORE INTO invite_roles (invite_id, role_id, created_at) VALUES (?, ?, ?)");
 
-  for (const invite of inviteRows) {
-    const roleId = roleByLegacy[invite.role] ?? guestRoleId;
-    insertInviteRole.run(invite.id, roleId, Date.now());
-  }
+function ensureInviteRoleAssignments(adminRoleId: string, memberRoleId: string, guestRoleId: string): void {
+  sqlite.transaction(() => {
+    const inviteRows = sqlite.prepare("SELECT id, role FROM invites").all() as Array<{ id: string; role: string }>;
+    const roleByLegacy: Record<string, string> = { admin: adminRoleId, member: memberRoleId, guest: guestRoleId };
+    const insertInviteRole = sqlite.prepare("INSERT OR IGNORE INTO invite_roles (invite_id, role_id, created_at) VALUES (?, ?, ?)");
+
+    for (const invite of inviteRows) {
+      const roleId = roleByLegacy[invite.role] ?? guestRoleId;
+      insertInviteRole.run(invite.id, roleId, Date.now());
+    }
+  })();
 }
 function tableAllowsGuest(tableName: string): boolean {
   const row = sqlite.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?").get(tableName) as { sql?: string };
@@ -236,6 +248,18 @@ function ensureIndexes(): void {
     CREATE INDEX IF NOT EXISTS idx_comments_board_id ON comments(board_id);
     CREATE INDEX IF NOT EXISTS idx_comments_list_id ON comments(list_id);
     CREATE INDEX IF NOT EXISTS idx_comments_card_id ON comments(card_id);
+    CREATE INDEX IF NOT EXISTS idx_comment_mentions_user_id ON comment_mentions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_conversations_last_message_at ON thread_conversations(last_message_at);
+    CREATE INDEX IF NOT EXISTS idx_thread_members_conversation_id ON thread_members(conversation_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_members_user_id ON thread_members(user_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_messages_conversation_id ON thread_messages(conversation_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_messages_author_id ON thread_messages(author_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_messages_created_at ON thread_messages(created_at);
+    CREATE INDEX IF NOT EXISTS idx_thread_replies_parent_message_id ON thread_replies(parent_message_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_mentions_user_id ON thread_mentions(mentioned_user_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_reply_mentions_user_id ON thread_reply_mentions(mentioned_user_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_message_reactions_message_id ON thread_message_reactions(message_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_reply_reactions_reply_id ON thread_reply_reactions(reply_id);
     CREATE INDEX IF NOT EXISTS idx_invites_email ON invites(email);
     CREATE INDEX IF NOT EXISTS idx_invites_expires_at ON invites(expires_at);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_board_name_active ON lists(board_id, name) WHERE archived_at IS NULL;
@@ -462,11 +486,120 @@ export function initializeDatabase(): void {
       comment_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
       created_at INTEGER NOT NULL,
+      seen_at INTEGER,
       PRIMARY KEY (comment_id, user_id),
       FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS thread_conversations (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL CHECK (type IN ('dm', 'channel')),
+      name TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      last_message_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS thread_members (
+      conversation_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'member',
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (conversation_id, user_id),
+      FOREIGN KEY (conversation_id) REFERENCES thread_conversations(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS thread_messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      author_id TEXT NOT NULL,
+      body TEXT,
+      body_encrypted TEXT,
+      body_format TEXT NOT NULL DEFAULT 'plain',
+      encryption_version INTEGER NOT NULL DEFAULT 1,
+      is_forwarded INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      FOREIGN KEY (conversation_id) REFERENCES thread_conversations(id) ON DELETE CASCADE,
+      FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS thread_replies (
+      id TEXT PRIMARY KEY,
+      parent_message_id TEXT NOT NULL,
+      author_id TEXT NOT NULL,
+      body TEXT,
+      body_encrypted TEXT,
+      body_format TEXT NOT NULL DEFAULT 'plain',
+      encryption_version INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted_at INTEGER,
+      FOREIGN KEY (parent_message_id) REFERENCES thread_messages(id) ON DELETE CASCADE,
+      FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS thread_attachments (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime_type TEXT,
+      size INTEGER NOT NULL DEFAULT 0,
+      storage_path TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (message_id) REFERENCES thread_messages(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS thread_voice_notes (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL,
+      duration_sec INTEGER NOT NULL DEFAULT 0,
+      storage_path TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (message_id) REFERENCES thread_messages(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS thread_mentions (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL,
+      mentioned_user_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      seen_at INTEGER,
+      FOREIGN KEY (message_id) REFERENCES thread_messages(id) ON DELETE CASCADE,
+      FOREIGN KEY (mentioned_user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS thread_reply_mentions (
+      id TEXT PRIMARY KEY,
+      reply_id TEXT NOT NULL,
+      mentioned_user_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      seen_at INTEGER,
+      FOREIGN KEY (reply_id) REFERENCES thread_replies(id) ON DELETE CASCADE,
+      FOREIGN KEY (mentioned_user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS thread_message_reactions (
+      message_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (message_id, user_id, emoji),
+      FOREIGN KEY (message_id) REFERENCES thread_messages(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS thread_reply_reactions (
+      reply_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (reply_id, user_id, emoji),
+      FOREIGN KEY (reply_id) REFERENCES thread_replies(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
     CREATE INDEX IF NOT EXISTS idx_roles_priority ON roles(priority);
     CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions(role_id);
     CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
@@ -490,6 +623,18 @@ export function initializeDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_comments_board_id ON comments(board_id);
     CREATE INDEX IF NOT EXISTS idx_comments_list_id ON comments(list_id);
     CREATE INDEX IF NOT EXISTS idx_comments_card_id ON comments(card_id);
+    CREATE INDEX IF NOT EXISTS idx_comment_mentions_user_id ON comment_mentions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_conversations_last_message_at ON thread_conversations(last_message_at);
+    CREATE INDEX IF NOT EXISTS idx_thread_members_conversation_id ON thread_members(conversation_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_members_user_id ON thread_members(user_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_messages_conversation_id ON thread_messages(conversation_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_messages_author_id ON thread_messages(author_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_messages_created_at ON thread_messages(created_at);
+    CREATE INDEX IF NOT EXISTS idx_thread_replies_parent_message_id ON thread_replies(parent_message_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_mentions_user_id ON thread_mentions(mentioned_user_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_reply_mentions_user_id ON thread_reply_mentions(mentioned_user_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_message_reactions_message_id ON thread_message_reactions(message_id);
+    CREATE INDEX IF NOT EXISTS idx_thread_reply_reactions_reply_id ON thread_reply_reactions(reply_id);
     CREATE INDEX IF NOT EXISTS idx_invites_email ON invites(email);
     CREATE INDEX IF NOT EXISTS idx_invites_expires_at ON invites(expires_at);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_unique ON users(username) WHERE username IS NOT NULL;
@@ -543,6 +688,33 @@ export function initializeDatabase(): void {
     safeAddColumn("ALTER TABLE users ADD COLUMN date_of_birth INTEGER");
   }
 
+  const commentMentionColumns = sqlite.prepare("PRAGMA table_info(comment_mentions)").all() as Array<{ name: string }>;
+  const commentMentionColumnNames = new Set(commentMentionColumns.map((column) => column.name));
+
+  if (!commentMentionColumnNames.has("seen_at")) {
+    safeAddColumn("ALTER TABLE comment_mentions ADD COLUMN seen_at INTEGER");
+  }
+
+  const threadMentionColumns = sqlite.prepare("PRAGMA table_info(thread_mentions)").all() as Array<{ name: string }>;
+  const threadMentionColumnNames = new Set(threadMentionColumns.map((column) => column.name));
+
+  if (!threadMentionColumnNames.has("seen_at")) {
+    safeAddColumn("ALTER TABLE thread_mentions ADD COLUMN seen_at INTEGER");
+  }
+
+  const threadReplyMentionColumns = sqlite.prepare("PRAGMA table_info(thread_reply_mentions)").all() as Array<{ name: string }>;
+  const threadReplyMentionColumnNames = new Set(threadReplyMentionColumns.map((column) => column.name));
+
+  if (!threadReplyMentionColumnNames.has("seen_at")) {
+    safeAddColumn("ALTER TABLE thread_reply_mentions ADD COLUMN seen_at INTEGER");
+  }
+
+  const threadMessageColumns = sqlite.prepare("PRAGMA table_info(thread_messages)").all() as Array<{ name: string }>;
+  const threadMessageColumnNames = new Set(threadMessageColumns.map((column) => column.name));
+
+  if (!threadMessageColumnNames.has("is_forwarded")) {
+    safeAddColumn("ALTER TABLE thread_messages ADD COLUMN is_forwarded INTEGER NOT NULL DEFAULT 0");
+  }
   const listColumns = sqlite.prepare("PRAGMA table_info(lists)").all() as Array<{ name: string }>;
   const listColumnNames = new Set(listColumns.map((column) => column.name));
 
@@ -579,6 +751,16 @@ export function clearDatabaseForTests(): void {
     DELETE FROM role_permissions;
     DELETE FROM roles;
     DELETE FROM invites;
+    DELETE FROM thread_reply_mentions;
+    DELETE FROM thread_reply_reactions;
+    DELETE FROM thread_message_reactions;
+    DELETE FROM thread_mentions;
+    DELETE FROM thread_voice_notes;
+    DELETE FROM thread_attachments;
+    DELETE FROM thread_replies;
+    DELETE FROM thread_messages;
+    DELETE FROM thread_members;
+    DELETE FROM thread_conversations;
     DELETE FROM comment_mentions;
     DELETE FROM comment_reactions;
     DELETE FROM comments;
@@ -660,6 +842,19 @@ export function clearDatabaseForTests(): void {
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

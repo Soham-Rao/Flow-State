@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { UserHoverCard } from "@/components/users/user-hover-card";
 import { listInvites } from "@/lib/invites-api";
 import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole, updateUserRoles } from "@/lib/roles-api";
 import { useAuthStore } from "@/stores/auth-store";
@@ -297,7 +298,7 @@ const permissionGroups: PermissionGroup[] = [
       }
     ]
   },
-  {
+    {
     id: "threads",
     title: "Threads",
     description: "Thread visibility and moderation controls.",
@@ -336,6 +337,41 @@ const permissionGroups: PermissionGroup[] = [
         description: "Pin important threads.",
         enabledLabel: "Can pin threads",
         disabledLabel: "Cannot pin threads"
+      },
+      {
+        permission: "dm_read",
+        title: "View direct messages",
+        description: "Open and read direct message threads.",
+        enabledLabel: "Can view direct messages",
+        disabledLabel: "Cannot view direct messages"
+      },
+      {
+        permission: "dm_write",
+        title: "Send direct messages",
+        description: "Send messages in direct message threads.",
+        enabledLabel: "Can send direct messages",
+        disabledLabel: "Cannot send direct messages"
+      },
+      {
+        permission: "dm_encrypt",
+        title: "Encrypt direct messages",
+        description: "Allow encrypted storage for direct messages.",
+        enabledLabel: "Direct messages are encrypted",
+        disabledLabel: "Direct messages are not encrypted"
+      },
+      {
+        permission: "channel_read",
+        title: "View channels",
+        description: "See channel conversations.",
+        enabledLabel: "Can view channels",
+        disabledLabel: "Cannot view channels"
+      },
+      {
+        permission: "channel_write",
+        title: "Send channel messages",
+        description: "Post in channel conversations.",
+        enabledLabel: "Can send channel messages",
+        disabledLabel: "Cannot send channel messages"
       }
     ]
   }
@@ -669,11 +705,15 @@ export function GeneralSettingsPage(): JSX.Element {
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-              {getInitials(memberLabel)}
-            </div>
+            <UserHoverCard user={member}>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                {getInitials(memberLabel)}
+              </div>
+            </UserHoverCard>
             <div>
-              <p className="text-sm font-semibold">{memberLabel}</p>
+              <UserHoverCard user={member}>
+                <p className="text-sm font-semibold">{memberLabel}</p>
+              </UserHoverCard>
               <p className="text-xs text-muted-foreground">{memberHandle}</p>
             </div>
           </div>
@@ -1360,6 +1400,8 @@ export function GeneralSettingsPage(): JSX.Element {
     </div>
   );
 }
+
+
 
 
 

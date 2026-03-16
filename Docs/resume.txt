@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-14 18:11:45 +05:30
+Last checkpoint update: 2026-03-15 00:13:19 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -17,7 +17,8 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 5.1 (@mentions): complete
   - Phase 5.2 (Invitations): complete
   - Phase 5.3 (Roles + settings): complete
-  - Phase 8 (Focus mode + time tracking): in progress
+  - Phase 5.4 (Threads): in progress (DM-first plan)
+  - Phase 8 (Focus mode + time tracking): complete
 
 - Phase 4.1 implementation highlights:
   - Server schema: checklists + checklist_items tables with relations and test DB setup
@@ -36,6 +37,7 @@ Purpose: Resume from this exact project state, not from zero.
   - Due dates normalize epoch/1970 values to today (backend + UI)
   - Phase 4.3 complete: label management UI + CRUD, assignee toggles, and cover color controls wired end-to-end
   - Focus mode page added with Pomodoro timer, presets, local history, and stats
+  - Threads DM UI shows reply-count indicators and reaction chips (messages + replies)
 
 - Phase 5.1 + 5.2 progress:
   - App-wide @mentions autocomplete + parsing + bold rendering complete
@@ -51,7 +53,12 @@ Purpose: Resume from this exact project state, not from zero.
   - Migration hardening for legacy tables + test utilities; typecheck helper in `Docs/`
 
 - Phase 8 progress:
-  - Focus mode page with configurable Pomodoro lengths, soothing gradient UI, and local-only history/stats
+  - Focus mode page with configurable Pomodoro lengths, animated gradients, and local-only history/stats
+
+- Phase 5.4 progress:
+  - Threads (DM-first) implementation plan + checklist drafted in `Docs/instructions.md`
+  - Added reply count indicators on DM messages (+x replies when thread has replies)
+  - Added message/reply reactions (DB tables, API endpoints, server aggregation, UI chips + toggles)
 
 - Test location change:
   - Client tests moved from `client/src/...` to `client/tests/...`
@@ -63,7 +70,7 @@ Purpose: Resume from this exact project state, not from zero.
 
 - Future note: add email invites later (SMTP/transactional provider), likely alongside invite-only mode.
 
-- Verify Phase 8 focus mode (Pomodoro + stats) and then return to Phase 5.4 threads.
+- Continue Phase 5.4: channels work, DM encryption hardening, typing/presence groundwork, mention counters, and permissions/overrides.
 
 ## 3) User Preferences to Preserve on Resume
 
@@ -124,6 +131,12 @@ Tracked modified files at checkpoint:
 - `client/vitest.config.ts`
 - `server/src/db/init.ts`
 - `server/src/db/schema.ts`
+- `server/src/modules/threads/threads.schema.ts`
+- `server/src/modules/threads/threads.route.ts`
+- `server/src/modules/threads/threads.service.ts`
+- `client/src/lib/threads-api.ts`
+- `client/src/pages/threads-page.tsx`
+- `client/src/types/threads.ts`
 - `server/src/modules/boards/boards.route.ts`
 - `server/src/modules/boards/boards.schema.ts`
 - `server/src/modules/boards/boards.service.ts`
@@ -149,7 +162,7 @@ Note: db `-shm` and `-wal` files are runtime artifacts; do not delete without us
 
 ## 8) Immediate User-Facing Follow-up Item
 
-- Verify Phase 8 focus mode (Pomodoro + stats) and then return to Phase 5.4 threads.
+- Continue Phase 5.4: channels work, DM encryption hardening, typing/presence groundwork, mention counters, and permissions/overrides.
 
 ## 9) Resume Command Pack
 
@@ -162,6 +175,8 @@ Note: db `-shm` and `-wal` files are runtime artifacts; do not delete without us
   - `bun run --cwd server test`
 
 This file is the resume checkpoint contract for continuing FlowState safely and quickly.
+
+
 
 
 

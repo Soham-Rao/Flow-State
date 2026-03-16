@@ -33,10 +33,17 @@ export const rolePermissions = [
   "reply_threads",
   "delete_threads",
   "pin_threads",
+  "dm_read",
+  "dm_write",
+  "dm_encrypt",
+  "channel_read",
+  "channel_write",
   "view_settings"
 ] as const;
 export const roleScopeTypes = ["global", "board", "section", "card"] as const;
 export const roleScopeAccess = ["allow", "deny"] as const;
+export const threadConversationTypes = ["dm", "channel"] as const;
+export const threadMemberRoles = ["member", "admin"] as const;
 export const cardPriorities = ["low", "medium", "high", "urgent"] as const;
 export const retentionModes = ["attachments_only", "card_and_attachments"] as const;
 export const labelColors = [
@@ -310,11 +317,140 @@ export const commentMentions = sqliteTable("comment_mentions", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  seenAt: integer("seen_at", { mode: "timestamp_ms" })
 }, (table) => ({
   pk: primaryKey({ columns: [table.commentId, table.userId] })
 }));
 
+
+export const threadConversations = sqliteTable("thread_conversations", {
+  id: text("id").primaryKey(),
+  type: text("type", { enum: threadConversationTypes }).notNull(),
+  name: text("name"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  lastMessageAt: integer("last_message_at", { mode: "timestamp_ms" })
+});
+
+export const threadMembers = sqliteTable("thread_members", {
+  conversationId: text("conversation_id")
+    .notNull()
+    .references(() => threadConversations.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: text("role", { enum: threadMemberRoles }).notNull().default("member"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.conversationId, table.userId] })
+}));
+
+export const threadMessages = sqliteTable("thread_messages", {
+  id: text("id").primaryKey(),
+  conversationId: text("conversation_id")
+    .notNull()
+    .references(() => threadConversations.id, { onDelete: "cascade" }),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  body: text("body"),
+  bodyEncrypted: text("body_encrypted"),
+  bodyFormat: text("body_format").notNull().default("plain"),
+  encryptionVersion: integer("encryption_version").notNull().default(1),
+  isForwarded: integer("is_forwarded", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  deletedAt: integer("deleted_at", { mode: "timestamp_ms" })
+});
+
+export const threadReplies = sqliteTable("thread_replies", {
+  id: text("id").primaryKey(),
+  parentMessageId: text("parent_message_id")
+    .notNull()
+    .references(() => threadMessages.id, { onDelete: "cascade" }),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  body: text("body"),
+  bodyEncrypted: text("body_encrypted"),
+  bodyFormat: text("body_format").notNull().default("plain"),
+  encryptionVersion: integer("encryption_version").notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  deletedAt: integer("deleted_at", { mode: "timestamp_ms" })
+});
+
+export const threadAttachments = sqliteTable("thread_attachments", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id")
+    .notNull()
+    .references(() => threadMessages.id, { onDelete: "cascade" }),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type"),
+  size: integer("size").notNull().default(0),
+  storagePath: text("storage_path").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
+export const threadVoiceNotes = sqliteTable("thread_voice_notes", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id")
+    .notNull()
+    .references(() => threadMessages.id, { onDelete: "cascade" }),
+  durationSec: integer("duration_sec").notNull().default(0),
+  storagePath: text("storage_path").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
+export const threadMentions = sqliteTable("thread_mentions", {
+  id: text("id").primaryKey(),
+  messageId: text("message_id")
+    .notNull()
+    .references(() => threadMessages.id, { onDelete: "cascade" }),
+  mentionedUserId: text("mentioned_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  seenAt: integer("seen_at", { mode: "timestamp_ms" })
+});
+
+export const threadReplyMentions = sqliteTable("thread_reply_mentions", {
+  id: text("id").primaryKey(),
+  replyId: text("reply_id")
+    .notNull()
+    .references(() => threadReplies.id, { onDelete: "cascade" }),
+  mentionedUserId: text("mentioned_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  seenAt: integer("seen_at", { mode: "timestamp_ms" })
+});
+export const threadMessageReactions = sqliteTable("thread_message_reactions", {
+  messageId: text("message_id")
+    .notNull()
+    .references(() => threadMessages.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  emoji: text("emoji").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.messageId, table.userId, table.emoji] })
+}));
+
+export const threadReplyReactions = sqliteTable("thread_reply_reactions", {
+  replyId: text("reply_id")
+    .notNull()
+    .references(() => threadReplies.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  emoji: text("emoji").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.replyId, table.userId, table.emoji] })
+}));
 export const usersRelations = relations(users, ({ many }) => ({
   boards: many(boards),
   cards: many(cards)
@@ -376,9 +512,24 @@ export type UserRole = (typeof userRoles)[number];
 export type RolePermission = (typeof rolePermissions)[number];
 export type RoleScopeType = (typeof roleScopeTypes)[number];
 export type RoleScopeAccess = (typeof roleScopeAccess)[number];
+export type ThreadConversationType = (typeof threadConversationTypes)[number];
+export type ThreadMemberRole = (typeof threadMemberRoles)[number];
 export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

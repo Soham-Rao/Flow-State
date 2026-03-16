@@ -1692,17 +1692,21 @@ export function removeMemberFromCard(cardId: string, userId: string): BoardCard 
   return getCardById(cardId);
 }
 
-function storeCommentMentions(commentId: string, mentions: string[] | undefined): void {
+function storeCommentMentions(commentId: string, mentions: string[] | undefined, authorId: string): void {
   if (!mentions || mentions.length === 0) {
     return;
   }
 
-  const uniqueMentions = Array.from(new Set(mentions));
+  const uniqueMentions = Array.from(new Set(mentions)).filter((mentionId) => mentionId !== authorId);
   const existingUsers = db
     .select({ id: users.id })
     .from(users)
     .where(inArray(users.id, uniqueMentions))
     .all();
+
+  if (uniqueMentions.length === 0) {
+    return;
+  }
 
   if (existingUsers.length === 0) {
     return;
@@ -1712,7 +1716,8 @@ function storeCommentMentions(commentId: string, mentions: string[] | undefined)
     .values(existingUsers.map((user) => ({
       commentId,
       userId: user.id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      seenAt: null
     })))
     .run();
 }
@@ -1740,7 +1745,7 @@ function createCommentRecord(params: {
     })
     .run();
 
-  storeCommentMentions(commentId, params.input.mentions);
+  storeCommentMentions(commentId, params.input.mentions, params.authorId);
 
   return getCommentById(commentId);
 }
@@ -2687,5 +2692,8 @@ async function cleanupArchivedBoards(now: Date): Promise<void> {
     db.delete(boards).where(eq(boards.id, row.boardId)).run();
   }
 }
+
+
+
 
 

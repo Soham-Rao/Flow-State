@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, ChevronDown, Command, LayoutDashboard, ListTodo, LogOut, MessageCircle, Settings, Sliders, Timer, User } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { Bell, ChevronDown, Command, LayoutDashboard, ListTodo, LogOut, MessageCircle, MessageSquareText, Settings, Sliders, Timer, User } from "lucide-react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import { UserHoverCard } from "@/components/users/user-hover-card";
 import { useAuthStore } from "@/stores/auth-store";
+import { useMentionStore } from "@/stores/mentions-store";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -25,16 +27,33 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const status = useAuthStore((state) => state.status);
+  const refreshMentions = useMentionStore((state) => state.refresh);
+  const mentionCounts = useMentionStore((state) => state.counts);
+
+  useEffect(() => {
+    if (user) {
+      refreshMentions();
+    }
+  }, [user, refreshMentions]);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const isSubmitting = status === "loading";
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [threadsOpen, setThreadsOpen] = useState(true);
 
   const displayName = useMemo(() => {
     return user?.displayName || user?.username || "Teammate";
   }, [user]);
+
+  const threadsTab = useMemo(() => {
+    const tab = new URLSearchParams(location.search).get("tab");
+    return tab === "channels" ? "channels" : "dms";
+  }, [location.search]);
+
+  const isThreadsPath = location.pathname === "/threads";
 
   useEffect(() => {
     if (!menuOpen) {
@@ -100,24 +119,51 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
         </nav>
 
         <div className="mt-8">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Threads
-          </p>
-          <nav className="grid gap-2">
-            <NavLink
-              to="/threads"
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-secondary text-secondary-foreground"
-                    : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
-                }`
-              }
-            >
-              <MessageCircle className="h-4 w-4" />
-              Threads
-            </NavLink>
-          </nav>
+          <button
+            type="button"
+            onClick={() => setThreadsOpen((open) => !open)}
+            className="flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground transition hover:text-foreground"
+          >
+            <span>Threads</span>
+            <ChevronDown className={`h-4 w-4 transition ${threadsOpen ? "" : "-rotate-90"}`} />
+          </button>
+          {threadsOpen && (
+            <nav className="mt-2 grid gap-1">
+              <NavLink
+                to="/threads?tab=dms"
+                className={() =>
+                  `flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isThreadsPath && threadsTab === "dms"
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
+                  }`
+                }
+              >
+                <span className="flex items-center gap-3">
+                  <MessageCircle className="h-4 w-4" />
+                  DMs
+                </span>
+                {mentionCounts && mentionCounts.total > 0 && (
+                  <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    {mentionCounts.total}
+                  </span>
+                )}
+              </NavLink>
+              <NavLink
+                to="/threads?tab=channels"
+                className={() =>
+                  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isThreadsPath && threadsTab === "channels"
+                      ? "bg-secondary text-secondary-foreground"
+                      : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
+                  }`
+                }
+              >
+                <MessageSquareText className="h-4 w-4" />
+                Channels
+              </NavLink>
+            </nav>
+          )}
         </div>
 
         <div className="mt-8">
@@ -150,7 +196,15 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Team Workspace</p>
-              <h1 className="text-lg font-semibold">Welcome back, {displayName}</h1>
+              <h1 className="text-lg font-semibold">
+                Welcome back, {user ? (
+                  <UserHoverCard user={user}>
+                    <span className="font-semibold">{displayName}</span>
+                  </UserHoverCard>
+                ) : (
+                  displayName
+                )}
+              </h1>
             </div>
 
             <div className="flex items-center gap-2">
@@ -161,7 +215,13 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                   className="flex items-center gap-3 rounded-lg border border-border/70 bg-card/70 px-3 py-2 text-right transition hover:bg-card"
                 >
                   <div>
-                    <p className="text-sm font-medium leading-tight">{displayName}</p>
+                    {user ? (
+                      <UserHoverCard user={user}>
+                        <p className="text-sm font-medium leading-tight">{displayName}</p>
+                      </UserHoverCard>
+                    ) : (
+                      <p className="text-sm font-medium leading-tight">{displayName}</p>
+                    )}
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">
                       {user?.role ?? "member"}
                     </p>
@@ -228,3 +288,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     </div>
   );
 }
+
+
+
+

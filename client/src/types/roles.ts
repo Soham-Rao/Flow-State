@@ -29,6 +29,11 @@ export const rolePermissions = [
   "reply_threads",
   "delete_threads",
   "pin_threads",
+  "dm_read",
+  "dm_write",
+  "dm_encrypt",
+  "channel_read",
+  "channel_write",
   "view_settings"
 ] as const;
 
@@ -53,4 +58,7 @@ export interface UserRoleAssignment {
   role: "admin" | "member" | "guest";
   roleIds: string[];
 }
+
+
+
 

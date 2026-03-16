@@ -275,7 +275,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 5.1: @ Mentions Autocomplete (App-wide) | ✅ Completed | 2026-03-13 | 2026-03-13 | Autocomplete on `@` anywhere + mention notifications |
 | Phase 5.2: Invitation System | ✅ Completed | 2026-03-13 | 2026-03-14 | Admin invite flow + shareable links |
 | Phase 5.3: Roles & Permissions | ✅ Completed | 2026-03-14 | 2026-03-14 | Roles/permissions system, management UI, and permission gating |
-| Phase 5.4: Threads Section | ⬜ Not Started | — | — | Sidebar section groundwork |
+| Phase 5.4: Threads Section | 🟨 In Progress | 2026-03-14 | — | Threads plan drafted; DMs first with one-level reply threads |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
 | Phase 8: Time Tracking & Focus | ✅ Completed | 2026-03-14 | 2026-03-14 | Focus mode Pomodoro UI with personal history/stats (local only) |
@@ -328,6 +328,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 | Date | Update |
 |------|--------|
+| 2026-03-14 | Phase 5.4 started: drafted detailed threads (DM-first) plan with encryption, mentions, and permission/override scaffolding. |
 | 2026-03-14 | Phase 8 completed: focus mode Pomodoro with configurable sessions, animated backgrounds, partial-session tracking, and client tests. |
 | 2026-03-14 | Phase 8 started: focus mode Pomodoro page with configurable session lengths and local-only history/stats. |
 | 2026-03-14 | Phase 5.3 completed: roles/permissions system with admin/member/guest defaults, role assignment + management UI, permission gating, and migration hardening; user-run tests pass. |
