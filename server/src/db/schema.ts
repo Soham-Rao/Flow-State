@@ -341,7 +341,8 @@ export const threadMembers = sqliteTable("thread_members", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   role: text("role", { enum: threadMemberRoles }).notNull().default("member"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  lastReadAt: integer("last_read_at", { mode: "timestamp_ms" })
 }, (table) => ({
   pk: primaryKey({ columns: [table.conversationId, table.userId] })
 }));
@@ -426,6 +427,18 @@ export const threadReplyMentions = sqliteTable("thread_reply_mentions", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   seenAt: integer("seen_at", { mode: "timestamp_ms" })
 });
+
+export const threadMessageDeletions = sqliteTable("thread_message_deletions", {
+  messageId: text("message_id")
+    .notNull()
+    .references(() => threadMessages.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  deletedAt: integer("deleted_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.messageId, table.userId] })
+}));
 export const threadMessageReactions = sqliteTable("thread_message_reactions", {
   messageId: text("message_id")
     .notNull()

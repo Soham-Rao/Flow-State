@@ -101,7 +101,7 @@ export function FocusPage(): JSX.Element {
               completedAt: entry.completedAt
             } satisfies FocusSessionEntry;
           })
-          .filter((entry): entry is FocusSessionEntry => Boolean(entry) && entry.durationSeconds > 0);
+          .filter((entry): entry is FocusSessionEntry => entry !== null && entry.durationSeconds > 0);
         setHistory(normalizedHistory);
       }
     } catch {

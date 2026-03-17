@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoardDetailPage } from "@/pages/boards/board-detail-page";
-import type { BoardCard, BoardComment, BoardDetail, BoardList } from "@/types/board";
+import type { BoardCard, BoardComment, BoardDetail, BoardList, BoardMember } from "@/types/board";
 import * as boardsApi from "@/lib/boards-api";
 
 vi.mock("@/lib/boards-api", () => ({
@@ -78,9 +78,11 @@ const restoreBoardMock = vi.mocked(boardsApi.restoreBoard);
 const restoreListMock = vi.mocked(boardsApi.restoreList);
 const restoreCardMock = vi.mocked(boardsApi.restoreCard);
 
-const baseAuthor = {
+const baseAuthor: BoardMember = {
   id: "user-1",
   name: "Jane Doe",
+  displayName: "Jane Doe",
+  username: "jane",
   email: "jane@example.com",
   role: "admin",
   createdAt: "2026-03-12T10:00:00.000Z"
@@ -163,6 +165,21 @@ const baseBoard: BoardDetail = {
   labels: [],
   members: [],
   comments: []
+};
+
+const baseBoardSummary = {
+  id: baseBoard.id,
+  name: baseBoard.name,
+  description: baseBoard.description,
+  background: baseBoard.background,
+  retentionMode: baseBoard.retentionMode,
+  retentionMinutes: baseBoard.retentionMinutes,
+  archiveRetentionMinutes: baseBoard.archiveRetentionMinutes,
+  archivedAt: baseBoard.archivedAt,
+  createdBy: baseBoard.createdBy,
+  createdAt: baseBoard.createdAt,
+  updatedAt: baseBoard.updatedAt,
+  listCount: baseBoard.lists.length
 };
 
 function cloneBoard(): BoardDetail {
@@ -263,7 +280,7 @@ beforeEach(() => {
     boardId: baseBoard.id,
     listId: null,
     cardId: null,
-    author: { id: "user-1", name: "Jane Doe", email: "jane@example.com", role: "admin", createdAt: "2026-03-12T10:00:00.000Z" },
+    author: { ...baseAuthor },
     body: "Board note",
     createdAt: "2026-03-12T10:00:00.000Z",
     updatedAt: "2026-03-12T10:00:00.000Z",
@@ -275,7 +292,7 @@ beforeEach(() => {
     boardId: baseBoard.id,
     listId: listOne.id,
     cardId: null,
-    author: { id: "user-1", name: "Jane Doe", email: "jane@example.com", role: "admin", createdAt: "2026-03-12T10:00:00.000Z" },
+    author: { ...baseAuthor },
     body: "List note",
     createdAt: "2026-03-12T10:00:00.000Z",
     updatedAt: "2026-03-12T10:00:00.000Z",
@@ -287,7 +304,7 @@ beforeEach(() => {
     boardId: baseBoard.id,
     listId: null,
     cardId: baseCard.id,
-    author: { id: "user-1", name: "Jane Doe", email: "jane@example.com", role: "admin", createdAt: "2026-03-12T10:00:00.000Z" },
+    author: { ...baseAuthor },
     body: "Card note",
     createdAt: "2026-03-12T10:00:00.000Z",
     updatedAt: "2026-03-12T10:00:00.000Z",
@@ -299,7 +316,7 @@ beforeEach(() => {
     boardId: baseBoard.id,
     listId: null,
     cardId: baseCard.id,
-    author: { id: "user-1", name: "Jane Doe", email: "jane@example.com", role: "admin", createdAt: "2026-03-12T10:00:00.000Z" },
+    author: { ...baseAuthor },
     body: "Card note",
     createdAt: "2026-03-12T10:00:00.000Z",
     updatedAt: "2026-03-12T10:00:00.000Z",
@@ -308,10 +325,10 @@ beforeEach(() => {
   });
   deleteCommentMock.mockResolvedValue({ message: "Comment deleted" });
   getArchivedListsMock.mockResolvedValue([]);
-  archiveBoardMock.mockResolvedValue({ message: "Board archived" });
+  archiveBoardMock.mockResolvedValue(baseBoardSummary);
   archiveListMock.mockResolvedValue({ message: "List archived" });
-  archiveCardMock.mockResolvedValue({ message: "Card archived" });
-  restoreBoardMock.mockResolvedValue({ message: "Board restored" });
+  archiveCardMock.mockResolvedValue(baseCard);
+  restoreBoardMock.mockResolvedValue(baseBoardSummary);
   restoreListMock.mockResolvedValue(baseBoard);
   restoreCardMock.mockResolvedValue(baseCard);
 });

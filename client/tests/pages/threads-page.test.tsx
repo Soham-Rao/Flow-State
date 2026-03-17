@@ -11,6 +11,7 @@ const listThreadMessages = vi.fn();
 const listThreadReplies = vi.fn();
 const createThreadMessage = vi.fn();
 const createThreadReply = vi.fn();
+const downloadThreadAttachment = vi.fn();
 
 const getUnreadMentions = vi.fn();
 const markThreadMentionsSeen = vi.fn();
@@ -22,7 +23,8 @@ vi.mock("@/lib/threads-api", () => ({
   listThreadMessages: (...args: unknown[]) => listThreadMessages(...args),
   listThreadReplies: (...args: unknown[]) => listThreadReplies(...args),
   createThreadMessage: (...args: unknown[]) => createThreadMessage(...args),
-  createThreadReply: (...args: unknown[]) => createThreadReply(...args)
+  createThreadReply: (...args: unknown[]) => createThreadReply(...args),
+  downloadThreadAttachment: (...args: unknown[]) => downloadThreadAttachment(...args)
 }));
 
 vi.mock("@/lib/mentions-api", () => ({
@@ -104,7 +106,9 @@ describe("ThreadsPage", () => {
         updatedAt: new Date().toISOString(),
         deletedAt: null,
         reactions: [],
-        replyCount: 0
+        replyCount: 0,
+        attachments: [],
+        voiceNote: null
       }
     ]);
 
@@ -130,4 +134,8 @@ describe("ThreadsPage", () => {
     expect(markThreadMentionsSeen).toHaveBeenCalledWith("conv-1");
   });
 });
+
+
+
+
 

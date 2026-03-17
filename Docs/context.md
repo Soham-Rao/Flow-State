@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-03-14
+> Last updated: 2026-03-16
 
 ---
 
@@ -271,11 +271,12 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 4.2: Attachments | ✅ Completed | 2026-03-13 | 2026-03-13 | Added attachments API + UI, retention settings, and cleanup support |
 | Phase 4.3: Labels + Assignments + Cover Colors | ✅ Completed | 2026-03-13 | 2026-03-13 | Labels/assignees/cover colors wired end-to-end with schema + API + UI and polish fixes |
 | Phase 4.4: Comments + Due Dates + Archive/Restore | ✅ Completed | 2026-03-13 | 2026-03-13 | Comments with mentions/reactions, archive/restore flows, and retention countdown badges |
-| Phase 5: Team & Collaboration | 🟨 In Progress | 2026-03-13 | — | Phase 5.2–5.3 completed; Phase 5.4 not started |
+| Phase 5: Team & Collaboration | 🟨 In Progress | 2026-03-13 | — | Phase 5.4 completed; Phase 5.5 not started |
 | Phase 5.1: @ Mentions Autocomplete (App-wide) | ✅ Completed | 2026-03-13 | 2026-03-13 | Autocomplete on `@` anywhere + mention notifications |
 | Phase 5.2: Invitation System | ✅ Completed | 2026-03-13 | 2026-03-14 | Admin invite flow + shareable links |
 | Phase 5.3: Roles & Permissions | ✅ Completed | 2026-03-14 | 2026-03-14 | Roles/permissions system, management UI, and permission gating |
-| Phase 5.4: Threads Section | 🟨 In Progress | 2026-03-14 | — | Threads plan drafted; DMs first with one-level reply threads |
+| Phase 5.4: Threads Section | ✅ Completed | 2026-03-14 | 2026-03-16 | DMs implemented with reply threads, reactions, mentions, encryption, and UX polish |
+| Phase 5.5: Channels & Overrides | ⬜ Not Started | — | — | Channel chat + permission overrides groundwork |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
 | Phase 8: Time Tracking & Focus | ✅ Completed | 2026-03-14 | 2026-03-14 | Focus mode Pomodoro UI with personal history/stats (local only) |
@@ -328,6 +329,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 | Date | Update |
 |------|--------|
+| 2026-03-16 | Phase 5.4 completed: DM threads with reactions, reply threads, mention counters, encryption, attachments, voice notes, and UI polish; Phase 5.5 created for channels + overrides. |
 | 2026-03-14 | Phase 5.4 started: drafted detailed threads (DM-first) plan with encryption, mentions, and permission/override scaffolding. |
 | 2026-03-14 | Phase 8 completed: focus mode Pomodoro with configurable sessions, animated backgrounds, partial-session tracking, and client tests. |
 | 2026-03-14 | Phase 8 started: focus mode Pomodoro page with configurable session lengths and local-only history/stats. |

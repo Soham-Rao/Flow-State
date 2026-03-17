@@ -6,7 +6,10 @@ import type {
   ThreadMessageSummary,
   ThreadReplySummary,
   ThreadReaction,
-  ThreadUserSummary
+  ThreadReactionDetail,
+  ThreadUserSummary,
+  ThreadVoiceNote,
+  ThreadDeleteResult
  } from "@/types/threads";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
@@ -48,7 +51,16 @@ export async function listThreadMessages(conversationId: string, params?: { limi
   });
 }
 
-export async function createThreadMessage(conversationId: string, input: { body: string; mentions?: string[]; forwarded?: boolean; hasAttachments?: boolean }): Promise<ThreadMessageSummary> {
+export async function createThreadMessage(
+  conversationId: string,
+  input: {
+    body: string;
+    mentions?: string[];
+    forwarded?: boolean;
+    hasAttachments?: boolean;
+    hasVoiceNote?: boolean;
+  }
+): Promise<ThreadMessageSummary> {
   return apiRequest<ThreadMessageSummary>(`/threads/conversations/${conversationId}/messages`, {
     method: "POST",
     auth: true,
@@ -56,6 +68,22 @@ export async function createThreadMessage(conversationId: string, input: { body:
   });
 }
 
+
+export async function updateThreadMessage(messageId: string, input: { body: string }): Promise<ThreadMessageSummary> {
+  return apiRequest<ThreadMessageSummary>(`/threads/messages/${messageId}`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export async function deleteThreadMessage(messageId: string, scope: "me" | "all"): Promise<ThreadDeleteResult> {
+  return apiRequest<ThreadDeleteResult>(`/threads/messages/${messageId}`, {
+    method: "DELETE",
+    auth: true,
+    body: JSON.stringify({ scope })
+  });
+}
 export async function listThreadReplies(messageId: string): Promise<ThreadReplySummary[]> {
   return apiRequest<ThreadReplySummary[]>(`/threads/messages/${messageId}/replies`, {
     method: "GET",
@@ -93,6 +121,20 @@ export async function createThreadMessageAttachments(messageId: string, files: F
   return payload.data ?? [];
 }
 
+export async function fetchThreadAttachmentBlob(attachmentId: string): Promise<Blob> {
+  const token = getSessionToken();
+  const response = await fetch(`${API_BASE_URL}/threads/attachments/${attachmentId}/download`, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to download attachment");
+  }
+
+  return response.blob();
+}
+
 export async function downloadThreadAttachment(attachmentId: string, filename: string): Promise<void> {
   const token = getSessionToken();
   const response = await fetch(`${API_BASE_URL}/threads/attachments/${attachmentId}/download`, {
@@ -122,6 +164,13 @@ export async function toggleThreadMessageReaction(messageId: string, input: { em
   });
 }
 
+export async function listThreadMessageReactionDetails(messageId: string): Promise<ThreadReactionDetail[]> {
+  return apiRequest<ThreadReactionDetail[]>(`/threads/messages/${messageId}/reactions/details`, {
+    method: "GET",
+    auth: true
+  });
+}
+
 export async function toggleThreadReplyReaction(replyId: string, input: { emoji: string }): Promise<ThreadReaction[]> {
   return apiRequest<ThreadReaction[]>(`/threads/replies/${replyId}/reactions`, {
     method: "POST",
@@ -131,5 +180,44 @@ export async function toggleThreadReplyReaction(replyId: string, input: { emoji:
 }
 
 
+
+
+
+export async function createThreadVoiceNote(messageId: string, file: File, durationSec: number): Promise<ThreadVoiceNote> {
+  const token = getSessionToken();
+  const formData = new FormData();
+  formData.append("voice", file);
+  formData.append("durationSec", String(durationSec));
+
+  const response = await fetch(`${API_BASE_URL}/threads/messages/${messageId}/voice-note`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { success?: boolean; data?: ThreadVoiceNote; error?: { message?: string } }
+    | null;
+
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error?.message ?? "Voice message upload failed");
+  }
+
+  return payload.data as ThreadVoiceNote;
+}
+
+export async function fetchThreadVoiceNote(voiceNoteId: string): Promise<Blob> {
+  const token = getSessionToken();
+  const response = await fetch(`${API_BASE_URL}/threads/voice-notes/${voiceNoteId}/download`, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to download voice message");
+  }
+
+  return response.blob();
+}
 
 

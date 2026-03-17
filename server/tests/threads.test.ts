@@ -157,6 +157,78 @@ describe("Threads API", () => {
     expect(clearedResponse.status).toBe(200);
     expect(clearedResponse.body.data.total).toBe(0);
   });
+
+  it("edits a DM message within 15 minutes", async () => {
+    const admin = await registerUser("Admin", "admin@example.com");
+    const member = await registerUser("Member", "member@example.com");
+
+    const conversationResponse = await request(app)
+      .post(`/api/threads/dms/${member.id}`)
+      .set("Authorization", `Bearer ${admin.token}`);
+
+    const conversationId = conversationResponse.body.data.id as string;
+
+    const messageResponse = await request(app)
+      .post(`/api/threads/conversations/${conversationId}/messages`)
+      .set("Authorization", `Bearer ${admin.token}`)
+      .send({
+        body: "Original message",
+        mentions: []
+      });
+
+    const messageId = messageResponse.body.data.id as string;
+
+    const editResponse = await request(app)
+      .patch(`/api/threads/messages/${messageId}`)
+      .set("Authorization", `Bearer ${admin.token}`)
+      .send({
+        body: "Updated message"
+      });
+
+    expect(editResponse.status).toBe(200);
+    expect(editResponse.body.data.body).toBe("Updated message");
+
+    const row = sqlite.prepare("SELECT body, body_encrypted FROM thread_messages WHERE id = ?").get(messageId) as {
+      body: string | null;
+      body_encrypted: string | null;
+    };
+
+    expect(row.body).toBeNull();
+    expect(row.body_encrypted).toBeTruthy();
+  });
+
+  it("blocks delete-for-all after the other member has seen the message", async () => {
+    const admin = await registerUser("Admin", "admin@example.com");
+    const member = await registerUser("Member", "member@example.com");
+
+    const conversationResponse = await request(app)
+      .post(`/api/threads/dms/${member.id}`)
+      .set("Authorization", `Bearer ${admin.token}`);
+
+    const conversationId = conversationResponse.body.data.id as string;
+
+    const messageResponse = await request(app)
+      .post(`/api/threads/conversations/${conversationId}/messages`)
+      .set("Authorization", `Bearer ${admin.token}`)
+      .send({
+        body: "Delete me",
+        mentions: []
+      });
+
+    const messageId = messageResponse.body.data.id as string;
+
+    sqlite.prepare("UPDATE thread_members SET last_read_at = ? WHERE conversation_id = ? AND user_id = ?")
+      .run(Date.now(), conversationId, member.id);
+
+    const deleteResponse = await request(app)
+      .delete(`/api/threads/messages/${messageId}`)
+      .set("Authorization", `Bearer ${admin.token}`)
+      .send({
+        scope: "all"
+      });
+
+    expect(deleteResponse.status).toBe(400);
+  });
 });
 
 afterAll(() => {

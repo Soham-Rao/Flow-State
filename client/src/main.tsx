@@ -16,7 +16,9 @@ const resolveTheme = (value: "light" | "dark" | "system"): "light" | "dark" => {
 };
 
 const applyThemePreference = (value: "light" | "dark" | "system"): void => {
-  document.documentElement.dataset.theme = resolveTheme(value);
+  const resolved = resolveTheme(value);
+  document.documentElement.dataset.theme = resolved;
+  document.documentElement.classList.toggle("dark", resolved == "dark");
 };
 
 const normalizeStoredFont = (value: string | null): string => {
@@ -38,7 +40,9 @@ try {
   const handleSystemChange = () => {
     const currentTheme = normalizeStoredTheme(localStorage.getItem("flowstate:theme"));
     if (currentTheme === "system") {
-      document.documentElement.dataset.theme = media.matches ? "dark" : "light";
+      const resolved = media.matches ? "dark" : "light";
+      document.documentElement.dataset.theme = resolved;
+      document.documentElement.classList.toggle("dark", resolved == "dark");
     }
   };
   media.addEventListener("change", handleSystemChange);

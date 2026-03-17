@@ -6,13 +6,23 @@ abman ✔️ 0
 storage 1 ✔️ 0 
 storage 2 ✔️ 0
 storage 3 ✔️ 0
-storage p ✔️ 15
+storage p ✔️0
 clash 4 free ✔️ 0
-burner finger ✔️ 2
+burner finger ✔️ 0
+burner finger +1 ✔️ 0
+burner finger +2 ✔️ 0
+burner finger +3 ✔️ 6
+burner finger +4 ✔️ 55
 ---
 
-vms
-hover emoji option placement closer to message box 
-allow empty message only if attachment exists otherwise no 
-did u verify that all migration functions are atomic 
-attachment should be seen in reply thread
+channels and overrides
+pressing edit must auto focus on typing
+after 15 mins, hovering over edit button when it doesnt let you click, should say "can edit only within 15 minutes" 
+after clicking edit, if no edit is made but user clicks save, no need to show `edited` on top of message
+compression 
+
+
+---
+fix reply threads message positioning for us 
+deleting for me, repops up even after deleting
+order users by latest message unless pin

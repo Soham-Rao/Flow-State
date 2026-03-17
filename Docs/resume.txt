@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-15 00:13:19 +05:30
+Last checkpoint update: 2026-03-16 00:00:00 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -17,7 +17,8 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 5.1 (@mentions): complete
   - Phase 5.2 (Invitations): complete
   - Phase 5.3 (Roles + settings): complete
-  - Phase 5.4 (Threads): in progress (DM-first plan)
+  - Phase 5.4 (Threads): complete
+  - Phase 5.5 (Channels + overrides): not started
   - Phase 8 (Focus mode + time tracking): complete
 
 - Phase 4.1 implementation highlights:
@@ -55,10 +56,10 @@ Purpose: Resume from this exact project state, not from zero.
 - Phase 8 progress:
   - Focus mode page with configurable Pomodoro lengths, animated gradients, and local-only history/stats
 
-- Phase 5.4 progress:
-  - Threads (DM-first) implementation plan + checklist drafted in `Docs/instructions.md`
-  - Added reply count indicators on DM messages (+x replies when thread has replies)
-  - Added message/reply reactions (DB tables, API endpoints, server aggregation, UI chips + toggles)
+- Phase 5.4 completion summary:
+  - DM conversations with encrypted message bodies (env key) + mention counters
+  - Reply threads (one level), reactions, attachments, and voice notes
+  - UX polish: sticky composer, reaction hover, reply drawer, forward picker
 
 - Test location change:
   - Client tests moved from `client/src/...` to `client/tests/...`
@@ -70,7 +71,7 @@ Purpose: Resume from this exact project state, not from zero.
 
 - Future note: add email invites later (SMTP/transactional provider), likely alongside invite-only mode.
 
-- Continue Phase 5.4: channels work, DM encryption hardening, typing/presence groundwork, mention counters, and permissions/overrides.
+- Start Phase 5.5: channels, channel permissions, and overrides groundwork.
 
 ## 3) User Preferences to Preserve on Resume
 
@@ -162,7 +163,7 @@ Note: db `-shm` and `-wal` files are runtime artifacts; do not delete without us
 
 ## 8) Immediate User-Facing Follow-up Item
 
-- Continue Phase 5.4: channels work, DM encryption hardening, typing/presence groundwork, mention counters, and permissions/overrides.
+- Start Phase 5.5: channels, channel permissions, and overrides groundwork.
 
 ## 9) Resume Command Pack
 

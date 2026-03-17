@@ -9,6 +9,8 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmClassName?: string;
+  confirmVariant?: "default" | "secondary" | "ghost";
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -19,6 +21,8 @@ export function ConfirmDialog({
   description,
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
+  confirmClassName,
+  confirmVariant = "default",
   onConfirm,
   onCancel
 }: ConfirmDialogProps): JSX.Element | null {
@@ -55,7 +59,7 @@ export function ConfirmDialog({
           <Button type="button" variant="ghost" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button type="button" onClick={onConfirm}>
+          <Button type="button" variant={confirmVariant} className={confirmClassName} onClick={onConfirm}>
             {confirmLabel}
           </Button>
         </CardContent>

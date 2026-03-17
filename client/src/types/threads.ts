@@ -21,6 +21,11 @@ export interface ThreadReaction {
   count: number;
 }
 
+export interface ThreadReactionDetail {
+  emoji: string;
+  users: ThreadUserSummary[];
+}
+
 export interface ThreadAttachment {
   id: string;
   messageId: string;
@@ -30,6 +35,13 @@ export interface ThreadAttachment {
   createdAt: string;
 }
 
+
+export interface ThreadVoiceNote {
+  id: string;
+  messageId: string;
+  durationSec: number;
+  createdAt: string;
+}
 export interface ThreadMessageSummary {
   id: string;
   conversationId: string;
@@ -42,6 +54,7 @@ export interface ThreadMessageSummary {
   reactions: ThreadReaction[];
   replyCount: number;
   attachments: ThreadAttachment[];
+  voiceNote: ThreadVoiceNote | null;
 }
 
 export interface ThreadReplySummary {
@@ -54,6 +67,8 @@ export interface ThreadReplySummary {
   deletedAt: string | null;
   reactions: ThreadReaction[];
 }
-
-
-
+export interface ThreadDeleteResult {
+  id: string;
+  scope: "me" | "all";
+  message?: ThreadMessageSummary;
+}
