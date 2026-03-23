@@ -6,18 +6,36 @@ import {
   threadConversations,
   threadMembers,
   threadMessageDeletions,
+  threadReplyDeletions,
   threadMessageReactions,
   threadMessages,
   threadMentions,
   threadReplyReactions,
   threadReplyMentions,
+  threadReplyAttachments,
+  threadReplyVoiceNotes,
   threadReplies,
   threadVoiceNotes,
   users
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { decryptDmBody } from "../../utils/encryption.js";
-import type { ThreadAttachment, ThreadReaction, ThreadVoiceNote } from "./threads.service.types.js";
+import type { ThreadAttachment, ThreadReaction, ThreadVoiceNote, ThreadReplyAttachment, ThreadReplyVoiceNote } from "./threads.service.types.js";
+
+
+export function getThreadReplyDeletionSet(userId: string, replyIds: string[]): Set<string> {
+  if (replyIds.length === 0) {
+    return new Set();
+  }
+
+  const rows = db
+    .select({ replyId: threadReplyDeletions.replyId })
+    .from(threadReplyDeletions)
+    .where(and(eq(threadReplyDeletions.userId, userId), inArray(threadReplyDeletions.replyId, replyIds)))
+    .all();
+
+  return new Set(rows.map((row) => row.replyId));
+}
 
 export function getThreadMessageDeletionSet(userId: string, messageIds: string[]): Set<string> {
   if (messageIds.length === 0) {
@@ -83,18 +101,37 @@ export function getThreadReplyReactions(replyIds: string[]): Map<string, ThreadR
   return map;
 }
 
-export function getThreadReplyCounts(messageIds: string[]): Map<string, number> {
+export function getThreadReplyCounts(messageIds: string[], userId?: string): Map<string, number> {
   if (messageIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
-    .select({
-      parentMessageId: threadReplies.parentMessageId,
-      count: sql<number>`count(*)`
-    })
-    .from(threadReplies)
-    .where(and(inArray(threadReplies.parentMessageId, messageIds), isNull(threadReplies.deletedAt)))
+  const rows = (userId
+    ? db
+        .select({
+          parentMessageId: threadReplies.parentMessageId,
+          count: sql<number>`count(*)`
+        })
+        .from(threadReplies)
+        .leftJoin(
+          threadReplyDeletions,
+          and(eq(threadReplyDeletions.replyId, threadReplies.id), eq(threadReplyDeletions.userId, userId))
+        )
+        .where(
+          and(
+            inArray(threadReplies.parentMessageId, messageIds),
+            isNull(threadReplies.deletedAt),
+            isNull(threadReplyDeletions.replyId)
+          )
+        )
+    : db
+        .select({
+          parentMessageId: threadReplies.parentMessageId,
+          count: sql<number>`count(*)`
+        })
+        .from(threadReplies)
+        .where(and(inArray(threadReplies.parentMessageId, messageIds), isNull(threadReplies.deletedAt)))
+  )
     .groupBy(threadReplies.parentMessageId)
     .all();
 
@@ -166,6 +203,107 @@ export function getThreadVoiceNotesForMessages(messageIds: string[]): Map<string
     });
   }
   return map;
+}
+
+
+export function getThreadAttachmentsForReplies(replyIds: string[]): Map<string, ThreadReplyAttachment[]> {
+  if (replyIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      id: threadReplyAttachments.id,
+      replyId: threadReplyAttachments.replyId,
+      originalName: threadReplyAttachments.originalName,
+      mimeType: threadReplyAttachments.mimeType,
+      size: threadReplyAttachments.size,
+      createdAt: threadReplyAttachments.createdAt
+    })
+    .from(threadReplyAttachments)
+    .where(inArray(threadReplyAttachments.replyId, replyIds))
+    .orderBy(threadReplyAttachments.createdAt)
+    .all();
+
+  const map = new Map<string, ThreadReplyAttachment[]>();
+  for (const row of rows) {
+    const existing = map.get(row.replyId) ?? [];
+    existing.push({
+      id: row.id,
+      replyId: row.replyId,
+      originalName: row.originalName,
+      mimeType: row.mimeType,
+      size: row.size,
+      createdAt: row.createdAt
+    });
+    map.set(row.replyId, existing);
+  }
+  return map;
+}
+
+export function getThreadVoiceNotesForReplies(replyIds: string[]): Map<string, ThreadReplyVoiceNote> {
+  if (replyIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      id: threadReplyVoiceNotes.id,
+      replyId: threadReplyVoiceNotes.replyId,
+      durationSec: threadReplyVoiceNotes.durationSec,
+      createdAt: threadReplyVoiceNotes.createdAt
+    })
+    .from(threadReplyVoiceNotes)
+    .where(inArray(threadReplyVoiceNotes.replyId, replyIds))
+    .all();
+
+  const map = new Map<string, ThreadReplyVoiceNote>();
+  for (const row of rows) {
+    map.set(row.replyId, {
+      id: row.id,
+      replyId: row.replyId,
+      durationSec: row.durationSec,
+      createdAt: row.createdAt
+    });
+  }
+  return map;
+}
+
+export function getThreadReplyAttachmentRecord(attachmentId: string) {
+  const row = db
+    .select({
+      id: threadReplyAttachments.id,
+      replyId: threadReplyAttachments.replyId,
+      originalName: threadReplyAttachments.originalName,
+      storagePath: threadReplyAttachments.storagePath
+    })
+    .from(threadReplyAttachments)
+    .where(eq(threadReplyAttachments.id, attachmentId))
+    .get();
+
+  if (!row) {
+    throw new ApiError(404, "Attachment not found");
+  }
+
+  return row;
+}
+
+export function getThreadReplyVoiceNoteRecord(voiceNoteId: string) {
+  const row = db
+    .select({
+      id: threadReplyVoiceNotes.id,
+      replyId: threadReplyVoiceNotes.replyId,
+      storagePath: threadReplyVoiceNotes.storagePath
+    })
+    .from(threadReplyVoiceNotes)
+    .where(eq(threadReplyVoiceNotes.id, voiceNoteId))
+    .get();
+
+  if (!row) {
+    throw new ApiError(404, "Voice message not found");
+  }
+
+  return row;
 }
 
 export function getThreadAttachmentRecord(attachmentId: string) {

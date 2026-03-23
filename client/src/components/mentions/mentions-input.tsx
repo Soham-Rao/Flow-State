@@ -15,6 +15,7 @@ interface MentionsFieldProps {
   disabled?: boolean;
   onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   multiline?: boolean;
+  dropdownPlacement?: "top" | "bottom";
   rows?: number;
   "data-testid"?: string;
 }
@@ -31,6 +32,7 @@ export function MentionsField({
   onKeyDown,
   multiline,
   rows,
+  dropdownPlacement = "bottom",
   "data-testid": dataTestId
 }: MentionsFieldProps): JSX.Element {
   const fieldRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
@@ -152,7 +154,10 @@ export function MentionsField({
     <div className="relative w-full">
       {field}
       {isOpen && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-full overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg">
+        <div className={cn(
+          "absolute left-0 z-30 w-full overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg",
+          dropdownPlacement === "top" ? "bottom-full mb-1" : "top-full mt-1"
+        )}>
           <ul className="max-h-48 overflow-auto py-1 text-xs">
             {suggestions.map((member, index) => {
               const active = index === activeIndex;

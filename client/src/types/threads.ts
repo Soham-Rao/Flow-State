@@ -26,6 +26,23 @@ export interface ThreadReactionDetail {
   users: ThreadUserSummary[];
 }
 
+export interface ThreadReplyAttachment {
+  id: string;
+  replyId: string;
+  originalName: string;
+  mimeType: string | null;
+  size: number;
+  createdAt: string;
+}
+
+export interface ThreadReplyVoiceNote {
+  id: string;
+  replyId: string;
+  durationSec: number;
+  createdAt: string;
+}
+
+
 export interface ThreadAttachment {
   id: string;
   messageId: string;
@@ -66,6 +83,8 @@ export interface ThreadReplySummary {
   updatedAt: string;
   deletedAt: string | null;
   reactions: ThreadReaction[];
+  attachments: ThreadReplyAttachment[];
+  voiceNote: ThreadReplyVoiceNote | null;
 }
 export interface ThreadDeleteResult {
   id: string;

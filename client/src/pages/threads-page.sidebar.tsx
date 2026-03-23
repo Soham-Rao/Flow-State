@@ -1,18 +1,18 @@
-import { Search } from "lucide-react";
+import { Pin, Search } from "lucide-react";
 
 import type { DmConversationSummary, ThreadUserSummary } from "@/types/threads";
 
-import { formatPreview } from "./threads-page.utils";
 import { presencePalette, type PresenceState } from "./threads-page.constants";
 
 export type ThreadsSidebarProps = {
   activeTab: "dms" | "channels";
-  totalMentions: number;
   searchTerm: string;
   onSearchTermChange: (value: string) => void;
-  onSelectTab: (tab: "dms" | "channels") => void;
   loading: boolean;
   filteredDmUsers: ThreadUserSummary[];
+  pinnedUserIds: string[];
+  canPinThreads: boolean;
+  onTogglePinUser: (userId: string) => void;
   conversationByUserId: Map<string, DmConversationSummary>;
   presenceByUserId: Map<string, PresenceState>;
   activeConversation: DmConversationSummary | null;
@@ -21,31 +21,21 @@ export type ThreadsSidebarProps = {
 
 export function ThreadsSidebar({
   activeTab,
-  totalMentions,
   searchTerm,
   onSearchTermChange,
-  onSelectTab,
   loading,
   filteredDmUsers,
+  pinnedUserIds,
+  canPinThreads,
+  onTogglePinUser,
   conversationByUserId,
   presenceByUserId,
   activeConversation,
   onSelectUser
 }: ThreadsSidebarProps): JSX.Element {
   return (
-    <aside className="flex w-full flex-col rounded-2xl border border-border/70 bg-card/70 p-4 shadow-sm lg:max-w-[320px] lg:h-full">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          {activeTab === "channels" ? "Channels" : "Direct messages"}
-        </p>
-        {totalMentions > 0 && activeTab === "dms" && (
-          <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-            {totalMentions}
-          </span>
-        )}
-      </div>
-
-      <div className="mt-3 flex items-center gap-2 rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+    <aside className="flex w-full flex-col rounded-2xl border border-border/70 bg-card/90 p-3 shadow-lg">
+      <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-xs text-muted-foreground">
         <Search className="h-4 w-4" />
         <input
           className="w-full bg-transparent text-sm text-foreground outline-none"
@@ -55,32 +45,7 @@ export function ThreadsSidebar({
         />
       </div>
 
-      <div className="mt-3 flex items-center gap-2 text-xs">
-        <button
-          type="button"
-          className={`flex-1 rounded-full border px-3 py-1 font-semibold transition ${
-            activeTab === "dms"
-              ? "border-primary/50 bg-primary/10 text-primary"
-              : "border-border/60 text-muted-foreground hover:border-primary/30"
-          }`}
-          onClick={() => onSelectTab("dms")}
-        >
-          DMs
-        </button>
-        <button
-          type="button"
-          className={`flex-1 rounded-full border px-3 py-1 font-semibold transition ${
-            activeTab === "channels"
-              ? "border-primary/50 bg-primary/10 text-primary"
-              : "border-border/60 text-muted-foreground hover:border-primary/30"
-          }`}
-          onClick={() => onSelectTab("channels")}
-        >
-          Channels
-        </button>
-      </div>
-
-      <div className="mt-4 flex-1 space-y-2 overflow-y-auto pr-1">
+      <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
         {activeTab === "channels" && (
           <div className="rounded-xl border border-dashed border-border/70 p-4 text-xs text-muted-foreground">
             Channels are coming next. You will see shared spaces here soon.
@@ -100,6 +65,7 @@ export function ThreadsSidebar({
                 const conversation = conversationByUserId.get(user.id);
                 const presence = presenceByUserId.get(user.id) ?? "online";
                 const isActive = activeConversation?.otherUser.id === user.id;
+                const isPinned = pinnedUserIds.includes(user.id);
                 return (
                   <button
                     key={user.id}
@@ -123,10 +89,26 @@ export function ThreadsSidebar({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{user.displayName ?? user.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {conversation ? formatPreview(conversation.lastMessagePreview) : "Start a DM"}
-                      </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (!canPinThreads) return;
+                        onTogglePinUser(user.id);
+                      }}
+                      disabled={!canPinThreads}
+                      className={`rounded-full border px-1.5 py-1 text-xs transition ${
+                        !canPinThreads
+                          ? "cursor-not-allowed border-border/40 text-muted-foreground/60"
+                          : isPinned
+                            ? "border-primary/50 bg-primary/10 text-primary"
+                            : "border-border/60 text-muted-foreground hover:text-foreground"
+                      }`}
+                      aria-label={isPinned ? "Unpin user" : "Pin user"}
+                    >
+                      <Pin className="h-3 w-3" />
+                    </button>
                     {conversation && conversation.unreadMentions > 0 && (
                       <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
                         {conversation.unreadMentions}

@@ -150,8 +150,15 @@ export function HomePage(): JSX.Element {
         setIsInviteModalOpen(false);
       }
     };
+    void loadInvites();
+    const interval = window.setInterval(() => {
+      void loadInvites();
+    }, 5000);
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.clearInterval(interval);
+    };
   }, [isInviteModalOpen]);
 
   return (
@@ -258,7 +265,7 @@ export function HomePage(): JSX.Element {
                 Close
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
               {[
                 { label: "Pending", items: pendingInvites },
                 { label: "Accepted", items: acceptedInvites },

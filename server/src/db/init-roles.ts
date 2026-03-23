@@ -33,6 +33,8 @@ const MEMBER_ROLE_PERMISSIONS = [
   "view_threads",
   "create_threads",
   "reply_threads",
+  "delete_threads",
+  "pin_threads",
   "dm_read",
   "dm_write",
   "dm_encrypt",

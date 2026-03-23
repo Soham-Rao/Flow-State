@@ -197,6 +197,42 @@ describe("Threads API", () => {
     expect(row.body_encrypted).toBeTruthy();
   });
 
+  it("requires delete_threads permission for delete-for-all", async () => {
+    const admin = await registerUser("Admin", "admin@example.com");
+    const member = await registerUser("Member", "member@example.com");
+
+    const memberRole = sqlite.prepare("SELECT id FROM roles WHERE name = ?").get("Member") as { id: string } | undefined;
+    if (memberRole) {
+      sqlite.prepare("DELETE FROM role_permissions WHERE role_id = ? AND permission = ?")
+        .run(memberRole.id, "delete_threads");
+    }
+
+    const conversationResponse = await request(app)
+      .post(`/api/threads/dms/${admin.id}`)
+      .set("Authorization", `Bearer ${member.token}`);
+
+    const conversationId = conversationResponse.body.data.id as string;
+
+    const messageResponse = await request(app)
+      .post(`/api/threads/conversations/${conversationId}/messages`)
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({
+        body: "Should not delete for all",
+        mentions: []
+      });
+
+    const messageId = messageResponse.body.data.id as string;
+
+    const deleteResponse = await request(app)
+      .delete(`/api/threads/messages/${messageId}`)
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({
+        scope: "all"
+      });
+
+    expect(deleteResponse.status).toBe(403);
+  });
+
   it("blocks delete-for-all after the other member has seen the message", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");

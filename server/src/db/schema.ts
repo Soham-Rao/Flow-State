@@ -382,6 +382,28 @@ export const threadReplies = sqliteTable("thread_replies", {
   deletedAt: integer("deleted_at", { mode: "timestamp_ms" })
 });
 
+export const threadReplyAttachments = sqliteTable("thread_reply_attachments", {
+  id: text("id").primaryKey(),
+  replyId: text("reply_id")
+    .notNull()
+    .references(() => threadReplies.id, { onDelete: "cascade" }),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type"),
+  size: integer("size").notNull().default(0),
+  storagePath: text("storage_path").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
+export const threadReplyVoiceNotes = sqliteTable("thread_reply_voice_notes", {
+  id: text("id").primaryKey(),
+  replyId: text("reply_id")
+    .notNull()
+    .references(() => threadReplies.id, { onDelete: "cascade" }),
+  durationSec: integer("duration_sec").notNull().default(0),
+  storagePath: text("storage_path").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
 export const threadAttachments = sqliteTable("thread_attachments", {
   id: text("id").primaryKey(),
   messageId: text("message_id")
@@ -439,6 +461,18 @@ export const threadMessageDeletions = sqliteTable("thread_message_deletions", {
 }, (table) => ({
   pk: primaryKey({ columns: [table.messageId, table.userId] })
 }));
+export const threadReplyDeletions = sqliteTable("thread_reply_deletions", {
+  replyId: text("reply_id")
+    .notNull()
+    .references(() => threadReplies.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  deletedAt: integer("deleted_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.replyId, table.userId] })
+}));
+
 export const threadMessageReactions = sqliteTable("thread_message_reactions", {
   messageId: text("message_id")
     .notNull()

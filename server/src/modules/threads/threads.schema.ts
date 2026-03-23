@@ -11,15 +11,28 @@ export const createThreadMessageSchema = z.object({
   path: ["body"]
 });
 export const createThreadReplySchema = z.object({
-  body: z.string().trim().min(1).max(5000),
-  mentions: z.array(z.string().uuid()).optional()
+  body: z.string().trim().max(5000),
+  mentions: z.array(z.string().uuid()).optional(),
+  hasAttachments: z.boolean().optional(),
+  hasVoiceNote: z.boolean().optional()
+}).refine((data) => data.body.length > 0 || data.hasAttachments || data.hasVoiceNote, {
+  message: "Reply body cannot be empty",
+  path: ["body"]
 });
 
 export const updateThreadMessageSchema = z.object({
   body: z.string().trim().max(5000)
 });
 
+export const updateThreadReplySchema = z.object({
+  body: z.string().trim().max(5000)
+});
+
 export const deleteThreadMessageSchema = z.object({
+  scope: z.enum(["me", "all"])
+});
+
+export const deleteThreadReplySchema = z.object({
   scope: z.enum(["me", "all"])
 });
 
@@ -35,7 +48,9 @@ export const threadMessageListSchema = z.object({
 export type CreateThreadMessageInput = z.infer<typeof createThreadMessageSchema>;
 export type CreateThreadReplyInput = z.infer<typeof createThreadReplySchema>;
 export type UpdateThreadMessageInput = z.infer<typeof updateThreadMessageSchema>;
+export type UpdateThreadReplyInput = z.infer<typeof updateThreadReplySchema>;
 export type DeleteThreadMessageInput = z.infer<typeof deleteThreadMessageSchema>;
+export type DeleteThreadReplyInput = z.infer<typeof deleteThreadReplySchema>;
 export type ThreadReactionInput = z.infer<typeof threadReactionSchema>;
 export type ThreadMessageListParams = z.infer<typeof threadMessageListSchema>;
 

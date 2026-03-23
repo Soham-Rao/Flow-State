@@ -4,6 +4,8 @@ import { db, sqlite } from "../../db/connection.js";
 import {
   commentMentions,
   comments,
+  rolePermissionsTable,
+  roleScopeOverrides,
   threadMentions,
   threadMessages,
   threadReplyMentions,
@@ -11,11 +13,97 @@ import {
   threadMembers
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { getUserRoleIds } from "../../utils/permissions.js";
 
 export interface MentionUnreadCounts {
   total: number;
   threads: number;
   comments: number;
+}
+
+function getAccessibleBoardIds(userId: string, boardIds: string[]): Set<string> {
+  if (boardIds.length === 0) {
+    return new Set();
+  }
+
+  const roleIds = getUserRoleIds(userId);
+  if (roleIds.length === 0) {
+    return new Set();
+  }
+
+  const permissions = db
+    .select({ permission: rolePermissionsTable.permission })
+    .from(rolePermissionsTable)
+    .where(inArray(rolePermissionsTable.roleId, roleIds))
+    .all();
+
+  const hasGlobalView = permissions.some((row) => row.permission === "view_boards");
+
+  const overrides = db
+    .select({ scopeId: roleScopeOverrides.scopeId, access: roleScopeOverrides.access })
+    .from(roleScopeOverrides)
+    .where(
+      and(
+        inArray(roleScopeOverrides.roleId, roleIds),
+        eq(roleScopeOverrides.scopeType, "board"),
+        eq(roleScopeOverrides.permission, "view_boards"),
+        inArray(roleScopeOverrides.scopeId, boardIds)
+      )
+    )
+    .all();
+
+  const allowed = new Set<string>();
+  const denied = new Set<string>();
+  for (const override of overrides) {
+    if (override.access === "deny") {
+      denied.add(override.scopeId);
+    } else {
+      allowed.add(override.scopeId);
+    }
+  }
+
+  const accessible = new Set<string>();
+  for (const boardId of boardIds) {
+    if (denied.has(boardId)) {
+      continue;
+    }
+    if (allowed.has(boardId) || hasGlobalView) {
+      accessible.add(boardId);
+    }
+  }
+  return accessible;
+}
+
+function cleanupInvalidCommentMentions(userId: string): void {
+  const rows = db
+    .select({ commentId: commentMentions.commentId, boardId: comments.boardId })
+    .from(commentMentions)
+    .innerJoin(comments, eq(commentMentions.commentId, comments.id))
+    .where(eq(commentMentions.userId, userId))
+    .all();
+
+  if (rows.length === 0) {
+    return;
+  }
+
+  const boardIds = Array.from(new Set(rows.map((row) => row.boardId)));
+  const accessible = getAccessibleBoardIds(userId, boardIds);
+
+  if (accessible.size === boardIds.length) {
+    return;
+  }
+
+  const invalidCommentIds = rows
+    .filter((row) => !accessible.has(row.boardId))
+    .map((row) => row.commentId);
+
+  if (invalidCommentIds.length === 0) {
+    return;
+  }
+
+  db.delete(commentMentions)
+    .where(and(eq(commentMentions.userId, userId), inArray(commentMentions.commentId, invalidCommentIds)))
+    .run();
 }
 
 function cleanupInvalidThreadMentions(userId: string): void {
@@ -53,6 +141,7 @@ function cleanupInvalidThreadMentions(userId: string): void {
 
 export function getUnreadMentions(userId: string): MentionUnreadCounts {
   cleanupInvalidThreadMentions(userId);
+  cleanupInvalidCommentMentions(userId);
   const commentCount = db
     .select({ count: sql<number>`count(*)` })
     .from(commentMentions)
@@ -155,6 +244,7 @@ export function markThreadMentionsSeen(userId: string, conversationId: string): 
 }
 
 export function listCommentMentions(userId: string): Array<{ commentId: string }> {
+  cleanupInvalidCommentMentions(userId);
   return db
     .select({ commentId: commentMentions.commentId })
     .from(commentMentions)

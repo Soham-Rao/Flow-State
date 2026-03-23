@@ -2,12 +2,12 @@ import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { UserHoverCard } from "@/components/users/user-hover-card";
-import type { ThreadMessageSummary, ThreadUserSummary } from "@/types/threads";
+import type { ThreadUserSummary } from "@/types/threads";
 import { getInitial } from "./threads-page.utils";
 
 type ThreadsForwardModalProps = {
   open: boolean;
-  forwardTarget: ThreadMessageSummary | null;
+  forwardTarget: { body: string | null } | null;
   forwardSearch: string;
   onForwardSearchChange: (value: string) => void;
   filteredForwardUsers: ThreadUserSummary[];

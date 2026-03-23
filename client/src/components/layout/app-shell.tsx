@@ -87,8 +87,10 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
-      <aside className="border-b border-border/70 bg-card/70 px-4 py-4 backdrop-blur-md lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-r lg:px-6 lg:py-6">
+    <div className="min-h-screen">
+      <div className="group/sidebar">
+        <div className="hidden lg:block fixed inset-y-0 left-0 z-40 w-3" />
+        <aside className="border-b border-border/70 bg-card/70 px-4 py-4 backdrop-blur-md lg:fixed lg:top-0 lg:left-0 lg:z-50 lg:h-screen lg:w-[280px] lg:-translate-x-full lg:border-b-0 lg:border-r lg:px-6 lg:py-6 lg:transition-transform lg:duration-200 lg:group-hover/sidebar:translate-x-0">
         <div className="mb-6 flex items-center justify-between lg:mb-8">
           <NavLink to="/" className="text-xl font-bold tracking-tight text-primary">
             FlowState
@@ -190,29 +192,19 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
           </nav>
         </div>
       </aside>
+      </div>
 
       <main className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-10 border-b border-border/70 bg-background/80 px-4 py-3 backdrop-blur-lg lg:px-6">
+        <header className="sticky top-0 z-10 border-b border-border/70 bg-background/80 px-4 py-2 backdrop-blur-lg lg:px-6">
           <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Team Workspace</p>
-              <h1 className="text-lg font-semibold">
-                Welcome back, {user ? (
-                  <UserHoverCard user={user}>
-                    <span className="font-semibold">{displayName}</span>
-                  </UserHoverCard>
-                ) : (
-                  displayName
-                )}
-              </h1>
-            </div>
+            <div className="text-sm font-semibold">{displayName}</div>
 
             <div className="flex items-center gap-2">
               <div ref={menuRef} className="relative">
                 <button
                   type="button"
                   onClick={() => setMenuOpen((open) => !open)}
-                  className="flex items-center gap-3 rounded-lg border border-border/70 bg-card/70 px-3 py-2 text-right transition hover:bg-card"
+                  className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/70 px-3 py-1.5 text-right transition hover:bg-card"
                 >
                   <div>
                     {user ? (
@@ -222,9 +214,6 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                     ) : (
                       <p className="text-sm font-medium leading-tight">{displayName}</p>
                     )}
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {user?.role ?? "member"}
-                    </p>
                   </div>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </button>
@@ -283,7 +272,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
           </div>
         </header>
 
-        <section className="flex-1 p-4 lg:p-6">{children}</section>
+        <section className="flex-1 px-4 pb-1 pt-1.5 lg:px-6 lg:pb-2 lg:pt-2">{children}</section>
       </main>
     </div>
   );

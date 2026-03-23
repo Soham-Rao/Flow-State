@@ -271,6 +271,28 @@ export const BASE_SCHEMA_SQL = `
       FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
+
+
+    CREATE TABLE IF NOT EXISTS thread_reply_attachments (
+      id TEXT PRIMARY KEY,
+      reply_id TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime_type TEXT,
+      size INTEGER NOT NULL DEFAULT 0,
+      storage_path TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (reply_id) REFERENCES thread_replies(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS thread_reply_voice_notes (
+      id TEXT PRIMARY KEY,
+      reply_id TEXT NOT NULL,
+      duration_sec INTEGER NOT NULL DEFAULT 0,
+      storage_path TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (reply_id) REFERENCES thread_replies(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS thread_attachments (
       id TEXT PRIMARY KEY,
       message_id TEXT NOT NULL,
@@ -320,6 +342,15 @@ export const BASE_SCHEMA_SQL = `
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS thread_reply_deletions (
+      reply_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      deleted_at INTEGER NOT NULL,
+      PRIMARY KEY (reply_id, user_id),
+      FOREIGN KEY (reply_id) REFERENCES thread_replies(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS thread_message_reactions (
       message_id TEXT NOT NULL,
       user_id TEXT NOT NULL,
@@ -350,8 +381,11 @@ export const CLEAR_TEST_DATA_SQL = `
     DELETE FROM role_permissions;
     DELETE FROM roles;
     DELETE FROM invites;
+    DELETE FROM thread_reply_voice_notes;
+    DELETE FROM thread_reply_attachments;
     DELETE FROM thread_reply_mentions;
     DELETE FROM thread_reply_reactions;
+    DELETE FROM thread_reply_deletions;
     DELETE FROM thread_message_reactions;
     DELETE FROM thread_message_deletions;
     DELETE FROM thread_mentions;

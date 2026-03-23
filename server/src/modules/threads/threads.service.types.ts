@@ -32,6 +32,22 @@ export interface ThreadVoiceNote {
   createdAt: Date;
 }
 
+export interface ThreadReplyAttachment {
+  id: string;
+  replyId: string;
+  originalName: string;
+  mimeType: string | null;
+  size: number;
+  createdAt: Date;
+}
+
+export interface ThreadReplyVoiceNote {
+  id: string;
+  replyId: string;
+  durationSec: number;
+  createdAt: Date;
+}
+
 export interface ThreadReaction {
   emoji: string;
   count: number;
@@ -66,4 +82,6 @@ export interface ThreadReplySummary {
   updatedAt: Date;
   deletedAt: Date | null;
   reactions: ThreadReaction[];
+  attachments: ThreadReplyAttachment[];
+  voiceNote: ThreadReplyVoiceNote | null;
 }

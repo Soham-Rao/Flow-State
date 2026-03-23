@@ -17,6 +17,7 @@ import {
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { decryptDmBody, encryptDmBody } from "../../utils/encryption.js";
+import { assertPermission } from "../../utils/permissions.js";
 import type {
   CreateThreadMessageInput,
   DeleteThreadMessageInput,
@@ -89,10 +90,10 @@ export function listThreadMessages(
 
   const messageIds = rows.map((row) => row.id);
   const deletedForUser = getThreadMessageDeletionSet(userId, messageIds);
-  const filteredRows = rows.filter((row) => !(row.deletedAt === null && deletedForUser.has(row.id)));
+  const filteredRows = rows.filter((row) => !deletedForUser.has(row.id));
   const visibleIds = filteredRows.map((row) => row.id);
   const reactionsByMessageId = getThreadMessageReactions(visibleIds);
-  const replyCounts = getThreadReplyCounts(visibleIds);
+  const replyCounts = getThreadReplyCounts(visibleIds, userId);
   const attachmentsByMessageId = getThreadAttachmentsForMessages(visibleIds);
   const voiceNotesByMessageId = getThreadVoiceNotesForMessages(visibleIds);
 
@@ -351,7 +352,7 @@ export function updateThreadMessage(userId: string, messageId: string, input: Up
 
   const author = ensureUserExists(userId);
   const reactions = getThreadMessageReactions([messageId]).get(messageId) ?? [];
-  const replyCount = getThreadReplyCounts([messageId]).get(messageId) ?? 0;
+  const replyCount = getThreadReplyCounts([messageId], userId).get(messageId) ?? 0;
   const attachments = getThreadAttachmentsForMessages([messageId]).get(messageId) ?? [];
   const voiceNote = getThreadVoiceNotesForMessages([messageId]).get(messageId) ?? null;
 
@@ -402,6 +403,10 @@ export function deleteThreadMessage(
   } else {
     assertConversationPermission(userId, message.conversationId, "channel_write");
     throw new ApiError(400, "Channels are not available yet");
+  }
+
+  if (scope === "all") {
+    assertPermission(userId, "delete_threads");
   }
 
   if (scope === "me") {

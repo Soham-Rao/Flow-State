@@ -162,6 +162,17 @@ export function applySchemaMigrations(): void {
       safeAddColumn("ALTER TABLE thread_reply_mentions ADD COLUMN seen_at INTEGER");
     }
 
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS thread_reply_deletions (
+        reply_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        deleted_at INTEGER NOT NULL,
+        PRIMARY KEY (reply_id, user_id),
+        FOREIGN KEY (reply_id) REFERENCES thread_replies(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+
     const threadMemberColumns = sqlite.prepare("PRAGMA table_info(thread_members)").all() as Array<{ name: string }>;
     const threadMemberColumnNames = new Set(threadMemberColumns.map((column) => column.name));
 
@@ -227,6 +238,8 @@ export function ensureIndexes(): void {
       CREATE INDEX IF NOT EXISTS idx_thread_messages_created_at ON thread_messages(created_at);
       CREATE INDEX IF NOT EXISTS idx_thread_message_deletions_message_id ON thread_message_deletions(message_id);
       CREATE INDEX IF NOT EXISTS idx_thread_message_deletions_user_id ON thread_message_deletions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_thread_reply_deletions_reply_id ON thread_reply_deletions(reply_id);
+      CREATE INDEX IF NOT EXISTS idx_thread_reply_deletions_user_id ON thread_reply_deletions(user_id);
       CREATE INDEX IF NOT EXISTS idx_thread_replies_parent_message_id ON thread_replies(parent_message_id);
       CREATE INDEX IF NOT EXISTS idx_thread_mentions_user_id ON thread_mentions(mentioned_user_id);
       CREATE INDEX IF NOT EXISTS idx_thread_reply_mentions_user_id ON thread_reply_mentions(mentioned_user_id);

@@ -18,6 +18,7 @@ type DeleteConfirmState = { message: ThreadMessageSummary; scope: "me" | "all" }
 type ThreadMessageListProps = {
   messages: ThreadMessageSummary[];
   loadingMessages: boolean;
+  loadingOlder: boolean;
   currentUserId: string | null | undefined;
   messageListRef: RefObject<HTMLDivElement>;
   onScroll: () => void;
@@ -55,6 +56,7 @@ type ThreadMessageListProps = {
 export function ThreadMessageList({
   messages,
   loadingMessages,
+  loadingOlder,
   currentUserId,
   messageListRef,
   onScroll,
@@ -97,6 +99,9 @@ export function ThreadMessageList({
       {loadingMessages && (
         <div className="text-xs text-muted-foreground">Loading messages...</div>
       )}
+      {loadingOlder && (
+        <div className="text-xs text-muted-foreground">Loading older messages...</div>
+      )}
       {!loadingMessages && messages.length === 0 && (
         <div className="text-xs text-muted-foreground">No messages yet. Say hello!</div>
       )}
@@ -126,6 +131,11 @@ export function ThreadMessageList({
           const canEdit = isMine && !message.isForwarded && !isDeleted && Date.now() - new Date(message.createdAt).getTime() <= 15 * 60 * 1000;
           const canDeleteForAll = isMine && !isDeleted;
           const deleteMenuOpen = deleteMenuMessageId === message.id;
+          const messageBodyText = isDeleted
+            ? message.body && message.body.trim().length > 0
+              ? message.body
+              : "This message was deleted."
+            : message.body;
           const showReactionPicker = reactionPickerMessageId === message.id;
           const hasReactions = message.reactions.length > 0;
           const voiceNote = message.voiceNote;
@@ -262,9 +272,9 @@ export function ThreadMessageList({
                   </div>
                 </div>
               ) : (
-                message.body && (
-                  <p className={`whitespace-pre-line text-[15px] text-foreground ${isDeleted ? "" : ""}`}>{message.body}</p>
-                )
+                messageBodyText ? (
+                  <p className="whitespace-pre-line text-[15px] text-foreground">{messageBodyText}</p>
+                ) : null
               )}
               {attachmentList}
               <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">

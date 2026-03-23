@@ -66,6 +66,9 @@ export function FocusPage(): JSX.Element {
   const lastRecordedSessionId = useRef<string | null>(null);
   const lastDurationKey = useRef<string>("focus:90-break:10-mode:focus");
 
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioUnlockedRef = useRef(false);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(storageKey);
@@ -151,6 +154,72 @@ export function FocusPage(): JSX.Element {
     },
     [mode, remainingSeconds, sessionId, totalSeconds]
   );
+  const ensureAudioContext = useCallback(() => {
+    if (audioContextRef.current) return audioContextRef.current;
+    if (typeof window === "undefined") return null;
+    const AudioContextCtor = window.AudioContext;
+    if (!AudioContextCtor) return null;
+    const context = new AudioContextCtor();
+    audioContextRef.current = context;
+    return context;
+  }, []);
+
+  const unlockAudio = useCallback(() => {
+    const context = ensureAudioContext();
+    if (!context) return;
+    if (context.state === "suspended") {
+      void context.resume();
+    }
+    audioUnlockedRef.current = true;
+  }, [ensureAudioContext]);
+
+  const playChime = useCallback(() => {
+    const context = ensureAudioContext();
+    if (!context) return;
+    if (context.state === "suspended") {
+      void context.resume();
+    }
+    const now = context.currentTime;
+    const gain = context.createGain();
+    gain.gain.value = 0.0001;
+    gain.connect(context.destination);
+
+    const beep = (time: number, frequency: number) => {
+      const osc = context.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = frequency;
+      osc.connect(gain);
+      osc.start(time);
+      osc.stop(time + 0.12);
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.exponentialRampToValueAtTime(0.2, time + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.12);
+    };
+
+    beep(now, 880);
+    beep(now + 0.2, 880);
+    beep(now + 0.4, 660);
+  }, [ensureAudioContext]);
+
+  const notifySessionEnd = useCallback((fromMode: SessionMode, nextMode: SessionMode) => {
+    if (!audioUnlockedRef.current) {
+      unlockAudio();
+    }
+    playChime();
+
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      return;
+    }
+    if (Notification.permission === "granted") {
+      const label = fromMode === "focus" ? "Focus" : "Break";
+      const nextLabel = nextMode === "focus" ? "Focus" : "Break";
+      void new Notification(`${label} session complete`, {
+        body: `Time for ${nextLabel}.`
+      });
+    }
+  }, [playChime, unlockAudio]);
+
+
 
   const advanceSession = useCallback(
     (options?: { record?: boolean; elapsedSeconds?: number }) => {
@@ -159,6 +228,7 @@ export function FocusPage(): JSX.Element {
       }
 
       const nextMode = mode === "focus" ? "break" : "focus";
+      notifySessionEnd(mode, nextMode);
       setMode(nextMode);
       setRemainingSeconds((nextMode === "focus" ? focusMinutes : breakMinutes) * 60);
       setIsRunning(false);
@@ -295,7 +365,13 @@ export function FocusPage(): JSX.Element {
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <Button onClick={() => setIsRunning((running) => !running)} className="gap-2">
+                <Button onClick={() => {
+                  unlockAudio();
+                  if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+                    void Notification.requestPermission();
+                  }
+                  setIsRunning((running) => !running);
+                }} className="gap-2">
                   {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   {isRunning ? "Pause" : "Start"}
                 </Button>
@@ -303,6 +379,7 @@ export function FocusPage(): JSX.Element {
                   variant="secondary"
                   className="gap-2"
                   onClick={() => {
+                    unlockAudio();
                     setIsRunning(false);
                     setRemainingSeconds((mode === "focus" ? focusMinutes : breakMinutes) * 60);
                     setSessionId(createId());
@@ -316,6 +393,7 @@ export function FocusPage(): JSX.Element {
                   variant="ghost"
                   className="gap-2"
                   onClick={() => {
+                    unlockAudio();
                     const elapsedSeconds = Math.max(0, totalSeconds - remainingSeconds);
                     advanceSession({ record: true, elapsedSeconds });
                   }}

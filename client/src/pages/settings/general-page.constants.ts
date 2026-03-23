@@ -284,12 +284,12 @@ export const permissionGroups: PermissionGroup[] = [
   {
     id: "threads",
     title: "Threads & DMs",
-    description: "Access direct messages and thread sections.",
+    description: "Control access to threads, direct messages, and channels.",
     items: [
       {
         permission: "view_threads",
         title: "View threads",
-        description: "Open the threads area and browse DMs.",
+        description: "Open the threads area and browse conversations.",
         enabledLabel: "Can view threads",
         disabledLabel: "Cannot view threads"
       },
@@ -320,6 +320,41 @@ export const permissionGroups: PermissionGroup[] = [
         description: "Pin threads for quick access.",
         enabledLabel: "Can pin threads",
         disabledLabel: "Cannot pin threads"
+      },
+      {
+        permission: "dm_read",
+        title: "Read DMs",
+        description: "Open and read direct messages.",
+        enabledLabel: "Can read DMs",
+        disabledLabel: "Cannot read DMs"
+      },
+      {
+        permission: "dm_write",
+        title: "Send DMs",
+        description: "Send messages in direct conversations.",
+        enabledLabel: "Can send DMs",
+        disabledLabel: "Cannot send DMs"
+      },
+      {
+        permission: "dm_encrypt",
+        title: "Encrypt DMs",
+        description: "Store direct messages with encryption.",
+        enabledLabel: "Can encrypt DMs",
+        disabledLabel: "Cannot encrypt DMs"
+      },
+      {
+        permission: "channel_read",
+        title: "Read channels",
+        description: "View channel conversations.",
+        enabledLabel: "Can read channels",
+        disabledLabel: "Cannot read channels"
+      },
+      {
+        permission: "channel_write",
+        title: "Write in channels",
+        description: "Post messages in channels.",
+        enabledLabel: "Can write in channels",
+        disabledLabel: "Cannot write in channels"
       }
     ]
   },

@@ -3,12 +3,14 @@ import { getSessionToken } from "@/lib/session";
 import type {
   DmConversationSummary,
   ThreadAttachment,
+  ThreadReplyAttachment,
   ThreadMessageSummary,
   ThreadReplySummary,
   ThreadReaction,
   ThreadReactionDetail,
   ThreadUserSummary,
   ThreadVoiceNote,
+  ThreadReplyVoiceNote,
   ThreadDeleteResult
  } from "@/types/threads";
 
@@ -77,6 +79,14 @@ export async function updateThreadMessage(messageId: string, input: { body: stri
   });
 }
 
+export async function updateThreadReply(replyId: string, input: { body: string }): Promise<ThreadReplySummary> {
+  return apiRequest<ThreadReplySummary>(`/threads/replies/${replyId}`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
 export async function deleteThreadMessage(messageId: string, scope: "me" | "all"): Promise<ThreadDeleteResult> {
   return apiRequest<ThreadDeleteResult>(`/threads/messages/${messageId}`, {
     method: "DELETE",
@@ -84,14 +94,31 @@ export async function deleteThreadMessage(messageId: string, scope: "me" | "all"
     body: JSON.stringify({ scope })
   });
 }
-export async function listThreadReplies(messageId: string): Promise<ThreadReplySummary[]> {
-  return apiRequest<ThreadReplySummary[]>(`/threads/messages/${messageId}/replies`, {
+export async function listThreadReplies(messageId: string, params?: { limit?: number; cursor?: number }): Promise<ThreadReplySummary[]> {
+  const search = new URLSearchParams();
+  if (params?.limit) {
+    search.set("limit", String(params.limit));
+  }
+  if (params?.cursor) {
+    search.set("cursor", String(params.cursor));
+  }
+  const query = search.toString();
+  const path = query ? `/threads/messages/${messageId}/replies?${query}` : `/threads/messages/${messageId}/replies`;
+  return apiRequest<ThreadReplySummary[]>(path, {
     method: "GET",
     auth: true
   });
 }
 
-export async function createThreadReply(messageId: string, input: { body: string; mentions?: string[] }): Promise<ThreadReplySummary> {
+export async function deleteThreadReply(replyId: string, scope: "me" | "all" = "all"): Promise<ThreadDeleteResult> {
+  return apiRequest<ThreadDeleteResult>(`/threads/replies/${replyId}`, {
+    method: "DELETE",
+    auth: true,
+    body: JSON.stringify({ scope })
+  });
+}
+
+export async function createThreadReply(messageId: string, input: { body: string; mentions?: string[]; hasAttachments?: boolean; hasVoiceNote?: boolean }): Promise<ThreadReplySummary> {
   return apiRequest<ThreadReplySummary>(`/threads/messages/${messageId}/replies`, {
     method: "POST",
     auth: true,
@@ -171,6 +198,13 @@ export async function listThreadMessageReactionDetails(messageId: string): Promi
   });
 }
 
+export async function listThreadReplyReactionDetails(replyId: string): Promise<ThreadReactionDetail[]> {
+  return apiRequest<ThreadReactionDetail[]>(`/threads/replies/${replyId}/reactions/details`, {
+    method: "GET",
+    auth: true
+  });
+}
+
 export async function toggleThreadReplyReaction(replyId: string, input: { emoji: string }): Promise<ThreadReaction[]> {
   return apiRequest<ThreadReaction[]>(`/threads/replies/${replyId}/reactions`, {
     method: "POST",
@@ -220,4 +254,100 @@ export async function fetchThreadVoiceNote(voiceNoteId: string): Promise<Blob> {
   return response.blob();
 }
 
+
+
+export async function createThreadReplyAttachments(replyId: string, files: File[]): Promise<ThreadReplyAttachment[]> {
+  const token = getSessionToken();
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+
+  const response = await fetch(`${API_BASE_URL}/threads/replies/${replyId}/attachments`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { success?: boolean; data?: ThreadReplyAttachment[]; error?: { message?: string } }
+    | null;
+
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error?.message ?? "Attachment upload failed");
+  }
+
+  return payload.data ?? [];
+}
+
+export async function createThreadReplyVoiceNote(replyId: string, file: File, durationSec: number): Promise<ThreadReplyVoiceNote> {
+  const token = getSessionToken();
+  const formData = new FormData();
+  formData.append("voice", file);
+  formData.append("durationSec", String(durationSec));
+
+  const response = await fetch(`${API_BASE_URL}/threads/replies/${replyId}/voice-note`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { success?: boolean; data?: ThreadReplyVoiceNote; error?: { message?: string } }
+    | null;
+
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.error?.message ?? "Voice message upload failed");
+  }
+
+  return payload.data as ThreadReplyVoiceNote;
+}
+
+export async function fetchThreadReplyAttachmentBlob(attachmentId: string): Promise<Blob> {
+  const token = getSessionToken();
+  const response = await fetch(`${API_BASE_URL}/threads/reply-attachments/${attachmentId}/download`, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to download attachment");
+  }
+
+  return response.blob();
+}
+
+export async function downloadThreadReplyAttachment(attachmentId: string, filename: string): Promise<void> {
+  const token = getSessionToken();
+  const response = await fetch(`${API_BASE_URL}/threads/reply-attachments/${attachmentId}/download`, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to download attachment");
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function fetchThreadReplyVoiceNote(voiceNoteId: string): Promise<Blob> {
+  const token = getSessionToken();
+  const response = await fetch(`${API_BASE_URL}/threads/reply-voice-notes/${voiceNoteId}/download`, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to download voice message");
+  }
+
+  return response.blob();
+}
 

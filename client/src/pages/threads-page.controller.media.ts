@@ -4,15 +4,18 @@ import {
   createThreadMessage,
   createThreadVoiceNote,
   fetchThreadAttachmentBlob,
+  fetchThreadReplyAttachmentBlob,
+  fetchThreadReplyVoiceNote,
   fetchThreadVoiceNote,
   listDmConversations
 } from "@/lib/threads-api";
-import type { DmConversationSummary, ThreadMessageSummary } from "@/types/threads";
+import type { DmConversationSummary, ThreadMessageSummary, ThreadReplySummary } from "@/types/threads";
 import { getAttachmentKind, resolveAudioDuration } from "./threads-page.utils";
 
 type ThreadMediaParams = {
   activeConversationId: string | null;
   messages: ThreadMessageSummary[];
+  replies: ThreadReplySummary[];
   setMessages: React.Dispatch<React.SetStateAction<ThreadMessageSummary[]>>;
   setDmConversations: React.Dispatch<React.SetStateAction<DmConversationSummary[]>>;
   setSendError: React.Dispatch<React.SetStateAction<string | null>>;
@@ -31,6 +34,7 @@ type ThreadMediaState = {
 export function useThreadMedia({
   activeConversationId,
   messages,
+  replies,
   setMessages,
   setDmConversations,
   setSendError
@@ -84,14 +88,16 @@ export function useThreadMedia({
     if (messages.length === 0) return;
     let cancelled = false;
     const fetchMissing = async () => {
-      for (const message of messages) {
+      const all = [...messages, ...replies];
+      for (const message of all) {
         const voiceNote = message.voiceNote;
+        const isReply = "parentMessageId" in message;
         if (!voiceNote) continue;
         if (voiceUrlsRef.current[voiceNote.id]) continue;
         if (voiceFetchRef.current.has(voiceNote.id)) continue;
         voiceFetchRef.current.add(voiceNote.id);
         try {
-          const blob = await fetchThreadVoiceNote(voiceNote.id);
+          const blob = isReply ? await fetchThreadReplyVoiceNote(voiceNote.id) : await fetchThreadVoiceNote(voiceNote.id);
           if (cancelled) return;
           const url = URL.createObjectURL(blob);
           setVoiceUrl(voiceNote.id, url);
@@ -104,13 +110,15 @@ export function useThreadMedia({
     return () => {
       cancelled = true;
     };
-  }, [messages]);
+  }, [messages, replies]);
 
   useEffect(() => {
     if (messages.length === 0) return;
     let cancelled = false;
     const fetchAttachmentPreview = async () => {
-      for (const message of messages) {
+      const all = [...messages, ...replies];
+      for (const message of all) {
+        const isReply = "parentMessageId" in message;
         for (const attachment of message.attachments ?? []) {
           const kind = getAttachmentKind(attachment.mimeType, attachment.originalName);
           if (kind === "file") continue;
@@ -118,7 +126,7 @@ export function useThreadMedia({
           if (attachmentPreviewFetchRef.current.has(attachment.id)) continue;
           attachmentPreviewFetchRef.current.add(attachment.id);
           try {
-            const blob = await fetchThreadAttachmentBlob(attachment.id);
+            const blob = isReply ? await fetchThreadReplyAttachmentBlob(attachment.id) : await fetchThreadAttachmentBlob(attachment.id);
             if (cancelled) return;
             const url = URL.createObjectURL(blob);
             setAttachmentPreviewUrl(attachment.id, url);
@@ -132,7 +140,7 @@ export function useThreadMedia({
     return () => {
       cancelled = true;
     };
-  }, [messages]);
+  }, [messages, replies]);
 
   const stopRecordingTimer = () => {
     if (recordingTimerRef.current) {

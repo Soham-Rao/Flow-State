@@ -1,13 +1,14 @@
-import { Paperclip, Send } from "lucide-react";
-import type { Dispatch, SetStateAction } from "react";
+import { ArrowRight, CornerUpLeft, Paperclip, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
+import type { Dispatch, RefObject, SetStateAction } from "react";
 
-import { MentionsField } from "@/components/mentions/mentions-input";
 import { Button } from "@/components/ui/button";
+import { ThreadComposer } from "./threads-page.composer";
 import { UserHoverCard } from "@/components/users/user-hover-card";
 import type { BoardMember } from "@/types/board";
-import type { ThreadMessageSummary, ThreadReplySummary } from "@/types/threads";
+import type { ThreadMessageSummary, ThreadReactionDetail, ThreadReplySummary } from "@/types/threads";
 import { THREAD_REACTION_CHOICES } from "./threads-page.constants";
-import { formatDuration, formatTime, formatTimestamp, getInitial } from "./threads-page.utils";
+import { formatDuration, formatTime, formatTimestamp, getAttachmentKind, getInitial } from "./threads-page.utils";
 
 type ThreadsReplyDrawerProps = {
   open: boolean;
@@ -18,16 +19,52 @@ type ThreadsReplyDrawerProps = {
   replyAttachmentOpen: boolean;
   onToggleReplyAttachments: () => void;
   replies: ThreadReplySummary[];
+  replyListRef: RefObject<HTMLDivElement>;
+  replyLoadingOlder: boolean;
+  replyNewCount: number;
+  onReplyScroll: () => void;
+  onJumpToLatestReply: () => void;
   currentUserId: string | null | undefined;
   voiceUrls: Record<string, string>;
+  attachmentPreviewUrls: Record<string, string>;
+  onSetImagePreview: (preview: { url: string; name: string } | null) => void;
+  onSetVideoPreview: (preview: { url: string; name: string } | null) => void;
   hoveredReplyId: string | null;
   setHoveredReplyId: Dispatch<SetStateAction<string | null>>;
   reactionPickerReplyId: string | null;
   setReactionPickerReplyId: Dispatch<SetStateAction<string | null>>;
+  replyReactionDetailsOpenId: string | null;
+  replyReactionDetailsByReplyId: Record<string, ThreadReactionDetail[]>;
+  replyReactionDetailsLoadingId: string | null;
+  replyReactionDetailsTabByReplyId: Record<string, string>;
+  setReplyReactionDetailsTabByReplyId: Dispatch<SetStateAction<Record<string, string>>>;
   onToggleReplyReaction: (replyId: string, emoji: string) => void | Promise<void>;
-  onDownloadAttachment: (attachmentId: string, name: string) => void;
+  onToggleReplyReactionDetails: (replyId: string) => void | Promise<void>;
+  onDownloadReplyAttachment: (attachmentId: string, name: string) => void;
+  onOpenInlineReply: (reply: ThreadReplySummary) => void;
+  onOpenForwardPicker: (reply: ThreadReplySummary) => void;
+  editingReplyId: string | null;
+  editingReplyDraft: string;
+  setEditingReplyDraft: Dispatch<SetStateAction<string>>;
+  editingReplyError: string | null;
+  onStartEditingReply: (reply: ThreadReplySummary) => void;
+  onCancelEditingReply: () => void;
+  onSaveReplyEdit: (reply: ThreadReplySummary) => void | Promise<void>;
+  onRequestDeleteReply: (payload: { reply: ThreadReplySummary; scope: "me" | "all" }) => void;
+  replyPendingAttachments: File[];
+  replyFileInputRef: RefObject<HTMLInputElement>;
+  onReplyPickAttachments: () => void;
+  onReplyAttachmentChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onReplyRemoveAttachment: (index: number) => void;
+  replyRecording: boolean;
+  replyRecordingDuration: number;
+  onReplyStartRecording: () => void;
+  onReplyStopRecording: () => void;
+  onReplyCancelRecording: () => void;
   replyDraft: string;
   onReplyDraftChange: (value: string) => void;
+  replyInlineTarget: ThreadReplySummary | null;
+  onCancelReplyInline: () => void;
   mentionMembers: BoardMember[];
   onReplyKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => void;
   replyError: string | null;
@@ -44,16 +81,52 @@ export function ThreadsReplyDrawer({
   replyAttachmentOpen,
   onToggleReplyAttachments,
   replies,
+  replyListRef,
+  replyLoadingOlder,
+  replyNewCount,
+  onReplyScroll,
+  onJumpToLatestReply,
   currentUserId,
   voiceUrls,
+  attachmentPreviewUrls,
+  onSetImagePreview,
+  onSetVideoPreview,
   hoveredReplyId,
   setHoveredReplyId,
   reactionPickerReplyId,
   setReactionPickerReplyId,
+  replyReactionDetailsOpenId,
+  replyReactionDetailsByReplyId,
+  replyReactionDetailsLoadingId,
+  replyReactionDetailsTabByReplyId,
+  setReplyReactionDetailsTabByReplyId,
   onToggleReplyReaction,
-  onDownloadAttachment,
+  onToggleReplyReactionDetails,
+  onDownloadReplyAttachment,
+  onOpenInlineReply,
+  onOpenForwardPicker,
+  editingReplyId,
+  editingReplyDraft,
+  setEditingReplyDraft,
+  editingReplyError,
+  onStartEditingReply,
+  onCancelEditingReply,
+  onSaveReplyEdit,
+  onRequestDeleteReply,
+  replyPendingAttachments,
+  replyFileInputRef,
+  onReplyPickAttachments,
+  onReplyAttachmentChange,
+  onReplyRemoveAttachment,
+  replyRecording,
+  replyRecordingDuration,
+  onReplyStartRecording,
+  onReplyStopRecording,
+  onReplyCancelRecording,
   replyDraft,
   onReplyDraftChange,
+  replyInlineTarget,
+  onCancelReplyInline,
   mentionMembers,
   onReplyKeyDown,
   replyError,
@@ -63,6 +136,7 @@ export function ThreadsReplyDrawer({
   if (!open) return null;
 
   const hasReplyAttachments = (replyTarget?.attachments?.length ?? 0) > 0;
+  const [deleteMenuReplyId, setDeleteMenuReplyId] = useState<string | null>(null);
 
   return (
     <div className="absolute inset-0 z-20">
@@ -71,7 +145,7 @@ export function ThreadsReplyDrawer({
         onClick={onClose}
       />
       <div
-        className={`absolute right-0 top-0 flex h-full w-full max-w-[380px] flex-col border-l border-border/70 bg-card/95 shadow-xl transition-transform duration-200 ${
+        className={`absolute right-0 top-0 flex h-full w-full max-w-[1100px] flex-col border-l border-border/70 bg-card/95 shadow-xl transition-transform duration-200 ${
           replyOpen ? "translate-x-0" : "translate-x-full"
         }`}
         onClick={(event) => event.stopPropagation()}
@@ -129,7 +203,7 @@ export function ThreadsReplyDrawer({
                           key={attachment.id}
                           type="button"
                           className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
-                          onClick={() => onDownloadAttachment(attachment.id, attachment.originalName)}
+                          onClick={() => onDownloadReplyAttachment(attachment.id, attachment.originalName)}
                         >
                           <Paperclip className="h-3 w-3" />
                           <span className="max-w-[200px] truncate">{attachment.originalName}</span>
@@ -155,8 +229,15 @@ export function ThreadsReplyDrawer({
           )}
         </div>
 
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3">
-          {replies.length === 0 && (
+        <div
+          ref={replyListRef}
+          onScroll={onReplyScroll}
+          className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3"
+        >
+          {replyLoadingOlder && (
+            <div className="text-center text-[11px] text-muted-foreground">Loading older replies...</div>
+          )}
+          {replies.length === 0 && !replyLoadingOlder && (
             <p className="text-xs text-muted-foreground">No replies yet.</p>
           )}
           {replies.map((reply, index) => {
@@ -167,27 +248,242 @@ export function ThreadsReplyDrawer({
               reply.author.displayName ?? reply.author.username ?? reply.author.name
             );
             const isDeleted = Boolean(reply.deletedAt);
+            const isEditing = editingReplyId === reply.id;
+            const isEdited = !isDeleted && new Date(reply.updatedAt).getTime() > new Date(reply.createdAt).getTime();
+            const canEdit = isMine && !isDeleted && Date.now() - new Date(reply.createdAt).getTime() <= 15 * 60 * 1000;
+            const canDeleteForAll = isMine && !isDeleted;
+            const deleteMenuOpen = deleteMenuReplyId === reply.id;
+            const replyBodyText = isDeleted
+              ? reply.body && reply.body.trim().length > 0
+                ? reply.body
+                : "This message was deleted."
+              : reply.body;
             const avatar = (
               <UserHoverCard user={reply.author}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-xs font-semibold">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-sm font-semibold">
                   {initial}
                 </div>
               </UserHoverCard>
             );
-            const avatarSlot = showAvatar ? avatar : <div className="h-8 w-8" />;
+            const avatarSlot = showAvatar ? avatar : <div className="h-9 w-9" />;
             const isHovered = hoveredReplyId === reply.id;
             const showReactionPicker = reactionPickerReplyId === reply.id;
             const hasReactions = reply.reactions.length > 0;
+            const voiceNote = reply.voiceNote;
+            const voiceUrl = voiceNote ? voiceUrls[voiceNote.id] : null;
+            const voicePlayer = voiceNote ? (
+              <div className="mt-2 flex items-center gap-2 rounded-lg border border-border/60 bg-background/70 px-2 py-1">
+                {voiceUrl ? (
+                  <audio controls src={voiceUrl} className="h-8 w-40" />
+                ) : (
+                  <div className="text-[11px] text-muted-foreground">Loading voice message…</div>
+                )}
+                <span className="text-[11px] text-muted-foreground">{formatDuration(voiceNote.durationSec)}</span>
+              </div>
+            ) : null;
+            const attachments = reply.attachments ?? [];
+            const attachmentList = attachments.length > 0 ? (
+              <div className={`mt-2 flex w-full flex-col gap-2 ${isMine ? "items-end" : "items-start"}`}>
+                {attachments.map((attachment) => {
+                  const kind = getAttachmentKind(attachment.mimeType, attachment.originalName);
+                  const previewUrl = attachmentPreviewUrls[attachment.id];
+                  if (kind === "image") {
+                    return previewUrl ? (
+                      <div
+                        key={attachment.id}
+                        className={`w-fit max-w-full rounded-lg border border-border/60 bg-background/70 p-2 ${isMine ? "ml-auto" : ""}`}
+                      >
+                        <img
+                          src={previewUrl}
+                          alt={attachment.originalName}
+                          className="h-40 w-56 max-w-full rounded-md object-cover block"
+                          onDoubleClick={() =>
+                            onSetImagePreview({ url: previewUrl, name: attachment.originalName })
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        key={attachment.id}
+                        className={`w-fit max-w-full rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground ${isMine ? "ml-auto text-right" : ""}`}
+                      >
+                        Loading image preview...
+                      </div>
+                    );
+                  }
+                  if (kind === "video") {
+                    return previewUrl ? (
+                      <div key={attachment.id} className="w-full max-w-full rounded-lg border border-border/60 bg-background/70 p-2">
+                        <video
+                          src={previewUrl}
+                          className="h-40 w-full rounded-md object-cover"
+                          onClick={(event) => {
+                            const video = event.currentTarget;
+                            if (video.paused) {
+                              void video.play();
+                            } else {
+                              video.pause();
+                            }
+                          }}
+                          onDoubleClick={() =>
+                            onSetVideoPreview({ url: previewUrl, name: attachment.originalName })
+                          }
+                        />
+                        <p className="mt-1 text-[11px] text-muted-foreground">Click to play, double click to expand</p>
+                      </div>
+                    ) : (
+                      <div key={attachment.id} className="w-full max-w-full rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground">
+                        Loading video...
+                      </div>
+                    );
+                  }
+                  if (kind === "audio") {
+                    return previewUrl ? (
+                      <div key={attachment.id} className="w-full rounded-lg border border-border/60 bg-background/70 px-2 py-1">
+                        <audio controls src={previewUrl} className="h-8 w-full" />
+                      </div>
+                    ) : (
+                      <div key={attachment.id} className="w-full rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground">
+                        Loading audio...
+                      </div>
+                    );
+                  }
+                  return (
+                    <button
+                      key={attachment.id}
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                      onClick={() => onDownloadReplyAttachment(attachment.id, attachment.originalName)}
+                    >
+                      <Paperclip className="h-3 w-3" />
+                      <span className="max-w-[200px] truncate">{attachment.originalName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null;
+
             const bubble = (
               <div
-                className={`max-w-[80%] rounded-2xl border px-3 py-2 ${
+                className={`max-w-[75%] min-w-[260px] rounded-2xl border px-4 py-3 ${
                   isMine
                     ? "border-sky-400/40 bg-sky-500/15"
                     : "border-emerald-400/40 bg-emerald-500/15"
                 }`}
               >
-                <p className="text-[14px] text-foreground">{reply.body}</p>
-                <p className="mt-2 text-[11px] text-muted-foreground">{formatTime(reply.createdAt)}</p>
+                {isEdited && !isEditing && (
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Edited
+                  </p>
+                )}
+                {voicePlayer}
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <textarea
+                      className="w-full rounded-lg border border-border/60 bg-background/80 px-3 py-2 text-sm text-foreground outline-none"
+                      rows={3}
+                      value={editingReplyDraft}
+                      onChange={(event) => setEditingReplyDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          void onSaveReplyEdit(reply);
+                        }
+                      }}
+                    />
+                    {editingReplyError && (
+                      <p className="text-[11px] text-rose-500">{editingReplyError}</p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" onClick={() => onSaveReplyEdit(reply)}>
+                        Save
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={onCancelEditingReply}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : replyBodyText ? (
+                  <p className="whitespace-pre-line text-[15px] text-foreground">{replyBodyText}</p>
+                ) : null}
+                {attachmentList}
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="mr-auto">{formatTime(reply.createdAt)}</span>
+                  {!isEditing && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {!isDeleted && (
+                        <>
+                          <button
+                            type="button"
+                            className="rounded-full border border-border/60 px-2 py-0.5 text-xs text-muted-foreground hover:text-primary"
+                            onClick={() => onOpenInlineReply(reply)}
+                            aria-label="Reply inline"
+                          >
+                            <CornerUpLeft className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full border border-border/60 px-2 py-0.5 text-xs text-muted-foreground hover:text-primary"
+                            onClick={() => onOpenForwardPicker(reply)}
+                            aria-label="Forward message"
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                      {isMine && !isDeleted && (
+                        <button
+                          type="button"
+                          className={`rounded-full border border-border/60 px-2 py-0.5 text-xs ${canEdit ? "text-muted-foreground hover:text-primary" : "cursor-not-allowed text-muted-foreground/50"}`}
+                          onClick={() => {
+                            if (canEdit) {
+                              onStartEditingReply(reply);
+                            }
+                          }}
+                          aria-label="Edit reply"
+                          title={canEdit ? "Edit reply" : "Editing is available for 15 minutes"}
+                          disabled={!canEdit}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="rounded-full border border-border/60 px-2 py-0.5 text-xs text-muted-foreground hover:text-primary"
+                        onClick={() => setDeleteMenuReplyId((current) => (current === reply.id ? null : reply.id))}
+                        aria-label="Delete reply"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {!isEditing && deleteMenuOpen && (
+                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                    <button
+                      type="button"
+                      className="rounded-full border border-amber-500/60 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-700 hover:text-amber-600"
+                      onClick={() => {
+                        onRequestDeleteReply({ reply, scope: "me" });
+                        setDeleteMenuReplyId(null);
+                      }}
+                    >
+                      Delete for me
+                    </button>
+                    {canDeleteForAll && (
+                      <button
+                        type="button"
+                        className="rounded-full border border-rose-500/60 bg-rose-500/10 px-2 py-0.5 text-[11px] text-rose-600 hover:text-rose-500"
+                        onClick={() => {
+                          onRequestDeleteReply({ reply, scope: "all" });
+                          setDeleteMenuReplyId(null);
+                        }}
+                      >
+                        Delete for all
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             );
 
@@ -209,6 +505,59 @@ export function ThreadsReplyDrawer({
                     </button>
                   );
                 })}
+              </div>
+            ) : null;
+
+            const replyReactionDetails = replyReactionDetailsByReplyId[reply.id];
+            const replyReactionDetailsOpen = replyReactionDetailsOpenId === reply.id;
+            const replyReactionDetailsToggle = hasReactions ? (
+              <button
+                type="button"
+                className="mt-1 text-[11px] font-semibold text-primary/80 hover:text-primary"
+                onClick={() => void onToggleReplyReactionDetails(reply.id)}
+              >
+                {replyReactionDetailsOpen ? "Hide reactions" : "View reactions"}
+              </button>
+            ) : null;
+            const selectedReplyReactionTab = replyReactionDetailsTabByReplyId[reply.id] ?? replyReactionDetails?.[0]?.emoji ?? "";
+            const activeReplyReactionDetail = replyReactionDetails?.find((detail) => detail.emoji === selectedReplyReactionTab) ?? replyReactionDetails?.[0];
+            const replyReactionTabs = replyReactionDetails?.map((detail) => {
+              const isActive = detail.emoji === selectedReplyReactionTab;
+              return (
+                <button
+                  key={`${reply.id}-${detail.emoji}-tab`}
+                  type="button"
+                  className={`rounded-full border px-2 py-0.5 text-[10px] ${isActive ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:text-primary"}`}
+                  onClick={() => setReplyReactionDetailsTabByReplyId((prev) => ({ ...prev, [reply.id]: detail.emoji }))}
+                >
+                  {detail.emoji} {detail.users.length}
+                </button>
+              );
+            });
+            const replyReactionDetailsPanel = replyReactionDetailsOpen ? (
+              <div className="mt-2 space-y-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground">
+                {replyReactionDetailsLoadingId === reply.id && (
+                  <p>Loading reactions...</p>
+                )}
+                {replyReactionDetailsLoadingId !== reply.id && (replyReactionDetails?.length ?? 0) === 0 && (
+                  <p>No reactions yet.</p>
+                )}
+                {replyReactionDetailsLoadingId !== reply.id && (replyReactionDetails?.length ?? 0) > 0 && (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      {replyReactionTabs}
+                    </div>
+                    {activeReplyReactionDetail && (
+                      <div className="max-h-28 space-y-1 overflow-y-auto">
+                        {activeReplyReactionDetail.users.map((reactor) => (
+                          <div key={`${reply.id}-${activeReplyReactionDetail.emoji}-${reactor.id}`} className="rounded-md border border-border/60 bg-background/80 px-2 py-1 text-[10px] text-foreground">
+                            {reactor.displayName ?? reactor.username ?? reactor.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             ) : null;
 
@@ -252,11 +601,13 @@ export function ThreadsReplyDrawer({
                   {bubble}
                   {!isMine && actionRail}
                 </div>
-                {reactionStrip && (
+                {reactionStrip || replyReactionDetailsToggle || replyReactionDetailsPanel ? (
                   <div className={`mt-1 flex w-fit flex-col ${isMine ? "items-end" : "items-start"}`}>
                     {reactionStrip}
+                    {replyReactionDetailsToggle}
+                    {replyReactionDetailsPanel}
                   </div>
-                )}
+                ) : null}
               </div>
             );
 
@@ -268,6 +619,7 @@ export function ThreadsReplyDrawer({
                 onMouseLeave={() => {
                   setHoveredReplyId((current) => (current === reply.id ? null : current));
                   setReactionPickerReplyId((current) => (current === reply.id ? null : current));
+                  setDeleteMenuReplyId((current) => (current === reply.id ? null : current));
                 }}
               >
                 <div className="flex items-start gap-4">
@@ -280,23 +632,40 @@ export function ThreadsReplyDrawer({
           })}
         </div>
 
-        <div className="border-t border-border/70 bg-background/70 p-4">
-          <MentionsField
-            multiline
-            rows={2}
-            value={replyDraft}
-            onChange={onReplyDraftChange}
-            members={mentionMembers}
-            placeholder="Reply with a mention..."
-            onKeyDown={onReplyKeyDown}
-          />
-          {replyError && <p className="mt-2 text-xs text-rose-500">{replyError}</p>}
-          <div className="mt-3 flex justify-end">
-            <Button size="sm" onClick={onSendReply}>
-              <Send className="mr-2 h-3 w-3" />
-              Send reply
-            </Button>
+        {replyNewCount > 0 && (
+          <div className="flex justify-end px-4">
+            <button
+              type="button"
+              className="rounded-full bg-emerald-500/90 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-emerald-500"
+              onClick={onJumpToLatestReply}
+            >
+              +{replyNewCount} new replies
+            </button>
           </div>
+        )}
+
+        <div className="border-t border-border/70 bg-background/70 p-4">
+          <ThreadComposer
+            inlineReplyTarget={replyInlineTarget}
+            onCancelInlineReply={onCancelReplyInline}
+            messageDraft={replyDraft}
+            onMessageDraftChange={onReplyDraftChange}
+            mentionMembers={mentionMembers}
+            onMessageKeyDown={onReplyKeyDown}
+            pendingAttachments={replyPendingAttachments}
+            onRemoveAttachment={onReplyRemoveAttachment}
+            fileInputRef={replyFileInputRef}
+            onAttachmentChange={onReplyAttachmentChange}
+            onPickAttachments={onReplyPickAttachments}
+            sendError={replyError}
+            recording={replyRecording}
+            recordingDuration={replyRecordingDuration}
+            onCancelRecording={onReplyCancelRecording}
+            onStopRecording={onReplyStopRecording}
+            onStartRecording={onReplyStartRecording}
+            sending={false}
+            onSendMessage={onSendReply}
+          />
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../../db/connection.js";
 import { commentMentions, commentReactions, comments, users } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { userHasPermission } from "../../utils/permissions.js";
 import type { CreateCommentInput } from "./boards.schema.js";
 import type { BoardComment, BoardMember, CommentReaction, CommentRow } from "./boards.service.types.js";
 
@@ -240,7 +241,12 @@ export function getCommentById(commentId: string): BoardComment {
   return attachCommentRelations(rows)[0];
 }
 
-export function storeCommentMentions(commentId: string, mentions: string[] | undefined, authorId: string): void {
+export function storeCommentMentions(
+  commentId: string,
+  mentions: string[] | undefined,
+  authorId: string,
+  boardId: string
+): void {
   if (!mentions || mentions.length === 0) {
     return;
   }
@@ -260,10 +266,18 @@ export function storeCommentMentions(commentId: string, mentions: string[] | und
     return;
   }
 
+  const allowedUsers = existingUsers
+    .map((user) => user.id)
+    .filter((userId) => userHasPermission(userId, "view_boards", { scopeType: "board", scopeId: boardId }));
+
+  if (allowedUsers.length === 0) {
+    return;
+  }
+
   db.insert(commentMentions)
-    .values(existingUsers.map((user) => ({
+    .values(allowedUsers.map((userId) => ({
       commentId,
-      userId: user.id,
+      userId,
       createdAt: new Date(),
       seenAt: null
     })))
@@ -293,7 +307,7 @@ export function createCommentRecord(params: {
     })
     .run();
 
-  storeCommentMentions(commentId, params.input.mentions, params.authorId);
+  storeCommentMentions(commentId, params.input.mentions, params.authorId, params.boardId);
 
   return getCommentById(commentId);
 }

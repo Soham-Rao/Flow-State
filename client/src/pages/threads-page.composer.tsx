@@ -4,11 +4,11 @@ import type { RefObject } from "react";
 import { MentionsField } from "@/components/mentions/mentions-input";
 import { Button } from "@/components/ui/button";
 import type { BoardMember } from "@/types/board";
-import type { ThreadMessageSummary } from "@/types/threads";
+import type { ThreadMessageSummary, ThreadReplySummary } from "@/types/threads";
 import { formatDuration } from "./threads-page.utils";
 
 type ThreadComposerProps = {
-  inlineReplyTarget: ThreadMessageSummary | null;
+  inlineReplyTarget: ThreadMessageSummary | ThreadReplySummary | null;
   onCancelInlineReply: () => void;
   messageDraft: string;
   onMessageDraftChange: (value: string) => void;
@@ -78,6 +78,7 @@ export function ThreadComposer({
         onChange={onMessageDraftChange}
         members={mentionMembers}
         placeholder="Write a message..."
+        dropdownPlacement="top"
         onKeyDown={onMessageKeyDown}
       />
       {pendingAttachments.length > 0 && (

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { markThreadMentionsSeen } from "@/lib/mentions-api";
-import { downloadThreadAttachment, getOrCreateDmConversation, listDmConversations, listDmUsers, listThreadMessages } from "@/lib/threads-api";
+import { downloadThreadAttachment, downloadThreadReplyAttachment, getOrCreateDmConversation, listDmConversations, listDmUsers, listThreadMessages } from "@/lib/threads-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMentionStore } from "@/stores/mentions-store";
 import type { BoardMember } from "@/types/board";
@@ -11,8 +11,53 @@ import { presencePalette, type PresenceState } from "./threads-page.constants";
 import { useThreadActions } from "./threads-page.controller.actions";
 import { useThreadMedia } from "./threads-page.controller.media";
 
+const MESSAGES_PAGE_SIZE = 40;
+const MAX_MESSAGES_IN_MEMORY = 200;
+const TOP_FETCH_THRESHOLD = 140;
+const BOTTOM_SCROLL_THRESHOLD = 140;
+
+const CompressionStreamImpl = (globalThis as any).CompressionStream as any;
+const DecompressionStreamImpl = (globalThis as any).DecompressionStream as any;
+
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+
+type CompressedMessagePage =
+  | { kind: "gzip"; data: Uint8Array; count: number }
+  | { kind: "json"; data: string; count: number };
+
+async function compressMessages(messages: ThreadMessageSummary[]): Promise<CompressedMessagePage> {
+  const payload = JSON.stringify(messages);
+  if (!CompressionStreamImpl) {
+    return { kind: "json", data: payload, count: messages.length };
+  }
+  const stream = new CompressionStreamImpl("gzip");
+  const writer = stream.writable.getWriter();
+  await writer.write(textEncoder.encode(payload));
+  await writer.close();
+  const buffer = await new Response(stream.readable).arrayBuffer();
+  return { kind: "gzip", data: new Uint8Array(buffer), count: messages.length };
+}
+
+async function decompressMessages(page: CompressedMessagePage): Promise<ThreadMessageSummary[]> {
+  if (page.kind === "json") {
+    return JSON.parse(page.data) as ThreadMessageSummary[];
+  }
+  if (!DecompressionStreamImpl) {
+    return [];
+  }
+  const stream = new DecompressionStreamImpl("gzip");
+  const writer = stream.writable.getWriter();
+  await writer.write(page.data);
+  await writer.close();
+  const buffer = await new Response(stream.readable).arrayBuffer();
+  return JSON.parse(textDecoder.decode(buffer)) as ThreadMessageSummary[];
+}
+
 export function useThreadsController() {
+  const PIN_STORAGE_KEY = "flowstate:threads:pinned";
   const user = useAuthStore((state) => state.user);
+  const canPinThreads = user?.role !== "guest";
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [dmUsers, setDmUsers] = useState<ThreadUserSummary[]>([]);
@@ -21,6 +66,10 @@ export function useThreadsController() {
   const [messages, setMessages] = useState<ThreadMessageSummary[]>([]);
   const [activeTab, setActiveTab] = useState<"dms" | "channels">("dms");
   const [searchTerm, setSearchTerm] = useState("");
+  const [pinnedUserIds, setPinnedUserIds] = useState<string[]>([]);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [newMessageCount, setNewMessageCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [videoPreview, setVideoPreview] = useState<{ url: string; name: string } | null>(null);
@@ -30,6 +79,8 @@ export function useThreadsController() {
   const mentionCounts = useMentionStore((state) => state.counts);
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
+  const messagesRef = useRef<ThreadMessageSummary[]>([]);
+  const compressedHistoryRef = useRef<CompressedMessagePage[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const userAtBottomRef = useRef(true);
   const lastMessageIdRef = useRef<string | null>(null);
@@ -60,6 +111,130 @@ export function useThreadsController() {
     }));
   }, [dmUsers]);
 
+  const queueCompression = (chunk: ThreadMessageSummary[]) => {
+    if (chunk.length == 0) return;
+    void compressMessages(chunk)
+      .then((page) => {
+        compressedHistoryRef.current.push(page);
+      })
+      .catch(() => {
+        // ignore compression failures
+      });
+  };
+
+  const trimIfNeeded = (items: ThreadMessageSummary[]) => {
+    if (!userAtBottomRef.current) return items;
+    if (items.length <= MAX_MESSAGES_IN_MEMORY) return items;
+    const overflow = items.length - MAX_MESSAGES_IN_MEMORY;
+    const trimmed = items.slice(overflow);
+    const dropped = items.slice(0, overflow);
+    queueCompression(dropped);
+    return trimmed;
+  };
+
+  const prependMessages = (older: ThreadMessageSummary[]) => {
+    if (older.length == 0) return;
+    const container = messageListRef.current;
+    const prevHeight = container?.scrollHeight ?? 0;
+    setMessages((prev) => {
+      const existing = new Set(prev.map((message) => message.id));
+      const filtered = older.filter((message) => !existing.has(message.id));
+      if (filtered.length == 0) return prev;
+      return [...filtered, ...prev];
+    });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const nextContainer = messageListRef.current;
+        if (!nextContainer) return;
+        const nextHeight = nextContainer.scrollHeight;
+        if (nextHeight > prevHeight) {
+          nextContainer.scrollTop += nextHeight - prevHeight;
+        }
+      });
+    });
+  };
+
+  const mergeLatestMessages = (latest: ThreadMessageSummary[]) => {
+    setMessages((prev) => {
+      if (prev.length == 0) {
+        if (userAtBottomRef.current) {
+          pendingScrollRef.current = true;
+        }
+        setNewMessageCount(0);
+        return trimIfNeeded(latest);
+      }
+      const prevIds = new Set(prev.map((message) => message.id));
+      const latestById = new Map(latest.map((message) => [message.id, message]));
+      let changed = false;
+      const updated = prev.map((message) => {
+        const incoming = latestById.get(message.id);
+        if (!incoming) return message;
+        const updatedChanged =
+          incoming.updatedAt !== message.updatedAt ||
+          incoming.replyCount !== message.replyCount ||
+          incoming.body !== message.body ||
+          incoming.deletedAt !== message.deletedAt ||
+          (incoming.attachments?.length ?? 0) !== (message.attachments?.length ?? 0) ||
+          (incoming.reactions?.length ?? 0) !== (message.reactions?.length ?? 0) ||
+          (incoming.voiceNote?.id ?? null) !== (message.voiceNote?.id ?? null);
+        if (updatedChanged) {
+          changed = true;
+          return incoming;
+        }
+        return message;
+      });
+      const newOnes = latest.filter((message) => !prevIds.has(message.id));
+      if (newOnes.length > 0) {
+        changed = true;
+        updated.push(...newOnes);
+        if (userAtBottomRef.current) {
+          pendingScrollRef.current = true;
+          setNewMessageCount(0);
+        } else {
+          setNewMessageCount((count) => count + newOnes.length);
+        }
+      }
+      if (!changed) return prev;
+      return trimIfNeeded(updated);
+    });
+  };
+
+  const loadOlderMessages = async () => {
+    if (loadingOlder) return;
+    if (!activeConversation) return;
+    if (compressedHistoryRef.current.length == 0 && !hasMoreMessages) return;
+    setLoadingOlder(true);
+    try {
+      if (compressedHistoryRef.current.length > 0) {
+        const page = compressedHistoryRef.current.pop();
+        if (page) {
+          const older = await decompressMessages(page);
+          if (older.length > 0) {
+            prependMessages(older);
+          }
+        }
+        return;
+      }
+      const current = messagesRef.current;
+      const oldest = current[0];
+      const cursor = oldest?.createdAt ? new Date(oldest.createdAt).getTime() : undefined;
+      const data = await listThreadMessages(activeConversation.id, {
+        limit: MESSAGES_PAGE_SIZE,
+        cursor
+      });
+      if (data.length == 0) {
+        setHasMoreMessages(false);
+        return;
+      }
+      if (data.length < MESSAGES_PAGE_SIZE) {
+        setHasMoreMessages(false);
+      }
+      prependMessages(data);
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+
   const presenceByUserId = useMemo(() => {
     const states: PresenceState[] = ["online", "idle", "dnd", "focus"];
     const map = new Map<string, PresenceState>();
@@ -69,22 +244,55 @@ export function useThreadsController() {
     return map;
   }, [dmUsers]);
 
+  const togglePinUser = (userId: string) => {
+    if (!canPinThreads) return;
+    setPinnedUserIds((prev) => {
+      const exists = prev.includes(userId);
+      const next = exists ? prev.filter((id) => id != userId) : [userId, ...prev];
+      try {
+        localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   const filteredDmUsers = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return dmUsers;
-    return dmUsers.filter((member) => {
-      const name = member.name.toLowerCase();
-      const displayName = member.displayName?.toLowerCase() ?? "";
-      const username = member.username?.toLowerCase() ?? "";
-      const email = member.email.toLowerCase();
-      return (
-        name.includes(query) ||
-        displayName.includes(query) ||
-        username.includes(query) ||
-        email.includes(query)
-      );
+    const base = query
+      ? dmUsers.filter((member) => {
+        const name = member.name.toLowerCase();
+        const displayName = member.displayName?.toLowerCase() ?? "";
+        const username = member.username?.toLowerCase() ?? "";
+        const email = member.email.toLowerCase();
+        return (
+          name.includes(query) ||
+          displayName.includes(query) ||
+          username.includes(query) ||
+          email.includes(query)
+        );
+      })
+      : dmUsers;
+    const pinnedSet = new Set(pinnedUserIds);
+    return [...base].sort((a, b) => {
+      const aPinned = pinnedSet.has(a.id);
+      const bPinned = pinnedSet.has(b.id);
+      if (aPinned !== bPinned) {
+        return aPinned ? -1 : 1;
+      }
+      const aLast = conversationByUserId.get(a.id)?.lastMessageAt;
+      const bLast = conversationByUserId.get(b.id)?.lastMessageAt;
+      const aTs = aLast ? new Date(aLast).getTime() : 0;
+      const bTs = bLast ? new Date(bLast).getTime() : 0;
+      if (aTs !== bTs) {
+        return bTs - aTs;
+      }
+      const aLabel = a.displayName ?? a.name;
+      const bLabel = b.displayName ?? b.name;
+      return aLabel.localeCompare(bLabel)
     });
-  }, [dmUsers, searchTerm]);
+  }, [dmUsers, searchTerm, pinnedUserIds, conversationByUserId]);
 
   const actions = useThreadActions({
     activeConversation,
@@ -116,10 +324,28 @@ export function useThreadsController() {
   const media = useThreadMedia({
     activeConversationId: activeConversation?.id ?? null,
     messages,
+    replies: actions.replies,
     setMessages,
     setDmConversations,
     setSendError: actions.setSendError
   });
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PIN_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        setPinnedUserIds(parsed.filter((id) => typeof id == "string"));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -160,6 +386,9 @@ export function useThreadsController() {
     pendingScrollRef.current = true;
     userAtBottomRef.current = true;
     lastMessageIdRef.current = null;
+    compressedHistoryRef.current = [];
+    setHasMoreMessages(true);
+    setNewMessageCount(0);
   }, [activeConversation?.id]);
 
   useEffect(() => {
@@ -172,12 +401,14 @@ export function useThreadsController() {
     const loadMessages = async () => {
       try {
         setLoadingMessages(true);
-        const data = await listThreadMessages(activeConversation.id);
+        const data = await listThreadMessages(activeConversation.id, { limit: MESSAGES_PAGE_SIZE });
         if (!active) return;
         pendingScrollRef.current = true;
         userAtBottomRef.current = true;
         lastMessageIdRef.current = null;
         setMessages(data);
+        setHasMoreMessages(data.length == MESSAGES_PAGE_SIZE);
+        setNewMessageCount(0);
 
         await markThreadMentionsSeen(activeConversation.id);
         await refreshMentions();
@@ -209,79 +440,27 @@ export function useThreadsController() {
     container.scrollTo({ top: container.scrollHeight, behavior });
   };
 
+  const jumpToLatest = () => {
+    userAtBottomRef.current = true;
+    pendingScrollRef.current = true;
+    scrollToBottom("smooth");
+    setNewMessageCount(0);
+  };
+
   const handleMessageScroll = () => {
     const container = messageListRef.current;
     if (!container) return;
     const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    userAtBottomRef.current = distanceFromBottom < 120;
+    const atBottom = distanceFromBottom < BOTTOM_SCROLL_THRESHOLD;
+    userAtBottomRef.current = atBottom;
+    if (atBottom && newMessageCount > 0) {
+      setNewMessageCount(0);
+    }
+    if (container.scrollTop <= TOP_FETCH_THRESHOLD) {
+      void loadOlderMessages();
+    }
   };
 
-  const mergeMessages = (next: ThreadMessageSummary[]) => {
-    setMessages((prev) => {
-      if (prev.length === 0) {
-        if (userAtBottomRef.current) {
-          pendingScrollRef.current = true;
-        }
-        return next;
-      }
-      const prevLast = prev[prev.length - 1]?.id;
-      const nextLast = next[next.length - 1]?.id;
-      const appended = prevLast !== nextLast || prev.length !== next.length;
-      if (!appended) {
-        let contentChanged = false;
-        for (let i = 0; i < prev.length; i += 1) {
-          const prevMessage = prev[i];
-          const nextMessage = next[i];
-          if (!nextMessage || prevMessage.id !== nextMessage.id) {
-            contentChanged = true;
-            break;
-          }
-          if (prevMessage.replyCount !== nextMessage.replyCount) {
-            contentChanged = true;
-            break;
-          }
-          if (prevMessage.body !== nextMessage.body) {
-            contentChanged = true;
-            break;
-          }
-          const prevVoiceId = prevMessage.voiceNote?.id ?? null;
-          const nextVoiceId = nextMessage.voiceNote?.id ?? null;
-          if (prevVoiceId != nextVoiceId) {
-            contentChanged = true;
-            break;
-          }
-          const prevAttachments = prevMessage.attachments ?? [];
-          const nextAttachments = nextMessage.attachments ?? [];
-          if (prevAttachments.length != nextAttachments.length) {
-            contentChanged = true;
-            break;
-          }
-          const prevReactions = prevMessage.reactions ?? [];
-          const nextReactions = nextMessage.reactions ?? [];
-          if (prevReactions.length !== nextReactions.length) {
-            contentChanged = true;
-            break;
-          }
-          for (let r = 0; r < prevReactions.length; r += 1) {
-            const prevReaction = prevReactions[r];
-            const nextReaction = nextReactions[r];
-            if (!nextReaction || prevReaction.emoji !== nextReaction.emoji || prevReaction.count !== nextReaction.count) {
-              contentChanged = true;
-              break;
-            }
-          }
-          if (contentChanged) {
-            break;
-          }
-        }
-        return contentChanged ? next : prev;
-      }
-      if (userAtBottomRef.current) {
-        pendingScrollRef.current = true;
-      }
-      return next;
-    });
-  };
 
   useEffect(() => {
     const lastId = messages[messages.length - 1]?.id ?? null;
@@ -306,11 +485,11 @@ export function useThreadsController() {
     const poll = async () => {
       try {
         const [nextMessages, nextConversations] = await Promise.all([
-          listThreadMessages(activeConversation.id),
+          listThreadMessages(activeConversation.id, { limit: MESSAGES_PAGE_SIZE }),
           listDmConversations()
         ]);
         if (cancelled) return;
-        mergeMessages(nextMessages);
+        mergeLatestMessages(nextMessages);
         await markThreadMentionsSeen(activeConversation.id);
         await refreshMentions();
         setDmConversations(nextConversations);
@@ -379,12 +558,18 @@ export function useThreadsController() {
     setSearchTerm,
     loading,
     filteredDmUsers,
+    pinnedUserIds,
+    canPinThreads,
+    togglePinUser,
     conversationByUserId,
     presenceByUserId,
     activeConversation,
     handleSelectUser,
     messages,
     loadingMessages,
+    loadingOlder,
+    newMessageCount,
+    jumpToLatest,
     messageListRef,
     handleMessageScroll,
     hoveredMessageId,
@@ -396,6 +581,11 @@ export function useThreadsController() {
     reactionDetailsLoadingId: actions.reactionDetailsLoadingId,
     reactionDetailsTabByMessageId: actions.reactionDetailsTabByMessageId,
     setReactionDetailsTabByMessageId: actions.setReactionDetailsTabByMessageId,
+    replyReactionDetailsOpenId: actions.replyReactionDetailsOpenId,
+    replyReactionDetailsByReplyId: actions.replyReactionDetailsByReplyId,
+    replyReactionDetailsLoadingId: actions.replyReactionDetailsLoadingId,
+    replyReactionDetailsTabByReplyId: actions.replyReactionDetailsTabByReplyId,
+    setReplyReactionDetailsTabByReplyId: actions.setReplyReactionDetailsTabByReplyId,
     editingMessageId: actions.editingMessageId,
     editingDraft: actions.editingDraft,
     setEditingDraft: actions.setEditingDraft,
@@ -408,16 +598,22 @@ export function useThreadsController() {
     openInlineReply: actions.openInlineReply,
     openReplyThread: actions.openReplyThread,
     openForwardPicker: actions.openForwardPicker,
+    openInlineReplyForReply: actions.openInlineReplyForReply,
+    openForwardPickerForReply: actions.openForwardPickerForReply,
     startEditingMessage: actions.startEditingMessage,
     cancelEditingMessage: actions.cancelEditingMessage,
     handleSaveEdit: actions.handleSaveEdit,
     handleToggleMessageReaction: actions.handleToggleMessageReaction,
     handleToggleReactionDetails: actions.handleToggleReactionDetails,
+    handleToggleReplyReactionDetails: actions.handleToggleReplyReactionDetails,
     setImagePreview,
     setVideoPreview,
     downloadThreadAttachment,
+    downloadThreadReplyAttachment,
     inlineReplyTarget: actions.inlineReplyTarget,
     setInlineReplyTarget: actions.setInlineReplyTarget,
+    replyInlineTarget: actions.replyInlineTarget,
+    setReplyInlineTarget: actions.setReplyInlineTarget,
     messageDraft: actions.messageDraft,
     setMessageDraft: actions.setMessageDraft,
     mentionMembers,
@@ -456,6 +652,11 @@ export function useThreadsController() {
     replyAttachmentOpen: actions.replyAttachmentOpen,
     setReplyAttachmentOpen: actions.setReplyAttachmentOpen,
     replies: actions.replies,
+    replyListRef: actions.replyListRef,
+    replyLoadingOlder: actions.replyLoadingOlder,
+    replyNewCount: actions.replyNewCount,
+    handleReplyScroll: actions.handleReplyScroll,
+    jumpToLatestReply: actions.jumpToLatestReply,
     hoveredReplyId,
     setHoveredReplyId,
     reactionPickerReplyId,
@@ -463,6 +664,26 @@ export function useThreadsController() {
     handleToggleReplyReaction: actions.handleToggleReplyReaction,
     replyDraft: actions.replyDraft,
     setReplyDraft: actions.setReplyDraft,
+    replyPendingAttachments: actions.replyPendingAttachments,
+    replyFileInputRef: actions.replyFileInputRef,
+    handleReplyPickAttachments: actions.handleReplyPickAttachments,
+    handleReplyAttachmentChange: actions.handleReplyAttachmentChange,
+    handleReplyRemoveAttachment: actions.handleReplyRemoveAttachment,
+    replyRecording: actions.replyRecording,
+    replyRecordingDuration: actions.replyRecordingDuration,
+    startReplyRecording: actions.startReplyRecording,
+    stopReplyRecording: actions.stopReplyRecording,
+    cancelReplyRecording: actions.cancelReplyRecording,
+    editingReplyId: actions.editingReplyId,
+    editingReplyDraft: actions.editingReplyDraft,
+    setEditingReplyDraft: actions.setEditingReplyDraft,
+    editingReplyError: actions.editingReplyError,
+    startEditingReply: actions.startEditingReply,
+    cancelEditingReply: actions.cancelEditingReply,
+    handleSaveReplyEdit: actions.handleSaveReplyEdit,
+    replyDeleteConfirm: actions.replyDeleteConfirm,
+    setReplyDeleteConfirm: actions.setReplyDeleteConfirm,
+    handleDeleteReply: actions.handleDeleteReply,
     handleReplyKeyDown: actions.handleReplyKeyDown,
     replyError: actions.replyError,
     handleSendReply: actions.handleSendReply,

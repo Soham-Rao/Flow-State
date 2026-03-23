@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { FocusPage } from "@/pages/focus-page";
@@ -39,8 +39,12 @@ describe("FocusPage", () => {
     fireEvent.change(screen.getByLabelText("Focus minutes"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
 
-    await vi.advanceTimersByTimeAsync(42000);
-    fireEvent.click(screen.getByRole("button", { name: /skip to break/i }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(42000);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /skip to break/i }));
+    });
 
     const recentSection = screen.getByText("Recent sessions").parentElement as HTMLElement;
     expect(within(recentSection).getAllByText(/focus/i).length).toBe(1);
@@ -54,7 +58,9 @@ describe("FocusPage", () => {
     fireEvent.change(screen.getByLabelText("Focus minutes"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
 
-    await vi.advanceTimersByTimeAsync(60000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60000);
+    });
 
     const recentSection = screen.getByText("Recent sessions").parentElement as HTMLElement;
     expect(within(recentSection).getAllByText(/focus/i).length).toBe(1);

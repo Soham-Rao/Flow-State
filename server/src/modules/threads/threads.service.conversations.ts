@@ -9,7 +9,8 @@ import type { DmConversationSummary, ThreadUserSummary } from "./threads.service
 import { ensureUserExists } from "./threads.service.access.js";
 import { buildMessagePreview, getDmConversationRows, getThreadMentionCounts } from "./threads.service.data.js";
 
-export function listDmUsers(): ThreadUserSummary[] {
+export function listDmUsers(userId: string): ThreadUserSummary[] {
+  assertPermission(userId, "dm_read");
   return db
     .select({
       id: users.id,

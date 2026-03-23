@@ -32,6 +32,36 @@ export async function ensureThreadVoiceNoteDirectory(filePath: string): Promise<
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 }
 
+
+export function buildThreadReplyAttachmentStoragePath(conversationId: string, replyId: string, storedName: string): string {
+  return path.join("threads", conversationId, "replies", replyId, storedName);
+}
+
+export function resolveThreadReplyAttachmentPath(storagePath: string): string {
+  return path.join(THREAD_UPLOADS_ROOT, storagePath);
+}
+
+export async function ensureThreadReplyAttachmentDirectory(filePath: string): Promise<void> {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+}
+
+export function buildThreadReplyVoiceNoteStoragePath(
+  conversationId: string,
+  replyId: string,
+  voiceNoteId: string,
+  extension: string
+): string {
+  return path.join("threads", conversationId, "replies", replyId, "voice", `${voiceNoteId}${extension}`);
+}
+
+export function resolveThreadReplyVoiceNotePath(storagePath: string): string {
+  return path.join(THREAD_UPLOADS_ROOT, storagePath);
+}
+
+export async function ensureThreadReplyVoiceNoteDirectory(filePath: string): Promise<void> {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+}
+
 export function getVoiceNoteExtension(file: Express.Multer.File): string {
   const ext = path.extname(file.originalname ?? "").toLowerCase();
   if (ext) return ext;
