@@ -34,6 +34,11 @@ export const rolePermissions = [
   "dm_encrypt",
   "channel_read",
   "channel_write",
+  "channel_edit",
+  "channel_members_add",
+  "channel_members_remove",
+  "channel_manage_overrides",
+  "channel_delete",
   "view_settings"
 ] as const;
 
@@ -58,6 +63,7 @@ export interface UserRoleAssignment {
   role: "admin" | "member" | "guest";
   roleIds: string[];
 }
+
 
 
 

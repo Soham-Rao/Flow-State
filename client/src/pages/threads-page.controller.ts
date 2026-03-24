@@ -2,11 +2,29 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { markThreadMentionsSeen } from "@/lib/mentions-api";
-import { downloadThreadAttachment, downloadThreadReplyAttachment, getOrCreateDmConversation, listDmConversations, listDmUsers, listThreadMessages } from "@/lib/threads-api";
+import {
+    createChannel,
+    updateChannel,
+    leaveChannel,
+    deleteChannel,
+    addChannelMembers,
+    downloadThreadAttachment,
+    downloadThreadReplyAttachment,
+    getOrCreateDmConversation,
+    listChannelConversations,
+    listChannelMembers,
+    removeChannelMember,
+    updateChannelMemberOverrides,
+    listDmConversations,
+    listDmUsers,
+    listThreadMessages
+  } from "@/lib/threads-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMentionStore } from "@/stores/mentions-store";
 import type { BoardMember } from "@/types/board";
-import type { DmConversationSummary, ThreadMessageSummary, ThreadUserSummary } from "@/types/threads";
+import type { ChannelConversationSummary, ChannelMemberSummary, DmConversationSummary, ThreadMessageSummary, ThreadUserSummary } from "@/types/threads";
+type ThreadConversationSummary = DmConversationSummary | ChannelConversationSummary;
+type RefreshConversationsResult = { nextDm: DmConversationSummary[]; nextChannels: ChannelConversationSummary[] };
 import { presencePalette, type PresenceState } from "./threads-page.constants";
 import { useThreadActions } from "./threads-page.controller.actions";
 import { useThreadMedia } from "./threads-page.controller.media";
@@ -62,7 +80,17 @@ export function useThreadsController() {
 
   const [dmUsers, setDmUsers] = useState<ThreadUserSummary[]>([]);
   const [dmConversations, setDmConversations] = useState<DmConversationSummary[]>([]);
-  const [activeConversation, setActiveConversation] = useState<DmConversationSummary | null>(null);
+  const [channelConversations, setChannelConversations] = useState<ChannelConversationSummary[]>([]);
+  const [channelMembers, setChannelMembers] = useState<ChannelMemberSummary[]>([]);
+  const [channelDraft, setChannelDraft] = useState("");
+  const [creatingChannel, setCreatingChannel] = useState(false);
+  const [channelNameDraft, setChannelNameDraft] = useState("");
+  const [channelDescriptionDraft, setChannelDescriptionDraft] = useState("");
+  const [savingChannelSettings, setSavingChannelSettings] = useState(false);
+  const [leavingChannel, setLeavingChannel] = useState(false);
+  const [channelSaveState, setChannelSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [deletingChannel, setDeletingChannel] = useState(false);
+  const [activeConversation, setActiveConversation] = useState<ThreadConversationSummary | null>(null);
   const [messages, setMessages] = useState<ThreadMessageSummary[]>([]);
   const [activeTab, setActiveTab] = useState<"dms" | "channels">("dms");
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,6 +105,25 @@ export function useThreadsController() {
 
   const refreshMentions = useMentionStore((state) => state.refresh);
   const mentionCounts = useMentionStore((state) => state.counts);
+
+  const activeChannel = activeConversation?.type === "channel" ? activeConversation : null;
+  const lastSavedChannelRef = useRef<{ id: string; name: string; description: string | null } | null>(null);
+
+  const activeChannelMember = useMemo(() => {
+    if (!activeChannel || !user?.id) return null;
+    return channelMembers.find((member) => member.user.id === user.id) ?? null;
+  }, [activeChannel?.id, channelMembers, user?.id]);
+
+  const channelPermissions = activeChannelMember?.effectivePermissions;
+  const isChannelCreator = Boolean(activeChannel && activeChannel.createdById === user?.id);
+  const canEditChannel = Boolean(activeChannel && (isChannelCreator || channelPermissions?.channel_edit));
+  const canAddChannelMembers = Boolean(activeChannel && (isChannelCreator || channelPermissions?.channel_members_add));
+  const canRemoveChannelMembers = Boolean(activeChannel && (isChannelCreator || channelPermissions?.channel_members_remove));
+  const canManageChannelOverrides = Boolean(activeChannel && (isChannelCreator || channelPermissions?.channel_manage_overrides));
+  const canDeleteChannel = Boolean(activeChannel && (isChannelCreator || channelPermissions?.channel_delete));
+  const canManageChannel = Boolean(
+    activeChannel && (canEditChannel || canAddChannelMembers || canRemoveChannelMembers || canManageChannelOverrides || canDeleteChannel)
+  );
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const messagesRef = useRef<ThreadMessageSummary[]>([]);
@@ -100,7 +147,16 @@ export function useThreadsController() {
   }, [dmConversations]);
 
   const mentionMembers = useMemo<BoardMember[]>(() => {
-    return dmUsers.map((userEntry) => ({
+    const baseMembers =
+      activeConversation?.type === "channel"
+        ? channelMembers.map((member) => member.user)
+        : dmUsers;
+    const sorted = [...baseMembers].sort((a, b) => {
+      const aLabel = (a.displayName ?? a.name ?? a.username ?? a.email).toLowerCase();
+      const bLabel = (b.displayName ?? b.name ?? b.username ?? b.email).toLowerCase();
+      return aLabel.localeCompare(bLabel);
+    });
+    return sorted.map((userEntry) => ({
       id: userEntry.id,
       name: userEntry.name,
       displayName: userEntry.displayName,
@@ -109,7 +165,15 @@ export function useThreadsController() {
       role: userEntry.role === "admin" ? "admin" : "member",
       createdAt: new Date().toISOString()
     }));
-  }, [dmUsers]);
+  }, [activeConversation?.type, channelMembers, dmUsers]);
+
+  const dmMentionTotal = useMemo(() => (
+    dmConversations.reduce((sum, conversation) => sum + (conversation.unreadMentions ?? 0), 0)
+  ), [dmConversations]);
+
+  const channelMentionTotal = useMemo(() => (
+    channelConversations.reduce((sum, conversation) => sum + (conversation.unreadMentions ?? 0), 0)
+  ), [channelConversations]);
 
   const queueCompression = (chunk: ThreadMessageSummary[]) => {
     if (chunk.length == 0) return;
@@ -293,13 +357,33 @@ export function useThreadsController() {
       return aLabel.localeCompare(bLabel)
     });
   }, [dmUsers, searchTerm, pinnedUserIds, conversationByUserId]);
+  const filteredChannels = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    const base = query
+      ? channelConversations.filter((channel) => channel.name.toLowerCase().includes(query))
+      : channelConversations;
+    return [...base].sort((a, b) => {
+      const aTs = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bTs = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return bTs - aTs;
+    });
+  }, [channelConversations, searchTerm]);
 
-  const actions = useThreadActions({
+    const refreshConversations = async (): Promise<RefreshConversationsResult> => {
+    const [nextDm, nextChannels] = await Promise.all([
+      listDmConversations(),
+      listChannelConversations()
+    ]);
+    setDmConversations(nextDm);
+    setChannelConversations(nextChannels);
+    return { nextDm, nextChannels };
+  };
+const actions = useThreadActions({
     activeConversation,
     userId: user?.id,
     messages,
     setMessages,
-    setDmConversations,
+    refreshConversations,
     mentionMembers,
     fileInputRef
   });
@@ -326,7 +410,7 @@ export function useThreadsController() {
     messages,
     replies: actions.replies,
     setMessages,
-    setDmConversations,
+    refreshConversations,
     setSendError: actions.setSendError
   });
 
@@ -355,6 +439,71 @@ export function useThreadsController() {
       setActiveTab("dms");
     }
   }, [searchParams]);
+  useEffect(() => {
+    if (activeTab === "channels" && activeConversation?.type === "dm") {
+      setActiveConversation(null);
+    }
+    if (activeTab === "dms" && activeConversation?.type === "channel") {
+      setActiveConversation(null);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!activeChannel) {
+      setChannelNameDraft("");
+      setChannelDescriptionDraft("");
+      lastSavedChannelRef.current = null;
+      setChannelSaveState("idle");
+      return;
+    }
+    setChannelNameDraft(activeChannel.name);
+    setChannelDescriptionDraft(activeChannel.description ?? "");
+    lastSavedChannelRef.current = {
+      id: activeChannel.id,
+      name: activeChannel.name,
+      description: activeChannel.description ?? null
+    };
+    setChannelSaveState("idle");
+  }, [activeChannel?.id, activeChannel?.name, activeChannel?.description]);
+
+  useEffect(() => {
+    if (!activeChannel || !canEditChannel) return;
+    const name = channelNameDraft.trim();
+    const description = channelDescriptionDraft.trim();
+    if (!name) return;
+    const normalizedDescription = description.length > 0 ? description : null;
+    const lastSaved = lastSavedChannelRef.current;
+    if (!lastSaved || lastSaved.id !== activeChannel.id) return;
+    if (name === lastSaved.name && normalizedDescription === lastSaved.description) return;
+
+    const timer = window.setTimeout(() => {
+      setSavingChannelSettings(true);
+      setChannelSaveState("saving");
+      updateChannel(activeChannel.id, { name, description: normalizedDescription })
+        .then((updated) => {
+          lastSavedChannelRef.current = {
+            id: updated.id,
+            name: updated.name,
+            description: updated.description ?? null
+          };
+          setChannelConversations((prev) => prev.map((channel) => (
+            channel.id === updated.id ? updated : channel
+          )));
+          setActiveConversation(updated);
+          setChannelSaveState("saved");
+        })
+        .catch(() => {
+          setChannelSaveState("error");
+        })
+        .finally(() => {
+          setSavingChannelSettings(false);
+        });
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [channelNameDraft, channelDescriptionDraft, activeChannel?.id, canManageChannel]);
 
   useEffect(() => {
     let active = true;
@@ -362,10 +511,11 @@ export function useThreadsController() {
     const load = async () => {
       try {
         setLoading(true);
-        const [users, conversations] = await Promise.all([listDmUsers(), listDmConversations()]);
+        const [users, conversations, channels] = await Promise.all([listDmUsers(), listDmConversations(), listChannelConversations()]);
         if (!active) return;
         setDmUsers(users);
         setDmConversations(conversations);
+        setChannelConversations(channels);
         await refreshMentions();
       } catch {
         // ignore for now
@@ -412,13 +562,23 @@ export function useThreadsController() {
 
         await markThreadMentionsSeen(activeConversation.id);
         await refreshMentions();
-        setDmConversations((prev) =>
-          prev.map((conversation) =>
-            conversation.id === activeConversation.id
-              ? { ...conversation, unreadMentions: 0 }
-              : conversation
-          )
-        );
+        if (activeConversation.type === "dm") {
+          setDmConversations((prev) =>
+            prev.map((conversation) =>
+              conversation.id === activeConversation.id
+                ? { ...conversation, unreadMentions: 0 }
+                : conversation
+            )
+          );
+        } else {
+          setChannelConversations((prev) =>
+            prev.map((conversation) =>
+              conversation.id === activeConversation.id
+                ? { ...conversation, unreadMentions: 0 }
+                : conversation
+            )
+          );
+        }
       } catch {
         // ignore
       } finally {
@@ -433,6 +593,26 @@ export function useThreadsController() {
       active = false;
     };
   }, [activeConversation?.id, refreshMentions]);
+  useEffect(() => {
+    if (!activeConversation || activeConversation.type !== "channel") {
+      setChannelMembers([]);
+      return;
+    }
+    let active = true;
+    const loadMembers = async () => {
+      try {
+        const members = await listChannelMembers(activeConversation.id);
+        if (!active) return;
+        setChannelMembers(members);
+      } catch {
+        // ignore
+      }
+    };
+    loadMembers();
+    return () => {
+      active = false;
+    };
+  }, [activeConversation?.id, activeConversation?.type]);
 
   const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
     const container = messageListRef.current;
@@ -484,24 +664,38 @@ export function useThreadsController() {
 
     const poll = async () => {
       try {
-        const [nextMessages, nextConversations] = await Promise.all([
-          listThreadMessages(activeConversation.id, { limit: MESSAGES_PAGE_SIZE }),
-          listDmConversations()
+        const [nextMessages, refreshed] = await Promise.all([
+        listThreadMessages(activeConversation.id, { limit: MESSAGES_PAGE_SIZE }),
+        refreshConversations()
         ]);
         if (cancelled) return;
         mergeLatestMessages(nextMessages);
         await markThreadMentionsSeen(activeConversation.id);
         await refreshMentions();
-        setDmConversations(nextConversations);
+
+              const nextDm = refreshed.nextDm;
+      const nextChannels = refreshed.nextChannels;
+      if (activeConversation.type === "dm") {
         setActiveConversation((prev) => {
-          if (!prev) return prev;
-          const next = nextConversations.find((item) => item.id === prev.id);
+          if (!prev || prev.type !== "dm") return prev;
+          const next = nextDm.find((item) => item.id === prev.id);
           if (!next) return prev;
           if (next.lastMessageAt === prev.lastMessageAt && next.unreadMentions === prev.unreadMentions) {
             return prev;
           }
           return next;
         });
+      } else {
+        setActiveConversation((prev) => {
+          if (!prev || prev.type !== "channel") return prev;
+          const next = nextChannels.find((item) => item.id === prev.id);
+          if (!next) return prev;
+          if (next.lastMessageAt === prev.lastMessageAt && next.unreadMentions === prev.unreadMentions) {
+            return prev;
+          }
+          return next;
+        });
+      }
       } catch {
         // ignore
       }
@@ -545,6 +739,133 @@ export function useThreadsController() {
       setLoadingMessages(false);
     }
   };
+  const handleSelectChannel = (channel: ChannelConversationSummary) => {
+    setActiveConversation(channel);
+  };
+
+  const handleCreateChannel = async () => {
+    const name = channelDraft.trim();
+    if (!name || creatingChannel) return;
+    setCreatingChannel(true);
+    try {
+      const created = await createChannel({ name });
+      setChannelConversations((prev) => [created, ...prev]);
+      setActiveConversation(created);
+      setChannelDraft("");
+    } catch {
+      // ignore
+    } finally {
+      setCreatingChannel(false);
+    }
+  };
+  const handleAddChannelMember = async (memberId: string) => {
+    if (!activeConversation || activeConversation.type !== "channel") return;
+    if (!canAddChannelMembers) return;
+    try {
+      const updated = await addChannelMembers(activeConversation.id, [{ userId: memberId }]);
+      setChannelMembers(updated);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleToggleChannelOverride = async (
+    memberId: string,
+    permission: "channel_read" | "channel_write" | "channel_edit" | "channel_members_add" | "channel_members_remove" | "channel_manage_overrides" | "channel_delete",
+    enabled: boolean
+  ) => {
+    if (!activeConversation || activeConversation.type !== "channel") return;
+    if (!canManageChannelOverrides) return;
+    const current = channelMembers.find((member) => member.user.id === memberId);
+    if (!current) return;
+    const nextOverrides = [
+      ...current.overrides.filter((override) => override.permission !== permission)
+    ];
+    if (enabled) {
+      nextOverrides.push({ permission, access: "allow" });
+    }
+    try {
+      const updatedMember = await updateChannelMemberOverrides(activeConversation.id, memberId, nextOverrides);
+      setChannelMembers((prev) => prev.map((member) => (
+        member.user.id === memberId ? updatedMember : member
+      )));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleRemoveChannelMember = async (memberId: string) => {
+    if (!activeConversation || activeConversation.type !== "channel") return;
+    if (!canRemoveChannelMembers) return;
+    try {
+      await removeChannelMember(activeConversation.id, memberId);
+      setChannelMembers((prev) => prev.filter((member) => member.user.id !== memberId));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleSaveChannelDetails = async () => {
+    if (!activeConversation || activeConversation.type !== "channel" || savingChannelSettings) return;
+    if (!canEditChannel) return;
+    const name = channelNameDraft.trim();
+    const description = channelDescriptionDraft.trim();
+    if (!name) return;
+
+    const payload: { name?: string; description?: string | null } = {};
+    if (name !== activeConversation.name) {
+      payload.name = name;
+    }
+    const normalizedDescription = description.length > 0 ? description : null;
+    if ((activeConversation.description ?? null) !== normalizedDescription) {
+      payload.description = normalizedDescription;
+    }
+    if (Object.keys(payload).length === 0) return;
+
+    setSavingChannelSettings(true);
+    try {
+      const updated = await updateChannel(activeConversation.id, payload);
+      setChannelConversations((prev) => prev.map((channel) => (
+        channel.id === updated.id ? updated : channel
+      )));
+      setActiveConversation(updated);
+    } catch {
+      // ignore
+    } finally {
+      setSavingChannelSettings(false);
+    }
+  };
+
+  const handleLeaveChannel = async () => {
+    if (!activeConversation || activeConversation.type !== "channel" || leavingChannel) return;
+    setLeavingChannel(true);
+    try {
+      await leaveChannel(activeConversation.id);
+      setChannelConversations((prev) => prev.filter((channel) => channel.id !== activeConversation.id));
+      setChannelMembers([]);
+      setActiveConversation(null);
+    } catch {
+      // ignore
+    } finally {
+      setLeavingChannel(false);
+    }
+  };
+
+  const handleDeleteChannel = async () => {
+    if (!activeConversation || activeConversation.type !== "channel" || deletingChannel) return;
+    if (!canDeleteChannel) return;
+    setDeletingChannel(true);
+    try {
+      await deleteChannel(activeConversation.id);
+      setChannelConversations((prev) => prev.filter((channel) => channel.id !== activeConversation.id));
+      setChannelMembers([]);
+      setActiveConversation(null);
+    } catch {
+      // ignore
+    } finally {
+      setDeletingChannel(false);
+    }
+  };
 
   const totalMentions = mentionCounts?.total ?? 0;
   const showReplyPanel = Boolean(actions.replyTarget || actions.replyOpen);
@@ -554,10 +875,40 @@ export function useThreadsController() {
     setSearchParams,
     activeTab,
     totalMentions,
+    dmMentionTotal,
+    channelMentionTotal,
     searchTerm,
     setSearchTerm,
     loading,
     filteredDmUsers,
+    filteredChannels,
+    dmUsers,
+    channelDraft,
+    setChannelDraft,
+    creatingChannel,
+    handleCreateChannel,
+    handleSelectChannel,
+    channelNameDraft,
+    setChannelNameDraft,
+    channelDescriptionDraft,
+    setChannelDescriptionDraft,
+    savingChannelSettings,
+    channelSaveState,
+    canManageChannel,
+    canEditChannel,
+    canAddChannelMembers,
+    canRemoveChannelMembers,
+    canManageChannelOverrides,
+    canDeleteChannel,
+    handleSaveChannelDetails,
+    handleLeaveChannel,
+    handleDeleteChannel,
+    leavingChannel,
+    deletingChannel,
+    channelMembers,
+    handleAddChannelMember,
+    handleToggleChannelOverride,
+    handleRemoveChannelMember,
     pinnedUserIds,
     canPinThreads,
     togglePinUser,
@@ -690,3 +1041,30 @@ export function useThreadsController() {
     closeReplyThread: actions.closeReplyThread
   };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

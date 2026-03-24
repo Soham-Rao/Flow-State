@@ -9,7 +9,7 @@ import {
   createThreadReplyAttachments,
   createThreadReplyVoiceNote,
   getOrCreateDmConversation,
-  listDmConversations,
+
   listThreadMessageReactionDetails,
   listThreadReplyReactionDetails,
   listThreadReplies,
@@ -21,7 +21,9 @@ import {
   deleteThreadReply
 } from "@/lib/threads-api";
 import type { BoardMember } from "@/types/board";
-import type { DmConversationSummary, ThreadMessageSummary, ThreadReplySummary, ThreadUserSummary, ThreadReactionDetail } from "@/types/threads";
+import type { ChannelConversationSummary, DmConversationSummary, ThreadMessageSummary, ThreadReplySummary, ThreadUserSummary, ThreadReactionDetail } from "@/types/threads";
+type ThreadConversationSummary = DmConversationSummary | ChannelConversationSummary;
+type RefreshConversationsResult = { nextDm: DmConversationSummary[]; nextChannels: ChannelConversationSummary[] };
 
 const REPLY_PAGE_SIZE = 30;
 const MAX_REPLIES_IN_MEMORY = 200;
@@ -69,11 +71,11 @@ async function decompressReplies(page: CompressedReplyPage): Promise<ThreadReply
 type ForwardTarget = { body: string | null };
 
 type ThreadActionsParams = {
-  activeConversation: DmConversationSummary | null;
+  activeConversation: ThreadConversationSummary | null;
   userId: string | null | undefined;
   messages: ThreadMessageSummary[];
   setMessages: React.Dispatch<React.SetStateAction<ThreadMessageSummary[]>>;
-  setDmConversations: React.Dispatch<React.SetStateAction<DmConversationSummary[]>>;
+  refreshConversations: () => Promise<RefreshConversationsResult>;
   mentionMembers: BoardMember[];
   fileInputRef: React.RefObject<HTMLInputElement>;
 };
@@ -179,7 +181,7 @@ export function useThreadActions({
   userId,
   messages,
   setMessages,
-  setDmConversations,
+  refreshConversations,
   mentionMembers,
   fileInputRef,
 }: ThreadActionsParams): ThreadActionsState {
@@ -584,8 +586,7 @@ export function useThreadActions({
       setReplyTarget((prev) => (prev
         ? { ...prev, replyCount: (prev.replyCount ?? 0) + 1 }
         : prev));
-      const refreshed = await listDmConversations();
-      setDmConversations(refreshed);
+      await refreshConversations();
     } catch (error) {
       setReplyError(error instanceof Error ? error.message : "Unable to send voice reply right now.");
     }
@@ -753,8 +754,7 @@ export function useThreadActions({
       setMessageDraft("");
       setPendingAttachments([]);
       setInlineReplyTarget(null);
-      const refreshed = await listDmConversations();
-      setDmConversations(refreshed);
+      await refreshConversations();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to send message right now.";
       setSendError(message);
@@ -772,7 +772,13 @@ export function useThreadActions({
     setReplyInlineTarget(null);
     setReplyError(null);
     setInlineReplyTarget(null);
-    setReplyOpen(true);
+    if (!replyOpen) {
+      requestAnimationFrame(() => {
+        setReplyOpen(true);
+      });
+    } else {
+      setReplyOpen(true);
+    }
     const data = await listThreadReplies(message.id, { limit: REPLY_PAGE_SIZE });
     setReplyHasMore(data.length == REPLY_PAGE_SIZE);
     setReplyNewCount(0);
@@ -825,8 +831,7 @@ export function useThreadActions({
       if (activeConversation?.id === conversation.id) {
         setMessages((prev) => [...prev, created]);
       }
-      const refreshed = await listDmConversations();
-      setDmConversations(refreshed);
+      await refreshConversations();
       closeForwardPicker();
     } catch (error) {
       setForwardError(error instanceof Error ? error.message : "Unable to forward message right now.");
@@ -860,8 +865,7 @@ export function useThreadActions({
       setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, ...updated } : item)));
       setEditingMessageId(null);
       setEditingDraft("");
-      const refreshed = await listDmConversations();
-      setDmConversations(refreshed);
+      await refreshConversations();
     } catch (error) {
       setEditingError(error instanceof Error ? error.message : "Unable to update this message.");
     }
@@ -893,8 +897,7 @@ export function useThreadActions({
       setReplies((prev) => prev.map((item) => (item.id === reply.id ? { ...item, ...updated } : item)));
       setEditingReplyId(null);
       setEditingReplyDraft("");
-      const refreshed = await listDmConversations();
-      setDmConversations(refreshed);
+      await refreshConversations();
     } catch (error) {
       setEditingReplyError(error instanceof Error ? error.message : "Unable to update this reply.");
     }
@@ -934,8 +937,7 @@ export function useThreadActions({
         setEditingReplyError(null);
       }
       setReplyDeleteConfirm(null);
-      const refreshed = await listDmConversations();
-      setDmConversations(refreshed);
+      await refreshConversations();
     } catch (error) {
       setReplyError(error instanceof Error ? error.message : "Unable to delete this reply.");
     }
@@ -961,8 +963,7 @@ export function useThreadActions({
       setDeleteMenuMessageId(null);
       setDeleteConfirm(null);
     setReplyDeleteConfirm(null);
-      const refreshed = await listDmConversations();
-      setDmConversations(refreshed);
+      await refreshConversations();
     } catch (error) {
       const messageText = error instanceof Error ? error.message : "Unable to delete this message.";
       setSendError(messageText);
@@ -1268,3 +1269,5 @@ export function useThreadActions({
     handleReplyKeyDown
   };
 }
+
+

@@ -3,39 +3,52 @@ import multer from "multer";
 
 import { requireAuth } from "../../middleware/require-auth.js";
 import {
+  addChannelMembersSchema,
+  createChannelSchema,
   createThreadMessageSchema,
   createThreadReplySchema,
-  updateThreadMessageSchema,
-  updateThreadReplySchema,
   deleteThreadMessageSchema,
   deleteThreadReplySchema,
   threadMessageListSchema,
-  threadReactionSchema
+  threadReactionSchema,
+  updateChannelMemberOverridesSchema,
+  updateChannelSchema,
+  updateThreadMessageSchema,
+  updateThreadReplySchema
 } from "./threads.schema.js";
 import {
+  addChannelMembers,
+  createChannelConversation,
   createThreadMessage,
   createThreadReply,
-  updateThreadReply,
-  deleteThreadReply,
+  deleteChannelConversation,
   createThreadAttachments,
   createThreadReplyAttachments,
   createThreadReplyVoiceNote,
   createThreadVoiceNote,
-  getThreadReplyVoiceNoteDownloadInfo,
-  getThreadReplyAttachmentDownloadInfo,
-  getThreadVoiceNoteDownloadInfo,
-  getThreadAttachmentDownloadInfo,
+  deleteThreadMessage,
+  deleteThreadReply,
   getOrCreateDmConversation,
+  getThreadAttachmentDownloadInfo,
+  getThreadReplyAttachmentDownloadInfo,
+  getThreadReplyVoiceNoteDownloadInfo,
+  getThreadVoiceNoteDownloadInfo,
+  listChannelConversations,
+  listChannelMembers,
   listDmConversations,
   listDmUsers,
-  listThreadMessages,
-  listThreadReplies,
   listThreadMessageReactionDetails,
+  listThreadMessages,
   listThreadReplyReactionDetails,
-  updateThreadMessage,
-  deleteThreadMessage,
+  listThreadReplies,
+  removeChannelMember,
   toggleThreadMessageReaction,
-  toggleThreadReplyReaction
+  toggleThreadReplyReaction,
+  updateChannelConversation,
+  updateChannelMemberOverrides,
+  updateThreadMessage,
+  updateThreadReply,
+  leaveChannelConversation
 } from "./threads.service.js";
 
 export const threadsRouter = Router();
@@ -66,6 +79,92 @@ threadsRouter.post("/dms/:userId", (req, res, next) => {
   try {
     const data = getOrCreateDmConversation(req.auth!.userId, req.params.userId);
     res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+threadsRouter.get("/channels", (req, res, next) => {
+  try {
+    const data = listChannelConversations(req.auth!.userId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+threadsRouter.post("/channels", (req, res, next) => {
+  try {
+    const body = createChannelSchema.parse(req.body ?? {});
+    const data = createChannelConversation(req.auth!.userId, body);
+    res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+threadsRouter.patch("/channels/:conversationId", (req, res, next) => {
+  try {
+    const body = updateChannelSchema.parse(req.body ?? {});
+    const data = updateChannelConversation(req.auth!.userId, req.params.conversationId, body);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+threadsRouter.post("/channels/:conversationId/leave", (req, res, next) => {
+  try {
+    const data = leaveChannelConversation(req.auth!.userId, req.params.conversationId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+threadsRouter.delete("/channels/:conversationId", (req, res, next) => {
+  try {
+    const data = deleteChannelConversation(req.auth!.userId, req.params.conversationId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+threadsRouter.get("/channels/:conversationId/members", (req, res, next) => {
+  try {
+    const data = listChannelMembers(req.auth!.userId, req.params.conversationId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+threadsRouter.post("/channels/:conversationId/members", (req, res, next) => {
+  try {
+    const body = addChannelMembersSchema.parse(req.body ?? {});
+    const data = addChannelMembers(req.auth!.userId, req.params.conversationId, body);
+    res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+threadsRouter.patch("/channels/:conversationId/members/:memberId/overrides", (req, res, next) => {
+  try {
+    const body = updateChannelMemberOverridesSchema.parse(req.body ?? {});
+    const data = updateChannelMemberOverrides(req.auth!.userId, req.params.conversationId, req.params.memberId, body);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+threadsRouter.delete("/channels/:conversationId/members/:memberId", (req, res, next) => {
+  try {
+    const data = removeChannelMember(req.auth!.userId, req.params.conversationId, req.params.memberId);
+    res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }

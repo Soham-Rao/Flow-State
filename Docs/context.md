@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-03-16
+> Last updated: 2026-03-24
 
 ---
 
@@ -271,12 +271,12 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 4.2: Attachments | ✅ Completed | 2026-03-13 | 2026-03-13 | Added attachments API + UI, retention settings, and cleanup support |
 | Phase 4.3: Labels + Assignments + Cover Colors | ✅ Completed | 2026-03-13 | 2026-03-13 | Labels/assignees/cover colors wired end-to-end with schema + API + UI and polish fixes |
 | Phase 4.4: Comments + Due Dates + Archive/Restore | ✅ Completed | 2026-03-13 | 2026-03-13 | Comments with mentions/reactions, archive/restore flows, and retention countdown badges |
-| Phase 5: Team & Collaboration | 🟨 In Progress | 2026-03-13 | — | Phase 5.4 completed; Phase 5.5 not started |
+| Phase 5: Team & Collaboration | ✅ Completed | 2026-03-13 | 2026-03-24 | Phase 5.5 completed: channels + overrides |
 | Phase 5.1: @ Mentions Autocomplete (App-wide) | ✅ Completed | 2026-03-13 | 2026-03-13 | Autocomplete on `@` anywhere + mention notifications |
 | Phase 5.2: Invitation System | ✅ Completed | 2026-03-13 | 2026-03-14 | Admin invite flow + shareable links |
 | Phase 5.3: Roles & Permissions | ✅ Completed | 2026-03-14 | 2026-03-14 | Roles/permissions system, management UI, and permission gating |
 | Phase 5.4: Threads Section | ✅ Completed | 2026-03-14 | 2026-03-16 | DMs implemented with reply threads, reactions, mentions, encryption, and UX polish |
-| Phase 5.5: Channels & Overrides | ⬜ Not Started | — | — | Channel chat + permission overrides groundwork |
+| Phase 5.5: Channels & Overrides | ✅ Completed | 2026-03-24 | 2026-03-24 | Channel chat + permission overrides, manage/view gating |
 | Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
 | Phase 8: Time Tracking & Focus | ✅ Completed | 2026-03-14 | 2026-03-14 | Focus mode Pomodoro UI with personal history/stats (local only) |
@@ -329,6 +329,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 | Date | Update |
 |------|--------|
+| 2026-03-24 | Phase 5.5 completed: channels + overrides, manage/view panel, per-channel permission overrides. |
 | 2026-03-16 | Phase 5.4 completed: DM threads with reactions, reply threads, mention counters, encryption, attachments, voice notes, and UI polish; Phase 5.5 created for channels + overrides. |
 | 2026-03-14 | Phase 5.4 started: drafted detailed threads (DM-first) plan with encryption, mentions, and permission/override scaffolding. |
 | 2026-03-14 | Phase 8 completed: focus mode Pomodoro with configurable sessions, animated backgrounds, partial-session tracking, and client tests. |
@@ -363,5 +364,6 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |
 | 2026-03-12 | Phase 4.1 delivered: checklists data model + API, board card collapsible checklist previews with progress bars, card modal checklist CRUD, and new client/server checklist tests (user-run pending). |
 | 2026-03-13 | Phase 4.2 delivered: attachments (upload/download/delete), board-level retention settings (day/hour/min + mode toggle), retention-aware time-left labels, attachment cleanup on card deletion, and new attachments API test. User to run tests. |
+
 
 

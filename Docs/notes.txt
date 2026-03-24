@@ -1,8 +1,8 @@
 ---
 sohamsrao ✔️ 0 ✔️ 0
 computerproject ✔️ 0 ✔️ 0
-abman ✔️ 0
-storage 1 ✔️ 0 
+abman ✔️ 0 ✔️ 0
+storage 1 ✔️ 0 ✔️ 0
 storage 2 ✔️ 0
 storage 3 ✔️ 0
 storage p ✔️0
@@ -28,15 +28,4 @@ after phase 7, for 8 do team collab version of timer - seeing stats and other st
 ---
 compression 
 fix image placement 
-update role perms
 ---
-
-proceed to phase 5.5 - channels & overrides
-
-channels are like groupchats where i can add multiple users and they can interact based on their permissions with respect to messages, replies, mentions, viewing, etc. 
-
-add permission override options, like lets say a user cannot view threads at all - dms or channels - but i wanna add this user only to this one particular channel and give him certain permissions to interact there
-
-
----
-

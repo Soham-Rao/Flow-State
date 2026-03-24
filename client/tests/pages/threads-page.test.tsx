@@ -6,6 +6,15 @@ import { ThreadsPage } from "@/pages/threads-page";
 
 const listDmUsers = vi.fn();
 const listDmConversations = vi.fn();
+const listChannelConversations = vi.fn();
+const createChannel = vi.fn();
+const updateChannel = vi.fn();
+const leaveChannel = vi.fn();
+const deleteChannel = vi.fn();
+const listChannelMembers = vi.fn();
+const addChannelMembers = vi.fn();
+const updateChannelMemberOverrides = vi.fn();
+const removeChannelMember = vi.fn();
 const getOrCreateDmConversation = vi.fn();
 const listThreadMessages = vi.fn();
 const listThreadReplies = vi.fn();
@@ -36,6 +45,15 @@ const markThreadMentionsSeen = vi.fn();
 vi.mock("@/lib/threads-api", () => ({
   listDmUsers: (...args: unknown[]) => listDmUsers(...args),
   listDmConversations: (...args: unknown[]) => listDmConversations(...args),
+  listChannelConversations: (...args: unknown[]) => listChannelConversations(...args),
+  createChannel: (...args: unknown[]) => createChannel(...args),
+  updateChannel: (...args: unknown[]) => updateChannel(...args),
+  leaveChannel: (...args: unknown[]) => leaveChannel(...args),
+  deleteChannel: (...args: unknown[]) => deleteChannel(...args),
+  listChannelMembers: (...args: unknown[]) => listChannelMembers(...args),
+  addChannelMembers: (...args: unknown[]) => addChannelMembers(...args),
+  updateChannelMemberOverrides: (...args: unknown[]) => updateChannelMemberOverrides(...args),
+  removeChannelMember: (...args: unknown[]) => removeChannelMember(...args),
   getOrCreateDmConversation: (...args: unknown[]) => getOrCreateDmConversation(...args),
   listThreadMessages: (...args: unknown[]) => listThreadMessages(...args),
   listThreadReplies: (...args: unknown[]) => listThreadReplies(...args),
@@ -87,6 +105,8 @@ describe("ThreadsPage", () => {
         role: "member"
       }
     ]);
+
+    listChannelConversations.mockResolvedValue([]);
 
     listDmConversations.mockResolvedValue([
       {

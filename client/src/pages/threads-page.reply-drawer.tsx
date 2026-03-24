@@ -267,7 +267,8 @@ export function ThreadsReplyDrawer({
             );
             const avatarSlot = showAvatar ? avatar : <div className="h-9 w-9" />;
             const isHovered = hoveredReplyId === reply.id;
-            const showReactionPicker = reactionPickerReplyId === reply.id;
+            const showActionRail = isHovered && !isDeleted;
+            const showReactionPicker = showActionRail && reactionPickerReplyId === reply.id;
             const hasReactions = reply.reactions.length > 0;
             const voiceNote = reply.voiceNote;
             const voiceUrl = voiceNote ? voiceUrls[voiceNote.id] : null;
@@ -560,14 +561,14 @@ export function ThreadsReplyDrawer({
                 )}
               </div>
             ) : null;
-
-            const actionRail = isHovered && !isDeleted ? (
-              <div className="relative flex h-6 w-6 items-center justify-center">
+            const actionRail = (
+              <div className={`relative flex h-6 w-6 items-center justify-center transition ${showActionRail ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
                 <button
                   type="button"
                   className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground hover:text-primary"
                   onClick={(event) => {
                     event.stopPropagation();
+                    if (!showActionRail) return;
                     setReactionPickerReplyId((current) => (current === reply.id ? null : reply.id));
                   }}
                 >
@@ -592,7 +593,7 @@ export function ThreadsReplyDrawer({
                   </div>
                 )}
               </div>
-            ) : null;
+            );
 
             const replyBody = (
               <div className={`flex w-fit flex-col ${isMine ? "items-end self-end" : "items-start self-start"}`}>
@@ -671,3 +672,5 @@ export function ThreadsReplyDrawer({
     </div>
   );
 }
+
+

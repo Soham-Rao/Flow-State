@@ -7,17 +7,19 @@ import {
   fetchThreadReplyAttachmentBlob,
   fetchThreadReplyVoiceNote,
   fetchThreadVoiceNote,
-  listDmConversations
+
 } from "@/lib/threads-api";
-import type { DmConversationSummary, ThreadMessageSummary, ThreadReplySummary } from "@/types/threads";
+import type { ChannelConversationSummary, DmConversationSummary, ThreadMessageSummary, ThreadReplySummary } from "@/types/threads";
 import { getAttachmentKind, resolveAudioDuration } from "./threads-page.utils";
+
+type RefreshConversationsResult = { nextDm: DmConversationSummary[]; nextChannels: ChannelConversationSummary[] };
 
 type ThreadMediaParams = {
   activeConversationId: string | null;
   messages: ThreadMessageSummary[];
   replies: ThreadReplySummary[];
   setMessages: React.Dispatch<React.SetStateAction<ThreadMessageSummary[]>>;
-  setDmConversations: React.Dispatch<React.SetStateAction<DmConversationSummary[]>>;
+  refreshConversations: () => Promise<RefreshConversationsResult>;
   setSendError: React.Dispatch<React.SetStateAction<string | null>>;
 };
 
@@ -36,7 +38,7 @@ export function useThreadMedia({
   messages,
   replies,
   setMessages,
-  setDmConversations,
+  refreshConversations,
   setSendError
 }: ThreadMediaParams): ThreadMediaState {
   const [recording, setRecording] = useState(false);
@@ -179,8 +181,7 @@ export function useThreadMedia({
       setVoiceUrl(voiceNote.id, url);
       const enriched = { ...created, voiceNote };
       setMessages((prev) => [...prev, enriched]);
-      const refreshed = await listDmConversations();
-      setDmConversations(refreshed);
+      await refreshConversations();
     } catch (error) {
       setSendError(error instanceof Error ? error.message : "Unable to send voice message right now.");
     } finally {
@@ -262,3 +263,8 @@ export function useThreadMedia({
     attachmentPreviewUrls
   };
 }
+
+
+
+
+

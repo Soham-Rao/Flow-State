@@ -1,6 +1,8 @@
 import { apiRequest } from "@/lib/api-client";
 import { getSessionToken } from "@/lib/session";
 import type {
+  ChannelConversationSummary,
+  ChannelMemberSummary,
   DmConversationSummary,
   ThreadAttachment,
   ThreadReplyAttachment,
@@ -11,7 +13,8 @@ import type {
   ThreadUserSummary,
   ThreadVoiceNote,
   ThreadReplyVoiceNote,
-  ThreadDeleteResult
+  ThreadDeleteResult,
+  ThreadPermissionOverride
  } from "@/types/threads";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
@@ -33,6 +36,87 @@ export async function listDmConversations(): Promise<DmConversationSummary[]> {
 export async function getOrCreateDmConversation(userId: string): Promise<DmConversationSummary> {
   return apiRequest<DmConversationSummary>(`/threads/dms/${userId}`, {
     method: "POST",
+    auth: true
+  });
+}
+
+export async function listChannelConversations(): Promise<ChannelConversationSummary[]> {
+  return apiRequest<ChannelConversationSummary[]>("/threads/channels", {
+    method: "GET",
+    auth: true
+  });
+}
+
+export async function createChannel(input: {
+  name: string;
+  description?: string;
+  members?: Array<{ userId: string; role?: "member" | "admin"; overrides?: ThreadPermissionOverride[] }>;
+}): Promise<ChannelConversationSummary> {
+  return apiRequest<ChannelConversationSummary>("/threads/channels", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export async function updateChannel(
+  conversationId: string,
+  input: { name?: string; description?: string | null }
+): Promise<ChannelConversationSummary> {
+  return apiRequest<ChannelConversationSummary>(`/threads/channels/${conversationId}`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(input)
+  });
+}
+
+export async function leaveChannel(conversationId: string): Promise<{ id: string }> {
+  return apiRequest<{ id: string }>(`/threads/channels/${conversationId}/leave`, {
+    method: "POST",
+    auth: true
+  });
+}
+
+export async function deleteChannel(conversationId: string): Promise<{ id: string }> {
+  return apiRequest<{ id: string }>(`/threads/channels/${conversationId}`, {
+    method: "DELETE",
+    auth: true
+  });
+}
+
+export async function listChannelMembers(conversationId: string): Promise<ChannelMemberSummary[]> {
+  return apiRequest<ChannelMemberSummary[]>(`/threads/channels/${conversationId}/members`, {
+    method: "GET",
+    auth: true
+  });
+}
+
+export async function addChannelMembers(
+  conversationId: string,
+  members: Array<{ userId: string; role?: "member" | "admin"; overrides?: ThreadPermissionOverride[] }>
+): Promise<ChannelMemberSummary[]> {
+  return apiRequest<ChannelMemberSummary[]>(`/threads/channels/${conversationId}/members`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ members })
+  });
+}
+
+export async function updateChannelMemberOverrides(
+  conversationId: string,
+  memberId: string,
+  overrides: ThreadPermissionOverride[]
+): Promise<ChannelMemberSummary> {
+  return apiRequest<ChannelMemberSummary>(`/threads/channels/${conversationId}/members/${memberId}/overrides`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify({ overrides })
+  });
+}
+
+export async function removeChannelMember(conversationId: string, memberId: string): Promise<{ id: string }> {
+  return apiRequest<{ id: string }>(`/threads/channels/${conversationId}/members/${memberId}`, {
+    method: "DELETE",
     auth: true
   });
 }
@@ -350,4 +434,5 @@ export async function fetchThreadReplyVoiceNote(voiceNoteId: string): Promise<Bl
 
   return response.blob();
 }
+
 

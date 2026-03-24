@@ -140,7 +140,6 @@ export function listThreadReplyReactionDetails(userId: string, replyId: string):
     assertConversationPermission(userId, reply.conversationId, "dm_read");
   } else {
     assertConversationPermission(userId, reply.conversationId, "channel_read");
-    throw new ApiError(400, "Channels are not available yet");
   }
 
   const rows = db
@@ -196,7 +195,6 @@ export function createThreadReply(userId: string, messageId: string, input: Crea
     assertConversationPermission(userId, parent.conversationId, "dm_write");
   } else {
     assertConversationPermission(userId, parent.conversationId, "channel_write");
-    throw new ApiError(400, "Channels are not available yet");
   }
 
   const trimmed = input.body.trim();
@@ -283,7 +281,6 @@ export function updateThreadReply(userId: string, replyId: string, input: Update
     assertConversationPermission(userId, reply.conversationId, "dm_write");
   } else {
     assertConversationPermission(userId, reply.conversationId, "channel_write");
-    throw new ApiError(400, "Channels are not available yet");
   }
 
   if (reply.authorId !== userId) {
@@ -390,7 +387,6 @@ export function deleteThreadReply(
     assertConversationPermission(userId, reply.conversationId, "dm_write");
   } else {
     assertConversationPermission(userId, reply.conversationId, "channel_write");
-    throw new ApiError(400, "Channels are not available yet");
   }
 
   if (scope === "all") {
@@ -470,3 +466,4 @@ export function deleteThreadReply(
 
   return { id: replyId, scope: "all" };
 }
+

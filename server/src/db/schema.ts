@@ -38,6 +38,11 @@ export const rolePermissions = [
   "dm_encrypt",
   "channel_read",
   "channel_write",
+  "channel_edit",
+  "channel_members_add",
+  "channel_members_remove",
+  "channel_manage_overrides",
+  "channel_delete",
   "view_settings"
 ] as const;
 export const roleScopeTypes = ["global", "board", "section", "card"] as const;
@@ -328,6 +333,8 @@ export const threadConversations = sqliteTable("thread_conversations", {
   id: text("id").primaryKey(),
   type: text("type", { enum: threadConversationTypes }).notNull(),
   name: text("name"),
+  description: text("description"),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   lastMessageAt: integer("last_message_at", { mode: "timestamp_ms" })
@@ -345,6 +352,19 @@ export const threadMembers = sqliteTable("thread_members", {
   lastReadAt: integer("last_read_at", { mode: "timestamp_ms" })
 }, (table) => ({
   pk: primaryKey({ columns: [table.conversationId, table.userId] })
+}));
+export const threadMemberPermissions = sqliteTable("thread_member_permissions", {
+  conversationId: text("conversation_id")
+    .notNull()
+    .references(() => threadConversations.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  permission: text("permission", { enum: rolePermissions }).notNull(),
+  access: text("access", { enum: roleScopeAccess }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+}, (table) => ({
+  pk: primaryKey({ columns: [table.conversationId, table.userId, table.permission] })
 }));
 
 export const threadMessages = sqliteTable("thread_messages", {
@@ -564,6 +584,8 @@ export type ThreadMemberRole = (typeof threadMemberRoles)[number];
 export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
+
+
 
 
 

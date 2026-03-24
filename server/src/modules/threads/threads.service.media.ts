@@ -53,7 +53,6 @@ export async function createThreadAttachments(
     assertConversationPermission(userId, message.conversationId, "dm_write");
   } else {
     assertConversationPermission(userId, message.conversationId, "channel_write");
-    throw new ApiError(400, "Channels are not available yet");
   }
 
   if (!files || files.length === 0) {
@@ -130,7 +129,6 @@ export async function createThreadVoiceNote(
     assertConversationPermission(userId, message.conversationId, "dm_write");
   } else {
     assertConversationPermission(userId, message.conversationId, "channel_write");
-    throw new ApiError(400, "Channels are not available yet");
   }
 
   if (message.authorId !== userId) {
@@ -209,7 +207,6 @@ export async function createThreadReplyAttachments(
     assertConversationPermission(userId, parent.conversationId, "dm_write");
   } else {
     assertConversationPermission(userId, parent.conversationId, "channel_write");
-    throw new ApiError(400, "Channels are not available yet");
   }
 
   if (!files || files.length === 0) {
@@ -292,7 +289,6 @@ export async function createThreadReplyVoiceNote(
     assertConversationPermission(userId, parent.conversationId, "dm_write");
   } else {
     assertConversationPermission(userId, parent.conversationId, "channel_write");
-    throw new ApiError(400, "Channels are not available yet");
   }
 
   if (reply.authorId !== userId) {
@@ -461,3 +457,4 @@ export function getThreadAttachmentDownloadInfo(attachmentId: string): { filePat
     originalName: attachment.originalName
   };
 }
+

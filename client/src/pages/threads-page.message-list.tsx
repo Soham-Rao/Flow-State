@@ -136,7 +136,8 @@ export function ThreadMessageList({
               ? message.body
               : "This message was deleted."
             : message.body;
-          const showReactionPicker = reactionPickerMessageId === message.id;
+          const showActionRail = isHovered && !isDeleted;
+          const showReactionPicker = showActionRail && reactionPickerMessageId === message.id;
           const hasReactions = message.reactions.length > 0;
           const voiceNote = message.voiceNote;
           const voiceUrl = voiceNote ? voiceUrls[voiceNote.id] : null;
@@ -228,7 +229,7 @@ export function ThreadMessageList({
           ) : null;
           const bubble = (
             <div
-              className={`max-w-[75%] min-w-[260px] rounded-2xl border px-4 py-3 ${
+              className={`w-fit max-w-[75%] rounded-2xl border px-4 py-3 ${
                 isMine
                   ? "border-sky-400/40 bg-sky-500/15"
                   : "border-emerald-400/40 bg-emerald-500/15"
@@ -441,14 +442,14 @@ export function ThreadMessageList({
               )}
             </div>
           ) : null;
-
-          const actionRail = isHovered && !isDeleted ? (
-            <div className="relative flex h-6 w-6 items-center justify-center">
+          const actionRail = (
+            <div className={`relative flex h-6 w-6 items-center justify-center transition ${showActionRail ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
               <button
                 type="button"
                 className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground hover:text-primary"
                 onClick={(event) => {
                   event.stopPropagation();
+                  if (!showActionRail) return;
                   setReactionPickerMessageId((current) => (current === message.id ? null : message.id));
                 }}
               >
@@ -473,7 +474,7 @@ export function ThreadMessageList({
                 </div>
               )}
             </div>
-          ) : null;
+          );
 
           const messageBody = (
             <div className={`flex w-fit flex-col ${isMine ? "items-end self-end" : "items-start self-start"}`}>
@@ -519,3 +520,7 @@ export function ThreadMessageList({
     </div>
   );
 }
+
+
+
+

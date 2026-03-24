@@ -224,9 +224,12 @@ export const BASE_SCHEMA_SQL = `
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL CHECK (type IN ('dm', 'channel')),
       name TEXT,
+      description TEXT,
+      created_by TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
-      last_message_at INTEGER
+      last_message_at INTEGER,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS thread_members (
@@ -236,6 +239,16 @@ export const BASE_SCHEMA_SQL = `
       created_at INTEGER NOT NULL,
       last_read_at INTEGER,
       PRIMARY KEY (conversation_id, user_id),
+      FOREIGN KEY (conversation_id) REFERENCES thread_conversations(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS thread_member_permissions (
+      conversation_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      permission TEXT NOT NULL,
+      access TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (conversation_id, user_id, permission),
       FOREIGN KEY (conversation_id) REFERENCES thread_conversations(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
@@ -393,6 +406,7 @@ export const CLEAR_TEST_DATA_SQL = `
     DELETE FROM thread_attachments;
     DELETE FROM thread_replies;
     DELETE FROM thread_messages;
+    DELETE FROM thread_member_permissions;
     DELETE FROM thread_members;
     DELETE FROM thread_conversations;
     DELETE FROM comment_mentions;
@@ -410,3 +424,4 @@ export const CLEAR_TEST_DATA_SQL = `
     DELETE FROM users;
   
 `;
+

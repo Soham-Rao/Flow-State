@@ -344,17 +344,52 @@ export const permissionGroups: PermissionGroup[] = [
       },
       {
         permission: "channel_read",
-        title: "Read channels",
-        description: "View channel conversations.",
-        enabledLabel: "Can read channels",
-        disabledLabel: "Cannot read channels"
+        title: "View channel messages",
+        description: "View messages in channels.",
+        enabledLabel: "Can view channel messages",
+        disabledLabel: "Cannot view channel messages"
       },
       {
         permission: "channel_write",
-        title: "Write in channels",
-        description: "Post messages in channels.",
-        enabledLabel: "Can write in channels",
-        disabledLabel: "Cannot write in channels"
+        title: "Send channel messages",
+        description: "Send messages in channels.",
+        enabledLabel: "Can send channel messages",
+        disabledLabel: "Cannot send channel messages"
+      },
+      {
+        permission: "channel_edit",
+        title: "Edit channels",
+        description: "Rename channels and update descriptions.",
+        enabledLabel: "Can edit channel details",
+        disabledLabel: "Cannot edit channel details"
+      },
+      {
+        permission: "channel_members_add",
+        title: "Add channel members",
+        description: "Add people to channels.",
+        enabledLabel: "Can add channel members",
+        disabledLabel: "Cannot add channel members"
+      },
+      {
+        permission: "channel_members_remove",
+        title: "Remove channel members",
+        description: "Remove people from channels.",
+        enabledLabel: "Can remove channel members",
+        disabledLabel: "Cannot remove channel members"
+      },
+      {
+        permission: "channel_manage_overrides",
+        title: "Override channel permissions",
+        description: "Grant or revoke channel-specific view/send overrides.",
+        enabledLabel: "Can override channel permissions",
+        disabledLabel: "Cannot override channel permissions"
+      },
+      {
+        permission: "channel_delete",
+        title: "Delete channels",
+        description: "Delete channels and their history.",
+        enabledLabel: "Can delete channels",
+        disabledLabel: "Cannot delete channels"
       }
     ]
   },
@@ -373,3 +408,7 @@ export const permissionGroups: PermissionGroup[] = [
     ]
   }
 ];
+
+
+
+

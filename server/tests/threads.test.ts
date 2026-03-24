@@ -197,7 +197,71 @@ describe("Threads API", () => {
     expect(row.body_encrypted).toBeTruthy();
   });
 
-  it("requires delete_threads permission for delete-for-all", async () => {
+  
+  it("allows channel overrides for users without global permission", async () => {
+    const admin = await registerUser("Admin", "admin@example.com");
+    const guest = await registerUser("Guest", "guest@example.com");
+
+    const guestRole = sqlite.prepare("SELECT id FROM roles WHERE name = ?").get("Guest") as { id: string } | undefined;
+    if (guestRole) {
+      sqlite.prepare("DELETE FROM role_permissions WHERE role_id = ? AND permission IN (?, ?)")
+        .run(guestRole.id, "channel_read", "channel_write");
+    }
+
+    const createResponse = await request(app)
+      .post("/api/threads/channels")
+      .set("Authorization", `Bearer ${admin.token}`)
+      .send({
+        name: "Ops",
+        members: [
+          {
+            userId: guest.id,
+            overrides: [
+              { permission: "channel_read", access: "allow" },
+              { permission: "channel_write", access: "allow" }
+            ]
+          }
+        ]
+      });
+
+    expect(createResponse.status).toBe(201);
+    const conversationId = createResponse.body.data.id as string;
+
+    const listResponse = await request(app)
+      .get("/api/threads/channels")
+      .set("Authorization", `Bearer ${guest.token}`);
+
+    expect(listResponse.status).toBe(200);
+    const channelIds = (listResponse.body.data as Array<{ id: string }>).map((row) => row.id);
+    expect(channelIds).toContain(conversationId);
+
+    const postResponse = await request(app)
+      .post(`/api/threads/conversations/${conversationId}/messages`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({
+        body: "Hello channel",
+        mentions: []
+      });
+
+    expect(postResponse.status).toBe(201);
+
+    await request(app)
+      .patch(`/api/threads/channels/${conversationId}/members/${guest.id}/overrides`)
+      .set("Authorization", `Bearer ${admin.token}`)
+      .send({
+        overrides: [{ permission: "channel_read", access: "allow" }]
+      });
+
+    const blockedResponse = await request(app)
+      .post(`/api/threads/conversations/${conversationId}/messages`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({
+        body: "Should fail",
+        mentions: []
+      });
+
+    expect(blockedResponse.status).toBe(403);
+  });it("requires delete_threads permission for delete-for-all", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");
 
@@ -270,3 +334,4 @@ describe("Threads API", () => {
 afterAll(() => {
   clearDatabaseForTests();
 });
+

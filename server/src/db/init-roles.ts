@@ -38,6 +38,13 @@ const MEMBER_ROLE_PERMISSIONS = [
   "dm_read",
   "dm_write",
   "dm_encrypt",
+  "channel_read",
+  "channel_write",
+  "channel_edit",
+  "channel_members_add",
+  "channel_members_remove",
+  "channel_manage_overrides",
+  "channel_delete",
   "view_settings"
 ];
 
@@ -113,3 +120,5 @@ export function ensureInviteRoleAssignments(adminRoleId: string, memberRoleId: s
     }
   })();
 }
+
+

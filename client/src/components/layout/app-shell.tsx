@@ -48,6 +48,8 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     return user?.displayName || user?.username || "Teammate";
   }, [user]);
 
+  const roleLabel = useMemo(() => (user?.role ?? "guest").toUpperCase(), [user]);
+
   const threadsTab = useMemo(() => {
     const tab = new URLSearchParams(location.search).get("tab");
     return tab === "channels" ? "channels" : "dms";
@@ -197,7 +199,12 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
       <main className="flex min-h-screen flex-col">
         <header className="sticky top-0 z-10 border-b border-border/70 bg-background/80 px-4 py-2 backdrop-blur-lg lg:px-6">
           <div className="flex items-center justify-between gap-4">
-            <div className="text-sm font-semibold">{displayName}</div>
+                        <div className="flex items-center gap-2 text-sm font-semibold">
+              <span>{displayName}</span>
+              <span className="rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[10px] font-semibold tracking-[0.2em] text-foreground">
+                {roleLabel}
+              </span>
+            </div>
 
             <div className="flex items-center gap-2">
               <div ref={menuRef} className="relative">
@@ -277,6 +284,13 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     </div>
   );
 }
+
+
+
+
+
+
+
 
 
 

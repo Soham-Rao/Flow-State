@@ -172,6 +172,29 @@ export function applySchemaMigrations(): void {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `);
+    const threadConversationColumns = sqlite.prepare("PRAGMA table_info(thread_conversations)").all() as Array<{ name: string }>;
+    const threadConversationColumnNames = new Set(threadConversationColumns.map((column) => column.name));
+
+    if (!threadConversationColumnNames.has("description")) {
+      safeAddColumn("ALTER TABLE thread_conversations ADD COLUMN description TEXT");
+    }
+
+    if (!threadConversationColumnNames.has("created_by")) {
+      safeAddColumn("ALTER TABLE thread_conversations ADD COLUMN created_by TEXT");
+    }
+
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS thread_member_permissions (
+        conversation_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        permission TEXT NOT NULL,
+        access TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY (conversation_id, user_id, permission),
+        FOREIGN KEY (conversation_id) REFERENCES thread_conversations(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
 
     const threadMemberColumns = sqlite.prepare("PRAGMA table_info(thread_members)").all() as Array<{ name: string }>;
     const threadMemberColumnNames = new Set(threadMemberColumns.map((column) => column.name));
@@ -233,6 +256,8 @@ export function ensureIndexes(): void {
       CREATE INDEX IF NOT EXISTS idx_thread_members_conversation_id ON thread_members(conversation_id);
       CREATE INDEX IF NOT EXISTS idx_thread_members_user_id ON thread_members(user_id);
       CREATE INDEX IF NOT EXISTS idx_thread_members_last_read_at ON thread_members(last_read_at);
+      CREATE INDEX IF NOT EXISTS idx_thread_member_permissions_conversation_id ON thread_member_permissions(conversation_id);
+      CREATE INDEX IF NOT EXISTS idx_thread_member_permissions_user_id ON thread_member_permissions(user_id);
       CREATE INDEX IF NOT EXISTS idx_thread_messages_conversation_id ON thread_messages(conversation_id);
       CREATE INDEX IF NOT EXISTS idx_thread_messages_author_id ON thread_messages(author_id);
       CREATE INDEX IF NOT EXISTS idx_thread_messages_created_at ON thread_messages(created_at);
@@ -252,3 +277,4 @@ export function ensureIndexes(): void {
     `);
   })();
 }
+
