@@ -25,7 +25,9 @@ import type { BoardMember } from "@/types/board";
 import type { ChannelConversationSummary, ChannelMemberSummary, DmConversationSummary, ThreadMessageSummary, ThreadUserSummary } from "@/types/threads";
 type ThreadConversationSummary = DmConversationSummary | ChannelConversationSummary;
 type RefreshConversationsResult = { nextDm: DmConversationSummary[]; nextChannels: ChannelConversationSummary[] };
-import { presencePalette, type PresenceState } from "./threads-page.constants";
+import { usePresenceStore } from "@/stores/presence-store";
+import { useSocketStore } from "@/stores/socket-store";
+import type { PresenceState } from "@/types/presence";
 import { useThreadActions } from "./threads-page.controller.actions";
 import { useThreadMedia } from "./threads-page.controller.media";
 
@@ -299,14 +301,17 @@ export function useThreadsController() {
     }
   };
 
+  const workspacePresence = usePresenceStore((state) => state.workspace);
+  const lastSeenByUserId = usePresenceStore((state) => state.lastSeenByUserId);
+  const setPresenceStatus = useSocketStore((state) => state.setPresenceStatus);
+
   const presenceByUserId = useMemo(() => {
-    const states: PresenceState[] = ["online", "idle", "dnd", "focus"];
     const map = new Map<string, PresenceState>();
-    dmUsers.forEach((userEntry, index) => {
-      map.set(userEntry.id, states[index % states.length]);
+    workspacePresence.forEach((entry) => {
+      map.set(entry.id, entry.status ?? "online");
     });
     return map;
-  }, [dmUsers]);
+  }, [workspacePresence]);
 
   const togglePinUser = (userId: string) => {
     if (!canPinThreads) return;
@@ -439,6 +444,24 @@ const actions = useThreadActions({
       setActiveTab("dms");
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const dmId = searchParams.get("dm");
+    const channelId = searchParams.get("channel");
+    if (activeTab === "dms" && dmId) {
+      const match = dmConversations.find((item) => item.id === dmId);
+      if (match && match.id != activeConversation?.id) {
+        setActiveConversation(match);
+      }
+    }
+    if (activeTab === "channels" && channelId) {
+      const match = channelConversations.find((item) => item.id === channelId);
+      if (match && match.id != activeConversation?.id) {
+        setActiveConversation(match);
+      }
+    }
+  }, [activeTab, searchParams, dmConversations, channelConversations, activeConversation?.id]);
+
   useEffect(() => {
     if (activeTab === "channels" && activeConversation?.type === "dm") {
       setActiveConversation(null);
@@ -726,6 +749,14 @@ const actions = useThreadActions({
       setLoadingMessages(true);
       const conversation = await getOrCreateDmConversation(userEntry.id);
       setActiveConversation(conversation);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", "dms");
+        next.set("dm", conversation.id);
+        next.delete("channel");
+        next.delete("view");
+        return next;
+      });
       setDmConversations((prev) => {
         const existing = prev.find((item) => item.id === conversation.id);
         if (existing) {
@@ -741,6 +772,14 @@ const actions = useThreadActions({
   };
   const handleSelectChannel = (channel: ChannelConversationSummary) => {
     setActiveConversation(channel);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", "channels");
+      next.set("channel", channel.id);
+      next.delete("dm");
+      next.delete("view");
+      return next;
+    });
   };
 
   const handleCreateChannel = async () => {
@@ -751,6 +790,14 @@ const actions = useThreadActions({
       const created = await createChannel({ name });
       setChannelConversations((prev) => [created, ...prev]);
       setActiveConversation(created);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", "channels");
+        next.set("channel", created.id);
+        next.delete("dm");
+        next.delete("view");
+        return next;
+      });
       setChannelDraft("");
     } catch {
       // ignore
@@ -778,12 +825,30 @@ const actions = useThreadActions({
     if (!canManageChannelOverrides) return;
     const current = channelMembers.find((member) => member.user.id === memberId);
     if (!current) return;
+    const access: "allow" | "deny" = enabled ? "allow" : "deny";
     const nextOverrides = [
-      ...current.overrides.filter((override) => override.permission !== permission)
+      ...current.overrides.filter((override) => override.permission !== permission),
+      { permission, access }
     ];
-    if (enabled) {
-      nextOverrides.push({ permission, access: "allow" });
+    try {
+      const updatedMember = await updateChannelMemberOverrides(activeConversation.id, memberId, nextOverrides);
+      setChannelMembers((prev) => prev.map((member) => (
+        member.user.id === memberId ? updatedMember : member
+      )));
+    } catch {
+      // ignore
     }
+  };
+
+  const handleClearChannelOverride = async (
+    memberId: string,
+    permission: "channel_read" | "channel_write" | "channel_edit" | "channel_members_add" | "channel_members_remove" | "channel_manage_overrides" | "channel_delete"
+  ) => {
+    if (!activeConversation || activeConversation.type !== "channel") return;
+    if (!canManageChannelOverrides) return;
+    const current = channelMembers.find((member) => member.user.id === memberId);
+    if (!current) return;
+    const nextOverrides = current.overrides.filter((override) => override.permission !== permission);
     try {
       const updatedMember = await updateChannelMemberOverrides(activeConversation.id, memberId, nextOverrides);
       setChannelMembers((prev) => prev.map((member) => (
@@ -844,6 +909,14 @@ const actions = useThreadActions({
       setChannelConversations((prev) => prev.filter((channel) => channel.id !== activeConversation.id));
       setChannelMembers([]);
       setActiveConversation(null);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (next.get("channel") == activeConversation.id) {
+          next.delete("channel");
+          next.delete("view");
+        }
+        return next;
+      });
     } catch {
       // ignore
     } finally {
@@ -860,6 +933,14 @@ const actions = useThreadActions({
       setChannelConversations((prev) => prev.filter((channel) => channel.id !== activeConversation.id));
       setChannelMembers([]);
       setActiveConversation(null);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (next.get("channel") == activeConversation.id) {
+          next.delete("channel");
+          next.delete("view");
+        }
+        return next;
+      });
     } catch {
       // ignore
     } finally {
@@ -872,6 +953,7 @@ const actions = useThreadActions({
 
   return {
     user,
+    searchParams,
     setSearchParams,
     activeTab,
     totalMentions,
@@ -908,12 +990,15 @@ const actions = useThreadActions({
     channelMembers,
     handleAddChannelMember,
     handleToggleChannelOverride,
+    handleClearChannelOverride,
     handleRemoveChannelMember,
     pinnedUserIds,
     canPinThreads,
     togglePinUser,
     conversationByUserId,
     presenceByUserId,
+    lastSeenByUserId,
+    setPresenceStatus,
     activeConversation,
     handleSelectUser,
     messages,

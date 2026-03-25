@@ -9,6 +9,7 @@ import { BoardDetailDialogs } from "@/pages/boards/board-detail-page.dialogs";
 import { BoardHeaderSection } from "@/pages/boards/board-detail-page.header";
 import { BoardListsSection } from "@/pages/boards/board-detail-page.lists";
 import { BoardSettingsSection } from "@/pages/boards/board-detail-page.settings";
+import { BoardActivityPanel } from "@/pages/boards/board-detail-page.activity";
 import type {
   ArchivedListEntry,
   BoardAttachment,
@@ -24,6 +25,7 @@ import type {
   LabelColor,
   RetentionMode
 } from "@/types/board";
+import type { PresenceUser } from "@/types/presence";
 import type { CardDraft } from "@/pages/boards/board-detail-page.utils";
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
 
@@ -32,6 +34,7 @@ export interface BoardDetailPageViewProps {
     loading: boolean;
     board: BoardDetail | null;
     error: string | null;
+    permissionError: string | null;
     activeSurfaceClass: string;
     activeBannerClass: string;
     boardName: string;
@@ -61,6 +64,7 @@ export interface BoardDetailPageViewProps {
     listSavingIds: Set<string>;
     orderedLists: BoardList[];
     boardMembers: BoardMember[];
+    boardPresence: PresenceUser[];
     boardLabels: BoardLabel[];
     expandedCommentIds: Set<string>;
     expandedListCommentGroups: Set<string>;
@@ -181,6 +185,7 @@ export interface BoardDetailPageViewProps {
     onDeleteChecklist: () => Promise<void>;
     onDeleteChecklistItem: () => Promise<void>;
     onDeleteList: () => Promise<void>;
+    onDismissPermissionError: () => void;
   };
 }
 
@@ -211,6 +216,7 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
         <BoardHeaderSection
           activeBannerClass={state.activeBannerClass}
           boardName={state.boardName}
+          boardPresence={state.boardPresence}
           boardComments={boardComments}
           expandedCommentIds={state.expandedCommentIds}
           onToggleCommentExpanded={actions.onToggleCommentExpanded}
@@ -305,6 +311,7 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
           onOpenDeleteBoard={actions.onOpenDeleteBoard}
         />
       </div>
+      <BoardActivityPanel boardId={state.board.id} />
       <CardDetailModal
         open={Boolean(state.selectedCardWithList && state.cardDraft)}
         selectedCardWithList={state.selectedCardWithList}
@@ -400,7 +407,17 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
         listToDelete={state.listToDelete}
         onCancelDeleteList={() => actions.onSetListToDelete(null)}
         onConfirmDeleteList={() => { void actions.onDeleteList(); }}
+        permissionError={state.permissionError}
+        onDismissPermissionError={actions.onDismissPermissionError}
       />
     </>
   );
 }
+
+
+
+
+
+
+
+

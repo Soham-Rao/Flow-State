@@ -22,7 +22,7 @@ boardsChecklistsRouter.post("/cards/:cardId/checklists", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_checklists");
     const body = createChecklistSchema.parse(req.body);
-    const data = createChecklist(req.params.cardId, body);
+    const data = createChecklist(req.params.cardId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -37,7 +37,7 @@ boardsChecklistsRouter.patch("/checklists/:checklistId", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_checklists");
     const body = updateChecklistSchema.parse(req.body);
-    const data = updateChecklist(req.params.checklistId, body);
+    const data = updateChecklist(req.params.checklistId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -51,7 +51,7 @@ boardsChecklistsRouter.patch("/checklists/:checklistId", (req, res, next) => {
 boardsChecklistsRouter.delete("/checklists/:checklistId", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_checklists");
-    deleteChecklist(req.params.checklistId);
+    deleteChecklist(req.params.checklistId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -68,7 +68,7 @@ boardsChecklistsRouter.post("/checklists/:checklistId/items", (req, res, next) =
   try {
     assertPermission(req.auth!.userId, "manage_checklists");
     const body = createChecklistItemSchema.parse(req.body);
-    const data = createChecklistItem(req.params.checklistId, body);
+    const data = createChecklistItem(req.params.checklistId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -83,7 +83,7 @@ boardsChecklistsRouter.patch("/checklist-items/:itemId", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_checklists");
     const body = updateChecklistItemSchema.parse(req.body);
-    const data = updateChecklistItem(req.params.itemId, body);
+    const data = updateChecklistItem(req.params.itemId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -97,7 +97,7 @@ boardsChecklistsRouter.patch("/checklist-items/:itemId", (req, res, next) => {
 boardsChecklistsRouter.delete("/checklist-items/:itemId", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_checklists");
-    deleteChecklistItem(req.params.itemId);
+    deleteChecklistItem(req.params.itemId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -109,3 +109,4 @@ boardsChecklistsRouter.delete("/checklist-items/:itemId", (req, res, next) => {
     next(error);
   }
 });
+

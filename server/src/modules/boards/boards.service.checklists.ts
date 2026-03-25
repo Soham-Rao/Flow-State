@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { recordActivity } from "../activity/activity.service.js";
 import { checklistItems, checklists } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type {
@@ -12,10 +13,17 @@ import type {
   UpdateChecklistItemInput
 } from "./boards.schema.js";
 import type { BoardChecklist, BoardChecklistItem } from "./boards.service.types.js";
-import { assertCardExists, assertChecklistExists, assertChecklistItemExists } from "./boards.service.lookups.js";
+import { assertCardExists, assertChecklistExists, assertChecklistItemExists, getListRecord } from "./boards.service.lookups.js";
 import { getChecklistById, getChecklistItemById } from "./boards.service.checklists-data.js";
+import { getCardById } from "./boards.service.cards-data.js";
 
-export function createChecklist(cardId: string, input: CreateChecklistInput): BoardChecklist {
+function getCardListContext(cardId: string): { card: ReturnType<typeof getCardById>; list: ReturnType<typeof getListRecord> } {
+  const card = getCardById(cardId);
+  const list = getListRecord(card.listId);
+  return { card, list };
+}
+
+export function createChecklist(cardId: string, input: CreateChecklistInput, userId: string): BoardChecklist {
   assertCardExists(cardId);
 
   const maxPositionRow = db
@@ -38,10 +46,27 @@ export function createChecklist(cardId: string, input: CreateChecklistInput): Bo
     })
     .run();
 
-  return getChecklistById(checklistId);
+  const checklist = getChecklistById(checklistId);
+  const { card, list } = getCardListContext(cardId);
+
+  recordActivity({
+    type: "checklist.created",
+    actorId: userId,
+    boardId: list.boardId,
+    listId: list.id,
+    cardId: card.id,
+    metadata: {
+      checklistTitle: checklist.title,
+      cardTitle: card.title,
+      listName: list.name
+    }
+  });
+
+  return checklist;
 }
 
-export function updateChecklist(checklistId: string, input: UpdateChecklistInput): BoardChecklist {
+export function updateChecklist(checklistId: string, input: UpdateChecklistInput, userId: string): BoardChecklist {
+  const existing = getChecklistById(checklistId);
   assertChecklistExists(checklistId);
 
   const updatePayload: {
@@ -57,22 +82,57 @@ export function updateChecklist(checklistId: string, input: UpdateChecklistInput
 
   db.update(checklists).set(updatePayload).where(eq(checklists.id, checklistId)).run();
 
-  return getChecklistById(checklistId);
+  const updated = getChecklistById(checklistId);
+  const { card, list } = getCardListContext(updated.cardId);
+
+  if (input.title !== undefined && input.title.trim() !== existing.title) {
+    recordActivity({
+      type: "checklist.updated",
+      actorId: userId,
+      boardId: list.boardId,
+      listId: list.id,
+      cardId: card.id,
+      metadata: {
+        checklistTitle: updated.title,
+        cardTitle: card.title,
+        listName: list.name
+      }
+    });
+  }
+
+  return updated;
 }
 
-export function deleteChecklist(checklistId: string): void {
+export function deleteChecklist(checklistId: string, userId: string): void {
+  const existing = getChecklistById(checklistId);
+  const { card, list } = getCardListContext(existing.cardId);
+
   const result = db.delete(checklists).where(eq(checklists.id, checklistId)).run();
 
   if (result.changes === 0) {
     throw new ApiError(404, "Checklist not found");
   }
+
+  recordActivity({
+    type: "checklist.deleted",
+    actorId: userId,
+    boardId: list.boardId,
+    listId: list.id,
+    cardId: card.id,
+    metadata: {
+      checklistTitle: existing.title,
+      cardTitle: card.title,
+      listName: list.name
+    }
+  });
 }
 
 export function createChecklistItem(
   checklistId: string,
-  input: CreateChecklistItemInput
+  input: CreateChecklistItemInput,
+  userId: string
 ): BoardChecklistItem {
-  assertChecklistExists(checklistId);
+  const checklist = getChecklistById(checklistId);
 
   const maxPositionRow = db
     .select({ maxPosition: sql<number>`coalesce(max(${checklistItems.position}), -1)` })
@@ -95,10 +155,29 @@ export function createChecklistItem(
     })
     .run();
 
-  return getChecklistItemById(itemId);
+  const item = getChecklistItemById(itemId);
+  const { card, list } = getCardListContext(checklist.cardId);
+
+  recordActivity({
+    type: "checklist.item.created",
+    actorId: userId,
+    boardId: list.boardId,
+    listId: list.id,
+    cardId: card.id,
+    metadata: {
+      itemTitle: item.title,
+      checklistTitle: checklist.title,
+      cardTitle: card.title,
+      listName: list.name
+    }
+  });
+
+  return item;
 }
 
-export function updateChecklistItem(itemId: string, input: UpdateChecklistItemInput): BoardChecklistItem {
+export function updateChecklistItem(itemId: string, input: UpdateChecklistItemInput, userId: string): BoardChecklistItem {
+  const existing = getChecklistItemById(itemId);
+  const checklist = getChecklistById(existing.checklistId);
   assertChecklistItemExists(itemId);
 
   const updatePayload: {
@@ -119,13 +198,64 @@ export function updateChecklistItem(itemId: string, input: UpdateChecklistItemIn
 
   db.update(checklistItems).set(updatePayload).where(eq(checklistItems.id, itemId)).run();
 
-  return getChecklistItemById(itemId);
+  const updated = getChecklistItemById(itemId);
+  const { card, list } = getCardListContext(checklist.cardId);
+
+  if (input.isDone !== undefined && input.isDone !== existing.isDone) {
+    recordActivity({
+      type: input.isDone ? "checklist.item.completed" : "checklist.item.uncompleted",
+      actorId: userId,
+      boardId: list.boardId,
+      listId: list.id,
+      cardId: card.id,
+      metadata: {
+        itemTitle: updated.title,
+        checklistTitle: checklist.title,
+        cardTitle: card.title,
+        listName: list.name
+      }
+    });
+  } else if (input.title !== undefined && input.title.trim() !== existing.title) {
+    recordActivity({
+      type: "checklist.item.updated",
+      actorId: userId,
+      boardId: list.boardId,
+      listId: list.id,
+      cardId: card.id,
+      metadata: {
+        itemTitle: updated.title,
+        checklistTitle: checklist.title,
+        cardTitle: card.title,
+        listName: list.name
+      }
+    });
+  }
+
+  return updated;
 }
 
-export function deleteChecklistItem(itemId: string): void {
+export function deleteChecklistItem(itemId: string, userId: string): void {
+  const existing = getChecklistItemById(itemId);
+  const checklist = getChecklistById(existing.checklistId);
+  const { card, list } = getCardListContext(checklist.cardId);
+
   const result = db.delete(checklistItems).where(eq(checklistItems.id, itemId)).run();
 
   if (result.changes === 0) {
     throw new ApiError(404, "Checklist item not found");
   }
+
+  recordActivity({
+    type: "checklist.item.deleted",
+    actorId: userId,
+    boardId: list.boardId,
+    listId: list.id,
+    cardId: card.id,
+    metadata: {
+      itemTitle: existing.title,
+      checklistTitle: checklist.title,
+      cardTitle: card.title,
+      listName: list.name
+    }
+  });
 }

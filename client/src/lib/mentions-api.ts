@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/api-client";
-import type { MentionUnreadCounts } from "@/types/mentions";
+import type { CommentMentionDetail, MentionUnreadCounts } from "@/types/mentions";
 
 export async function getUnreadMentions(): Promise<MentionUnreadCounts> {
   return apiRequest<MentionUnreadCounts>("/mentions/unread", {
@@ -21,5 +21,12 @@ export async function markThreadMentionsSeen(conversationId: string): Promise<vo
     method: "POST",
     auth: true,
     body: JSON.stringify({ conversationId })
+  });
+}
+
+export async function listUnreadCommentMentions(): Promise<CommentMentionDetail[]> {
+  return apiRequest<CommentMentionDetail[]>("/mentions/comments/unread", {
+    method: "GET",
+    auth: true
   });
 }

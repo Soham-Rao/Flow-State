@@ -1,7 +1,10 @@
+import http from "node:http";
+
 import { app } from "./app.js";
 import { env } from "./config/env.js";
 import { initializeDatabase } from "./db/init.js";
 import { cleanupExpiredCards } from "./modules/boards/boards.service.js";
+import { initSocket } from "./realtime/socket.js";
 
 initializeDatabase();
 
@@ -17,6 +20,9 @@ setInterval(() => {
   });
 }, CLEANUP_INTERVAL_MS);
 
-app.listen(env.PORT, () => {
+const server = http.createServer(app);
+initSocket(server);
+
+server.listen(env.PORT, () => {
   console.log(`FlowState server listening on port ${env.PORT}`);
 });

@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-03-24
+> Last updated: 2026-03-25
 
 ---
 
@@ -215,7 +215,7 @@ Checklists inside cards (collapsible on board view), color labels CRUD, member a
 ### Phase 5: Team & Collaboration
 Comments/threads on cards, @mentions with autocomplete, emoji reactions, team invitation system (admin only), user roles enforcement, notification center (in-app bell + toasts).
 
-### Phase 6: Real-Time & Activity Feed
+### Phase 6: Real-Time & Activity Feed (split into 6.1–6.5)
 Socket.IO integration (rooms per board), presence indicators, Pulse sidebar (live activity feed), real-time board/card updates on meaningful actions.
 
 ### Phase 7: Calendar & Multi-View
@@ -277,7 +277,12 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 5.3: Roles & Permissions | ✅ Completed | 2026-03-14 | 2026-03-14 | Roles/permissions system, management UI, and permission gating |
 | Phase 5.4: Threads Section | ✅ Completed | 2026-03-14 | 2026-03-16 | DMs implemented with reply threads, reactions, mentions, encryption, and UX polish |
 | Phase 5.5: Channels & Overrides | ✅ Completed | 2026-03-24 | 2026-03-24 | Channel chat + permission overrides, manage/view gating |
-| Phase 6: Real-Time & Activity | ⬜ Not Started | — | — | — |
+| Phase 6: Real-Time & Activity | 🟡 In Progress | 2026-03-24 | — | Split into sub-phases 6.1–6.5 |
+| Phase 6.1: Socket.IO Infrastructure | ✅ Completed | 2026-03-24 | 2026-03-24 | Socket server + auth, workspace/board rooms, client socket store |
+| Phase 6.2: Activity Log + Pulse UI | ✅ Completed | 2026-03-24 | 2026-03-24 | Activity logs + API, Team Pulse card, board activity panel, mention logging |
+| Phase 6.3: Presence (Workspace + Board) | ✅ Completed | 2026-03-25 | 2026-03-25 | Presence tracking (online/AFK/offline), last-seen tracking, and UI indicators in boards/threads |
+| Phase 6.4: Board Realtime Updates | ⬜ Not Started | — | — | — |
+| Phase 6.5: Threads Realtime | ⬜ Not Started | — | — | — |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
 | Phase 8: Time Tracking & Focus | ✅ Completed | 2026-03-14 | 2026-03-14 | Focus mode Pomodoro UI with personal history/stats (local only) |
 | Phase 9: Rich Text, Search, Shortcuts | ⬜ Not Started | — | — | — |
@@ -328,7 +333,9 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 ## 13. Updates
 
 | Date | Update |
+| 2026-03-25 | Phase 6.3 completed: workspace/board presence, AFK status, last-seen tracking, and presence indicators wired into threads + channel member lists; threads selection + manage view now persist in URL; channel permission overrides use dropdown with clear-override controls. |
 |------|--------|
+| 2026-03-24 | Phase 6.1 + 6.2 completed: Socket.IO infra (auth + rooms + client store) plus activity logs + API + Team Pulse + board activity panel, with mentions logged to activity. |
 | 2026-03-24 | Phase 5.5 completed: channels + overrides, manage/view panel, per-channel permission overrides. |
 | 2026-03-16 | Phase 5.4 completed: DM threads with reactions, reply threads, mention counters, encryption, attachments, voice notes, and UI polish; Phase 5.5 created for channels + overrides. |
 | 2026-03-14 | Phase 5.4 started: drafted detailed threads (DM-first) plan with encryption, mentions, and permission/override scaffolding. |

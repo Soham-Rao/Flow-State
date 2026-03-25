@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { recordActivity } from "../activity/activity.service.js";
 import { threadMembers, threadMentions, threadReplyMentions, users } from "../../db/schema.js";
 
 function normalizeMentions(mentions: string[] | undefined): string[] {
@@ -12,8 +13,13 @@ function normalizeMentions(mentions: string[] | undefined): string[] {
   return Array.from(new Set(mentions));
 }
 
-export function storeThreadMentions(conversationId: string, messageId: string, mentions: string[] | undefined): void {
-  const uniqueMentions = normalizeMentions(mentions);
+export function storeThreadMentions(
+  conversationId: string,
+  messageId: string,
+  mentions: string[] | undefined,
+  authorId: string
+): void {
+  const uniqueMentions = normalizeMentions(mentions).filter((mentionId) => mentionId !== authorId);
   if (uniqueMentions.length === 0) {
     return;
   }
@@ -36,7 +42,8 @@ export function storeThreadMentions(conversationId: string, messageId: string, m
       inArray(threadMembers.userId, existingUsers.map((user) => user.id))
     ))
     .all()
-    .map((row) => row.userId);
+    .map((row) => row.userId)
+    .filter((userId) => userId !== authorId);
 
   if (allowed.length === 0) {
     return;
@@ -52,10 +59,26 @@ export function storeThreadMentions(conversationId: string, messageId: string, m
       seenAt: null
     })))
     .run();
+
+  allowed.forEach((mentionedUserId) => {
+    recordActivity({
+      type: "mention.thread",
+      actorId: authorId,
+      threadConversationId: conversationId,
+      threadMessageId: messageId,
+      mentionedUserId,
+      metadata: { source: "message" }
+    });
+  });
 }
 
-export function storeThreadReplyMentions(conversationId: string, replyId: string, mentions: string[] | undefined): void {
-  const uniqueMentions = normalizeMentions(mentions);
+export function storeThreadReplyMentions(
+  conversationId: string,
+  replyId: string,
+  mentions: string[] | undefined,
+  authorId: string
+): void {
+  const uniqueMentions = normalizeMentions(mentions).filter((mentionId) => mentionId !== authorId);
   if (uniqueMentions.length === 0) {
     return;
   }
@@ -78,7 +101,8 @@ export function storeThreadReplyMentions(conversationId: string, replyId: string
       inArray(threadMembers.userId, existingUsers.map((user) => user.id))
     ))
     .all()
-    .map((row) => row.userId);
+    .map((row) => row.userId)
+    .filter((userId) => userId !== authorId);
 
   if (allowed.length === 0) {
     return;
@@ -94,4 +118,15 @@ export function storeThreadReplyMentions(conversationId: string, replyId: string
       seenAt: null
     })))
     .run();
+
+  allowed.forEach((mentionedUserId) => {
+    recordActivity({
+      type: "mention.thread",
+      actorId: authorId,
+      threadConversationId: conversationId,
+      threadReplyId: replyId,
+      mentionedUserId,
+      metadata: { source: "reply" }
+    });
+  });
 }

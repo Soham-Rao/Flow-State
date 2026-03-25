@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { recordActivity } from "../activity/activity.service.js";
 import { cards, lists } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { CreateListInput, ReorderListsInput, UpdateListInput } from "./boards.schema.js";
@@ -13,7 +14,7 @@ import { getCommentsForLists } from "./boards.service.comments-data.js";
 import { getCardsForList, getCardsForListIncludingArchived } from "./boards.service.cards-data.js";
 import { getBoardById } from "./boards.service.boards.js";
 
-export function createList(boardId: string, input: CreateListInput): BoardList {
+export function createList(boardId: string, input: CreateListInput, userId: string): BoardList {
   assertBoardExists(boardId);
 
   const maxPositionRow = db
@@ -61,6 +62,14 @@ export function createList(boardId: string, input: CreateListInput): BoardList {
     throw new ApiError(500, "Failed to create list");
   }
 
+  recordActivity({
+    type: "list.created",
+    actorId: userId,
+    boardId,
+    listId: created.id,
+    metadata: { listName: created.name }
+  });
+
   return {
     ...created,
     cards: [],
@@ -68,7 +77,7 @@ export function createList(boardId: string, input: CreateListInput): BoardList {
   };
 }
 
-export function updateList(listId: string, input: UpdateListInput): BoardList {
+export function updateList(listId: string, input: UpdateListInput, userId: string): BoardList {
   const existing = assertListExists(listId);
 
   const updatePayload: {
@@ -127,6 +136,14 @@ export function updateList(listId: string, input: UpdateListInput): BoardList {
     throw new ApiError(404, "List not found");
   }
 
+  recordActivity({
+    type: "list.updated",
+    actorId: userId,
+    boardId: updated.boardId,
+    listId: updated.id,
+    metadata: { listName: updated.name, isDoneList: updated.isDoneList }
+  });
+
   return {
     ...updated,
     cards: getCardsForList(updated.id),
@@ -134,15 +151,24 @@ export function updateList(listId: string, input: UpdateListInput): BoardList {
   };
 }
 
-export function deleteList(listId: string): void {
+export function deleteList(listId: string, userId: string): void {
+  const list = getListRecord(listId);
   const result = db.delete(lists).where(eq(lists.id, listId)).run();
 
   if (result.changes === 0) {
     throw new ApiError(404, "List not found");
   }
+
+  recordActivity({
+    type: "list.deleted",
+    actorId: userId,
+    boardId: list.boardId,
+    listId: list.id,
+    metadata: { listName: list.name }
+  });
 }
 
-export function archiveList(listId: string): void {
+export function archiveList(listId: string, userId: string): void {
   const list = assertListExists(listId);
   if (list.archivedAt) return;
 
@@ -150,12 +176,28 @@ export function archiveList(listId: string): void {
     .set({ archivedAt: new Date(), updatedAt: new Date() })
     .where(eq(lists.id, listId))
     .run();
+
+  recordActivity({
+    type: "list.archived",
+    actorId: userId,
+    boardId: list.boardId,
+    listId: list.id,
+    metadata: { listName: list.name }
+  });
 }
 
-export function restoreList(listId: string, renameConflicts: boolean): BoardDetail {
+export function restoreList(listId: string, renameConflicts: boolean, userId: string): BoardDetail {
   const list = getListRecord(listId);
   if (!list.archivedAt) {
-    return getBoardById(list.boardId);
+    const restored = getBoardById(list.boardId);
+    recordActivity({
+      type: "list.restored",
+      actorId: userId,
+      boardId: list.boardId,
+      listId: list.id,
+      metadata: { listName: list.name }
+    });
+    return restored;
   }
 
   const existingList = db
@@ -211,7 +253,15 @@ export function restoreList(listId: string, renameConflicts: boolean): BoardDeta
       tx.delete(lists).where(eq(lists.id, list.id)).run();
     });
 
-    return getBoardById(list.boardId);
+    const restored = getBoardById(list.boardId);
+    recordActivity({
+      type: "list.restored",
+      actorId: userId,
+      boardId: list.boardId,
+      listId: list.id,
+      metadata: { listName: list.name }
+    });
+    return restored;
   }
 
   db.transaction((tx) => {
@@ -226,10 +276,18 @@ export function restoreList(listId: string, renameConflicts: boolean): BoardDeta
       .run();
   });
 
-  return getBoardById(list.boardId);
+  const restored = getBoardById(list.boardId);
+  recordActivity({
+    type: "list.restored",
+    actorId: userId,
+    boardId: list.boardId,
+    listId: list.id,
+    metadata: { listName: list.name }
+  });
+  return restored;
 }
 
-export function reorderLists(boardId: string, input: ReorderListsInput): BoardList[] {
+export function reorderLists(boardId: string, input: ReorderListsInput, userId: string): BoardList[] {
   assertBoardExists(boardId);
 
   const existing = db
@@ -279,6 +337,13 @@ export function reorderLists(boardId: string, input: ReorderListsInput): BoardLi
     .all();
 
   const commentsByListId = getCommentsForLists(updatedLists.map((list) => list.id));
+
+  recordActivity({
+    type: "list.reordered",
+    actorId: userId,
+    boardId,
+    metadata: { listIds: input.listIds }
+  });
 
   return updatedLists.map((list) => ({
     ...list,

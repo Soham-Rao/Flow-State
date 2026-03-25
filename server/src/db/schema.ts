@@ -518,6 +518,22 @@ export const threadReplyReactions = sqliteTable("thread_reply_reactions", {
 }, (table) => ({
   pk: primaryKey({ columns: [table.replyId, table.userId, table.emoji] })
 }));
+export const activityLogs = sqliteTable("activity_logs", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  actorId: text("actor_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  boardId: text("board_id").references(() => boards.id, { onDelete: "set null" }),
+  listId: text("list_id").references(() => lists.id, { onDelete: "set null" }),
+  cardId: text("card_id").references(() => cards.id, { onDelete: "set null" }),
+  threadConversationId: text("thread_conversation_id").references(() => threadConversations.id, { onDelete: "set null" }),
+  threadMessageId: text("thread_message_id").references(() => threadMessages.id, { onDelete: "set null" }),
+  threadReplyId: text("thread_reply_id").references(() => threadReplies.id, { onDelete: "set null" }),
+  mentionedUserId: text("mentioned_user_id").references(() => users.id, { onDelete: "set null" }),
+  metadata: text("metadata"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
 export const usersRelations = relations(users, ({ many }) => ({
   boards: many(boards),
   cards: many(cards)
@@ -584,6 +600,7 @@ export type ThreadMemberRole = (typeof threadMemberRoles)[number];
 export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
+
 
 
 

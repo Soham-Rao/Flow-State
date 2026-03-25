@@ -3,7 +3,8 @@ import crypto from "node:crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { cards, lists, type CardCoverColor } from "../../db/schema.js";
+import { recordActivity } from "../activity/activity.service.js";
+import { cards, type CardCoverColor } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { CreateCardInput, MoveCardInput, UpdateCardInput } from "./boards.schema.js";
 import type { BoardCard, MoveCardResult } from "./boards.service.types.js";
@@ -40,10 +41,19 @@ export function createCard(listId: string, input: CreateCardInput, userId: strin
     })
     .run();
 
+  recordActivity({
+    type: "card.created",
+    actorId: userId,
+    boardId: list.boardId,
+    listId: list.id,
+    cardId,
+    metadata: { cardTitle: input.title.trim(), listName: list.name }
+  });
+
   return getCardById(cardId);
 }
 
-export function updateCard(cardId: string, input: UpdateCardInput): BoardCard {
+export function updateCard(cardId: string, input: UpdateCardInput, userId: string): BoardCard {
   assertCardExists(cardId);
 
   const updatePayload: {
@@ -79,7 +89,18 @@ export function updateCard(cardId: string, input: UpdateCardInput): BoardCard {
 
   db.update(cards).set(updatePayload).where(eq(cards.id, cardId)).run();
 
-  return getCardById(cardId);
+  const updated = getCardById(cardId);
+  const list = getListRecord(updated.listId);
+  recordActivity({
+    type: "card.updated",
+    actorId: userId,
+    boardId: list.boardId,
+    listId: updated.listId,
+    cardId: updated.id,
+    metadata: { cardTitle: updated.title }
+  });
+
+  return updated;
 }
 
 export async function deleteCard(
@@ -87,6 +108,7 @@ export async function deleteCard(
   requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }
 ): Promise<void> {
   const existing = assertCardExists(cardId);
+  const list = getListRecord(existing.listId);
 
   const canDelete = requester.canDeleteAny || (requester.canDeleteOwn && existing.createdBy === requester.userId);
   if (!canDelete) {
@@ -100,6 +122,15 @@ export async function deleteCard(
   if (result.changes === 0) {
     throw new ApiError(404, "Card not found");
   }
+
+  recordActivity({
+    type: "card.deleted",
+    actorId: requester.userId,
+    boardId: list.boardId,
+    listId: existing.listId,
+    cardId: null,
+    metadata: { cardTitle: existing.title, listName: list.name }
+  });
 }
 
 export function archiveCard(
@@ -117,6 +148,16 @@ export function archiveCard(
     .set({ archivedAt: new Date(), updatedAt: new Date() })
     .where(eq(cards.id, cardId))
     .run();
+
+  const list = getListRecord(existing.listId);
+  recordActivity({
+    type: "card.archived",
+    actorId: requester.userId,
+    boardId: list.boardId,
+    listId: existing.listId,
+    cardId,
+    metadata: { cardTitle: existing.title, listName: list.name }
+  });
 
   return getCardByIdIncludingArchived(cardId);
 }
@@ -168,10 +209,19 @@ export function restoreCard(
     .where(eq(cards.id, cardId))
     .run();
 
+  recordActivity({
+    type: "card.restored",
+    actorId: requester.userId,
+    boardId: list.boardId,
+    listId: list.id,
+    cardId,
+    metadata: { cardTitle: nextTitle, listName: list.name }
+  });
+
   return getCardById(cardId);
 }
 
-export function moveCard(input: MoveCardInput): MoveCardResult {
+export function moveCard(input: MoveCardInput, userId: string): MoveCardResult {
   const sourceList = assertListExists(input.sourceListId);
   const destinationList = assertListExists(input.destinationListId);
 
@@ -206,6 +256,21 @@ export function moveCard(input: MoveCardInput): MoveCardResult {
       });
     });
 
+    recordActivity({
+      type: "card.moved",
+      actorId: userId,
+      boardId: sourceList.boardId,
+      listId: destinationList.id,
+      cardId: movingCard.id,
+      metadata: {
+        cardTitle: movingCard.title,
+        fromListId: sourceList.id,
+        fromListName: sourceList.name,
+        toListId: destinationList.id,
+        toListName: destinationList.name
+      }
+    });
+
     const updated = getCardsForList(sourceList.id);
 
     return {
@@ -216,46 +281,59 @@ export function moveCard(input: MoveCardInput): MoveCardResult {
     };
   }
 
-  const sourceWithoutCard = sourceCards.filter((card) => card.id !== movingCard.id);
   const destinationCards = getCardsForList(destinationList.id);
-  const destinationNext = [...destinationCards];
+  const destinationIndex = clampIndex(input.destinationIndex, 0, destinationCards.length);
 
-  const insertIndex = clampIndex(input.destinationIndex, 0, destinationNext.length);
+  const nextSourceCards = sourceCards.filter((card) => card.id !== movingCard.id);
+  const nextDestinationCards = [...destinationCards];
+  nextDestinationCards.splice(destinationIndex, 0, movingCard);
 
-  let nextDoneEnteredAt = movingCard.doneEnteredAt;
-  if (!sourceList.isDoneList && destinationList.isDoneList) {
+  let nextDoneEnteredAt = movingCard.doneEnteredAt ?? null;
+  if (destinationList.isDoneList && !sourceList.isDoneList) {
     nextDoneEnteredAt = now;
-  } else if (sourceList.isDoneList && !destinationList.isDoneList) {
+  }
+  if (!destinationList.isDoneList) {
     nextDoneEnteredAt = null;
   }
 
-  destinationNext.splice(insertIndex, 0, {
-    ...movingCard,
-    listId: destinationList.id,
-    doneEnteredAt: nextDoneEnteredAt,
-    updatedAt: now
-  });
-
   db.transaction((tx) => {
-    sourceWithoutCard.forEach((card, index) => {
+    nextSourceCards.forEach((card, index) => {
       tx.update(cards).set({ position: index, updatedAt: now }).where(eq(cards.id, card.id)).run();
     });
 
-    destinationNext.forEach((card, index) => {
+    nextDestinationCards.forEach((card, index) => {
+      const updatePayload: {
+        position: number;
+        updatedAt: Date;
+        listId?: string;
+        doneEnteredAt?: Date | null;
+      } = {
+        position: index,
+        updatedAt: now
+      };
+
       if (card.id === movingCard.id) {
-        tx.update(cards)
-          .set({
-            listId: destinationList.id,
-            position: index,
-            doneEnteredAt: nextDoneEnteredAt,
-            updatedAt: now
-          })
-          .where(eq(cards.id, card.id))
-          .run();
-      } else {
-        tx.update(cards).set({ position: index, updatedAt: now }).where(eq(cards.id, card.id)).run();
+        updatePayload.listId = destinationList.id;
+        updatePayload.doneEnteredAt = nextDoneEnteredAt;
       }
+
+      tx.update(cards).set(updatePayload).where(eq(cards.id, card.id)).run();
     });
+  });
+
+  recordActivity({
+    type: "card.moved",
+    actorId: userId,
+    boardId: sourceList.boardId,
+    listId: destinationList.id,
+    cardId: movingCard.id,
+    metadata: {
+      cardTitle: movingCard.title,
+      fromListId: sourceList.id,
+      fromListName: sourceList.name,
+      toListId: destinationList.id,
+      toListName: destinationList.name
+    }
   });
 
   return {
@@ -265,3 +343,5 @@ export function moveCard(input: MoveCardInput): MoveCardResult {
     destinationCards: getCardsForList(destinationList.id)
   };
 }
+
+

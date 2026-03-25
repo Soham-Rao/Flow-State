@@ -1,15 +1,25 @@
 import { useEffect, useState } from "react";
-import { Activity, CalendarDays, CheckCircle2, ListTodo } from "lucide-react";
+import { Activity, CalendarDays, CheckCircle2, ListTodo, type LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createInvite, listInvites, revokeInvite } from "@/lib/invites-api";
+import { formatActivityLabel, formatActivityTime } from "@/lib/activity-utils";
+import { useActivityStore } from "@/stores/activity-store";
 import { useAuthStore } from "@/stores/auth-store";
 import type { InviteSummary } from "@/types/invite";
 
-const dashboardCards = [
+type DashboardCard = {
+  title: string;
+  icon: LucideIcon;
+  description: string;
+  value: string;
+  subtitle?: string | null;
+};
+
+const dashboardCards: DashboardCard[] = [
   {
     title: "My Tasks",
     icon: ListTodo,
@@ -41,6 +51,10 @@ export function HomePage(): JSX.Element {
 
   const isAdmin = user?.role === "admin";
 
+  const activity = useActivityStore((state) => state.workspace);
+  const activityStatus = useActivityStore((state) => state.workspaceStatus);
+  const loadWorkspaceActivity = useActivityStore((state) => state.loadWorkspace);
+
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [invites, setInvites] = useState<InviteSummary[]>([]);
@@ -56,6 +70,18 @@ export function HomePage(): JSX.Element {
   const acceptedInvites = invites.filter((invite) => invite.status === "accepted");
   const revokedInvites = invites.filter((invite) => invite.status === "revoked");
   const expiredInvites = invites.filter((invite) => invite.status === "expired");
+
+  const teamPulseItems = activity.slice(0, 4);
+  const hasTeamPulse = teamPulseItems.length > 0;
+  const isTeamPulseLoading = activityStatus === "loading" && !hasTeamPulse;
+  const teamPulseCard = dashboardCards.find((card) => card.title === "Team Pulse") ?? {
+    title: "Team Pulse",
+    icon: Activity,
+    description: "Recent team activity and momentum.",
+    value: "No events yet"
+  };
+  const TeamPulseIcon = teamPulseCard.icon;
+  const cards = dashboardCards.filter((card) => card.title !== "Team Pulse");
 
   const loadInvites = async (): Promise<void> => {
     if (!isAdmin) return;
@@ -141,6 +167,15 @@ export function HomePage(): JSX.Element {
 
     void loadInvites();
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!user) return;
+    void loadWorkspaceActivity();
+    const workspaceInterval = window.setInterval(() => {
+      void loadWorkspaceActivity();
+    }, 2000);
+    return () => window.clearInterval(workspaceInterval);
+  }, [user, loadWorkspaceActivity]);
 
   useEffect(() => {
     if (!isInviteModalOpen) return;
@@ -231,7 +266,7 @@ export function HomePage(): JSX.Element {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {dashboardCards.map(({ title, icon: Icon, description, value }) => (
+        {cards.map(({ title, icon: Icon, description, value }) => (
           <Card key={title}>
             <CardHeader className="space-y-3 pb-3">
               <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
@@ -245,6 +280,31 @@ export function HomePage(): JSX.Element {
             </CardContent>
           </Card>
         ))}
+        <Card>
+          <CardHeader className="space-y-3 pb-3">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+              <TeamPulseIcon className="h-4 w-4" />
+            </div>
+            <CardTitle className="text-base">{teamPulseCard.title}</CardTitle>
+            <CardDescription>{teamPulseCard.description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isTeamPulseLoading ? (
+              <p className="text-xs text-muted-foreground">Loading...</p>
+            ) : teamPulseItems.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No events yet.</p>
+            ) : (
+              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                {teamPulseItems.map((entry) => (
+                  <div key={entry.id} className="rounded-md border border-border/60 bg-background/70 px-3 py-2">
+                    <p className="text-xs font-semibold text-foreground">{formatActivityLabel(entry)}</p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">{formatActivityTime(entry)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {isInviteModalOpen && (
@@ -328,3 +388,7 @@ export function HomePage(): JSX.Element {
     </div>
   );
 }
+
+
+
+

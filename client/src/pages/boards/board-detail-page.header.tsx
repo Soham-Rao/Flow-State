@@ -5,7 +5,16 @@ import { Button } from "@/components/ui/button";
 import { MentionsField } from "@/components/mentions/mentions-input";
 import { CommentNote } from "@/pages/boards/board-detail-page.components";
 import type { BoardComment, BoardMember } from "@/types/board";
+import type { PresenceUser } from "@/types/presence";
 
+
+function getPresenceInitials(user: PresenceUser): string {
+  const raw = user.displayName || user.username || user.name || user.email || "?";
+  const label = raw.includes("@") ? raw.split("@")[0] : raw;
+  const parts = label.trim().split(/\s+/).filter(Boolean);
+  const initials = parts.slice(0, 2).map((part) => part[0]).join("");
+  return initials ? initials.toUpperCase() : "?";
+}
 export function BoardHeaderSection({
   activeBannerClass,
   boardName,
@@ -18,6 +27,7 @@ export function BoardHeaderSection({
   onNewBoardCommentChange,
   onCreateBoardComment,
   boardMembers,
+  boardPresence,
   onOpenArchivedLists,
   error,
 }: {
@@ -32,6 +42,7 @@ export function BoardHeaderSection({
   onNewBoardCommentChange: (value: string) => void;
   onCreateBoardComment: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
   boardMembers: BoardMember[];
+  boardPresence: PresenceUser[];
   onOpenArchivedLists: () => void;
   error: string | null;
 }): JSX.Element {
@@ -76,6 +87,29 @@ export function BoardHeaderSection({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+
+          {boardPresence.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-2">
+                {boardPresence.slice(0, 3).map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-card/80 text-[10px] font-semibold text-muted-foreground shadow-sm"
+                    title={member.displayName ?? member.username ?? member.email}
+                  >
+                    {getPresenceInitials(member)}
+                  </div>
+                ))}
+                {boardPresence.length > 3 && (
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-background/80 text-[10px] font-semibold text-muted-foreground shadow-sm">
+                    +{boardPresence.length - 3}
+                  </div>
+                )}
+              </div>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Online</span>
+            </div>
+          )}
+
           <Button type="button" variant="secondary" onClick={onOpenArchivedLists}>
             Archived lists
           </Button>

@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { recordActivity } from "../activity/activity.service.js";
 import { commentMentions, commentReactions, comments, users } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { userHasPermission } from "../../utils/permissions.js";
@@ -246,9 +247,9 @@ export function storeCommentMentions(
   mentions: string[] | undefined,
   authorId: string,
   boardId: string
-): void {
+): string[] {
   if (!mentions || mentions.length === 0) {
-    return;
+    return [];
   }
 
   const uniqueMentions = Array.from(new Set(mentions)).filter((mentionId) => mentionId !== authorId);
@@ -259,11 +260,11 @@ export function storeCommentMentions(
     .all();
 
   if (uniqueMentions.length === 0) {
-    return;
+    return [];
   }
 
   if (existingUsers.length === 0) {
-    return;
+    return [];
   }
 
   const allowedUsers = existingUsers
@@ -271,7 +272,7 @@ export function storeCommentMentions(
     .filter((userId) => userHasPermission(userId, "view_boards", { scopeType: "board", scopeId: boardId }));
 
   if (allowedUsers.length === 0) {
-    return;
+    return [];
   }
 
   db.insert(commentMentions)
@@ -282,7 +283,10 @@ export function storeCommentMentions(
       seenAt: null
     })))
     .run();
+
+  return allowedUsers;
 }
+
 
 export function createCommentRecord(params: {
   boardId: string;
@@ -307,7 +311,36 @@ export function createCommentRecord(params: {
     })
     .run();
 
-  storeCommentMentions(commentId, params.input.mentions, params.authorId, params.boardId);
+  const mentionIds = storeCommentMentions(commentId, params.input.mentions, params.authorId, params.boardId);
+  const snippet = params.input.body.trim().slice(0, 140);
+
+  recordActivity({
+    type: "comment.created",
+    actorId: params.authorId,
+    boardId: params.boardId,
+    listId: params.listId,
+    cardId: params.cardId,
+    metadata: {
+      commentId,
+      snippet
+    }
+  });
+
+  mentionIds.forEach((mentionedUserId) => {
+    recordActivity({
+      type: "mention.board",
+      actorId: params.authorId,
+      boardId: params.boardId,
+      listId: params.listId,
+      cardId: params.cardId,
+      mentionedUserId,
+      metadata: {
+        commentId,
+        snippet
+      }
+    });
+  });
 
   return getCommentById(commentId);
 }
+

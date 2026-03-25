@@ -232,8 +232,7 @@ export function createThreadReply(userId: string, messageId: string, input: Crea
     })
     .run();
 
-  const replyMentions = input.mentions?.filter((mentionId) => mentionId !== userId);
-  storeThreadReplyMentions(conversation.id, replyId, replyMentions);
+  storeThreadReplyMentions(conversation.id, replyId, input.mentions, userId);
 
   const author = ensureUserExists(userId);
   return {

@@ -1,17 +1,18 @@
 ---
-sohamsrao ✔️ 0 ✔️ 0
-computerproject ✔️ 0 ✔️ 0
-abman ✔️ 0 ✔️ 0
-storage 1 ✔️ 0 ✔️ 0
-storage 2 ✔️ 0
-storage 3 ✔️ 0
-storage p ✔️0
-clash 4 free ✔️ 0
+sohamsrao ✔️ 0 ✔️ 
+computerproject ✔️ 0 ✔️ 
+abman ✔️ 0 ✔️ 
+shadow supreme 
+storage 1 ✔️ 0 ✔️ 
+storage 2 ✔️ 0 ✔️ 
+storage 3 ✔️ 0 ✔️ 
+storage p ✔️0 ✔️0
+clash 4 free ✔️ 0 ✔️ 0
 burner finger ✔️ 0
 burner finger +1 ✔️ 0
 burner finger +2 ✔️ 0
-burner finger +3 ✔️ 6
-burner finger +4 ✔️ 35
+burner finger +3 ✔️ 0
+burner finger +4 ✔️ 0
 ---
 
 burner finger +101 ✔️ 0
@@ -28,4 +29,6 @@ after phase 7, for 8 do team collab version of timer - seeing stats and other st
 ---
 compression 
 fix image placement 
+manage channel - members - clickable and collapsable perms
+dashboard - your tasks assigned to you
 ---

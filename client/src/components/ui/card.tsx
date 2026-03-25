@@ -2,17 +2,19 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>): JSX.Element {
-  return (
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref): JSX.Element => (
     <div
+      ref={ref}
       className={cn(
         "rounded-xl border bg-card/90 text-card-foreground shadow-[0_12px_24px_rgba(14,116,144,0.08)] backdrop-blur-sm",
         className
       )}
       {...props}
     />
-  );
-}
+  )
+);
+Card.displayName = "Card";
 
 function CardHeader({
   className,

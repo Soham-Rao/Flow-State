@@ -1,8 +1,10 @@
 import { Pin, Search } from "lucide-react";
 
+import { PresenceIndicator } from "@/components/users/presence-indicator";
 import type { ChannelConversationSummary, DmConversationSummary, ThreadUserSummary } from "@/types/threads";
+import type { PresenceState, PresenceStatus } from "@/types/presence";
 
-import { presencePalette, type PresenceState } from "./threads-page.constants";
+import { getInitial } from "./threads-page.utils";
 
 export type ThreadsSidebarProps = {
   activeTab: "dms" | "channels";
@@ -19,6 +21,9 @@ export type ThreadsSidebarProps = {
   onTogglePinUser: (userId: string) => void;
   conversationByUserId: Map<string, DmConversationSummary>;
   presenceByUserId: Map<string, PresenceState>;
+  lastSeenByUserId: Record<string, number>;
+  currentUserId: string | null;
+  onSetPresenceStatus: (status: PresenceStatus) => void;
   activeConversation: DmConversationSummary | ChannelConversationSummary | null;
   onSelectUser: (user: ThreadUserSummary) => void;
   onSelectChannel: (channel: ChannelConversationSummary) => void;
@@ -43,6 +48,9 @@ export function ThreadsSidebar({
   onTogglePinUser,
   conversationByUserId,
   presenceByUserId,
+  lastSeenByUserId,
+  currentUserId,
+  onSetPresenceStatus,
   activeConversation,
   onSelectUser,
   onSelectChannel,
@@ -178,7 +186,9 @@ export function ThreadsSidebar({
             {!loading &&
               filteredDmUsers.map((user) => {
                 const conversation = conversationByUserId.get(user.id);
-                const presence = presenceByUserId.get(user.id) ?? "online";
+                const status = presenceByUserId.get(user.id) ?? "offline";
+                const lastSeenAt = lastSeenByUserId[user.id];
+                const isSelf = user.id === currentUserId;
                 const isActive = activeConversation?.type === "dm" && activeConversation.otherUser.id === user.id;
                 const isPinned = pinnedUserIds.includes(user.id);
                 return (
@@ -194,12 +204,14 @@ export function ThreadsSidebar({
                   >
                     <div className="relative">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-sm font-semibold">
-                        {user.displayName?.[0] ?? user.username?.[0] ?? "U"}
+                        {getInitial(user.displayName ?? user.name ?? user.username ?? user.email)}
                       </div>
-                      <span
-                        className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${
-                          presencePalette[presence]
-                        }`}
+                      <PresenceIndicator
+                        status={status}
+                        lastSeenAt={lastSeenAt}
+                        isSelf={isSelf}
+                        onSetStatus={onSetPresenceStatus}
+                        className="absolute -bottom-0.5 -right-0.5"
                       />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -238,4 +250,3 @@ export function ThreadsSidebar({
     </aside>
   );
 }
-

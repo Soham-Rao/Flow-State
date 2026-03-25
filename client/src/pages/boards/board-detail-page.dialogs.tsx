@@ -29,6 +29,8 @@ export function BoardDetailDialogs({
   listToDelete,
   onCancelDeleteList,
   onConfirmDeleteList,
+  permissionError,
+  onDismissPermissionError,
 }: {
   showSavedNotice: boolean;
   restoreConflict: { message: string; onConfirm: () => void } | null;
@@ -56,9 +58,20 @@ export function BoardDetailDialogs({
   listToDelete: BoardList | null;
   onCancelDeleteList: () => void;
   onConfirmDeleteList: () => void;
+  permissionError: string | null;
+  onDismissPermissionError: () => void;
 }): JSX.Element {
   return (
     <>
+      <ConfirmDialog
+        open={permissionError !== null}
+        title="Permission denied"
+        description={permissionError ?? ""}
+        confirmLabel="OK"
+        showCancel={false}
+        onCancel={onDismissPermissionError}
+        onConfirm={onDismissPermissionError}
+      />
       {showSavedNotice && (
         <div className="pointer-events-none fixed bottom-5 right-5 z-40 rounded-full border badge-emerald px-4 py-2 text-sm font-medium shadow-lg backdrop-blur">
           Saved
@@ -139,3 +152,7 @@ export function BoardDetailDialogs({
     </>
   );
 }
+
+
+
+

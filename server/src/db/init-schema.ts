@@ -383,11 +383,34 @@ export const BASE_SCHEMA_SQL = `
       FOREIGN KEY (reply_id) REFERENCES thread_replies(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
-  
+
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      actor_id TEXT NOT NULL,
+      board_id TEXT,
+      list_id TEXT,
+      card_id TEXT,
+      thread_conversation_id TEXT,
+      thread_message_id TEXT,
+      thread_reply_id TEXT,
+      mentioned_user_id TEXT,
+      metadata TEXT,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE SET NULL,
+      FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE SET NULL,
+      FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE SET NULL,
+      FOREIGN KEY (thread_conversation_id) REFERENCES thread_conversations(id) ON DELETE SET NULL,
+      FOREIGN KEY (thread_message_id) REFERENCES thread_messages(id) ON DELETE SET NULL,
+      FOREIGN KEY (thread_reply_id) REFERENCES thread_replies(id) ON DELETE SET NULL,
+      FOREIGN KEY (mentioned_user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
 `;
 
 export const CLEAR_TEST_DATA_SQL = `
 
+    DELETE FROM activity_logs;
     DELETE FROM role_scope_overrides;
     DELETE FROM invite_roles;
     DELETE FROM user_roles;
@@ -424,4 +447,9 @@ export const CLEAR_TEST_DATA_SQL = `
     DELETE FROM users;
   
 `;
+
+
+
+
+
 

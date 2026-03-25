@@ -69,7 +69,7 @@ boardsBaseRouter.patch("/:boardId", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "edit_boards");
     const body = updateBoardSchema.parse(req.body);
-    const data = updateBoard(req.params.boardId, body);
+    const data = updateBoard(req.params.boardId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -97,7 +97,7 @@ boardsBaseRouter.get("/:boardId/archived-lists", (req, res, next) => {
 boardsBaseRouter.post("/:boardId/archive", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "delete_boards");
-    const data = archiveBoard(req.params.boardId);
+    const data = archiveBoard(req.params.boardId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -111,7 +111,7 @@ boardsBaseRouter.post("/:boardId/archive", (req, res, next) => {
 boardsBaseRouter.post("/:boardId/restore", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "delete_boards");
-    const data = restoreBoard(req.params.boardId);
+    const data = restoreBoard(req.params.boardId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -140,7 +140,7 @@ boardsBaseRouter.post("/:boardId/comments", (req, res, next) => {
 boardsBaseRouter.delete("/:boardId", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "delete_boards");
-    const data = deleteBoard(req.params.boardId);
+    const data = deleteBoard(req.params.boardId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -150,3 +150,4 @@ boardsBaseRouter.delete("/:boardId", (req, res, next) => {
     next(error);
   }
 });
+

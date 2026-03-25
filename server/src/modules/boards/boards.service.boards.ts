@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { and, asc, count, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { recordActivity } from "../activity/activity.service.js";
 import { boards, cards, lists, type RetentionMode } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type {
@@ -12,7 +13,7 @@ import type {
   BoardSummary,
   CardRecord
 } from "./boards.service.types.js";
-import { DEFAULT_RETENTION_MODE, defaultLists } from "./boards.service.types.js";
+import { DEFAULT_ARCHIVE_RETENTION_MINUTES, DEFAULT_RETENTION_MINUTES, DEFAULT_RETENTION_MODE, defaultLists } from "./boards.service.types.js";
 import { clampArchiveRetentionMinutes, clampRetentionMinutes, normalizeOptionalDescription } from "./boards.service.utils.js";
 import { assertBoardExists, assertBoardNameAvailable, getBoardRecord } from "./boards.service.lookups.js";
 import { getBoardMembers } from "./boards.service.members.js";
@@ -226,9 +227,11 @@ export function createBoard(input: CreateBoardInput, userId: string): BoardDetai
   const now = new Date();
   const boardId = crypto.randomUUID();
   const trimmedName = input.name.trim();
-  const retentionMinutes = clampRetentionMinutes(input.retentionMinutes);
+  const retentionMinutes = clampRetentionMinutes(input.retentionMinutes ?? DEFAULT_RETENTION_MINUTES);
   const retentionMode = input.retentionMode ?? DEFAULT_RETENTION_MODE;
-  const archiveRetentionMinutes = clampArchiveRetentionMinutes(input.archiveRetentionMinutes);
+  const archiveRetentionMinutes = clampArchiveRetentionMinutes(
+    input.archiveRetentionMinutes ?? DEFAULT_ARCHIVE_RETENTION_MINUTES
+  );
 
   assertBoardNameAvailable(trimmedName);
 
@@ -249,25 +252,34 @@ export function createBoard(input: CreateBoardInput, userId: string): BoardDetai
       })
       .run();
 
-    tx.insert(lists)
-      .values(
-        defaultLists.map((defaultList, index) => ({
+    defaultLists.forEach((list, index) => {
+      tx.insert(lists)
+        .values({
           id: crypto.randomUUID(),
           boardId,
-          name: defaultList.name,
+          name: list.name,
           position: index,
-          isDoneList: defaultList.isDoneList,
+          isDoneList: list.isDoneList,
+          archivedAt: null,
           createdAt: now,
           updatedAt: now
-        }))
-      )
-      .run();
+        })
+        .run();
+    });
+  });
+
+  recordActivity({
+    type: "board.created",
+    actorId: userId,
+    boardId,
+    metadata: { boardName: trimmedName }
   });
 
   return getBoardById(boardId);
 }
 
-export function updateBoard(boardId: string, input: UpdateBoardInput): BoardDetail {
+
+export function updateBoard(boardId: string, input: UpdateBoardInput, userId: string): BoardDetail {
   assertBoardExists(boardId);
 
   const updatePayload: {
@@ -310,18 +322,33 @@ export function updateBoard(boardId: string, input: UpdateBoardInput): BoardDeta
 
   db.update(boards).set(updatePayload).where(eq(boards.id, boardId)).run();
 
-  return getBoardById(boardId);
+  const updated = getBoardById(boardId);
+  recordActivity({
+    type: "board.updated",
+    actorId: userId,
+    boardId,
+    metadata: { boardName: updated.name }
+  });
+  return updated;
 }
 
-export function deleteBoard(boardId: string): void {
+export function deleteBoard(boardId: string, userId: string): void {
+  const board = getBoardRecord(boardId);
   const result = db.delete(boards).where(eq(boards.id, boardId)).run();
 
   if (result.changes === 0) {
     throw new ApiError(404, "Board not found");
   }
+
+  recordActivity({
+    type: "board.deleted",
+    actorId: userId,
+    boardId: null,
+    metadata: { boardName: board.name }
+  });
 }
 
-export function archiveBoard(boardId: string): BoardSummary {
+export function archiveBoard(boardId: string, userId: string): BoardSummary {
   const board = getBoardRecord(boardId);
   if (board.archivedAt) {
     return getBoardSummaryById(boardId);
@@ -332,10 +359,18 @@ export function archiveBoard(boardId: string): BoardSummary {
     .where(eq(boards.id, boardId))
     .run();
 
+  recordActivity({
+    type: "board.archived",
+    actorId: userId,
+    boardId,
+    metadata: { boardName: board.name }
+  });
+
   return getBoardSummaryById(boardId);
 }
 
-export function restoreBoard(boardId: string): BoardSummary {
+
+export function restoreBoard(boardId: string, userId: string): BoardSummary {
   const board = getBoardRecord(boardId);
   if (!board.archivedAt) {
     return getBoardSummaryById(boardId);
@@ -346,5 +381,15 @@ export function restoreBoard(boardId: string): BoardSummary {
     .where(eq(boards.id, boardId))
     .run();
 
+  recordActivity({
+    type: "board.restored",
+    actorId: userId,
+    boardId,
+    metadata: { boardName: board.name }
+  });
+
   return getBoardSummaryById(boardId);
 }
+
+
+

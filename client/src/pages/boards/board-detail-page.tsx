@@ -37,6 +37,9 @@ import { useBoardDetailCommentToggles } from "@/pages/boards/board-detail-page.t
 import { useBoardDragAndDrop } from "@/pages/boards/board-detail-page.drag";
 import { BoardDetailPageView } from "@/pages/boards/board-detail-page.view";
 import { useBoardCommentMentions } from "@/pages/boards/board-detail-page.mentions";
+import { useActivityStore } from "@/stores/activity-store";
+import { useSocketStore } from "@/stores/socket-store";
+import { usePresenceStore } from "@/stores/presence-store";
 
 export function BoardDetailPage(): JSX.Element {
   const { boardId } = useParams<{ boardId: string }>();
@@ -91,9 +94,16 @@ export function BoardDetailPage(): JSX.Element {
   const [listToDelete, setListToDelete] = useState<BoardList | null>(null);
   const [cardToDelete, setCardToDelete] = useState<BoardCard | null>(null);
   const [commentToDelete, setCommentToDelete] = useState<BoardComment | null>(null);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
   const [checklistToDelete, setChecklistToDelete] = useState<Checklist | null>(null);
   const [checklistItemToDelete, setChecklistItemToDelete] = useState<{ item: ChecklistItem; cardId: string } | null>(null);
   useBoardCommentMentions(board);
+
+  const loadBoardActivity = useActivityStore((state) => state.loadBoard);
+  const joinBoard = useSocketStore((state) => state.joinBoard);
+  const leaveBoard = useSocketStore((state) => state.leaveBoard);
+  const boardPresenceRaw = usePresenceStore((state) => (boardId ? state.board[boardId] : undefined));
+  const boardPresence = boardPresenceRaw ?? [];
 
   const [scrollToChecklistId, setScrollToChecklistId] = useState<string | null>(null);
   const [isAutosavingBoard, setIsAutosavingBoard] = useState(false);
@@ -112,7 +122,7 @@ export function BoardDetailPage(): JSX.Element {
   const listSyncedNamesRef = useRef<Record<string, string>>({});
   const initializedBoardRef = useRef(false);
 
-  const orderedLists = useMemo(() => (board ? sortBoardListsWithCards(board.lists) : []), [board]);
+  const orderedLists = useMemo(() => (board ? sortBoardListsWithCards(board.lists ?? []) : []), [board]);
   const hasDoneCards = useMemo(
     () => (board ? board.lists.some((list) => list.cards.some((card) => Boolean(card.doneEnteredAt))) : false),
     [board]
@@ -219,7 +229,7 @@ export function BoardDetailPage(): JSX.Element {
   }, []);
 
   const hydrateBoardState = useCallback((data: BoardDetail): void => {
-    const sortedLists = sortBoardListsWithCards(data.lists);
+    const sortedLists = sortBoardListsWithCards(data.lists ?? []);
     setBoard({ ...data, lists: sortedLists });
     setBoardName(data.name);
     setBoardDescription(data.description ?? "");
@@ -371,6 +381,7 @@ export function BoardDetailPage(): JSX.Element {
     setNewListDone,
     setBoard,
     setError,
+    setPermissionError,
     triggerSavedNotice,
     navigate,
     listSyncedNamesRef,
@@ -409,6 +420,15 @@ export function BoardDetailPage(): JSX.Element {
   useEffect(() => {
     void loadBoard(true);
   }, [loadBoard]);
+
+  useEffect(() => {
+    if (!boardId) return;
+    joinBoard(boardId);
+    void loadBoardActivity(boardId);
+    return () => {
+      leaveBoard(boardId);
+    };
+  }, [boardId, joinBoard, leaveBoard, loadBoardActivity]);
 
   useEffect(() => {
     if (!hasDoneCards) return;
@@ -477,6 +497,7 @@ export function BoardDetailPage(): JSX.Element {
     loading,
     board,
     error,
+    permissionError,
     activeSurfaceClass,
     activeBannerClass,
     boardName,
@@ -506,6 +527,7 @@ export function BoardDetailPage(): JSX.Element {
     listSavingIds,
     orderedLists,
     boardMembers,
+    boardPresence,
     boardLabels,
     expandedCommentIds,
     expandedListCommentGroups,
@@ -644,6 +666,7 @@ export function BoardDetailPage(): JSX.Element {
     onDeleteChecklist,
     onDeleteChecklistItem,
     onDeleteList,
+    onDismissPermissionError: () => setPermissionError(null),
   };
 
   return (
@@ -654,3 +677,14 @@ export function BoardDetailPage(): JSX.Element {
     />
   );
 }
+
+
+
+
+
+
+
+
+
+
+

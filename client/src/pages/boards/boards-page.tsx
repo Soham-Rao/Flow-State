@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -7,7 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { boardBackgroundPresets, getBoardBackgroundClass, type BoardBackgroundPreset } from "@/lib/board-backgrounds";
 import { archiveBoard, createBoard, deleteBoard, getBoards, restoreBoard } from "@/lib/boards-api";
+import { listUnreadCommentMentions, markCommentMentionsSeen } from "@/lib/mentions-api";
+import { useMentionStore } from "@/stores/mentions-store";
 import type { BoardBackground, BoardSummary } from "@/types/board";
+import type { CommentMentionDetail } from "@/types/mentions";
 
 const BOARD_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
 
@@ -41,6 +44,12 @@ export function BoardsPage(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [commentMentions, setCommentMentions] = useState<CommentMentionDetail[]>([]);
+  const refreshMentions = useMentionStore((state) => state.refresh);
+  const mentionClearTimeoutsRef = useRef<Record<string, number>>({});
+  const clearingBoardsRef = useRef(new Set<string>());
+  const [hoverMentions, setHoverMentions] = useState<Record<string, CommentMentionDetail[]>>({});
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState<BoardSummary | null>(null);
   const [boardToArchive, setBoardToArchive] = useState<BoardSummary | null>(null);
@@ -53,6 +62,77 @@ export function BoardsPage(): JSX.Element {
 
   const activeBoards = boards.filter((board) => !board.archivedAt);
   const archivedBoards = boards.filter((board) => Boolean(board.archivedAt));
+
+  const mentionsByBoard = useMemo(() => {
+    const map = new Map<string, CommentMentionDetail[]>();
+    commentMentions.forEach((mention) => {
+      const list = map.get(mention.boardId) ?? [];
+      list.push(mention);
+      map.set(mention.boardId, list);
+    });
+    for (const list of map.values()) {
+      list.sort((a, b) => b.createdAt - a.createdAt);
+    }
+    return map;
+  }, [commentMentions]);
+
+  const loadCommentMentions = async (): Promise<void> => {
+    try {
+      const data = await listUnreadCommentMentions();
+      setCommentMentions(data);
+    } catch {
+      // Silent fail; main boards list should still load.
+    }
+  };
+
+  const clearBoardMentions = async (boardId: string, mentions: CommentMentionDetail[]): Promise<void> => {
+    if (mentions.length === 0) return;
+    if (clearingBoardsRef.current.has(boardId)) return;
+
+    clearingBoardsRef.current.add(boardId);
+    try {
+      await markCommentMentionsSeen(mentions.map((mention) => mention.commentId));
+      setCommentMentions((current) => current.filter((mention) => mention.boardId !== boardId));
+      await refreshMentions();
+    } catch {
+      // Ignore marking errors for now.
+    } finally {
+      clearingBoardsRef.current.delete(boardId);
+    }
+  };
+
+  const scheduleBoardMentionClear = (boardId: string, mentions: CommentMentionDetail[]): void => {
+    if (mentions.length === 0) return;
+    if (mentionClearTimeoutsRef.current[boardId]) return;
+
+    mentionClearTimeoutsRef.current[boardId] = window.setTimeout(() => {
+      delete mentionClearTimeoutsRef.current[boardId];
+      void clearBoardMentions(boardId, mentions);
+    }, 800);
+  };
+
+  const cancelBoardMentionClear = (boardId: string): void => {
+    const timeout = mentionClearTimeoutsRef.current[boardId];
+    if (!timeout) return;
+    window.clearTimeout(timeout);
+    delete mentionClearTimeoutsRef.current[boardId];
+  };
+
+  const getMentionLocation = (mention: CommentMentionDetail): string => {
+    if (mention.cardTitle) {
+      return `${mention.listName ?? "List"} • ${mention.cardTitle}`;
+    }
+    if (mention.listName) {
+      return mention.listName;
+    }
+    return "Board comment";
+  };
+
+  const getMentionSnippet = (body: string): string => {
+    const trimmed = body.trim();
+    if (trimmed.length <= 80) return trimmed;
+    return `${trimmed.slice(0, 80)}…`;
+  };
 
   const loadBoards = async (showLoading = false): Promise<void> => {
     if (showLoading) {
@@ -74,6 +154,14 @@ export function BoardsPage(): JSX.Element {
 
   useEffect(() => {
     void loadBoards(true);
+  }, []);
+
+  useEffect(() => {
+    void loadCommentMentions();
+    const interval = window.setInterval(() => {
+      void loadCommentMentions();
+    }, 3000);
+    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -203,7 +291,54 @@ export function BoardsPage(): JSX.Element {
                   <div className={`h-24 w-full ${getBoardBackgroundClass(board.background)}`} />
                 </Link>
                 <CardHeader className="pb-3">
-                  <CardTitle className="line-clamp-1 text-lg">{board.name}</CardTitle>
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="line-clamp-1 text-lg">{board.name}</CardTitle>
+                    {(() => {
+                      const boardMentions = mentionsByBoard.get(board.id) ?? [];
+                      const hoverBoardMentions = hoverMentions[board.id] ?? [];
+                      const badgeMentions = hoverBoardMentions.length > 0 ? hoverBoardMentions : boardMentions;
+                      if (badgeMentions.length === 0) return null;
+                      return (
+                        <div
+                          className="relative group/mentions"
+                          onMouseEnter={() => {
+                            setHoverMentions((current) => ({ ...current, [board.id]: boardMentions }));
+                            scheduleBoardMentionClear(board.id, boardMentions);
+                          }}
+                          onMouseLeave={() => {
+                            cancelBoardMentionClear(board.id);
+                            setHoverMentions((current) => {
+                              const next = { ...current };
+                              delete next[board.id];
+                              return next;
+                            });
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm"
+                            onClick={() => {
+                              void clearBoardMentions(board.id, boardMentions);
+                            }}
+                          >
+                            {badgeMentions.length}
+                          </button>
+                          <div className="pointer-events-none absolute right-0 top-7 z-10 w-72 translate-y-1 rounded-lg border border-border/70 bg-card/95 p-3 text-left opacity-0 shadow-lg backdrop-blur transition group-hover/mentions:pointer-events-auto group-hover/mentions:opacity-100">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Mentions</p>
+                            <div className="mt-2 space-y-2">
+                              {badgeMentions.map((mention) => (
+                                <div key={mention.commentId} className="rounded-md border border-border/60 bg-background/70 px-2 py-2">
+                                  <p className="text-xs font-semibold">{getMentionLocation(mention)}</p>
+                                  <p className="mt-1 text-[10px] text-muted-foreground">{getMentionSnippet(mention.body)}</p>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="mt-2 text-[10px] text-muted-foreground">Hover or click to mark as read.</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <CardDescription className="line-clamp-2">{board.description ?? "No description"}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between gap-3">

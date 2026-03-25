@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessageSquareText, Users } from "lucide-react";
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PresenceIndicator } from "@/components/users/presence-indicator";
 import { ThreadComposer } from "./threads-page.composer";
 import { ThreadsForwardModal } from "./threads-page.forward-modal";
 import { ThreadMediaPreviews } from "./threads-page.media-previews";
@@ -9,11 +10,21 @@ import { ThreadMessageList } from "./threads-page.message-list";
 import { ThreadsReplyDrawer } from "./threads-page.reply-drawer";
 import { ThreadsSidebar } from "./threads-page.sidebar";
 import { useThreadsController } from "./threads-page.controller";
-import { formatTimestamp } from "./threads-page.utils";
+import { formatTimestamp, getInitial } from "./threads-page.utils";
+
+type ChannelPermissionKey =
+  | "channel_read"
+  | "channel_write"
+  | "channel_edit"
+  | "channel_members_add"
+  | "channel_members_remove"
+  | "channel_manage_overrides"
+  | "channel_delete";
 
 export function ThreadsPage(): JSX.Element {
   const {
     user,
+    searchParams,
     setSearchParams,
     activeTab,
     totalMentions,
@@ -48,12 +59,15 @@ export function ThreadsPage(): JSX.Element {
     channelMembers,
     handleAddChannelMember,
     handleToggleChannelOverride,
+    handleClearChannelOverride,
     handleRemoveChannelMember,
     pinnedUserIds,
     canPinThreads,
     togglePinUser,
     conversationByUserId,
     presenceByUserId,
+    lastSeenByUserId,
+    setPresenceStatus,
     activeConversation,
     handleSelectUser,
     messages,
@@ -183,6 +197,7 @@ export function ThreadsPage(): JSX.Element {
 
   const [listOpen, setListOpen] = useState(false);
   const [showChannelSettings, setShowChannelSettings] = useState(false);
+  const [permissionsOpenFor, setPermissionsOpenFor] = useState<string | null>(null);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [deleteChannelConfirmOpen, setDeleteChannelConfirmOpen] = useState(false);
 
@@ -218,13 +233,24 @@ export function ThreadsPage(): JSX.Element {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set("tab", tab);
+      next.delete("view");
+      if (tab === "dms") {
+        next.delete("channel");
+      } else {
+        next.delete("dm");
+      }
       return next;
     });
   };
 
   useEffect(() => {
-    setShowChannelSettings(false);
-  }, [activeConversation?.id, activeTab]);
+    if (!isChannel || activeTab !== "channels") {
+      setShowChannelSettings(false);
+      return;
+    }
+    const view = searchParams.get("view");
+    setShowChannelSettings(view === "manage");
+  }, [activeTab, isChannel, activeConversation?.id, searchParams]);
 
   useEffect(() => {
     if (!listOpen) return;
@@ -247,6 +273,28 @@ export function ThreadsPage(): JSX.Element {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [listOpen]);
+
+  useEffect(() => {
+    if (!permissionsOpenFor) return;
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (!target) return;
+      const root = document.querySelector(`[data-permissions-root="${permissionsOpenFor}"]`);
+      if (root && root.contains(target)) return;
+      setPermissionsOpenFor(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPermissionsOpenFor(null);
+      }
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [permissionsOpenFor]);
 
   return (
     <div className="relative flex h-[calc(100vh-5.25rem)] flex-col overflow-hidden">
@@ -288,6 +336,9 @@ export function ThreadsPage(): JSX.Element {
           onTogglePinUser={togglePinUser}
           conversationByUserId={conversationByUserId}
           presenceByUserId={presenceByUserId}
+          lastSeenByUserId={lastSeenByUserId}
+          currentUserId={user?.id ?? null}
+          onSetPresenceStatus={setPresenceStatus}
           activeConversation={activeConversation}
           onSelectUser={handleSelectUser}
           onSelectChannel={handleSelectChannel}
@@ -483,121 +534,111 @@ export function ThreadsPage(): JSX.Element {
                           <p className="text-xs text-muted-foreground">No members yet.</p>
                         )}
                         {channelMembers.map((member) => {
-                          const readOverride = member.overrides.some(
-                            (override) => override.permission === "channel_read" && override.access === "allow"
+                          const overridesByPermission = new Map(
+                            member.overrides.map((override) => [override.permission, override.access])
                           );
-                          const writeOverride = member.overrides.some(
-                            (override) => override.permission === "channel_write" && override.access === "allow"
-                          );
-                          const editOverride = member.overrides.some(
-                            (override) => override.permission === "channel_edit" && override.access === "allow"
-                          );
-                          const addOverride = member.overrides.some(
-                            (override) => override.permission === "channel_members_add" && override.access === "allow"
-                          );
-                          const removeOverride = member.overrides.some(
-                            (override) => override.permission === "channel_members_remove" && override.access === "allow"
-                          );
-                          const manageOverride = member.overrides.some(
-                            (override) => override.permission === "channel_manage_overrides" && override.access === "allow"
-                          );
-                          const deleteOverride = member.overrides.some(
-                            (override) => override.permission === "channel_delete" && override.access === "allow"
-                          );
+                          const resolveChecked = (permission: ChannelPermissionKey, fallback: boolean) => {
+                            const override = overridesByPermission.get(permission);
+                            if (override === "allow") return true;
+                            if (override === "deny") return false;
+                            return fallback;
+                          };
+                          const permissionOptions: {
+                            key: ChannelPermissionKey;
+                            label: string;
+                            fallback: boolean;
+                          }[] = [
+                            { key: "channel_read", label: "View messages", fallback: member.effectivePermissions.channel_read },
+                            { key: "channel_write", label: "Send messages", fallback: member.effectivePermissions.channel_write },
+                            { key: "channel_edit", label: "Edit channel", fallback: member.effectivePermissions.channel_edit },
+                            { key: "channel_members_add", label: "Add members", fallback: member.effectivePermissions.channel_members_add },
+                            { key: "channel_members_remove", label: "Remove members", fallback: member.effectivePermissions.channel_members_remove },
+                            { key: "channel_manage_overrides", label: "Manage overrides", fallback: member.effectivePermissions.channel_manage_overrides },
+                            { key: "channel_delete", label: "Delete channel", fallback: member.effectivePermissions.channel_delete }
+                          ];
                           const showOverrideControls = canManageChannelOverrides;
                           const showRemove = canRemoveChannelMembers;
+                          const presenceStatus = presenceByUserId.get(member.user.id) ?? "offline";
+                          const lastSeenAt = lastSeenByUserId[member.user.id];
+                          const isSelf = member.user.id === user?.id;
                           return (
                             <div
                               key={member.user.id}
                               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2"
                             >
-                              <div>
-                                <p className="text-sm font-semibold">
-                                  {member.user.displayName ?? member.user.name}
-                                </p>
-                                <p className="text-[11px] text-muted-foreground">@{member.user.username ?? "user"}</p>
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-xs font-semibold">
+                                    {getInitial(member.user.displayName ?? member.user.name ?? member.user.username ?? member.user.email)}
+                                  </div>
+                                  <PresenceIndicator
+                                    status={presenceStatus}
+                                    lastSeenAt={lastSeenAt}
+                                    isSelf={isSelf}
+                                    onSetStatus={setPresenceStatus}
+                                    className="absolute -bottom-0.5 -right-0.5"
+                                  />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-semibold">
+                                    {member.user.displayName ?? member.user.name}
+                                  </p>
+                                  <p className="text-[11px] text-muted-foreground">@{member.user.username ?? "user"}</p>
+                                </div>
                               </div>
-                              <div className="flex flex-wrap items-center gap-3">
+                              <div className="flex flex-wrap items-center gap-2">
                                 {showOverrideControls ? (
-                                  <>
-                                    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                      <input
-                                        type="checkbox"
-                                        className="h-3 w-3 accent-primary"
-                                        checked={readOverride}
-                                        onChange={(event) =>
-                                          handleToggleChannelOverride(member.user.id, "channel_read", event.target.checked)
-                                        }
-                                      />
-                                      View messages
-                                    </label>
-                                    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                      <input
-                                        type="checkbox"
-                                        className="h-3 w-3 accent-primary"
-                                        checked={writeOverride}
-                                        onChange={(event) =>
-                                          handleToggleChannelOverride(member.user.id, "channel_write", event.target.checked)
-                                        }
-                                      />
-                                      Send messages
-                                    </label>
-                                    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                      <input
-                                        type="checkbox"
-                                        className="h-3 w-3 accent-primary"
-                                        checked={editOverride}
-                                        onChange={(event) =>
-                                          handleToggleChannelOverride(member.user.id, "channel_edit", event.target.checked)
-                                        }
-                                      />
-                                      Edit channel
-                                    </label>
-                                    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                      <input
-                                        type="checkbox"
-                                        className="h-3 w-3 accent-primary"
-                                        checked={addOverride}
-                                        onChange={(event) =>
-                                          handleToggleChannelOverride(member.user.id, "channel_members_add", event.target.checked)
-                                        }
-                                      />
-                                      Add members
-                                    </label>
-                                    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                      <input
-                                        type="checkbox"
-                                        className="h-3 w-3 accent-primary"
-                                        checked={removeOverride}
-                                        onChange={(event) =>
-                                          handleToggleChannelOverride(member.user.id, "channel_members_remove", event.target.checked)
-                                        }
-                                      />
-                                      Remove members
-                                    </label>
-                                    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                      <input
-                                        type="checkbox"
-                                        className="h-3 w-3 accent-primary"
-                                        checked={manageOverride}
-                                        onChange={(event) =>
-                                          handleToggleChannelOverride(member.user.id, "channel_manage_overrides", event.target.checked)
-                                        }
-                                      />
-                                      Manage overrides
-                                    </label>
-                                    <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                      <input
-                                        type="checkbox"
-                                        className="h-3 w-3 accent-primary"
-                                        checked={deleteOverride}
-                                        onChange={(event) =>
-                                          handleToggleChannelOverride(member.user.id, "channel_delete", event.target.checked)
-                                        }
-                                      />
-                                      Delete channel
-                                    </label>
-                                  </>
+                                  <div
+                                    className="relative"
+                                    data-permissions-root={member.user.id}
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setPermissionsOpenFor((prev) => (prev === member.user.id ? null : member.user.id))
+                                      }
+                                      className="rounded-full border border-border/60 px-2 py-1 text-[11px] text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                                    >
+                                      Permissions
+                                    </button>
+                                    {permissionsOpenFor === member.user.id && (
+                                      <div className="absolute right-0 top-full z-30 mt-2 w-48 rounded-lg border border-border/70 bg-card/95 p-2 text-[11px] shadow-lg backdrop-blur">
+                                        <div className="space-y-2">
+                                          {permissionOptions.map((option) => {
+                                            const overrideAccess = overridesByPermission.get(option.key);
+                                            const checked = resolveChecked(option.key, option.fallback);
+                                            return (
+                                              <div
+                                                key={option.key}
+                                                className="flex items-center justify-between gap-2 rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted/60"
+                                              >
+                                                <label className="flex flex-1 items-center justify-between gap-2">
+                                                  <span>{option.label}</span>
+                                                  <input
+                                                    type="checkbox"
+                                                    className="h-3 w-3 accent-primary"
+                                                    checked={checked}
+                                                    onChange={(event) =>
+                                                      handleToggleChannelOverride(member.user.id, option.key, event.target.checked)
+                                                    }
+                                                  />
+                                                </label>
+                                                {overrideAccess && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleClearChannelOverride(member.user.id, option.key)}
+                                                    className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                                                  >
+                                                    Clear
+                                                  </button>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
                                 ) : (
                                   <div className="text-[11px] text-muted-foreground">
                                     <span className="font-semibold text-foreground">
@@ -652,22 +693,41 @@ export function ThreadsPage(): JSX.Element {
                         {channelMembers.length === 0 && (
                           <p className="text-xs text-muted-foreground">No members yet.</p>
                         )}
-                        {channelMembers.map((member) => (
-                          <div
-                            key={member.user.id}
-                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2"
-                          >
-                            <div>
-                              <p className="text-sm font-semibold">
-                                {member.user.displayName ?? member.user.name}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">@{member.user.username ?? "user"}</p>
+                        {channelMembers.map((member) => {
+                          const presenceStatus = presenceByUserId.get(member.user.id) ?? "offline";
+                          const lastSeenAt = lastSeenByUserId[member.user.id];
+                          const isSelf = member.user.id === user?.id;
+                          return (
+                            <div
+                              key={member.user.id}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-xs font-semibold">
+                                    {getInitial(member.user.displayName ?? member.user.name ?? member.user.username ?? member.user.email)}
+                                  </div>
+                                  <PresenceIndicator
+                                    status={presenceStatus}
+                                    lastSeenAt={lastSeenAt}
+                                    isSelf={isSelf}
+                                    onSetStatus={setPresenceStatus}
+                                    className="absolute -bottom-0.5 -right-0.5"
+                                  />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-semibold">
+                                    {member.user.displayName ?? member.user.name}
+                                  </p>
+                                  <p className="text-[11px] text-muted-foreground">@{member.user.username ?? "user"}</p>
+                                </div>
+                              </div>
+                              <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] text-muted-foreground">
+                                {member.role === "admin" ? "Admin" : "Member"}
+                              </span>
                             </div>
-                            <span className="rounded-full border border-border/60 px-2 py-0.5 text-[11px] text-muted-foreground">
-                              {member.role === "admin" ? "Admin" : "Member"}
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

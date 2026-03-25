@@ -3,3 +3,15 @@ export interface MentionUnreadCounts {
   threads: number;
   comments: number;
 }
+
+export interface CommentMentionDetail {
+  commentId: string;
+  boardId: string;
+  boardName: string;
+  listId: string | null;
+  listName: string | null;
+  cardId: string | null;
+  cardTitle: string | null;
+  body: string;
+  createdAt: number;
+}

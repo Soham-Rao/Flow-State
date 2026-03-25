@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-16 00:00:00 +05:30
+Last checkpoint update: 2026-03-25 00:00:00 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -13,94 +13,89 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 4.1 (Checklists): complete
   - Phase 4.2 (Attachments + retention + list DnD + card autosave): complete
   - Phase 4.3 (Labels + assignments + cover colors): complete
-  - Phase 4.4 (comments + archive/restore + due date to assigned users): complete
+  - Phase 4.4 (Comments + archive/restore + due date to assigned users): complete
   - Phase 5.1 (@mentions): complete
   - Phase 5.2 (Invitations): complete
   - Phase 5.3 (Roles + settings): complete
   - Phase 5.4 (Threads): complete
-  - Phase 5.5 (Channels + overrides): not started
+  - Phase 5.5 (Channels + overrides): complete
+  - Phase 6.1 (Socket.IO infra): complete
+  - Phase 6.2 (Activity Log + Pulse UI): complete
+  - Phase 6.3 (Presence): complete
+  - Phase 6.4 (Board realtime updates): not started
+  - Phase 6.5 (Threads realtime): not started
   - Phase 8 (Focus mode + time tracking): complete
+
+- Phase 6 completion highlights:
+  - Socket.IO server + auth + workspace/board rooms + client socket store
+  - Activity log pipeline (API + UI) with Team Pulse + board activity panel
+  - Presence tracking with online/AFK/offline, last-seen, and UI indicators
+  - Threads UI improvements: manage view persisted in URL, channel permissions dropdown with clear-override, presence dots in member lists
+
+- Recent UI/UX work:
+  - Card/board confirm dialogs use proper focus trapping
+  - Presence indicator dropdown shows “Show online / Show AFK” with hover tooltips
+  - Channel manage panel permissions now use a dropdown overlay (no layout shift)
+  - Channels/DMs persist selection in URL on refresh
 
 - Phase 4.1 implementation highlights:
   - Server schema: checklists + checklist_items tables with relations and test DB setup
-  - Server API: CRUD for checklists + items in `boards.route.ts`/`boards.service.ts`
-  - Client types + API: checklist support in `types/board.ts` and `boards-api.ts`
+  - Server API: CRUD for checklists + items in boards routes/services
+  - Client types + API: checklist support in types + boards API
   - UI: checklist preview on cards + full checklist CRUD in card modal
-
-- Recent UI/UX work:
-  - Card editor modal is scrollable with max height
-  - Sticky header in card modal with `Delete`, `Close`, and autosave status (`Saving...` / `Saved`)
-  - Checklist items can be toggled directly in card previews
-  - Clicking checklist body (expanded) opens card editor + autoscrolls to that checklist
-  - `Esc` closes the card editor
-  - List drag-and-drop now uses dnd-kit (animated reordering)
-  - Done timer label shows `Files deleted` after expiry
-  - Due dates normalize epoch/1970 values to today (backend + UI)
-  - Phase 4.3 complete: label management UI + CRUD, assignee toggles, and cover color controls wired end-to-end
-  - Focus mode page added with Pomodoro timer, presets, local history, and stats
-  - Threads DM UI shows reply-count indicators and reaction chips (messages + replies)
-
-- Phase 5.1 + 5.2 progress:
-  - App-wide @mentions autocomplete + parsing + bold rendering complete
-  - Invitation system groundwork complete (invites table, admin create/list/revoke, invite lookup, register with invite token)
-  - Invitations are now managed from the dashboard with status modal + shareable links
-  - Registrations remain open (invite optional; invite-only later)
-
-- Phase 5.3 completion summary:
-  - Roles system with admin/member/guest defaults, hierarchy, and guest onboarding
-  - Role CRUD + assignment flows with grouped permission toggles and multi-role support
-  - Permission gating for roles settings UI
-  - Settings UX polish: profile dropdown, sticky actions, modal close on Esc/outside click, sidebar fixed, typography controls
-  - Migration hardening for legacy tables + test utilities; typecheck helper in `Docs/`
-
-- Phase 8 progress:
-  - Focus mode page with configurable Pomodoro lengths, animated gradients, and local-only history/stats
 
 - Phase 5.4 completion summary:
   - DM conversations with encrypted message bodies (env key) + mention counters
   - Reply threads (one level), reactions, attachments, and voice notes
   - UX polish: sticky composer, reaction hover, reply drawer, forward picker
 
+- Phase 5.3 completion summary:
+  - Roles system with admin/member/guest defaults, hierarchy, and guest onboarding
+  - Role CRUD + assignment flows with grouped permission toggles and multi-role support
+  - Permission gating for roles settings UI
+  - Settings UX polish: profile dropdown, sticky actions, modal close on Esc/outside click, sidebar fixed, typography controls
+  - Migration hardening for legacy tables + test utilities; typecheck helper in Docs/
+
 - Test location change:
-  - Client tests moved from `client/src/...` to `client/tests/...`
-  - Added `client/tsconfig.test.json`
-  - Updated `client/vitest.config.ts` include globs
-  - Updated `client/package.json` lint to include tests
+  - Client tests moved from client/src/... to client/tests/...
+  - Added client/tsconfig.test.json
+  - Updated client/vitest.config.ts include globs
+  - Updated client/package.json lint to include tests
 
 ## 2) Resume-Next Priority
 
-- Future note: add email invites later (SMTP/transactional provider), likely alongside invite-only mode.
-
-- Start Phase 5.5: channels, channel permissions, and overrides groundwork.
+- Phase 6.4: board realtime updates (socket events + client batching).
+- Phase 6.5: threads realtime (socket-driven DMs/channels).
+- Phase 7: calendar + multi-view.
 
 ## 3) User Preferences to Preserve on Resume
 
 - Package manager: Bun
 - Language: TypeScript for client and server
-- Monorepo style: plain workspaces (`client/`, `server/`)
+- Monorepo style: plain workspaces (client/, server/)
 - Assistant writes tests but user runs tests
 - Do not run tests unless user explicitly asks
 - Test cadence: after full phases (or every 2 full phases), not each subphase
-- Progress updates must be recorded in `Docs/context.md` at end of implementation cycles
+- Progress updates must be recorded in Docs/context.md at end of implementation cycles
 - Keep in-app confirmations (no browser native confirms)
 - Autosave UX for board/list settings is expected
 
 ## 4) How to Read and Update Context Files on Resume
 
 Primary resume flow:
-1. Read `Docs/context.md` first:
+1. Read Docs/context.md first:
    - Check Progress Tracker table
    - Check Key Decisions
    - Check latest rows in Updates
-2. Read `Docs/instructions.md` second:
+2. Read Docs/instructions.md second:
    - Check active phase checklist
    - Confirm user-run commands section
 3. Implement next scoped work
 4. Update both files after implementation:
-   - `Docs/context.md`: Progress Tracker + Updates row(s)
-   - `Docs/instructions.md`: checklist checkboxes/status
+   - Docs/context.md: Progress Tracker + Updates row(s)
+   - Docs/instructions.md: checklist checkboxes/status
 
-Rule: treat `Docs/context.md` as source of truth for project state; treat `Docs/instructions.md` as execution checklist.
+Rule: treat Docs/context.md as source of truth for project state; treat Docs/instructions.md as execution checklist.
 
 ## 5) Working Rules I Must Remember on Resume
 
@@ -108,8 +103,8 @@ Code/workflow rules:
 - Do not revert unrelated user changes.
 - Avoid destructive git commands unless explicitly requested.
 - No git commands without explicit permission; read-only git show/git diff are ok.
-- Prefer `rg` for searching.
-- Use `apply_patch` for focused file edits when possible.
+- Prefer rg for searching.
+- Use apply_patch for focused file edits when possible.
 - Keep edits ASCII unless file already requires Unicode.
 - If unexpected file changes appear during work, pause and ask user how to proceed.
 
@@ -121,64 +116,84 @@ Communication rules:
 ## 6) Current Git Working Tree Snapshot (for Resume Awareness)
 
 Tracked modified files at checkpoint:
-- `Docs/context.md`
-- `Docs/instructions.md`
-- `Docs/resume.txt`
-- `client/package.json`
-- `client/src/lib/boards-api.ts`
-- `client/src/pages/boards/board-detail-page.tsx`
-- `client/src/types/board.ts`
-- `client/tsconfig.json`
-- `client/vitest.config.ts`
-- `server/src/db/init.ts`
-- `server/src/db/schema.ts`
-- `server/src/modules/threads/threads.schema.ts`
-- `server/src/modules/threads/threads.route.ts`
-- `server/src/modules/threads/threads.service.ts`
-- `client/src/lib/threads-api.ts`
-- `client/src/pages/threads-page.tsx`
-- `client/src/types/threads.ts`
-- `server/src/modules/boards/boards.route.ts`
-- `server/src/modules/boards/boards.schema.ts`
-- `server/src/modules/boards/boards.service.ts`
-- DB runtime artifacts (test db shm/wal files)
-
-Tracked deleted files at checkpoint:
-- `client/src/pages/home-page.test.tsx`
-- `client/src/pages/boards/board-detail-page.test.tsx`
+- Docs/context.md
+- Docs/notes.txt
+- bun.lock
+- client/package.json
+- client/src/components/layout/app-shell.tsx
+- client/src/components/ui/card.tsx
+- client/src/components/ui/confirm-dialog.tsx
+- client/src/lib/api-client.ts
+- client/src/lib/mentions-api.ts
+- client/src/pages/boards/board-detail-page.board-handlers.ts
+- client/src/pages/boards/board-detail-page.dialogs.tsx
+- client/src/pages/boards/board-detail-page.header.tsx
+- client/src/pages/boards/board-detail-page.tsx
+- client/src/pages/boards/board-detail-page.view.tsx
+- client/src/pages/boards/boards-page.tsx
+- client/src/pages/home-page.tsx
+- client/src/pages/threads-page.constants.ts
+- client/src/pages/threads-page.controller.ts
+- client/src/pages/threads-page.sidebar.tsx
+- client/src/pages/threads-page.tsx
+- client/src/types/mentions.ts
+- client/vite.config.ts
+- server/package.json
+- server/src/app.ts
+- server/src/index.ts
+- server/src/db/init-migrations.ts
+- server/src/db/init-roles.ts
+- server/src/db/init-schema.ts
+- server/src/db/schema.ts
+- server/src/modules/boards/boards.routes.base.ts
+- server/src/modules/boards/boards.routes.cards.ts
+- server/src/modules/boards/boards.routes.checklists.ts
+- server/src/modules/boards/boards.routes.lists.ts
+- server/src/modules/boards/boards.service.boards.ts
+- server/src/modules/boards/boards.service.cards.ts
+- server/src/modules/boards/boards.service.checklists.ts
+- server/src/modules/boards/boards.service.comments-data.ts
+- server/src/modules/boards/boards.service.lists.ts
+- server/src/modules/mentions/mentions.route.ts
+- server/src/modules/mentions/mentions.service.ts
+- server/src/modules/threads/threads.service.mentions.ts
+- server/src/modules/threads/threads.service.messages.ts
+- server/src/modules/threads/threads.service.replies.ts
+- server/data/*.db, *.db-shm, *.db-wal (runtime artifacts)
 
 Untracked files at checkpoint:
-- `client/tests/`
-- `client/tsconfig.test.json`
-- `server/tests/checklists.test.ts`
-- `server/data/flowstate.checklists.test.db` (+ shm/wal)
+- client/src/components/users/presence-indicator.tsx
+- client/src/lib/activity-api.ts
+- client/src/lib/activity-utils.ts
+- client/src/pages/boards/board-detail-page.activity.tsx
+- client/src/stores/activity-store.ts
+- client/src/stores/presence-store.ts
+- client/src/stores/socket-store.ts
+- client/src/types/activity.ts
+- client/src/types/presence.ts
+- server/src/modules/activity/
+- server/src/realtime/
 
-Note: db `-shm` and `-wal` files are runtime artifacts; do not delete without user intent.
+Note: db -shm and -wal files are runtime artifacts; do not delete without user intent.
 
 ## 7) Known Resume Risks / Attention Points
 
-- Card modal UI recently restructured (sticky header + scrollable content). Verify actions remain accessible.
-- Checklist body click -> editor + scroll relies on `openCardEditor(card, checklistId)`; avoid clearing scroll target prematurely.
-- Tests are now in `client/tests/`; ensure tooling/lint includes that path.
+- Threads now persist selection + manage view in URL; verify deep links continue to work after any routing changes.
+- Presence relies on socket state; ensure reconnect logic stays intact.
+- Activity list is now socket-driven; verify batching when enabling board realtime (Phase 6.4).
 
 ## 8) Immediate User-Facing Follow-up Item
 
-- Start Phase 5.5: channels, channel permissions, and overrides groundwork.
+- Start Phase 6.4: board realtime updates and client batching.
 
 ## 9) Resume Command Pack
 
 - Client lint:
-  - `bun run --cwd client lint`
+  - bun run --cwd client lint
 - Client typecheck:
-  - `bunx tsc -b client/tsconfig.json`
+  - bunx tsc -b client/tsconfig.json
 - User-run tests:
-  - `bun run --cwd client test`
-  - `bun run --cwd server test`
+  - bun run --cwd client test
+  - bun run --cwd server test
 
 This file is the resume checkpoint contract for continuing FlowState safely and quickly.
-
-
-
-
-
-

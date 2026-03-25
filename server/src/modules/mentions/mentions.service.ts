@@ -1,9 +1,12 @@
-import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 
 import { db, sqlite } from "../../db/connection.js";
 import {
+  boards,
+  cards,
   commentMentions,
   comments,
+  lists,
   rolePermissionsTable,
   roleScopeOverrides,
   threadMentions,
@@ -19,6 +22,18 @@ export interface MentionUnreadCounts {
   total: number;
   threads: number;
   comments: number;
+}
+
+export interface CommentMentionDetail {
+  commentId: string;
+  boardId: string;
+  boardName: string;
+  listId: string | null;
+  listName: string | null;
+  cardId: string | null;
+  cardTitle: string | null;
+  body: string;
+  createdAt: number;
 }
 
 function getAccessibleBoardIds(userId: string, boardIds: string[]): Set<string> {
@@ -243,6 +258,43 @@ export function markThreadMentionsSeen(userId: string, conversationId: string): 
     .run(now, userId, conversationId);
 }
 
+
+export function listUnreadCommentMentions(userId: string): CommentMentionDetail[] {
+  cleanupInvalidCommentMentions(userId);
+  const rows = db
+    .select({
+      commentId: commentMentions.commentId,
+      boardId: comments.boardId,
+      boardName: boards.name,
+      listId: comments.listId,
+      listName: lists.name,
+      cardId: comments.cardId,
+      cardTitle: cards.title,
+      body: comments.body,
+      createdAt: comments.createdAt
+    })
+    .from(commentMentions)
+    .innerJoin(comments, eq(commentMentions.commentId, comments.id))
+    .innerJoin(boards, eq(comments.boardId, boards.id))
+    .leftJoin(lists, eq(comments.listId, lists.id))
+    .leftJoin(cards, eq(comments.cardId, cards.id))
+    .where(
+      and(
+        eq(commentMentions.userId, userId),
+        isNull(commentMentions.seenAt),
+        ne(comments.authorId, userId)
+      )
+    )
+    .orderBy(desc(comments.createdAt))
+    .limit(50)
+    .all();
+
+  return rows.map((row) => ({
+    ...row,
+    createdAt: typeof row.createdAt === "number" ? row.createdAt : new Date(row.createdAt).getTime()
+  }));
+}
+
 export function listCommentMentions(userId: string): Array<{ commentId: string }> {
   cleanupInvalidCommentMentions(userId);
   return db
@@ -251,6 +303,7 @@ export function listCommentMentions(userId: string): Array<{ commentId: string }
     .where(and(eq(commentMentions.userId, userId), isNull(commentMentions.seenAt)))
     .all();
 }
+
 
 
 

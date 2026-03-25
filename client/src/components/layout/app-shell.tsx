@@ -6,11 +6,22 @@ import { Button } from "@/components/ui/button";
 import { UserHoverCard } from "@/components/users/user-hover-card";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMentionStore } from "@/stores/mentions-store";
+import { usePresenceStore } from "@/stores/presence-store";
+import { useSocketStore } from "@/stores/socket-store";
+import type { PresenceUser } from "@/types/presence";
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
+
+function getInitials(user: PresenceUser): string {
+  const raw = user.displayName || user.username || user.name || user.email || "?";
+  const label = raw.includes("@") ? raw.split("@")[0] : raw;
+  const parts = label.trim().split(/\s+/).filter(Boolean);
+  const initials = parts.slice(0, 2).map((part) => part[0]).join("");
+  return initials ? initials.toUpperCase() : "?";
+}
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/boards", label: "Boards", icon: ListTodo },
@@ -29,12 +40,30 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const status = useAuthStore((state) => state.status);
   const refreshMentions = useMentionStore((state) => state.refresh);
   const mentionCounts = useMentionStore((state) => state.counts);
+  const workspacePresence = usePresenceStore((state) => state.workspace);
+  const connectSocket = useSocketStore((state) => state.connect);
+  const disconnectSocket = useSocketStore((state) => state.disconnect);
 
   useEffect(() => {
-    if (user) {
-      refreshMentions();
-    }
+    if (!user) return;
+    void refreshMentions();
+    const interval = window.setInterval(() => {
+      void refreshMentions();
+    }, 3000);
+    return () => window.clearInterval(interval);
   }, [user, refreshMentions]);
+
+  useEffect(() => {
+    if (!user) {
+      disconnectSocket();
+      return;
+    }
+
+    connectSocket();
+    return () => {
+      disconnectSocket();
+    };
+  }, [user, connectSocket, disconnectSocket]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,15 +138,22 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
               key={label}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                `flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-secondary text-secondary-foreground"
                     : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
                 }`
               }
             >
-              <Icon className="h-4 w-4" />
-              {label}
+              <span className="flex items-center gap-3">
+                <Icon className="h-4 w-4" />
+                {label}
+              </span>
+              {label === "Boards" && mentionCounts && mentionCounts.comments > 0 && (
+                <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  {mentionCounts.comments}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -147,9 +183,9 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                   <MessageCircle className="h-4 w-4" />
                   DMs
                 </span>
-                {mentionCounts && mentionCounts.total > 0 && (
+                {mentionCounts && mentionCounts.threads > 0 && (
                   <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    {mentionCounts.total}
+                    {mentionCounts.threads}
                   </span>
                 )}
               </NavLink>
@@ -204,6 +240,30 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
               <span className="rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[10px] font-semibold tracking-[0.2em] text-foreground">
                 {roleLabel}
               </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {workspacePresence.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {workspacePresence.slice(0, 4).map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-card/80 text-[10px] font-semibold text-muted-foreground shadow-sm"
+                        title={member.displayName ?? member.username ?? member.email}
+                      >
+                        {getInitials(member)}
+                      </div>
+                    ))}
+                    {workspacePresence.length > 4 && (
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-background/80 text-[10px] font-semibold text-muted-foreground shadow-sm">
+                        +{workspacePresence.length - 4}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Online</span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">

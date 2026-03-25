@@ -40,6 +40,8 @@ function getBestErrorMessage(error: ApiErrorPayload | undefined): string {
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
+  const method = options.method ?? "GET";
+  const cache = options.cache ?? (method === "GET" ? "no-store" : "default");
 
   if (!headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json");
@@ -54,8 +56,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
-    headers
-  });
+    headers,
+    cache
+    });
 
   const payload = (await response.json().catch(() => null)) as
     | { success?: boolean; data?: T; error?: ApiErrorPayload }
@@ -67,3 +70,4 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   return payload.data as T;
 }
+

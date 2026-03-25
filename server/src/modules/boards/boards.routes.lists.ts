@@ -24,7 +24,7 @@ boardsListsRouter.post("/:boardId/lists", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_lists");
     const body = createListSchema.parse(req.body);
-    const data = createList(req.params.boardId, body);
+    const data = createList(req.params.boardId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -39,7 +39,7 @@ boardsListsRouter.post("/:boardId/lists/reorder", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_lists");
     const body = reorderListsSchema.parse(req.body);
-    const data = reorderLists(req.params.boardId, body);
+    const data = reorderLists(req.params.boardId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -54,7 +54,7 @@ boardsListsRouter.patch("/lists/:listId", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_lists");
     const body = updateListSchema.parse(req.body);
-    const data = updateList(req.params.listId, body);
+    const data = updateList(req.params.listId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -68,7 +68,7 @@ boardsListsRouter.patch("/lists/:listId", (req, res, next) => {
 boardsListsRouter.delete("/lists/:listId", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_lists");
-    deleteList(req.params.listId);
+    deleteList(req.params.listId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -84,7 +84,7 @@ boardsListsRouter.delete("/lists/:listId", (req, res, next) => {
 boardsListsRouter.post("/lists/:listId/archive", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_lists");
-    const data = archiveList(req.params.listId);
+    const data = archiveList(req.params.listId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -99,7 +99,7 @@ boardsListsRouter.post("/lists/:listId/restore", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "manage_lists");
     const body = restoreArchiveSchema.parse(req.body);
-    const data = restoreList(req.params.listId, body.renameConflicts ?? false);
+    const data = restoreList(req.params.listId, body.renameConflicts ?? false, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -124,3 +124,4 @@ boardsListsRouter.post("/lists/:listId/comments", (req, res, next) => {
     next(error);
   }
 });
+

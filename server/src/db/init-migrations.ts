@@ -32,7 +32,7 @@ export function migrateUsersForGuest(): void {
     `);
     sqlite.exec(`INSERT INTO users SELECT id, name, email, username, display_name, bio, age, date_of_birth, password_hash, role, created_at, updated_at FROM users_old;`);
     sqlite.exec("DROP TABLE users_old;");
-  })();
+    })();
   sqlite.exec("PRAGMA legacy_alter_table=OFF;");
   sqlite.exec("PRAGMA foreign_keys=ON;");
 }
@@ -54,7 +54,7 @@ export function migrateInvitesForGuest(): void {
     `);
     sqlite.exec(`INSERT INTO invites SELECT id, email, role, invite_token, expires_at, created_at FROM invites_old;`);
     sqlite.exec("DROP TABLE invites_old;");
-  })();
+    })();
   sqlite.exec("PRAGMA legacy_alter_table=OFF;");
   sqlite.exec("PRAGMA foreign_keys=ON;");
 }
@@ -92,7 +92,7 @@ export function repairLegacyForeignKeys(legacyTable: string, targetTable: string
 
       sqlite.exec(`DROP TABLE "${backupName}";`);
     }
-  })();
+    })();
   sqlite.exec("PRAGMA legacy_alter_table=OFF;");
   sqlite.exec("PRAGMA foreign_keys=ON;");
 }
@@ -223,7 +223,31 @@ export function applySchemaMigrations(): void {
     if (!cardColumnNames.has("cover_color")) {
       safeAddColumn("ALTER TABLE cards ADD COLUMN cover_color TEXT");
     }
-  })();
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS activity_logs (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        board_id TEXT,
+        list_id TEXT,
+        card_id TEXT,
+        thread_conversation_id TEXT,
+        thread_message_id TEXT,
+        thread_reply_id TEXT,
+        mentioned_user_id TEXT,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE SET NULL,
+        FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE SET NULL,
+        FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE SET NULL,
+        FOREIGN KEY (thread_conversation_id) REFERENCES thread_conversations(id) ON DELETE SET NULL,
+        FOREIGN KEY (thread_message_id) REFERENCES thread_messages(id) ON DELETE SET NULL,
+        FOREIGN KEY (thread_reply_id) REFERENCES thread_replies(id) ON DELETE SET NULL,
+        FOREIGN KEY (mentioned_user_id) REFERENCES users(id) ON DELETE SET NULL
+      );
+    `);
+    })();
 }
 
 export function ensureIndexes(): void {
@@ -274,7 +298,14 @@ export function ensureIndexes(): void {
       CREATE INDEX IF NOT EXISTS idx_invites_expires_at ON invites(expires_at);
       CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_unique ON users(username) WHERE username IS NOT NULL;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_board_name_active ON lists(board_id, name) WHERE archived_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_activity_logs_board_id ON activity_logs(board_id);
+      CREATE INDEX IF NOT EXISTS idx_activity_logs_actor_id ON activity_logs(actor_id);
+      CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at);
+      CREATE INDEX IF NOT EXISTS idx_activity_logs_thread_conversation_id ON activity_logs(thread_conversation_id);
     `);
-  })();
+    })();
 }
+
+
+
 

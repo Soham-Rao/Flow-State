@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
 import { markCommentMentionsSchema, markThreadMentionsSchema } from "./mentions.schema.js";
-import { getUnreadMentions, markCommentMentionsSeen, markThreadMentionsSeen } from "./mentions.service.js";
+import { getUnreadMentions, listUnreadCommentMentions, markCommentMentionsSeen, markThreadMentionsSeen } from "./mentions.service.js";
 
 export const mentionsRouter = Router();
 
@@ -16,6 +16,16 @@ mentionsRouter.get("/unread", (req, res, next) => {
     next(error);
   }
 });
+
+mentionsRouter.get("/comments/unread", (req, res, next) => {
+  try {
+    const data = listUnreadCommentMentions(req.auth!.userId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 mentionsRouter.post("/comments/seen", (req, res, next) => {
   try {

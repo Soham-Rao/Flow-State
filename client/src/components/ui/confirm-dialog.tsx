@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,9 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   confirmClassName?: string;
   confirmVariant?: "default" | "secondary" | "ghost";
+  showCancel?: boolean;
+  showConfirm?: boolean;
+  initialFocus?: "cancel" | "confirm";
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -23,9 +26,19 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   confirmClassName,
   confirmVariant = "default",
+  showCancel = true,
+  showConfirm = true,
+  initialFocus = "confirm",
   onConfirm,
   onCancel
 }: ConfirmDialogProps): JSX.Element | null {
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const cancelRef = useRef<HTMLButtonElement | null>(null);
+  const confirmRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent): void => {
@@ -38,30 +51,93 @@ export function ConfirmDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onCancel]);
 
+  useEffect(() => {
+    if (!open) return;
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const focusTarget =
+      initialFocus === "cancel"
+        ? cancelRef.current ?? confirmRef.current
+        : confirmRef.current ?? cancelRef.current;
+    const timer = window.setTimeout(() => focusTarget?.focus(), 0);
+    return () => {
+      window.clearTimeout(timer);
+      previousFocusRef.current?.focus();
+    };
+  }, [open, initialFocus]);
+
   if (!open) {
     return null;
   }
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key !== "Tab") return;
+    const container = dialogRef.current;
+    if (!container) return;
+    const focusables = Array.from(
+      container.querySelectorAll<HTMLElement>(
+        "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
+      )
+    ).filter((el) => !el.hasAttribute("disabled"));
+
+    if (focusables.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+
+    if (event.shiftKey && active === first) {
+      last.focus();
+      event.preventDefault();
+    } else if (!event.shiftKey && active === last) {
+      first.focus();
+      event.preventDefault();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onCancel();
         }
       }}
+      onKeyDown={handleKeyDown}
     >
-      <Card className="w-full max-w-md" onMouseDown={(event) => event.stopPropagation()}>
+      <Card
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        className="w-full max-w-md"
+        onMouseDown={(event) => event.stopPropagation()}
+        tabIndex={-1}
+      >
         <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+          <CardTitle id={titleId}>{title}</CardTitle>
+          <CardDescription id={descriptionId}>{description}</CardDescription>
         </CardHeader>
         <CardContent className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onCancel}>
-            {cancelLabel}
-          </Button>
-          <Button type="button" variant={confirmVariant} className={confirmClassName} onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
+          {showCancel && (
+            <Button ref={cancelRef} type="button" variant="ghost" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+          )}
+          {showConfirm && (
+            <Button
+              ref={confirmRef}
+              type="button"
+              variant={confirmVariant}
+              className={confirmClassName}
+              onClick={onConfirm}
+            >
+              {confirmLabel}
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>

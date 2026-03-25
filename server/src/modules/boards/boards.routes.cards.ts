@@ -42,7 +42,7 @@ boardsCardsRouter.patch("/cards/:cardId", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "edit_cards");
     const body = updateCardSchema.parse(req.body);
-    const data = updateCard(req.params.cardId, body);
+    const data = updateCard(req.params.cardId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -142,7 +142,7 @@ boardsCardsRouter.post("/cards/move", (req, res, next) => {
   try {
     assertPermission(req.auth!.userId, "edit_cards");
     const body = moveCardSchema.parse(req.body);
-    const data = moveCard(body);
+    const data = moveCard(body, req.auth!.userId);
 
     res.status(200).json({
       success: true,

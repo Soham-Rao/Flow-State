@@ -15,6 +15,7 @@ const GUEST_ROLE_COLOR = "#94a3b8";
 
 const MEMBER_ROLE_PERMISSIONS = [
   "view_boards",
+  "view_activity_logs",
   "create_boards",
   "edit_boards",
   "manage_lists",
@@ -50,6 +51,7 @@ const MEMBER_ROLE_PERMISSIONS = [
 
 const GUEST_ROLE_PERMISSIONS = [
   "view_boards",
+  "view_activity_logs",
   "dm_read",
   "dm_write"
 ];
@@ -120,5 +122,7 @@ export function ensureInviteRoleAssignments(adminRoleId: string, memberRoleId: s
     }
   })();
 }
+
+
 
 

@@ -237,8 +237,7 @@ export function createThreadMessage(userId: string, conversationId: string, inpu
     .where(eq(threadConversations.id, conversationId))
     .run();
 
-  const mentionIds = input.mentions?.filter((mentionId) => mentionId !== userId);
-  storeThreadMentions(conversationId, messageId, mentionIds);
+  storeThreadMentions(conversationId, messageId, input.mentions, userId);
 
   const author = ensureUserExists(userId);
   return {

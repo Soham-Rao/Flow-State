@@ -45,6 +45,7 @@ export interface BoardDetailBoardHandlersParams {
   setNewListDone: React.Dispatch<React.SetStateAction<boolean>>;
   setBoard: React.Dispatch<React.SetStateAction<BoardDetail | null>>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
+  setPermissionError: React.Dispatch<React.SetStateAction<string | null>>;
   triggerSavedNotice: () => void;
   navigate: (path: string) => void;
   listSyncedNamesRef: React.MutableRefObject<Record<string, string>>;
@@ -93,6 +94,7 @@ export function useBoardDetailBoardHandlers({
   setNewListDone,
   setBoard,
   setError,
+  setPermissionError,
   triggerSavedNotice,
   navigate,
   listSyncedNamesRef,
@@ -420,7 +422,7 @@ export function useBoardDetailBoardHandlers({
     }
   };
 
-  const onDeleteComment = async (): Promise<void> => {
+    const onDeleteComment = async (): Promise<void> => {
     if (!commentToDelete) return;
     try {
       await deleteComment(commentToDelete.id);
@@ -429,7 +431,14 @@ export function useBoardDetailBoardHandlers({
       setError(null);
       triggerSavedNotice();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete comment");
+      const message = deleteError instanceof Error ? deleteError.message : "Failed to delete comment";
+      if (/only delete comments/i.test(message)) {
+        setCommentToDelete(null);
+        setError(null);
+        setPermissionError(message);
+        return;
+      }
+      setError(message);
     }
   };
 
@@ -579,3 +588,10 @@ export function useBoardDetailBoardHandlers({
   requestRestoreArchivedCard
   };
 }
+
+
+
+
+
+
+
