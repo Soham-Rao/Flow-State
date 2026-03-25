@@ -22,8 +22,8 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 6.1 (Socket.IO infra): complete
   - Phase 6.2 (Activity Log + Pulse UI): complete
   - Phase 6.3 (Presence): complete
-  - Phase 6.4 (Board realtime updates): not started
-  - Phase 6.5 (Threads realtime): not started
+  - Phase 6.4 (Board realtime updates): complete
+  - Phase 6.5 (Threads realtime): complete
   - Phase 8 (Focus mode + time tracking): complete
 
 - Phase 6 completion highlights:
@@ -31,6 +31,8 @@ Purpose: Resume from this exact project state, not from zero.
   - Activity log pipeline (API + UI) with Team Pulse + board activity panel
   - Presence tracking with online/AFK/offline, last-seen, and UI indicators
   - Threads UI improvements: manage view persisted in URL, channel permissions dropdown with clear-override, presence dots in member lists
+  - Board realtime: board detail refreshes on socket board events with batched fetch
+  - Threads realtime: conversation rooms + message/reply/reaction/media socket events with polling fallback
 
 - Recent UI/UX work:
   - Card/board confirm dialogs use proper focus trapping
@@ -64,9 +66,8 @@ Purpose: Resume from this exact project state, not from zero.
 
 ## 2) Resume-Next Priority
 
-- Phase 6.4: board realtime updates (socket events + client batching).
-- Phase 6.5: threads realtime (socket-driven DMs/channels).
 - Phase 7: calendar + multi-view.
+- Phase 8+: time tracking + focus polish (if revisited).
 
 ## 3) User Preferences to Preserve on Resume
 
@@ -117,6 +118,7 @@ Communication rules:
 
 Tracked modified files at checkpoint:
 - Docs/context.md
+- Docs/resume.txt
 - Docs/notes.txt
 - bun.lock
 - client/package.json
@@ -134,6 +136,7 @@ Tracked modified files at checkpoint:
 - client/src/pages/home-page.tsx
 - client/src/pages/threads-page.constants.ts
 - client/src/pages/threads-page.controller.ts
+- client/src/pages/threads-page.controller.actions.ts
 - client/src/pages/threads-page.sidebar.tsx
 - client/src/pages/threads-page.tsx
 - client/src/types/mentions.ts
@@ -180,11 +183,11 @@ Note: db -shm and -wal files are runtime artifacts; do not delete without user i
 
 - Threads now persist selection + manage view in URL; verify deep links continue to work after any routing changes.
 - Presence relies on socket state; ensure reconnect logic stays intact.
-- Activity list is now socket-driven; verify batching when enabling board realtime (Phase 6.4).
+- Activity list is now socket-driven; verify batching with board/thread realtime updates.
 
 ## 8) Immediate User-Facing Follow-up Item
 
-- Start Phase 6.4: board realtime updates and client batching.
+- Start Phase 7: calendar + multi-view.
 
 ## 9) Resume Command Pack
 

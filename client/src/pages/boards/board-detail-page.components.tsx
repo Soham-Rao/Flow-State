@@ -2,8 +2,10 @@ import { useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CalendarClock, Check, Download, GripVertical, ListChecks } from "lucide-react";
+import { useState } from "react";
 import type React from "react";
 import { UserHoverCard } from "@/components/users/user-hover-card";
+import { useAuthStore } from "@/stores/auth-store";
 import type { BoardCard, BoardComment, BoardMember, Checklist, ChecklistItem } from "@/types/board";
 import {
   coverColorSurfaceClasses,
@@ -47,6 +49,46 @@ function renderMentionBody(body: string): React.ReactNode {
 
 const COMMENT_REACTION_CHOICES = ["👍", "🎉", "❤️"];
 
+const MENTION_DISMISSED_KEY = "flowstate:board:mention-dismissed";
+const dismissedMentionCache = new Map<string, Set<string>>();
+
+function readDismissedMentions(boardId: string): Set<string> {
+  const cached = dismissedMentionCache.get(boardId);
+  if (cached) return cached;
+  try {
+    const raw = localStorage.getItem(MENTION_DISMISSED_KEY);
+    if (!raw) {
+      const empty = new Set<string>();
+      dismissedMentionCache.set(boardId, empty);
+      return empty;
+    }
+    const parsed = JSON.parse(raw) as Record<string, string[]>;
+    const list = parsed[boardId] ?? [];
+    const next = new Set<string>(list);
+    dismissedMentionCache.set(boardId, next);
+    return next;
+  } catch {
+    const empty = new Set<string>();
+    dismissedMentionCache.set(boardId, empty);
+    return empty;
+  }
+}
+
+function writeDismissedMention(boardId: string, commentId: string): void {
+  const set = readDismissedMentions(boardId);
+  if (set.has(commentId)) return;
+  set.add(commentId);
+  dismissedMentionCache.set(boardId, set);
+  try {
+    const raw = localStorage.getItem(MENTION_DISMISSED_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, string[]>) : {};
+    parsed[boardId] = Array.from(set);
+    localStorage.setItem(MENTION_DISMISSED_KEY, JSON.stringify(parsed));
+  } catch {
+    // ignore
+  }
+}
+
 export function CommentNote({
   comment,
   expanded,
@@ -62,6 +104,22 @@ export function CommentNote({
   onDelete?: () => void;
   variant?: "default" | "compact";
 }): JSX.Element {
+  const currentUserId = useAuthStore((state) => state.user?.id);
+  const [highlightDismissed, setHighlightDismissed] = useState(() =>
+    comment.boardId ? readDismissedMentions(comment.boardId).has(comment.id) : false
+  );
+  const isMentioned = Boolean(currentUserId && comment.mentions?.some((mention) => mention.id === currentUserId));
+  const showHighlight = isMentioned && !highlightDismissed;
+  const highlightClass = showHighlight
+    ? "ring-2 ring-sky-400/70 border-sky-300/60 shadow-[0_0_12px_rgba(56,189,248,0.35)]"
+    : "";
+  const dismissHighlight = () => {
+    if (!showHighlight) return;
+    setHighlightDismissed(true);
+    if (comment.boardId) {
+      writeDismissedMention(comment.boardId, comment.id);
+    }
+  };
   const displayBody = expanded ? comment.body : getCommentSnippet(comment.body);
   const renderedBody = renderMentionBody(displayBody);
   const reactionCounts = new Map(comment.reactions.map((reaction) => [reaction.emoji, reaction.count]));
@@ -79,9 +137,12 @@ export function CommentNote({
         type="button"
         onClick={(event) => {
           event.stopPropagation();
+          dismissHighlight();
           onToggle();
         }}
-        className="inline-flex w-auto max-w-[240px] min-w-0 items-center gap-1.5 rounded-full border comment-note comment-note-compact px-2 py-1 text-[10px] shadow-sm transition"
+        onMouseEnter={dismissHighlight}
+        onFocus={dismissHighlight}
+        className={`inline-flex w-auto max-w-[240px] min-w-0 items-center gap-1.5 rounded-full border comment-note comment-note-compact px-2 py-1 text-[10px] shadow-sm transition ${highlightClass}`}
       >
         <UserHoverCard user={comment.author}>
           <span className="font-semibold">{getMemberDisplayName(comment.author)}</span>
@@ -99,16 +160,20 @@ export function CommentNote({
       tabIndex={0}
       onClick={(event) => {
         event.stopPropagation();
+        dismissHighlight();
         onToggle();
       }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           event.stopPropagation();
+          dismissHighlight();
           onToggle();
         }
       }}
-      className="w-full rounded-md border comment-note comment-note-block px-2.5 py-2 text-left text-xs shadow-sm transition"
+      onMouseEnter={dismissHighlight}
+      onFocus={dismissHighlight}
+      className={`w-full rounded-md border comment-note comment-note-block px-2.5 py-2 text-left text-xs shadow-sm transition ${highlightClass}`}
     >
       <div className="flex items-center justify-between gap-2 text-[10px] comment-note-subtle">
         <UserHoverCard user={comment.author}>

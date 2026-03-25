@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../../db/connection.js";
 import { attachments } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { emitBoardEvent } from "../../realtime/socket.js";
 import type { BoardAttachment } from "./boards.service.types.js";
 import { buildAttachmentStoragePath, ensureAttachmentDirectory, removeFileIfExists, resolveAttachmentPath } from "./boards.service.utils.js";
 import { assertCardExists, getAttachmentRecordById, getCardBoardContext } from "./boards.service.lookups.js";
@@ -59,6 +60,12 @@ export async function createAttachments(
     });
   }
 
+  emitBoardEvent(boardId, {
+    boardId,
+    type: "attachment.created",
+    data: { cardId, attachmentIds: created.map((item) => item.id) }
+  });
+
   return created;
 }
 
@@ -72,6 +79,7 @@ export function getAttachmentDownloadInfo(attachmentId: string): { filePath: str
 
 export async function deleteAttachment(attachmentId: string): Promise<void> {
   const attachment = getAttachmentRecordById(attachmentId);
+  const { boardId } = getCardBoardContext(attachment.cardId);
   await removeFileIfExists(resolveAttachmentPath(attachment.storagePath));
 
   const result = db.delete(attachments).where(eq(attachments.id, attachmentId)).run();
@@ -79,4 +87,10 @@ export async function deleteAttachment(attachmentId: string): Promise<void> {
   if (result.changes === 0) {
     throw new ApiError(404, "Attachment not found");
   }
+
+  emitBoardEvent(boardId, {
+    boardId,
+    type: "attachment.deleted",
+    data: { cardId: attachment.cardId, attachmentId }
+  });
 }

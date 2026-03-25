@@ -2,14 +2,16 @@ import { Pin, Search } from "lucide-react";
 
 import { PresenceIndicator } from "@/components/users/presence-indicator";
 import type { ChannelConversationSummary, DmConversationSummary, ThreadUserSummary } from "@/types/threads";
+import type { ThreadBadgeMode } from "@/stores/thread-settings-store";
 import type { PresenceState, PresenceStatus } from "@/types/presence";
 
 import { getInitial } from "./threads-page.utils";
 
 export type ThreadsSidebarProps = {
   activeTab: "dms" | "channels";
-  dmMentionTotal: number;
-  channelMentionTotal: number;
+  dmBadgeCount: number;
+  channelBadgeCount: number;
+  threadBadgeMode: ThreadBadgeMode;
   onTabChange: (tab: "dms" | "channels") => void;
   searchTerm: string;
   onSearchTermChange: (value: string) => void;
@@ -35,8 +37,9 @@ export type ThreadsSidebarProps = {
 
 export function ThreadsSidebar({
   activeTab,
-  dmMentionTotal,
-  channelMentionTotal,
+  dmBadgeCount,
+  channelBadgeCount,
+  threadBadgeMode,
   onTabChange,
   searchTerm,
   onSearchTermChange,
@@ -72,9 +75,9 @@ export function ThreadsSidebar({
           }`}
         >
           Direct messages
-          {dmMentionTotal > 0 && (
+          {dmBadgeCount > 0 && (
             <span className="ml-2 rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-              {dmMentionTotal}
+              {dmBadgeCount}
             </span>
           )}
         </button>
@@ -88,9 +91,9 @@ export function ThreadsSidebar({
           }`}
         >
           Channels
-          {channelMentionTotal > 0 && (
+          {channelBadgeCount > 0 && (
             <span className="ml-2 rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-              {channelMentionTotal}
+              {channelBadgeCount}
             </span>
           )}
         </button>
@@ -164,10 +167,18 @@ export function ThreadsSidebar({
                     <p className="truncate text-sm font-semibold">#{channel.name}</p>
                     <p className="text-[11px] text-muted-foreground">{channel.memberCount} members</p>
                   </div>
-                  {channel.unreadMentions > 0 && (
-                    <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-                      {channel.unreadMentions}
-                    </span>
+                  {threadBadgeMode !== "never" && (
+                    threadBadgeMode === "mentions" ? (
+                      ((isActive ? (channel.unreadReplyMentions ?? 0) : (channel.unreadMentions ?? 0) + (channel.unreadReplyMentions ?? 0)) > 0) && (
+                        <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          {isActive ? (channel.unreadReplyMentions ?? 0) : (channel.unreadMentions ?? 0) + (channel.unreadReplyMentions ?? 0)}
+                        </span>
+                      )
+                    ) : (
+                      ((channel.unreadReplyMentions ?? 0) > 0 || (channel.unreadMentions ?? 0) > 0 || (!isActive && channel.hasUnread)) && (
+                        <span className="h-2 w-2 rounded-full bg-rose-500" />
+                      )
+                    )
                   )}
                 </button>
               );
@@ -236,10 +247,18 @@ export function ThreadsSidebar({
                     >
                       <Pin className="h-3 w-3" />
                     </button>
-                    {conversation && conversation.unreadMentions > 0 && (
-                      <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-                        {conversation.unreadMentions}
-                      </span>
+                    {conversation && threadBadgeMode !== "never" && (
+                      threadBadgeMode === "mentions" ? (
+                        ((isActive ? (conversation.unreadReplyMentions ?? 0) : (conversation.unreadMentions ?? 0) + (conversation.unreadReplyMentions ?? 0)) > 0) && (
+                          <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            {isActive ? (conversation.unreadReplyMentions ?? 0) : (conversation.unreadMentions ?? 0) + (conversation.unreadReplyMentions ?? 0)}
+                          </span>
+                        )
+                      ) : (
+                        ((conversation.unreadReplyMentions ?? 0) > 0 || (conversation.unreadMentions ?? 0) > 0 || (!isActive && conversation.hasUnread)) && (
+                          <span className="h-2 w-2 rounded-full bg-rose-500" />
+                        )
+                      )
                     )}
                   </button>
                 );

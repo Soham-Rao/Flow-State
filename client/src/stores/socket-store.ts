@@ -9,16 +9,28 @@ import type { PresenceStatus, PresenceUser } from "@/types/presence";
 
 type SocketStatus = "idle" | "connecting" | "connected" | "error";
 
+type BoardEventPayload = { boardId: string; type: string; data?: Record<string, unknown> };
+type ThreadEventPayload = { conversationId: string; data?: Record<string, unknown> };
+type ThreadEvent = { event: string; payload: ThreadEventPayload };
+type BoardEventsListener = (events: BoardEventPayload[]) => void;
+type ThreadEventsListener = (events: ThreadEvent[]) => void;
+
 interface SocketStoreState {
   status: SocketStatus;
   connect: () => void;
   disconnect: () => void;
   joinBoard: (boardId: string) => void;
   leaveBoard: (boardId: string) => void;
+  joinThread: (conversationId: string) => void;
+  leaveThread: (conversationId: string) => void;
+  subscribeBoardEvents: (listener: BoardEventsListener) => () => void;
+  subscribeThreadEvents: (listener: ThreadEventsListener) => () => void;
   setPresenceStatus: (status: PresenceStatus) => void;
 }
 
 const ACTIVITY_BATCH_MS = 350;
+const BOARD_EVENT_BATCH_MS = 300;
+const THREAD_EVENT_BATCH_MS = 300;
 const PRESENCE_STATUS_KEY = "flowstate:presence:status";
 
 let activeSocket: Socket | null = null;
@@ -26,6 +38,14 @@ let activeToken: string | null = null;
 let activityQueue: ActivityLogEntry[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let preferredStatus: PresenceStatus = "online";
+
+let boardQueue: BoardEventPayload[] = [];
+let boardFlushTimer: ReturnType<typeof setTimeout> | null = null;
+let threadQueue: ThreadEvent[] = [];
+let threadFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+const boardListeners = new Set<BoardEventsListener>();
+const threadListeners = new Set<ThreadEventsListener>();
 
 try {
   const stored = localStorage.getItem(PRESENCE_STATUS_KEY);
@@ -58,6 +78,38 @@ function enqueueActivity(entry: ActivityLogEntry): void {
     flushTimer = null;
     flushActivityQueue();
   }, ACTIVITY_BATCH_MS);
+}
+
+function flushBoardQueue(): void {
+  if (boardQueue.length === 0) return;
+  const batch = boardQueue;
+  boardQueue = [];
+  boardListeners.forEach((listener) => listener(batch));
+}
+
+function enqueueBoardEvent(entry: BoardEventPayload): void {
+  boardQueue.push(entry);
+  if (boardFlushTimer !== null) return;
+  boardFlushTimer = setTimeout(() => {
+    boardFlushTimer = null;
+    flushBoardQueue();
+  }, BOARD_EVENT_BATCH_MS);
+}
+
+function flushThreadQueue(): void {
+  if (threadQueue.length === 0) return;
+  const batch = threadQueue;
+  threadQueue = [];
+  threadListeners.forEach((listener) => listener(batch));
+}
+
+function enqueueThreadEvent(event: string, payload: ThreadEventPayload): void {
+  threadQueue.push({ event, payload });
+  if (threadFlushTimer !== null) return;
+  threadFlushTimer = setTimeout(() => {
+    threadFlushTimer = null;
+    flushThreadQueue();
+  }, THREAD_EVENT_BATCH_MS);
 }
 
 function setPreferredStatus(status: PresenceStatus): void {
@@ -109,6 +161,20 @@ export const useSocketStore = create<SocketStoreState>((set) => ({
     socket.on("disconnect", () => set({ status: "idle" }));
     socket.on("connect_error", () => set({ status: "error" }));
     socket.on("activity:new", (payload: ActivityLogEntry) => enqueueActivity(payload));
+    socket.on("board:event", (payload: BoardEventPayload) => enqueueBoardEvent(payload));
+
+    const threadEvents = [
+      "threads:message:new",
+      "threads:message:edit",
+      "threads:message:delete",
+      "threads:reply:new",
+      "threads:reply:edit",
+      "threads:reply:delete",
+      "threads:reaction"
+    ];
+    threadEvents.forEach((event) => {
+      socket.on(event, (payload: ThreadEventPayload) => enqueueThreadEvent(event, payload));
+    });
 
     socket.on("presence:workspace", (payload: { users?: PresenceUser[]; lastSeenByUserId?: Record<string, number> }) => {
       usePresenceStore.getState().setWorkspace(payload.users ?? [], payload.lastSeenByUserId);
@@ -139,6 +205,30 @@ export const useSocketStore = create<SocketStoreState>((set) => ({
   leaveBoard: (boardId) => {
     if (!activeSocket || !activeSocket.connected) return;
     activeSocket.emit("board:leave", { boardId });
+  },
+
+  joinThread: (conversationId) => {
+    if (!activeSocket || !activeSocket.connected) return;
+    activeSocket.emit("thread:join", { conversationId });
+  },
+
+  leaveThread: (conversationId) => {
+    if (!activeSocket || !activeSocket.connected) return;
+    activeSocket.emit("thread:leave", { conversationId });
+  },
+
+  subscribeBoardEvents: (listener) => {
+    boardListeners.add(listener);
+    return () => {
+      boardListeners.delete(listener);
+    };
+  },
+
+  subscribeThreadEvents: (listener) => {
+    threadListeners.add(listener);
+    return () => {
+      threadListeners.delete(listener);
+    };
   },
 
   setPresenceStatus: (status) => {

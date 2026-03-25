@@ -28,6 +28,13 @@ export function formatTime(value: string | null): string {
 export function formatDateHeading(value: string | null): string {
   if (!value) return "";
   const date = new Date(value);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffMs = startOfToday.getTime() - startOfDate.getTime();
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+  if (diffDays == 0) return "Today";
+  if (diffDays == 1) return "Yesterday";
   return date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 }
 

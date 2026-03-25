@@ -8,5 +8,10 @@ export const markThreadMentionsSchema = z.object({
   conversationId: z.string().uuid()
 });
 
+export const markThreadReplyMentionsSchema = z.object({
+  messageId: z.string().uuid()
+});
+
 export type MarkCommentMentionsInput = z.infer<typeof markCommentMentionsSchema>;
 export type MarkThreadMentionsInput = z.infer<typeof markThreadMentionsSchema>;
+export type MarkThreadReplyMentionsInput = z.infer<typeof markThreadReplyMentionsSchema>;

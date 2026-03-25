@@ -16,11 +16,12 @@ interface MentionsFieldProps {
   onKeyDown?: (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   multiline?: boolean;
   dropdownPlacement?: "top" | "bottom";
+  dropdownMaxHeightClassName?: string;
   rows?: number;
   "data-testid"?: string;
 }
 
-const MAX_SUGGESTIONS = 6;
+const MAX_SUGGESTIONS = 12;
 
 export function MentionsField({
   value,
@@ -33,6 +34,7 @@ export function MentionsField({
   multiline,
   rows,
   dropdownPlacement = "bottom",
+  dropdownMaxHeightClassName,
   "data-testid": dataTestId
 }: MentionsFieldProps): JSX.Element {
   const fieldRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
@@ -158,7 +160,7 @@ export function MentionsField({
           "absolute left-0 z-30 w-full overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg",
           dropdownPlacement === "top" ? "bottom-full mb-1" : "top-full mt-1"
         )}>
-          <ul className="max-h-48 overflow-auto py-1 text-xs">
+          <ul className={cn("overflow-auto py-1 text-xs", dropdownMaxHeightClassName ?? "max-h-48")}>
             {suggestions.map((member, index) => {
               const active = index === activeIndex;
               return (

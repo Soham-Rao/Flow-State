@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { markThreadMentionsSeen } from "@/lib/mentions-api";
@@ -21,6 +21,7 @@ import {
   } from "@/lib/threads-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMentionStore } from "@/stores/mentions-store";
+import { useThreadSettingsStore } from "@/stores/thread-settings-store";
 import type { BoardMember } from "@/types/board";
 import type { ChannelConversationSummary, ChannelMemberSummary, DmConversationSummary, ThreadMessageSummary, ThreadUserSummary } from "@/types/threads";
 type ThreadConversationSummary = DmConversationSummary | ChannelConversationSummary;
@@ -104,9 +105,15 @@ export function useThreadsController() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [videoPreview, setVideoPreview] = useState<{ url: string; name: string } | null>(null);
   const [imagePreview, setImagePreview] = useState<{ url: string; name: string } | null>(null);
+  const [replySeenCounts, setReplySeenCounts] = useState<Record<string, number>>({});
 
   const refreshMentions = useMentionStore((state) => state.refresh);
   const mentionCounts = useMentionStore((state) => state.counts);
+  const threadBadgeMode = useThreadSettingsStore((state) => state.threadBadgeMode);
+  const socketStatus = useSocketStore((state) => state.status);
+  const joinThread = useSocketStore((state) => state.joinThread);
+  const leaveThread = useSocketStore((state) => state.leaveThread);
+  const subscribeThreadEvents = useSocketStore((state) => state.subscribeThreadEvents);
 
   const activeChannel = activeConversation?.type === "channel" ? activeConversation : null;
   const lastSavedChannelRef = useRef<{ id: string; name: string; description: string | null } | null>(null);
@@ -135,6 +142,11 @@ export function useThreadsController() {
   const lastMessageIdRef = useRef<string | null>(null);
   const pendingScrollRef = useRef(false);
   const pollingRef = useRef<number | null>(null);
+  const threadRefreshTimerRef = useRef<number | null>(null);
+  const conversationsRefreshTimerRef = useRef<number | null>(null);
+  const replyRefreshTimerRef = useRef<number | null>(null);
+  const activeConversationRef = useRef<ThreadConversationSummary | null>(null);
+  const joinedThreadsRef = useRef<Set<string>>(new Set());
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [hoveredReplyId, setHoveredReplyId] = useState<string | null>(null);
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
@@ -169,13 +181,39 @@ export function useThreadsController() {
     }));
   }, [activeConversation?.type, channelMembers, dmUsers]);
 
-  const dmMentionTotal = useMemo(() => (
-    dmConversations.reduce((sum, conversation) => sum + (conversation.unreadMentions ?? 0), 0)
-  ), [dmConversations]);
+  const dmBadgeCount = useMemo(() => {
+    if (threadBadgeMode === "never") return 0;
+    return dmConversations.filter((conversation) => {
+      const messageMentions = conversation.unreadMentions ?? 0;
+      const replyMentions = conversation.unreadReplyMentions ?? 0;
+      const isActive = activeConversation?.type === "dm" && activeConversation.id === conversation.id;
+      if (threadBadgeMode === "mentions") {
+        if (isActive) return replyMentions > 0;
+        return messageMentions + replyMentions > 0;
+      }
+      const hasMentions = messageMentions + replyMentions > 0;
+      if (hasMentions) return true;
+      if (isActive) return false;
+      return Boolean(conversation.hasUnread);
+    }).length;
+  }, [dmConversations, threadBadgeMode, activeConversation?.id, activeConversation?.type]);
 
-  const channelMentionTotal = useMemo(() => (
-    channelConversations.reduce((sum, conversation) => sum + (conversation.unreadMentions ?? 0), 0)
-  ), [channelConversations]);
+  const channelBadgeCount = useMemo(() => {
+    if (threadBadgeMode === "never") return 0;
+    return channelConversations.filter((conversation) => {
+      const messageMentions = conversation.unreadMentions ?? 0;
+      const replyMentions = conversation.unreadReplyMentions ?? 0;
+      const isActive = activeConversation?.type === "channel" && activeConversation.id === conversation.id;
+      if (threadBadgeMode === "mentions") {
+        if (isActive) return replyMentions > 0;
+        return messageMentions + replyMentions > 0;
+      }
+      const hasMentions = messageMentions + replyMentions > 0;
+      if (hasMentions) return true;
+      if (isActive) return false;
+      return Boolean(conversation.hasUnread);
+    }).length;
+  }, [channelConversations, threadBadgeMode, activeConversation?.id, activeConversation?.type]);
 
   const queueCompression = (chunk: ThreadMessageSummary[]) => {
     if (chunk.length == 0) return;
@@ -238,6 +276,7 @@ export function useThreadsController() {
         const updatedChanged =
           incoming.updatedAt !== message.updatedAt ||
           incoming.replyCount !== message.replyCount ||
+          incoming.unreadReplyMentions !== message.unreadReplyMentions ||
           incoming.body !== message.body ||
           incoming.deletedAt !== message.deletedAt ||
           (incoming.attachments?.length ?? 0) !== (message.attachments?.length ?? 0) ||
@@ -264,6 +303,59 @@ export function useThreadsController() {
       return trimIfNeeded(updated);
     });
   };
+
+
+
+    const refreshConversations = async (): Promise<RefreshConversationsResult> => {
+    const [nextDm, nextChannels] = await Promise.all([
+      listDmConversations(),
+      listChannelConversations()
+    ]);
+    setDmConversations(nextDm);
+    setChannelConversations(nextChannels);
+    return { nextDm, nextChannels };
+  };
+  const refreshActiveConversation = useCallback(async (conversation: ThreadConversationSummary): Promise<void> => {
+    const conversationId = conversation.id;
+    const conversationType = conversation.type;
+    try {
+      const [nextMessages, refreshed] = await Promise.all([
+        listThreadMessages(conversationId, { limit: MESSAGES_PAGE_SIZE }),
+        refreshConversations()
+      ]);
+      if (activeConversationRef.current?.id !== conversationId) return;
+      mergeLatestMessages(nextMessages);
+      await markThreadMentionsSeen(conversationId);
+      await refreshMentions();
+
+      const nextDm = refreshed.nextDm;
+      const nextChannels = refreshed.nextChannels;
+      if (conversationType === "dm") {
+        setActiveConversation((prev) => {
+          if (!prev || prev.type !== "dm") return prev;
+          const next = nextDm.find((item) => item.id === prev.id);
+          if (!next) return prev;
+          if (next.lastMessageAt === prev.lastMessageAt && next.unreadMentions === prev.unreadMentions && next.unreadReplyMentions === prev.unreadReplyMentions && next.hasUnread === prev.hasUnread) {
+            return prev;
+          }
+          return next;
+        });
+      } else {
+        setActiveConversation((prev) => {
+          if (!prev || prev.type !== "channel") return prev;
+          const next = nextChannels.find((item) => item.id === prev.id);
+          if (!next) return prev;
+          if (next.lastMessageAt === prev.lastMessageAt && next.unreadMentions === prev.unreadMentions && next.unreadReplyMentions === prev.unreadReplyMentions && next.hasUnread === prev.hasUnread) {
+            return prev;
+          }
+          return next;
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }, [mergeLatestMessages, refreshConversations, refreshMentions]);
+
 
   const loadOlderMessages = async () => {
     if (loadingOlder) return;
@@ -374,22 +466,16 @@ export function useThreadsController() {
     });
   }, [channelConversations, searchTerm]);
 
-    const refreshConversations = async (): Promise<RefreshConversationsResult> => {
-    const [nextDm, nextChannels] = await Promise.all([
-      listDmConversations(),
-      listChannelConversations()
-    ]);
-    setDmConversations(nextDm);
-    setChannelConversations(nextChannels);
-    return { nextDm, nextChannels };
-  };
-const actions = useThreadActions({
+  const actions = useThreadActions({
     activeConversation,
     userId: user?.id,
     messages,
     setMessages,
+    setReplySeenCounts,
     refreshConversations,
+    refreshMentions,
     mentionMembers,
+    enablePolling: socketStatus !== "connected",
     fileInputRef
   });
 
@@ -419,9 +505,72 @@ const actions = useThreadActions({
     setSendError: actions.setSendError
   });
 
+
+  const scheduleThreadRefresh = useCallback(() => {
+    if (threadRefreshTimerRef.current !== null) return;
+    threadRefreshTimerRef.current = window.setTimeout(() => {
+      threadRefreshTimerRef.current = null;
+      const conversation = activeConversationRef.current;
+      if (conversation) {
+        void refreshActiveConversation(conversation);
+      }
+    }, 300);
+  }, [refreshActiveConversation]);
+
+  const scheduleConversationRefresh = useCallback(() => {
+    if (conversationsRefreshTimerRef.current !== null) return;
+    conversationsRefreshTimerRef.current = window.setTimeout(() => {
+      conversationsRefreshTimerRef.current = null;
+      void refreshConversations();
+    }, 300);
+  }, [refreshConversations]);
+
+  const scheduleReplyRefresh = useCallback(() => {
+    if (replyRefreshTimerRef.current !== null) return;
+    replyRefreshTimerRef.current = window.setTimeout(() => {
+      replyRefreshTimerRef.current = null;
+      void actions.refreshReplies();
+    }, 300);
+  }, [actions.refreshReplies]);
+
+  useEffect(() => {
+    return () => {
+      if (threadRefreshTimerRef.current !== null) {
+        window.clearTimeout(threadRefreshTimerRef.current);
+        threadRefreshTimerRef.current = null;
+      }
+      if (conversationsRefreshTimerRef.current !== null) {
+        window.clearTimeout(conversationsRefreshTimerRef.current);
+        conversationsRefreshTimerRef.current = null;
+      }
+      if (replyRefreshTimerRef.current !== null) {
+        window.clearTimeout(replyRefreshTimerRef.current);
+        replyRefreshTimerRef.current = null;
+      }
+    };
+  }, []);
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  useEffect(() => {
+    setReplySeenCounts((prev) => {
+      let changed = false;
+      const next: Record<string, number> = { ...prev };
+      messages.forEach((message) => {
+        const current = next[message.id] ?? 0;
+        if (current > message.replyCount) {
+          next[message.id] = message.replyCount;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [messages]);
+
+  useEffect(() => {
+    activeConversationRef.current = activeConversation;
+  }, [activeConversation]);
 
   useEffect(() => {
     try {
@@ -589,7 +738,7 @@ const actions = useThreadActions({
           setDmConversations((prev) =>
             prev.map((conversation) =>
               conversation.id === activeConversation.id
-                ? { ...conversation, unreadMentions: 0 }
+                ? { ...conversation, unreadMentions: 0, hasUnread: false }
                 : conversation
             )
           );
@@ -597,7 +746,7 @@ const actions = useThreadActions({
           setChannelConversations((prev) =>
             prev.map((conversation) =>
               conversation.id === activeConversation.id
-                ? { ...conversation, unreadMentions: 0 }
+                ? { ...conversation, unreadMentions: 0, hasUnread: false }
                 : conversation
             )
           );
@@ -616,6 +765,49 @@ const actions = useThreadActions({
       active = false;
     };
   }, [activeConversation?.id, refreshMentions]);
+
+  useEffect(() => {
+    if (socketStatus !== "connected") {
+      joinedThreadsRef.current.clear();
+      return;
+    }
+
+    const nextIds = new Set<string>();
+    dmConversations.forEach((conversation) => nextIds.add(conversation.id));
+    channelConversations.forEach((conversation) => nextIds.add(conversation.id));
+
+    const current = joinedThreadsRef.current;
+    nextIds.forEach((id) => {
+      if (!current.has(id)) {
+        joinThread(id);
+        current.add(id);
+      }
+    });
+
+    current.forEach((id) => {
+      if (!nextIds.has(id)) {
+        leaveThread(id);
+        current.delete(id);
+      }
+    });
+  }, [socketStatus, dmConversations, channelConversations, joinThread, leaveThread]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeThreadEvents((events) => {
+      if (events.length === 0) return;
+      scheduleConversationRefresh();
+      const conversationId = activeConversationRef.current?.id;
+      if (!conversationId) return;
+      if (!events.some((event) => event.payload.conversationId === conversationId)) return;
+      scheduleThreadRefresh();
+      if (actions.replyOpen) {
+        scheduleReplyRefresh();
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [subscribeThreadEvents, scheduleConversationRefresh, scheduleThreadRefresh, scheduleReplyRefresh, actions.replyOpen]);
   useEffect(() => {
     if (!activeConversation || activeConversation.type !== "channel") {
       setChannelMembers([]);
@@ -681,44 +873,15 @@ const actions = useThreadActions({
   }, [messages]);
 
   useEffect(() => {
-    if (!activeConversation) return;
+    if (!activeConversation || socketStatus === "connected") return;
 
     let cancelled = false;
 
     const poll = async () => {
       try {
-        const [nextMessages, refreshed] = await Promise.all([
-        listThreadMessages(activeConversation.id, { limit: MESSAGES_PAGE_SIZE }),
-        refreshConversations()
-        ]);
+        const conversation = activeConversation;
+        await refreshActiveConversation(conversation);
         if (cancelled) return;
-        mergeLatestMessages(nextMessages);
-        await markThreadMentionsSeen(activeConversation.id);
-        await refreshMentions();
-
-              const nextDm = refreshed.nextDm;
-      const nextChannels = refreshed.nextChannels;
-      if (activeConversation.type === "dm") {
-        setActiveConversation((prev) => {
-          if (!prev || prev.type !== "dm") return prev;
-          const next = nextDm.find((item) => item.id === prev.id);
-          if (!next) return prev;
-          if (next.lastMessageAt === prev.lastMessageAt && next.unreadMentions === prev.unreadMentions) {
-            return prev;
-          }
-          return next;
-        });
-      } else {
-        setActiveConversation((prev) => {
-          if (!prev || prev.type !== "channel") return prev;
-          const next = nextChannels.find((item) => item.id === prev.id);
-          if (!next) return prev;
-          if (next.lastMessageAt === prev.lastMessageAt && next.unreadMentions === prev.unreadMentions) {
-            return prev;
-          }
-          return next;
-        });
-      }
       } catch {
         // ignore
       }
@@ -734,7 +897,7 @@ const actions = useThreadActions({
       }
       pollingRef.current = null;
     };
-  }, [activeConversation?.id]);
+  }, [activeConversation?.id, socketStatus, refreshActiveConversation]);
 
   useEffect(() => {
     if (loadingMessages) return;
@@ -957,8 +1120,9 @@ const actions = useThreadActions({
     setSearchParams,
     activeTab,
     totalMentions,
-    dmMentionTotal,
-    channelMentionTotal,
+    dmBadgeCount,
+    channelBadgeCount,
+    threadBadgeMode,
     searchTerm,
     setSearchTerm,
     loading,
@@ -1008,6 +1172,7 @@ const actions = useThreadActions({
     jumpToLatest,
     messageListRef,
     handleMessageScroll,
+    replySeenCounts,
     hoveredMessageId,
     setHoveredMessageId,
     reactionPickerMessageId,

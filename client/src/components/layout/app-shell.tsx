@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bell, ChevronDown, Command, LayoutDashboard, ListTodo, LogOut, MessageCircle, MessageSquareText, Settings, Sliders, Timer, User } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { UserHoverCard } from "@/components/users/user-hover-card";
 import { useAuthStore } from "@/stores/auth-store";
+import { useThreadSettingsStore } from "@/stores/thread-settings-store";
 import { useMentionStore } from "@/stores/mentions-store";
 import { usePresenceStore } from "@/stores/presence-store";
 import { useSocketStore } from "@/stores/socket-store";
+import { listChannelConversations, listDmConversations } from "@/lib/threads-api";
 import type { PresenceUser } from "@/types/presence";
 
 interface AppShellProps {
@@ -40,18 +42,71 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const status = useAuthStore((state) => state.status);
   const refreshMentions = useMentionStore((state) => state.refresh);
   const mentionCounts = useMentionStore((state) => state.counts);
+  const threadBadgeMode = useThreadSettingsStore((state) => state.threadBadgeMode);
+  const [threadCounts, setThreadCounts] = useState({ dms: 0, channels: 0 });
   const workspacePresence = usePresenceStore((state) => state.workspace);
   const connectSocket = useSocketStore((state) => state.connect);
   const disconnectSocket = useSocketStore((state) => state.disconnect);
+  const subscribeThreadEvents = useSocketStore((state) => state.subscribeThreadEvents);
 
+
+  const refreshThreadCounts = useCallback(async (): Promise<void> => {
+    if (!user) return;
+    try {
+      const [dmConversations, channelConversations] = await Promise.all([
+        listDmConversations(),
+        listChannelConversations()
+      ]);
+
+      const countForMode = (conversations: Array<{ unreadMentions: number; unreadReplyMentions: number; hasUnread: boolean }>) => {
+        if (threadBadgeMode === "never") return 0;
+        if (threadBadgeMode === "mentions") {
+          return conversations.filter((conversation) =>
+            (conversation.unreadMentions ?? 0) + (conversation.unreadReplyMentions ?? 0) > 0
+          ).length;
+        }
+        return conversations.filter((conversation) =>
+          Boolean(conversation.hasUnread) || (conversation.unreadMentions ?? 0) + (conversation.unreadReplyMentions ?? 0) > 0
+        ).length;
+      };
+
+      setThreadCounts({
+        dms: countForMode(dmConversations),
+        channels: countForMode(channelConversations)
+      });
+    } catch {
+      // ignore
+    }
+  }, [user, threadBadgeMode]);
   useEffect(() => {
     if (!user) return;
     void refreshMentions();
+    void refreshThreadCounts();
     const interval = window.setInterval(() => {
       void refreshMentions();
+      void refreshThreadCounts();
     }, 3000);
     return () => window.clearInterval(interval);
-  }, [user, refreshMentions]);
+  }, [user, refreshMentions, refreshThreadCounts]);
+
+
+  useEffect(() => {
+    if (!user) return;
+    let timer: number | null = null;
+    const unsubscribe = subscribeThreadEvents(() => {
+      if (timer !== null) return;
+      timer = window.setTimeout(() => {
+        timer = null;
+        void refreshThreadCounts();
+      }, 250);
+    });
+    return () => {
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+      unsubscribe();
+    };
+  }, [user, subscribeThreadEvents, refreshThreadCounts]);
 
   useEffect(() => {
     if (!user) {
@@ -183,9 +238,9 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                   <MessageCircle className="h-4 w-4" />
                   DMs
                 </span>
-                {mentionCounts && mentionCounts.threads > 0 && (
+                {threadCounts.dms > 0 && threadBadgeMode !== "never" && (
                   <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    {mentionCounts.threads}
+                    {threadCounts.dms}
                   </span>
                 )}
               </NavLink>
@@ -201,6 +256,11 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
               >
                 <MessageSquareText className="h-4 w-4" />
                 Channels
+                {threadCounts.channels > 0 && threadBadgeMode !== "never" && (
+                  <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    {threadCounts.channels}
+                  </span>
+                )}
               </NavLink>
             </nav>
           )}

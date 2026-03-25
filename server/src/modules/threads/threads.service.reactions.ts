@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { emitThreadEvent } from "../../realtime/socket.js";
 import { threadMessageReactions, threadMessages, threadReplyReactions, threadReplies } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { assertPermission } from "../../utils/permissions.js";
@@ -54,6 +55,7 @@ export function toggleThreadMessageReaction(userId: string, messageId: string, i
       .run();
   }
 
+  emitThreadEvent(message.conversationId, "threads:reaction", { conversationId: message.conversationId });
   return getThreadMessageReactions([messageId]).get(messageId) ?? [];
 }
 
@@ -103,5 +105,6 @@ export function toggleThreadReplyReaction(userId: string, replyId: string, input
       .run();
   }
 
+  emitThreadEvent(reply.conversationId, "threads:reaction", { conversationId: reply.conversationId });
   return getThreadReplyReactions([replyId]).get(replyId) ?? [];
 }

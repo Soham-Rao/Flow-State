@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { emitBoardEvent } from "../../realtime/socket.js";
 import { cardLabels, labels, type LabelColor } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { AssignLabelInput, CreateLabelInput, UpdateLabelInput } from "./boards.schema.js";
@@ -27,11 +28,13 @@ export function createLabel(boardId: string, input: CreateLabelInput): BoardLabe
     })
     .run();
 
-  return assertLabelExists(labelId);
+  const created = assertLabelExists(labelId);
+  emitBoardEvent(boardId, { boardId, type: "label.created", data: { labelId } });
+  return created;
 }
 
 export function updateLabel(labelId: string, input: UpdateLabelInput): BoardLabel {
-  assertLabelExists(labelId);
+  const existing = assertLabelExists(labelId);
 
   const updatePayload: { name?: string; color?: LabelColor; updatedAt: Date } = {
     updatedAt: new Date()
@@ -47,15 +50,20 @@ export function updateLabel(labelId: string, input: UpdateLabelInput): BoardLabe
 
   db.update(labels).set(updatePayload).where(eq(labels.id, labelId)).run();
 
-  return assertLabelExists(labelId);
+  const updated = assertLabelExists(labelId);
+  emitBoardEvent(existing.boardId, { boardId: existing.boardId, type: "label.updated", data: { labelId } });
+  return updated;
 }
 
 export function deleteLabel(labelId: string): void {
+  const existing = assertLabelExists(labelId);
   const result = db.delete(labels).where(eq(labels.id, labelId)).run();
 
   if (result.changes === 0) {
     throw new ApiError(404, "Label not found");
   }
+
+  emitBoardEvent(existing.boardId, { boardId: existing.boardId, type: "label.deleted", data: { labelId } });
 }
 
 export function assignLabelToCard(cardId: string, input: AssignLabelInput): BoardCard {
@@ -84,7 +92,9 @@ export function assignLabelToCard(cardId: string, input: AssignLabelInput): Boar
       .run();
   }
 
-  return getCardById(cardId);
+  const updated = getCardById(cardId);
+  emitBoardEvent(boardId, { boardId, type: "card.label.updated", data: { cardId } });
+  return updated;
 }
 
 export function removeLabelFromCard(cardId: string, labelId: string): BoardCard {
@@ -98,5 +108,8 @@ export function removeLabelFromCard(cardId: string, labelId: string): BoardCard 
     throw new ApiError(404, "Label assignment not found");
   }
 
-  return getCardById(cardId);
+  const updated = getCardById(cardId);
+  const { boardId } = getCardBoardContext(cardId);
+  emitBoardEvent(boardId, { boardId, type: "card.label.updated", data: { cardId } });
+  return updated;
 }

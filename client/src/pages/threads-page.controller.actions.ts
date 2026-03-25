@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { extractMentionIds } from "@/lib/mentions";
+import { markThreadReplyMentionsSeen } from "@/lib/mentions-api";
 import { resolveAudioDuration } from "./threads-page.utils";
 import {
   createThreadMessage,
@@ -75,8 +76,11 @@ type ThreadActionsParams = {
   userId: string | null | undefined;
   messages: ThreadMessageSummary[];
   setMessages: React.Dispatch<React.SetStateAction<ThreadMessageSummary[]>>;
+  setReplySeenCounts: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   refreshConversations: () => Promise<RefreshConversationsResult>;
+  refreshMentions: () => Promise<void>;
   mentionMembers: BoardMember[];
+  enablePolling: boolean;
   fileInputRef: React.RefObject<HTMLInputElement>;
 };
 
@@ -126,6 +130,7 @@ type ThreadActionsState = {
   handleReplyScroll: () => void;
   jumpToLatestReply: () => void;
   replyError: string | null;
+  refreshReplies: () => Promise<void>;
   forwardTarget: ForwardTarget | null;
   forwardOpen: boolean;
   forwardSearch: string;
@@ -181,8 +186,11 @@ export function useThreadActions({
   userId,
   messages,
   setMessages,
+  setReplySeenCounts,
   refreshConversations,
+  refreshMentions,
   mentionMembers,
+  enablePolling,
   fileInputRef,
 }: ThreadActionsParams): ThreadActionsState {
   const [messageDraft, setMessageDraft] = useState("");
@@ -321,7 +329,7 @@ export function useThreadActions({
   }, [replies]);
 
   useEffect(() => {
-    if (!replyOpen || !replyTarget) return;
+    if (!replyOpen || !replyTarget || !enablePolling) return;
 
     let cancelled = false;
 
@@ -345,7 +353,7 @@ export function useThreadActions({
       }
       replyPollingRef.current = null;
     };
-  }, [replyOpen, replyTarget?.id]);
+  }, [replyOpen, replyTarget?.id, enablePolling]);
 
   const handlePickAttachments = () => {
     fileInputRef.current?.click();
@@ -474,6 +482,17 @@ export function useThreadActions({
       return trimRepliesIfNeeded(updated);
     });
   };
+
+  const refreshReplies = async (): Promise<void> => {
+    if (!replyOpen || !replyTarget) return;
+    try {
+      const latest = await listThreadReplies(replyTarget.id, { limit: REPLY_PAGE_SIZE });
+      mergeLatestReplies(latest);
+    } catch {
+      // ignore
+    }
+  };
+
 
   const scrollToReplyBottom = (behavior: ScrollBehavior = "auto") => {
     const container = replyListRef.current;
@@ -787,6 +806,15 @@ export function useThreadActions({
     replyLastIdRef.current = null;
     replyCompressedHistoryRef.current = [];
     setReplies(data);
+    setReplySeenCounts((prev) => ({ ...prev, [message.id]: Math.max(prev[message.id] ?? 0, message.replyCount ?? 0) }));
+    setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, unreadReplyMentions: 0 } : item)));
+    setReplyTarget((prev) => (prev && prev.id === message.id ? { ...prev, unreadReplyMentions: 0 } : prev));
+    void markThreadReplyMentionsSeen(message.id)
+      .then(() => {
+        void refreshConversations();
+        void refreshMentions();
+      })
+      .catch(() => {});
   };
 
   const openInlineReply = (message: ThreadMessageSummary) => {
@@ -1220,6 +1248,7 @@ export function useThreadActions({
     handleReplyScroll,
     jumpToLatestReply,
     replyError,
+    refreshReplies,
     forwardTarget,
     forwardOpen,
     forwardSearch,

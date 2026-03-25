@@ -250,6 +250,8 @@ export function BoardListsSection({
                               onChange={(value) => onListCommentDraftChange(list.id, value)}
                               members={boardMembers}
                               placeholder="Add list note"
+                              dropdownPlacement="top"
+                              dropdownMaxHeightClassName="max-h-32"
                             />
                             <Button type="submit" variant="secondary" className="gap-1">
                               <Plus className="h-4 w-4" />

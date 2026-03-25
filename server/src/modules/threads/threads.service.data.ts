@@ -141,6 +141,41 @@ export function getThreadReplyCounts(messageIds: string[], userId?: string): Map
   }
   return map;
 }
+export function getThreadReplyMentionCounts(messageIds: string[], userId: string): Map<string, number> {
+  if (messageIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = db
+    .select({
+      parentMessageId: threadReplies.parentMessageId,
+      count: sql<number>`count(*)`
+    })
+    .from(threadReplyMentions)
+    .innerJoin(threadReplies, eq(threadReplyMentions.replyId, threadReplies.id))
+    .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
+    .innerJoin(threadMembers, and(
+      eq(threadMembers.conversationId, threadMessages.conversationId),
+      eq(threadMembers.userId, threadReplyMentions.mentionedUserId)
+    ))
+    .where(
+      and(
+        inArray(threadReplies.parentMessageId, messageIds),
+        eq(threadReplyMentions.mentionedUserId, userId),
+        isNull(threadReplyMentions.seenAt),
+        ne(threadReplies.authorId, threadReplyMentions.mentionedUserId)
+      )
+    )
+    .groupBy(threadReplies.parentMessageId)
+    .all();
+
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    map.set(row.parentMessageId, row.count);
+  }
+  return map;
+}
+
 
 export function getThreadAttachmentsForMessages(messageIds: string[]): Map<string, ThreadAttachment[]> {
   if (messageIds.length === 0) {
@@ -399,7 +434,8 @@ export function getDmConversationRows(userId: string) {
     .select({
       id: threadConversations.id,
       lastMessageAt: threadConversations.lastMessageAt,
-      createdAt: threadConversations.createdAt
+      createdAt: threadConversations.createdAt,
+      lastReadAt: threadMembers.lastReadAt
     })
     .from(threadMembers)
     .innerJoin(threadConversations, eq(threadMembers.conversationId, threadConversations.id))
@@ -407,7 +443,7 @@ export function getDmConversationRows(userId: string) {
     .all();
 }
 
-export function getThreadMentionCounts(userId: string, conversationIds: string[]) {
+export function getThreadMessageMentionCounts(userId: string, conversationIds: string[]) {
   if (conversationIds.length === 0) {
     return new Map<string, number>();
   }
@@ -439,6 +475,15 @@ export function getThreadMentionCounts(userId: string, conversationIds: string[]
     mentionCounts.set(row.conversationId, row.count);
   }
 
+  return mentionCounts;
+}
+
+export function getThreadReplyMentionCountsByConversation(userId: string, conversationIds: string[]) {
+  if (conversationIds.length === 0) {
+    return new Map<string, number>();
+  }
+
+  const mentionCounts = new Map<string, number>();
   const replyMentionRows = db
     .select({
       conversationId: threadMessages.conversationId,
@@ -463,7 +508,7 @@ export function getThreadMentionCounts(userId: string, conversationIds: string[]
     .all();
 
   for (const row of replyMentionRows) {
-    mentionCounts.set(row.conversationId, (mentionCounts.get(row.conversationId) ?? 0) + row.count);
+    mentionCounts.set(row.conversationId, row.count);
   }
 
   return mentionCounts;

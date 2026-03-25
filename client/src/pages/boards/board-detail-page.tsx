@@ -100,8 +100,10 @@ export function BoardDetailPage(): JSX.Element {
   useBoardCommentMentions(board);
 
   const loadBoardActivity = useActivityStore((state) => state.loadBoard);
+  const socketStatus = useSocketStore((state) => state.status);
   const joinBoard = useSocketStore((state) => state.joinBoard);
   const leaveBoard = useSocketStore((state) => state.leaveBoard);
+  const subscribeBoardEvents = useSocketStore((state) => state.subscribeBoardEvents);
   const boardPresenceRaw = usePresenceStore((state) => (boardId ? state.board[boardId] : undefined));
   const boardPresence = boardPresenceRaw ?? [];
 
@@ -121,6 +123,7 @@ export function BoardDetailPage(): JSX.Element {
   const currentDraftBoardRef = useRef<BoardDraft | null>(null);
   const listSyncedNamesRef = useRef<Record<string, string>>({});
   const initializedBoardRef = useRef(false);
+  const boardRefreshTimerRef = useRef<number | null>(null);
 
   const orderedLists = useMemo(() => (board ? sortBoardListsWithCards(board.lists ?? []) : []), [board]);
   const hasDoneCards = useMemo(
@@ -344,6 +347,22 @@ export function BoardDetailPage(): JSX.Element {
     await loadBoard(false);
   }, [loadBoard]);
 
+  const scheduleBoardRefresh = useCallback((): void => {
+    if (boardRefreshTimerRef.current !== null) return;
+    boardRefreshTimerRef.current = window.setTimeout(() => {
+      boardRefreshTimerRef.current = null;
+      void refreshBoardSilently();
+    }, 300);
+  }, [refreshBoardSilently]);
+
+  useEffect(() => {
+    return () => {
+      if (boardRefreshTimerRef.current !== null) {
+        window.clearTimeout(boardRefreshTimerRef.current);
+        boardRefreshTimerRef.current = null;
+      }
+    };
+  }, []);
 
 
   const {
@@ -423,12 +442,28 @@ export function BoardDetailPage(): JSX.Element {
 
   useEffect(() => {
     if (!boardId) return;
-    joinBoard(boardId);
     void loadBoardActivity(boardId);
+  }, [boardId, loadBoardActivity]);
+
+  useEffect(() => {
+    if (!boardId || socketStatus !== "connected") return;
+    joinBoard(boardId);
     return () => {
       leaveBoard(boardId);
     };
-  }, [boardId, joinBoard, leaveBoard, loadBoardActivity]);
+  }, [boardId, socketStatus, joinBoard, leaveBoard]);
+
+  useEffect(() => {
+    if (!boardId) return;
+    const unsubscribe = subscribeBoardEvents((events) => {
+      if (events.some((event) => event.boardId === boardId)) {
+        scheduleBoardRefresh();
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [boardId, subscribeBoardEvents, scheduleBoardRefresh]);
 
   useEffect(() => {
     if (!hasDoneCards) return;

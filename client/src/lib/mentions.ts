@@ -41,13 +41,19 @@ export function insertMention(value: string, range: MentionQuery, username: stri
 export function filterMentionCandidates(query: string, members: BoardMember[]): BoardMember[] {
   if (members.length === 0) return [];
   const normalized = query.trim().toLowerCase();
-  if (normalized.length === 0) return members;
-  return members.filter((member) => {
-    const username = member.username?.toLowerCase();
-    if (!username) return false;
-    const displayName = member.displayName?.toLowerCase() ?? "";
-    const email = member.email.toLowerCase();
-    return username.includes(normalized) || displayName.includes(normalized) || email.includes(normalized);
+  const base = normalized.length === 0
+    ? members
+    : members.filter((member) => {
+      const username = member.username?.toLowerCase();
+      if (!username) return false;
+      const displayName = member.displayName?.toLowerCase() ?? "";
+      const email = member.email.toLowerCase();
+      return username.includes(normalized) || displayName.includes(normalized) || email.includes(normalized);
+    });
+  return [...base].sort((a, b) => {
+    const aLabel = (a.displayName ?? a.name ?? a.username ?? a.email).toLowerCase();
+    const bLabel = (b.displayName ?? b.name ?? b.username ?? b.email).toLowerCase();
+    return aLabel.localeCompare(bLabel);
   });
 }
 

@@ -401,6 +401,8 @@ export function CardDetailModal({
                 placeholder="Add a comment"
                 multiline
                 className="min-h-[96px] w-full"
+                dropdownPlacement="top"
+                dropdownMaxHeightClassName="max-h-32"
               />
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Button type="submit" variant="secondary" size="sm" className="gap-1">

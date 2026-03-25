@@ -77,6 +77,8 @@ export function BoardHeaderSection({
                   onChange={(value) => onNewBoardCommentChange(value)}
                   members={boardMembers}
                   placeholder="Add a board note"
+                  dropdownPlacement="top"
+                  dropdownMaxHeightClassName="max-h-32"
                 />
                 <Button type="submit" className="gap-1">
                   <Plus className="h-4 w-4" />

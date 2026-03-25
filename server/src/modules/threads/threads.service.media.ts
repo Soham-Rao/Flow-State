@@ -5,6 +5,7 @@ import path from "node:path";
 import { eq } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { emitThreadEvent } from "../../realtime/socket.js";
 import { threadAttachments, threadMessages, threadVoiceNotes, threadReplyAttachments, threadReplyVoiceNotes, threadReplies } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { ThreadAttachment, ThreadVoiceNote, ThreadReplyAttachment, ThreadReplyVoiceNote } from "./threads.service.types.js";
@@ -95,6 +96,7 @@ export async function createThreadAttachments(
     });
   }
 
+  emitThreadEvent(message.conversationId, "threads:message:edit", { conversationId: message.conversationId });
   return created;
 }
 
@@ -166,12 +168,14 @@ export async function createThreadVoiceNote(
     })
     .run();
 
-  return {
+  const summary = {
     id: voiceNoteId,
     messageId,
     durationSec: normalizedDuration,
     createdAt: now
   };
+  emitThreadEvent(message.conversationId, "threads:message:edit", { conversationId: message.conversationId });
+  return summary;
 }
 
 
@@ -249,6 +253,8 @@ export async function createThreadReplyAttachments(
     });
   }
 
+  emitThreadEvent(parent.conversationId, "threads:message:edit", { conversationId: parent.conversationId });
+  emitThreadEvent(parent.conversationId, "threads:reply:edit", { conversationId: parent.conversationId });
   return created;
 }
 
@@ -326,12 +332,14 @@ export async function createThreadReplyVoiceNote(
     })
     .run();
 
-  return {
+  const summary = {
     id: voiceNoteId,
     replyId,
     durationSec: normalizedDuration,
     createdAt: now
   };
+  emitThreadEvent(parent.conversationId, "threads:reply:edit", { conversationId: parent.conversationId });
+  return summary;
 }
 
 export function getThreadReplyVoiceNoteDownloadInfo(

@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { emitBoardEvent } from "../../realtime/socket.js";
 import { commentMentions, commentReactions, comments } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { CommentReactionInput, CreateCommentInput } from "./boards.schema.js";
@@ -21,6 +22,8 @@ export function deleteComment(commentId: string, requester: { userId: string; ca
     tx.delete(commentReactions).where(eq(commentReactions.commentId, commentId)).run();
     tx.delete(comments).where(eq(comments.id, commentId)).run();
   });
+
+  emitBoardEvent(comment.boardId, { boardId: comment.boardId, type: "comment.deleted", data: { commentId } });
 }
 
 export function createBoardComment(boardId: string, input: CreateCommentInput, authorId: string): BoardComment {
@@ -93,5 +96,7 @@ export function toggleCommentReaction(commentId: string, userId: string, input: 
       .run();
   }
 
-  return getCommentById(commentId);
+  const updated = getCommentById(commentId);
+  emitBoardEvent(updated.boardId, { boardId: updated.boardId, type: "comment.reaction", data: { commentId } });
+  return updated;
 }

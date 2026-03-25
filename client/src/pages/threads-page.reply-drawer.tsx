@@ -8,7 +8,7 @@ import { UserHoverCard } from "@/components/users/user-hover-card";
 import type { BoardMember } from "@/types/board";
 import type { ThreadMessageSummary, ThreadReactionDetail, ThreadReplySummary } from "@/types/threads";
 import { THREAD_REACTION_CHOICES } from "./threads-page.constants";
-import { formatDuration, formatTime, formatTimestamp, getAttachmentKind, getInitial } from "./threads-page.utils";
+import { formatDateHeading, formatDuration, formatTime, formatTimestamp, getAttachmentKind, getInitial } from "./threads-page.utils";
 
 type ThreadsReplyDrawerProps = {
   open: boolean;
@@ -198,17 +198,31 @@ export function ThreadsReplyDrawer({
                   )}
                   {hasReplyAttachments && replyAttachmentOpen && (
                     <div className="mt-2 space-y-1 rounded-lg border border-border/60 bg-background/70 px-2 py-1">
-                      {replyTarget.attachments.map((attachment) => (
-                        <button
-                          key={attachment.id}
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
-                          onClick={() => onDownloadReplyAttachment(attachment.id, attachment.originalName)}
-                        >
-                          <Paperclip className="h-3 w-3" />
-                          <span className="max-w-[200px] truncate">{attachment.originalName}</span>
-                        </button>
-                      ))}
+                      {replyTarget.attachments.map((attachment) => {
+                        const kind = getAttachmentKind(attachment.mimeType, attachment.originalName);
+                        const previewUrl = attachmentPreviewUrls[attachment.id];
+                        return (
+                          <button
+                            key={attachment.id}
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                            onDoubleClick={() => {
+                              if (kind === "image" && previewUrl) {
+                                onSetImagePreview({ url: previewUrl, name: attachment.originalName });
+                                return;
+                              }
+                              if (kind === "video" && previewUrl) {
+                                onSetVideoPreview({ url: previewUrl, name: attachment.originalName });
+                                return;
+                              }
+                              onDownloadReplyAttachment(attachment.id, attachment.originalName);
+                            }}
+                          >
+                            <Paperclip className="h-3 w-3" />
+                            <span className="max-w-[200px] truncate">{attachment.originalName}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                   <div className="mt-2 flex items-center justify-between">
@@ -243,6 +257,9 @@ export function ThreadsReplyDrawer({
           {replies.map((reply, index) => {
             const isMine = reply.author.id === currentUserId;
             const previous = replies[index - 1];
+            const replyDateKey = reply.createdAt ? new Date(reply.createdAt).toDateString() : "";
+            const previousDateKey = previous?.createdAt ? new Date(previous.createdAt).toDateString() : "";
+            const showDate = replyDateKey !== previousDateKey;
             const showAvatar = !previous || previous.author.id !== reply.author.id;
             const initial = getInitial(
               reply.author.displayName ?? reply.author.username ?? reply.author.name
@@ -354,7 +371,7 @@ export function ThreadsReplyDrawer({
                       key={attachment.id}
                       type="button"
                       className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
-                      onClick={() => onDownloadReplyAttachment(attachment.id, attachment.originalName)}
+                      onDoubleClick={() => onDownloadReplyAttachment(attachment.id, attachment.originalName)}
                     >
                       <Paperclip className="h-3 w-3" />
                       <span className="max-w-[200px] truncate">{attachment.originalName}</span>
@@ -485,7 +502,7 @@ export function ThreadsReplyDrawer({
                     )}
                   </div>
                 )}
-              </div>
+            </div>
             );
 
             const reactionStrip = hasReactions ? (
@@ -613,9 +630,16 @@ export function ThreadsReplyDrawer({
             );
 
             return (
-              <div
-                key={reply.id}
-                className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+              <div key={reply.id} className="space-y-2">
+                {showDate && (
+                  <div className="flex justify-center">
+                    <span className="rounded-full border border-border/60 bg-background/70 px-3 py-1 text-[11px] text-muted-foreground">
+                      {formatDateHeading(reply.createdAt)}
+                    </span>
+                  </div>
+                )}
+                <div
+                  className={`flex ${isMine ? "justify-end" : "justify-start"}`}
                 onMouseEnter={() => setHoveredReplyId(reply.id)}
                 onMouseLeave={() => {
                   setHoveredReplyId((current) => (current === reply.id ? null : current));
@@ -629,6 +653,7 @@ export function ThreadsReplyDrawer({
                   {isMine && avatarSlot}
                 </div>
               </div>
+            </div>
             );
           })}
         </div>

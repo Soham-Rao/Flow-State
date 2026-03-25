@@ -251,4 +251,5 @@ export function emitActivityEvent(payload: Record<string, unknown>): void {
 export function emitThreadEvent(conversationId: string, event: string, payload: ThreadEventPayload): void {
   if (!io) return;
   io.to(threadRoom(conversationId)).emit(event, payload);
+  io.to(WORKSPACE_ROOM).emit(event, payload);
 }

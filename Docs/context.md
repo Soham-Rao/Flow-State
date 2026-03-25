@@ -277,12 +277,12 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 5.3: Roles & Permissions | ✅ Completed | 2026-03-14 | 2026-03-14 | Roles/permissions system, management UI, and permission gating |
 | Phase 5.4: Threads Section | ✅ Completed | 2026-03-14 | 2026-03-16 | DMs implemented with reply threads, reactions, mentions, encryption, and UX polish |
 | Phase 5.5: Channels & Overrides | ✅ Completed | 2026-03-24 | 2026-03-24 | Channel chat + permission overrides, manage/view gating |
-| Phase 6: Real-Time & Activity | 🟡 In Progress | 2026-03-24 | — | Split into sub-phases 6.1–6.5 |
+| Phase 6: Real-Time & Activity | ✅ Completed | 2026-03-24 | 2026-03-25 | Socket infra + activity + presence + realtime boards/threads |
 | Phase 6.1: Socket.IO Infrastructure | ✅ Completed | 2026-03-24 | 2026-03-24 | Socket server + auth, workspace/board rooms, client socket store |
 | Phase 6.2: Activity Log + Pulse UI | ✅ Completed | 2026-03-24 | 2026-03-24 | Activity logs + API, Team Pulse card, board activity panel, mention logging |
 | Phase 6.3: Presence (Workspace + Board) | ✅ Completed | 2026-03-25 | 2026-03-25 | Presence tracking (online/AFK/offline), last-seen tracking, and UI indicators in boards/threads |
-| Phase 6.4: Board Realtime Updates | ⬜ Not Started | — | — | — |
-| Phase 6.5: Threads Realtime | ⬜ Not Started | — | — | — |
+| Phase 6.4: Board Realtime Updates | ✅ Completed | 2026-03-25 | 2026-03-25 | Board updates via socket events + batched refresh |
+| Phase 6.5: Threads Realtime | ✅ Completed | 2026-03-25 | 2026-03-25 | Thread rooms + message/reply/reaction realtime with polling fallback |
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
 | Phase 8: Time Tracking & Focus | ✅ Completed | 2026-03-14 | 2026-03-14 | Focus mode Pomodoro UI with personal history/stats (local only) |
 | Phase 9: Rich Text, Search, Shortcuts | ⬜ Not Started | — | — | — |
@@ -333,6 +333,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 ## 13. Updates
 
 | Date | Update |
+| 2026-03-25 | Phase 6.4 + 6.5 completed: board realtime refresh on socket events, thread rooms for messages/replies/reactions/media, and polling fallback when sockets are disconnected. |
 | 2026-03-25 | Phase 6.3 completed: workspace/board presence, AFK status, last-seen tracking, and presence indicators wired into threads + channel member lists; threads selection + manage view now persist in URL; channel permission overrides use dropdown with clear-override controls. |
 |------|--------|
 | 2026-03-24 | Phase 6.1 + 6.2 completed: Socket.IO infra (auth + rooms + client store) plus activity logs + API + Team Pulse + board activity panel, with mentions logged to activity. |

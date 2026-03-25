@@ -8,6 +8,7 @@ import { ManageRolesModal } from "./general-page.manage-roles-modal";
 import { listInvites } from "@/lib/invites-api";
 import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole, updateUserRoles } from "@/lib/roles-api";
 import { useAuthStore } from "@/stores/auth-store";
+import { useThreadSettingsStore } from "@/stores/thread-settings-store";
 import type { InviteSummary } from "@/types/invite";
 import { type RolePermission, type RoleSummary, type UserRoleAssignment } from "@/types/roles";
 import {
@@ -43,6 +44,8 @@ export function GeneralSettingsPage(): JSX.Element {
   const [selectedTheme, setSelectedTheme] = useState<ThemeOption>("system");
   const [baselineTheme, setBaselineTheme] = useState<ThemeOption>("system");
   const [status, setStatus] = useState<"idle" | "saved">("idle");
+  const threadBadgeMode = useThreadSettingsStore((state) => state.threadBadgeMode);
+  const setThreadBadgeMode = useThreadSettingsStore((state) => state.setThreadBadgeMode);
 
   const [roles, setRoles] = useState<RoleSummary[]>([]);
   const [assignments, setAssignments] = useState<UserRoleAssignment[]>([]);
@@ -486,11 +489,20 @@ export function GeneralSettingsPage(): JSX.Element {
             <CardTitle>Notifications</CardTitle>
             <CardDescription>Adjust email and in-app alerts.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>Notification rules will sync here once messaging is enabled.</p>
-            <Button variant="secondary" disabled>
-              Coming soon
-            </Button>
+          <CardContent className="space-y-3">
+            <label className="text-xs uppercase tracking-wide text-muted-foreground">Thread counters</label>
+            <select
+              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm"
+              value={threadBadgeMode}
+              onChange={(event) => setThreadBadgeMode(event.target.value as "all" | "mentions" | "never")}
+            >
+              <option value="all">Always · count all new messages</option>
+              <option value="mentions">Mentions only · highlight when tagged</option>
+              <option value="never">Never · hide all badges</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Applies to DMs, channels, and reply threads. Board mentions stay mention-only.
+            </p>
           </CardContent>
         </Card>
       </div>

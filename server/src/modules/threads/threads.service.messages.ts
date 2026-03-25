@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { and, desc, eq, isNull, lt, ne } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { emitThreadEvent } from "../../realtime/socket.js";
 import {
   threadAttachments,
   threadConversations,
@@ -32,6 +33,7 @@ import {
   getThreadMessageDeletionSet,
   getThreadMessageReactions,
   getThreadReplyCounts,
+  getThreadReplyMentionCounts,
   getThreadVoiceNotesForMessages
 } from "./threads.service.data.js";
 import { resolveThreadAttachmentPath, resolveThreadVoiceNotePath } from "./threads.service.storage.js";
@@ -93,6 +95,7 @@ export function listThreadMessages(
   const visibleIds = filteredRows.map((row) => row.id);
   const reactionsByMessageId = getThreadMessageReactions(visibleIds);
   const replyCounts = getThreadReplyCounts(visibleIds, userId);
+  const replyMentionCounts = getThreadReplyMentionCounts(visibleIds, userId);
   const attachmentsByMessageId = getThreadAttachmentsForMessages(visibleIds);
   const voiceNotesByMessageId = getThreadVoiceNotesForMessages(visibleIds);
 
@@ -122,6 +125,7 @@ export function listThreadMessages(
       deletedAt: row.deletedAt,
       reactions: isDeleted ? [] : reactionsByMessageId.get(row.id) ?? [],
       replyCount: isDeleted ? 0 : replyCounts.get(row.id) ?? 0,
+      unreadReplyMentions: isDeleted ? 0 : replyMentionCounts.get(row.id) ?? 0,
       attachments: isDeleted ? [] : attachmentsByMessageId.get(row.id) ?? [],
       voiceNote: isDeleted ? null : voiceNotesByMessageId.get(row.id) ?? null
     };
@@ -240,7 +244,7 @@ export function createThreadMessage(userId: string, conversationId: string, inpu
   storeThreadMentions(conversationId, messageId, input.mentions, userId);
 
   const author = ensureUserExists(userId);
-  return {
+  const summary = {
     id: messageId,
     conversationId,
     author,
@@ -251,9 +255,12 @@ export function createThreadMessage(userId: string, conversationId: string, inpu
     deletedAt: null,
     reactions: [],
     replyCount: 0,
+    unreadReplyMentions: 0,
     attachments: [],
     voiceNote: null
   };
+  emitThreadEvent(conversationId, "threads:message:new", { conversationId });
+  return summary;
 }
 
 export function updateThreadMessage(userId: string, messageId: string, input: UpdateThreadMessageInput): ThreadMessageSummary {
@@ -351,7 +358,7 @@ export function updateThreadMessage(userId: string, messageId: string, input: Up
   const attachments = getThreadAttachmentsForMessages([messageId]).get(messageId) ?? [];
   const voiceNote = getThreadVoiceNotesForMessages([messageId]).get(messageId) ?? null;
 
-  return {
+  const summary = {
     id: messageId,
     conversationId: message.conversationId,
     author,
@@ -362,9 +369,12 @@ export function updateThreadMessage(userId: string, messageId: string, input: Up
     deletedAt: null,
     reactions,
     replyCount,
+    unreadReplyMentions: 0,
     attachments,
     voiceNote
   };
+  emitThreadEvent(message.conversationId, "threads:message:edit", { conversationId: message.conversationId });
+  return summary;
 }
 
 export function deleteThreadMessage(
@@ -491,23 +501,26 @@ export function deleteThreadMessage(
     .run();
 
   const author = ensureUserExists(userId);
+  const summary = {
+    id: messageId,
+    conversationId: message.conversationId,
+    author,
+    body: "This message was deleted.",
+    isForwarded: Boolean(message.isForwarded),
+    createdAt: message.createdAt,
+    updatedAt: now,
+    deletedAt: now,
+    reactions: [],
+    replyCount: 0,
+    unreadReplyMentions: 0,
+    attachments: [],
+    voiceNote: null
+  };
+  emitThreadEvent(message.conversationId, "threads:message:delete", { conversationId: message.conversationId });
   return {
     id: messageId,
     scope: "all",
-    message: {
-      id: messageId,
-      conversationId: message.conversationId,
-      author,
-      body: "This message was deleted.",
-      isForwarded: Boolean(message.isForwarded),
-      createdAt: message.createdAt,
-      updatedAt: now,
-      deletedAt: now,
-      reactions: [],
-      replyCount: 0,
-      attachments: [],
-      voiceNote: null
-    }
+    message: summary
   };
 }
 

@@ -24,6 +24,14 @@ export async function markThreadMentionsSeen(conversationId: string): Promise<vo
   });
 }
 
+export async function markThreadReplyMentionsSeen(messageId: string): Promise<void> {
+  await apiRequest<{ message: string }>("/mentions/threads/replies/seen", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ messageId })
+  });
+}
+
 export async function listUnreadCommentMentions(): Promise<CommentMentionDetail[]> {
   return apiRequest<CommentMentionDetail[]>("/mentions/comments/unread", {
     method: "GET",

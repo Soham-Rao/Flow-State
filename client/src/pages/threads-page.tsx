@@ -28,8 +28,9 @@ export function ThreadsPage(): JSX.Element {
     setSearchParams,
     activeTab,
     totalMentions,
-    dmMentionTotal,
-    channelMentionTotal,
+    dmBadgeCount,
+    channelBadgeCount,
+    threadBadgeMode,
     searchTerm,
     setSearchTerm,
     loading,
@@ -77,6 +78,7 @@ export function ThreadsPage(): JSX.Element {
     jumpToLatest,
     messageListRef,
     handleMessageScroll,
+    replySeenCounts,
     hoveredMessageId,
     setHoveredMessageId,
     reactionPickerMessageId,
@@ -206,7 +208,7 @@ export function ThreadsPage(): JSX.Element {
 
   const isDm = activeConversation?.type === "dm";
   const isChannel = activeConversation?.type === "channel";
-  const tabMentionTotal = activeTab === "channels" ? channelMentionTotal : dmMentionTotal;
+  const tabBadgeCount = activeTab === "channels" ? channelBadgeCount : dmBadgeCount;
   const channelSaveStatus =
     !canEditChannel
       ? "Read-only"
@@ -310,9 +312,9 @@ export function ThreadsPage(): JSX.Element {
         ) : (
           <Users className="h-4 w-4" />
         )}
-        {tabMentionTotal > 0 && (
+        {tabBadgeCount > 0 && (
           <span className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-            {tabMentionTotal}
+            {tabBadgeCount}
           </span>
         )}
       </button>
@@ -323,8 +325,9 @@ export function ThreadsPage(): JSX.Element {
       >
         <ThreadsSidebar
           activeTab={activeTab}
-          dmMentionTotal={dmMentionTotal}
-          channelMentionTotal={channelMentionTotal}
+          dmBadgeCount={dmBadgeCount}
+          channelBadgeCount={channelBadgeCount}
+          threadBadgeMode={threadBadgeMode}
           onTabChange={handleTabChange}
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}
@@ -392,6 +395,8 @@ export function ThreadsPage(): JSX.Element {
                 loadingOlder={loadingOlder}
                 currentUserId={user?.id}
                 messageListRef={messageListRef}
+                threadBadgeMode={threadBadgeMode}
+                replySeenCounts={replySeenCounts}
                 onScroll={handleMessageScroll}
                 hoveredMessageId={hoveredMessageId}
                 setHoveredMessageId={setHoveredMessageId}
@@ -781,6 +786,8 @@ export function ThreadsPage(): JSX.Element {
                   loadingOlder={loadingOlder}
                   currentUserId={user?.id}
                   messageListRef={messageListRef}
+                  threadBadgeMode={threadBadgeMode}
+                  replySeenCounts={replySeenCounts}
                   onScroll={handleMessageScroll}
                   hoveredMessageId={hoveredMessageId}
                   setHoveredMessageId={setHoveredMessageId}
@@ -1007,6 +1014,8 @@ export function ThreadsPage(): JSX.Element {
     </div>
   );
 }
+
+
 
 
 

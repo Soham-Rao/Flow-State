@@ -241,7 +241,30 @@ export function markThreadMentionsSeen(userId: string, conversationId: string): 
         AND message_id IN (SELECT id FROM thread_messages WHERE conversation_id = ?)
     `)
     .run(now, userId, conversationId);
+}
 
+export function markThreadReplyMentionsSeen(userId: string, parentMessageId: string): void {
+  const message = db
+    .select({ conversationId: threadMessages.conversationId })
+    .from(threadMessages)
+    .where(eq(threadMessages.id, parentMessageId))
+    .get();
+
+  if (!message) {
+    throw new ApiError(404, "Message not found");
+  }
+
+  const membership = db
+    .select({ userId: threadMembers.userId })
+    .from(threadMembers)
+    .where(and(eq(threadMembers.conversationId, message.conversationId), eq(threadMembers.userId, userId)))
+    .get();
+
+  if (!membership) {
+    throw new ApiError(403, "You do not have access to this conversation");
+  }
+
+  const now = Date.now();
   sqlite
     .prepare(`
       UPDATE thread_reply_mentions
@@ -251,13 +274,11 @@ export function markThreadMentionsSeen(userId: string, conversationId: string): 
         AND reply_id IN (
           SELECT tr.id
           FROM thread_replies tr
-          INNER JOIN thread_messages tm ON tr.parent_message_id = tm.id
-          WHERE tm.conversation_id = ?
+          WHERE tr.parent_message_id = ?
         )
     `)
-    .run(now, userId, conversationId);
+    .run(now, userId, parentMessageId);
 }
-
 
 export function listUnreadCommentMentions(userId: string): CommentMentionDetail[] {
   cleanupInvalidCommentMentions(userId);

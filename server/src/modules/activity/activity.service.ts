@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { desc, eq, lt } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { emitActivityEvent } from "../../realtime/socket.js";
+import { emitActivityEvent, emitBoardEvent } from "../../realtime/socket.js";
 import { activityLogs, users } from "../../db/schema.js";
 
 export interface ActivityActor {
@@ -190,6 +190,9 @@ export function recordActivity(input: {
 }): ActivityLogEntry {
   const entry = createActivityLog(input);
   emitActivityEvent({ ...entry, createdAt: entry.createdAt.toISOString() });
+  if (entry.boardId) {
+    emitBoardEvent(entry.boardId, { boardId: entry.boardId, type: "board.activity", data: { activityType: entry.type } });
+  }
   return entry;
 }
 

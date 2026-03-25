@@ -14,8 +14,8 @@ const menuOptions: { label: string; value: PresenceStatus }[] = [
   { label: "Show AFK", value: "afk" }
 ];
 
-function formatRelativeTime(timestamp: number): string {
-  const diffMs = Math.max(0, Date.now() - timestamp);
+function formatRelativeTime(timestamp: number, nowMs: number): string {
+  const diffMs = Math.max(0, nowMs - timestamp);
   const seconds = Math.floor(diffMs / 1000);
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
@@ -44,15 +44,24 @@ export function PresenceIndicator({
   size = "md"
 }: PresenceIndicatorProps): JSX.Element {
   const [open, setOpen] = useState(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const label = useMemo(() => {
     if (status === "online") return "Currently online";
     if (status === "afk") return "Away from keyboard";
     if (lastSeenAt) {
-      return `Last online ${formatRelativeTime(lastSeenAt)} ago`;
+      return `Last online ${formatRelativeTime(lastSeenAt, nowTick)} ago`;
     }
     return "Offline";
+  }, [lastSeenAt, nowTick, status]);
+
+  useEffect(() => {
+    if (status !== "offline" || !lastSeenAt) return;
+    const interval = window.setInterval(() => {
+      setNowTick(Date.now());
+    }, 60 * 1000);
+    return () => window.clearInterval(interval);
   }, [lastSeenAt, status]);
 
   useEffect(() => {

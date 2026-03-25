@@ -1,8 +1,14 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
-import { markCommentMentionsSchema, markThreadMentionsSchema } from "./mentions.schema.js";
-import { getUnreadMentions, listUnreadCommentMentions, markCommentMentionsSeen, markThreadMentionsSeen } from "./mentions.service.js";
+import { markCommentMentionsSchema, markThreadMentionsSchema, markThreadReplyMentionsSchema } from "./mentions.schema.js";
+import {
+  getUnreadMentions,
+  listUnreadCommentMentions,
+  markCommentMentionsSeen,
+  markThreadMentionsSeen,
+  markThreadReplyMentionsSeen
+} from "./mentions.service.js";
 
 export const mentionsRouter = Router();
 
@@ -26,7 +32,6 @@ mentionsRouter.get("/comments/unread", (req, res, next) => {
   }
 });
 
-
 mentionsRouter.post("/comments/seen", (req, res, next) => {
   try {
     const body = markCommentMentionsSchema.parse(req.body ?? {});
@@ -42,6 +47,16 @@ mentionsRouter.post("/threads/seen", (req, res, next) => {
     const body = markThreadMentionsSchema.parse(req.body ?? {});
     markThreadMentionsSeen(req.auth!.userId, body.conversationId);
     res.status(200).json({ success: true, data: { message: "Thread mentions marked as seen" } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+mentionsRouter.post("/threads/replies/seen", (req, res, next) => {
+  try {
+    const body = markThreadReplyMentionsSchema.parse(req.body ?? {});
+    markThreadReplyMentionsSeen(req.auth!.userId, body.messageId);
+    res.status(200).json({ success: true, data: { message: "Thread reply mentions marked as seen" } });
   } catch (error) {
     next(error);
   }

@@ -4,6 +4,7 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import { UserHoverCard } from "@/components/users/user-hover-card";
 import type { ThreadMessageSummary, ThreadReactionDetail } from "@/types/threads";
+import type { ThreadBadgeMode } from "@/stores/thread-settings-store";
 import { THREAD_REACTION_CHOICES } from "./threads-page.constants";
 import {
   formatDateHeading,
@@ -21,6 +22,8 @@ type ThreadMessageListProps = {
   loadingOlder: boolean;
   currentUserId: string | null | undefined;
   messageListRef: RefObject<HTMLDivElement>;
+  threadBadgeMode: ThreadBadgeMode;
+  replySeenCounts: Record<string, number>;
   onScroll: () => void;
   hoveredMessageId: string | null;
   setHoveredMessageId: Dispatch<SetStateAction<string | null>>;
@@ -59,6 +62,8 @@ export function ThreadMessageList({
   loadingOlder,
   currentUserId,
   messageListRef,
+  threadBadgeMode,
+  replySeenCounts,
   onScroll,
   hoveredMessageId,
   setHoveredMessageId,
@@ -139,6 +144,14 @@ export function ThreadMessageList({
           const showActionRail = isHovered && !isDeleted;
           const showReactionPicker = showActionRail && reactionPickerMessageId === message.id;
           const hasReactions = message.reactions.length > 0;
+          const hasUnreadReplyMentions = (message.unreadReplyMentions ?? 0) > 0;
+          const seenReplyCount = replySeenCounts[message.id] ?? 0;
+          const hasUnreadReplies = message.replyCount > seenReplyCount;
+          const showReplyMentionBadge = threadBadgeMode === "all"
+            ? hasUnreadReplies
+            : threadBadgeMode === "mentions"
+              ? hasUnreadReplyMentions
+              : false;
           const voiceNote = message.voiceNote;
           const voiceUrl = voiceNote ? voiceUrls[voiceNote.id] : null;
           const voicePlayer = voiceNote ? (
@@ -300,7 +313,9 @@ export function ThreadMessageList({
                         >
                           <ChevronsLeft className="h-4 w-4" />
                           {message.replyCount > 0 && (
-                            <span className="rounded-full bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-sky-500">+{message.replyCount}</span>
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${showReplyMentionBadge ? "bg-rose-500/20 text-rose-600" : "bg-sky-500/20 text-sky-500"}`}>
+                              +{message.replyCount}
+                            </span>
                           )}
                         </button>
                         <button

@@ -31,4 +31,8 @@ compression
 fix image placement 
 manage channel - members - clickable and collapsable perms
 dashboard - your tasks assigned to you
+
+advanced feature - custom notifications - always on somewhere, only mention somewhere, nothing somewhere
+mute notifs for particular dm/channel
+
 ---

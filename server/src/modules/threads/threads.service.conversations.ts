@@ -29,7 +29,7 @@ import {
   getConversation,
   userHasConversationPermission
 } from "./threads.service.access.js";
-import { buildMessagePreview, getDmConversationRows, getThreadMentionCounts } from "./threads.service.data.js";
+import { buildMessagePreview, getDmConversationRows, getThreadMessageMentionCounts, getThreadReplyMentionCountsByConversation } from "./threads.service.data.js";
 import type { AddChannelMembersInput, CreateChannelInput, UpdateChannelInput, UpdateChannelMemberOverridesInput } from "./threads.schema.js";
 
 const CHANNEL_OVERRIDE_PERMISSIONS = new Set(["channel_read", "channel_write", "channel_edit", "channel_members_add", "channel_members_remove", "channel_manage_overrides", "channel_delete"]);
@@ -88,7 +88,8 @@ export function listDmConversations(userId: string): DmConversationSummary[] {
   }
 
   const conversationIds = rows.map((row) => row.id);
-  const mentionCounts = getThreadMentionCounts(userId, conversationIds);
+  const mentionCounts = getThreadMessageMentionCounts(userId, conversationIds);
+  const replyMentionCounts = getThreadReplyMentionCountsByConversation(userId, conversationIds);
 
   const summaries = rows.map((row) => {
     const otherMember = db
@@ -113,6 +114,7 @@ export function listDmConversations(userId: string): DmConversationSummary[] {
         body: threadMessages.body,
         bodyEncrypted: threadMessages.bodyEncrypted,
         encryptionVersion: threadMessages.encryptionVersion,
+        authorId: threadMessages.authorId,
         createdAt: threadMessages.createdAt,
         deletedAt: threadMessages.deletedAt
       })
@@ -128,6 +130,13 @@ export function listDmConversations(userId: string): DmConversationSummary[] {
 
     const preview = lastMessage ? buildMessagePreview("dm", lastMessage) : null;
     const lastMessageAt = lastMessage?.createdAt ?? row.lastMessageAt ?? row.createdAt ?? null;
+    const lastReadAt = row.lastReadAt ?? null;
+    const hasUnread = Boolean(
+      lastMessage &&
+      lastMessageAt &&
+      lastMessage.authorId !== userId &&
+      (!lastReadAt || new Date(lastReadAt).getTime() < new Date(lastMessageAt).getTime())
+    );
 
     return {
       id: row.id,
@@ -135,7 +144,9 @@ export function listDmConversations(userId: string): DmConversationSummary[] {
       otherUser,
       lastMessageAt: lastMessageAt ?? null,
       lastMessagePreview: preview,
-      unreadMentions: mentionCounts.get(row.id) ?? 0
+      unreadMentions: mentionCounts.get(row.id) ?? 0,
+      unreadReplyMentions: replyMentionCounts.get(row.id) ?? 0,
+      hasUnread
     };
   });
 
@@ -255,7 +266,9 @@ export function getOrCreateDmConversation(userId: string, otherUserId: string): 
     otherUser: otherUser ?? ensureUserExists(userId),
     lastMessageAt: null,
     lastMessagePreview: null,
-    unreadMentions: 0
+    unreadMentions: 0,
+    unreadReplyMentions: 0,
+    hasUnread: false
   };
 }
 
@@ -267,7 +280,8 @@ export function listChannelConversations(userId: string): ChannelConversationSum
       description: threadConversations.description,
       createdBy: threadConversations.createdBy,
       lastMessageAt: threadConversations.lastMessageAt,
-      createdAt: threadConversations.createdAt
+      createdAt: threadConversations.createdAt,
+      lastReadAt: threadMembers.lastReadAt
     })
     .from(threadMembers)
     .innerJoin(threadConversations, eq(threadMembers.conversationId, threadConversations.id))
@@ -284,7 +298,8 @@ export function listChannelConversations(userId: string): ChannelConversationSum
   }
 
   const conversationIds = permittedRows.map((row) => row.id);
-  const mentionCounts = getThreadMentionCounts(userId, conversationIds);
+  const mentionCounts = getThreadMessageMentionCounts(userId, conversationIds);
+  const replyMentionCounts = getThreadReplyMentionCountsByConversation(userId, conversationIds);
 
   const memberCounts = db
     .select({ conversationId: threadMembers.conversationId, count: sql<number>`count(*)` })
@@ -300,6 +315,7 @@ export function listChannelConversations(userId: string): ChannelConversationSum
         body: threadMessages.body,
         bodyEncrypted: threadMessages.bodyEncrypted,
         encryptionVersion: threadMessages.encryptionVersion,
+        authorId: threadMessages.authorId,
         createdAt: threadMessages.createdAt,
         deletedAt: threadMessages.deletedAt
       })
@@ -315,6 +331,13 @@ export function listChannelConversations(userId: string): ChannelConversationSum
 
     const preview = lastMessage ? buildMessagePreview("channel", lastMessage) : null;
     const lastMessageAt = lastMessage?.createdAt ?? row.lastMessageAt ?? row.createdAt ?? null;
+    const lastReadAt = row.lastReadAt ?? null;
+    const hasUnread = Boolean(
+      lastMessage &&
+      lastMessageAt &&
+      lastMessage.authorId !== userId &&
+      (!lastReadAt || new Date(lastReadAt).getTime() < new Date(lastMessageAt).getTime())
+    );
 
     return {
       id: row.id,
@@ -325,6 +348,8 @@ export function listChannelConversations(userId: string): ChannelConversationSum
       lastMessageAt: lastMessageAt ?? null,
       lastMessagePreview: preview,
       unreadMentions: mentionCounts.get(row.id) ?? 0,
+      unreadReplyMentions: replyMentionCounts.get(row.id) ?? 0,
+      hasUnread,
       memberCount: memberCountById.get(row.id) ?? 0
     };
   });
@@ -399,6 +424,8 @@ export function createChannelConversation(userId: string, input: CreateChannelIn
     lastMessageAt: null,
     lastMessagePreview: null,
     unreadMentions: 0,
+    unreadReplyMentions: 0,
+    hasUnread: false,
     memberCount: 1 + members.filter((member) => member.userId !== userId).length
   };
 }
@@ -648,6 +675,7 @@ export function removeChannelMember(userId: string, conversationId: string, memb
 
   return { id: memberId };
 }
+
 
 
 

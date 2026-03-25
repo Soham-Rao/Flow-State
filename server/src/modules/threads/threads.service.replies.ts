@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { and, desc, eq, lt } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
+import { emitThreadEvent } from "../../realtime/socket.js";
 import { threadMessages, threadReplies, threadReplyAttachments, threadReplyDeletions, threadReplyMentions, threadReplyReactions, threadReplyVoiceNotes, users } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { decryptDmBody, encryptDmBody } from "../../utils/encryption.js";
@@ -235,7 +236,7 @@ export function createThreadReply(userId: string, messageId: string, input: Crea
   storeThreadReplyMentions(conversation.id, replyId, input.mentions, userId);
 
   const author = ensureUserExists(userId);
-  return {
+  const summary = {
     id: replyId,
     parentMessageId: messageId,
     author,
@@ -247,6 +248,8 @@ export function createThreadReply(userId: string, messageId: string, input: Crea
     attachments: [],
     voiceNote: null
   };
+  emitThreadEvent(conversation.id, "threads:reply:new", { conversationId: conversation.id });
+  return summary;
 }
 
 
@@ -341,7 +344,7 @@ export function updateThreadReply(userId: string, replyId: string, input: Update
   const attachments = getThreadAttachmentsForReplies([replyId]).get(replyId) ?? [];
   const voiceNote = getThreadVoiceNotesForReplies([replyId]).get(replyId) ?? null;
 
-  return {
+  const summary = {
     id: replyId,
     parentMessageId: reply.parentMessageId,
     author,
@@ -353,6 +356,8 @@ export function updateThreadReply(userId: string, replyId: string, input: Update
     attachments,
     voiceNote
   };
+  emitThreadEvent(reply.conversationId, "threads:reply:edit", { conversationId: reply.conversationId });
+  return summary;
 }
 
 export function deleteThreadReply(
@@ -463,6 +468,7 @@ export function deleteThreadReply(
     .where(eq(threadReplies.id, replyId))
     .run();
 
+  emitThreadEvent(reply.conversationId, "threads:reply:delete", { conversationId: reply.conversationId });
   return { id: replyId, scope: "all" };
 }
 

@@ -14,6 +14,8 @@ export interface DmConversationSummary {
   lastMessageAt: Date | null;
   lastMessagePreview: string | null;
   unreadMentions: number;
+  unreadReplyMentions: number;
+  hasUnread: boolean;
 }
 
 export interface ThreadPermissionOverride {
@@ -30,6 +32,8 @@ export interface ChannelConversationSummary {
   lastMessageAt: Date | null;
   lastMessagePreview: string | null;
   unreadMentions: number;
+  unreadReplyMentions: number;
+  hasUnread: boolean;
   memberCount: number;
 }
 
@@ -100,6 +104,7 @@ export interface ThreadMessageSummary {
   deletedAt: Date | null;
   reactions: ThreadReaction[];
   replyCount: number;
+  unreadReplyMentions: number;
   attachments: ThreadAttachment[];
   voiceNote: ThreadVoiceNote | null;
 }
