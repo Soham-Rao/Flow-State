@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
 import { FocusPage } from "@/pages/focus-page";
@@ -34,7 +35,11 @@ describe("FocusPage", () => {
 
   it("records partial focus time when skipped", async () => {
     vi.useFakeTimers();
-    render(<FocusPage />);
+    render(
+      <MemoryRouter>
+        <FocusPage />
+      </MemoryRouter>
+    );
 
     fireEvent.change(screen.getByLabelText("Focus minutes"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
@@ -53,7 +58,11 @@ describe("FocusPage", () => {
 
   it("does not duplicate completed sessions", async () => {
     vi.useFakeTimers();
-    render(<FocusPage />);
+    render(
+      <MemoryRouter>
+        <FocusPage />
+      </MemoryRouter>
+    );
 
     fireEvent.change(screen.getByLabelText("Focus minutes"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Start" }));

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { markThreadMentionsSeen } from "@/lib/mentions-api";
+import { listUnreadThreadMentions, markThreadMessageMentionsSeen, markThreadReplyMentionIdsSeen } from "@/lib/mentions-api";
 import {
     createChannel,
     updateChannel,
@@ -35,7 +35,7 @@ import { useThreadMedia } from "./threads-page.controller.media";
 const MESSAGES_PAGE_SIZE = 40;
 const MAX_MESSAGES_IN_MEMORY = 200;
 const TOP_FETCH_THRESHOLD = 140;
-const BOTTOM_SCROLL_THRESHOLD = 140;
+const BOTTOM_SCROLL_THRESHOLD = 80;
 
 const CompressionStreamImpl = (globalThis as any).CompressionStream as any;
 const DecompressionStreamImpl = (globalThis as any).DecompressionStream as any;
@@ -77,6 +77,7 @@ async function decompressMessages(page: CompressedMessagePage): Promise<ThreadMe
 
 export function useThreadsController() {
   const PIN_STORAGE_KEY = "flowstate:threads:pinned";
+  const REPLY_SEEN_STORAGE_KEY = "flowstate:threads:replySeenCounts";
   const user = useAuthStore((state) => state.user);
   const canPinThreads = user?.role !== "guest";
   const [searchParams, setSearchParams] = useSearchParams();
@@ -101,11 +102,16 @@ export function useThreadsController() {
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [newMessageCount, setNewMessageCount] = useState(0);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [offscreenMentionCount, setOffscreenMentionCount] = useState(0);
+  const [mentionJumpLoading, setMentionJumpLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [videoPreview, setVideoPreview] = useState<{ url: string; name: string } | null>(null);
   const [imagePreview, setImagePreview] = useState<{ url: string; name: string } | null>(null);
   const [replySeenCounts, setReplySeenCounts] = useState<Record<string, number>>({});
+  const [mentionNewCount, setMentionNewCount] = useState(0);
+  const [replyMentionNewCount, setReplyMentionNewCount] = useState(0);
 
   const refreshMentions = useMentionStore((state) => state.refresh);
   const mentionCounts = useMentionStore((state) => state.counts);
@@ -136,6 +142,7 @@ export function useThreadsController() {
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const messagesRef = useRef<ThreadMessageSummary[]>([]);
+  const pendingNewMessageIdsRef = useRef<Set<string>>(new Set());
   const compressedHistoryRef = useRef<CompressedMessagePage[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const userAtBottomRef = useRef(true);
@@ -147,6 +154,17 @@ export function useThreadsController() {
   const replyRefreshTimerRef = useRef<number | null>(null);
   const activeConversationRef = useRef<ThreadConversationSummary | null>(null);
   const joinedThreadsRef = useRef<Set<string>>(new Set());
+  const pendingMentionMessageIdsRef = useRef<Set<string>>(new Set());
+  const pendingReplyMentionsByMessageRef = useRef<Map<string, Set<string>>>(new Map());
+  const mentionSyncTimerRef = useRef<number | null>(null);
+  const replyMentionSyncTimerRef = useRef<number | null>(null);
+  const deferMentionSyncRef = useRef(false);
+  const mentionLoadRef = useRef<Set<string>>(new Set());
+  const replyTargetIdRef = useRef<string | null>(null);
+  const handledMentionParamRef = useRef<string | null>(null);
+  const handledReplyMentionParamRef = useRef<string | null>(null);
+  const latestFetchTokenRef = useRef(0);
+  const latestFetchInFlightRef = useRef(false);
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   const [hoveredReplyId, setHoveredReplyId] = useState<string | null>(null);
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
@@ -294,19 +312,19 @@ export function useThreadsController() {
         updated.push(...newOnes);
         if (userAtBottomRef.current) {
           pendingScrollRef.current = true;
+          pendingNewMessageIdsRef.current.clear();
           setNewMessageCount(0);
         } else {
-          setNewMessageCount((count) => count + newOnes.length);
+          const pending = pendingNewMessageIdsRef.current;
+          newOnes.forEach((message) => pending.add(message.id));
+          setNewMessageCount(pending.size);
         }
       }
       if (!changed) return prev;
       return trimIfNeeded(updated);
     });
   };
-
-
-
-    const refreshConversations = async (): Promise<RefreshConversationsResult> => {
+  const refreshConversations = useCallback(async (): Promise<RefreshConversationsResult> => {
     const [nextDm, nextChannels] = await Promise.all([
       listDmConversations(),
       listChannelConversations()
@@ -314,20 +332,21 @@ export function useThreadsController() {
     setDmConversations(nextDm);
     setChannelConversations(nextChannels);
     return { nextDm, nextChannels };
-  };
+  }, []);
   const refreshActiveConversation = useCallback(async (conversation: ThreadConversationSummary): Promise<void> => {
+    if (latestFetchInFlightRef.current) return;
+    latestFetchInFlightRef.current = true;
     const conversationId = conversation.id;
     const conversationType = conversation.type;
+    const fetchToken = ++latestFetchTokenRef.current;
     try {
       const [nextMessages, refreshed] = await Promise.all([
         listThreadMessages(conversationId, { limit: MESSAGES_PAGE_SIZE }),
         refreshConversations()
       ]);
       if (activeConversationRef.current?.id !== conversationId) return;
+      if (latestFetchTokenRef.current !== fetchToken) return;
       mergeLatestMessages(nextMessages);
-      await markThreadMentionsSeen(conversationId);
-      await refreshMentions();
-
       const nextDm = refreshed.nextDm;
       const nextChannels = refreshed.nextChannels;
       if (conversationType === "dm") {
@@ -353,8 +372,112 @@ export function useThreadsController() {
       }
     } catch {
       // ignore
+    } finally {
+      latestFetchInFlightRef.current = false;
     }
-  }, [mergeLatestMessages, refreshConversations, refreshMentions]);
+  }, [mergeLatestMessages, refreshConversations]);
+
+  const syncMentionCounts = useCallback(() => {
+    let replyCount = 0;
+    pendingReplyMentionsByMessageRef.current.forEach((set) => {
+      replyCount += set.size;
+    });
+    const total = pendingMentionMessageIdsRef.current.size + replyCount;
+    setMentionNewCount(total);
+    const activeReplyId = replyTargetIdRef.current;
+    if (activeReplyId) {
+      setReplyMentionNewCount(pendingReplyMentionsByMessageRef.current.get(activeReplyId)?.size ?? 0);
+    } else {
+      setReplyMentionNewCount(0);
+    }
+  }, []);
+
+  const updateOffscreenMentionCount = useCallback(() => {
+    const container = messageListRef.current;
+    const pending = pendingMentionMessageIdsRef.current;
+    if (!container || pending.size === 0) {
+      setOffscreenMentionCount(0);
+      return;
+    }
+    const bounds = container.getBoundingClientRect();
+    let offscreen = 0;
+    pending.forEach((id) => {
+      const node = container.querySelector<HTMLElement>(`#message-${id}`);
+      if (!node) {
+        offscreen += 1;
+        return;
+      }
+      const rect = node.getBoundingClientRect();
+      if (rect.bottom < bounds.top || rect.top > bounds.bottom) {
+        offscreen += 1;
+      }
+    });
+    setOffscreenMentionCount(offscreen);
+  }, []);
+
+  const loadThreadMentions = useCallback(async (conversationId: string) => {
+    try {
+      const mentions = await listUnreadThreadMentions();
+      const messageIds = new Set<string>();
+      const replyMap = new Map<string, Set<string>>();
+      for (const mention of mentions) {
+        if (mention.conversationId !== conversationId) continue;
+        if (mention.mentionType === "message") {
+          messageIds.add(mention.messageId);
+          continue;
+        }
+        if (mention.replyId) {
+          const existing = replyMap.get(mention.messageId) ?? new Set<string>();
+          existing.add(mention.replyId);
+          replyMap.set(mention.messageId, existing);
+        }
+      }
+      pendingMentionMessageIdsRef.current = messageIds;
+      pendingReplyMentionsByMessageRef.current = replyMap;
+      syncMentionCounts();
+      updateOffscreenMentionCount();
+    } catch {
+      // ignore
+    }
+  }, [syncMentionCounts, updateOffscreenMentionCount]);
+
+  const syncVisibleMentions = useCallback(async () => {
+    const container = messageListRef.current;
+    const pending = pendingMentionMessageIdsRef.current;
+    if (!container || pending.size === 0) {
+      return;
+    }
+    const bounds = container.getBoundingClientRect();
+    const nodes = Array.from(container.querySelectorAll<HTMLElement>("[data-message-id]"));
+    const seenIds: string[] = [];
+    for (const node of nodes) {
+      const messageId = node.getAttribute("data-message-id");
+      if (!messageId || !pending.has(messageId)) continue;
+      const rect = node.getBoundingClientRect();
+      if (rect.bottom < bounds.top || rect.top > bounds.bottom) continue;
+      seenIds.push(messageId);
+    }
+    if (seenIds.length === 0) return;
+    seenIds.forEach((id) => pending.delete(id));
+    syncMentionCounts();
+    try {
+      await markThreadMessageMentionsSeen(seenIds);
+    } catch {
+      // ignore
+    }
+    void refreshMentions();
+    void refreshConversations();
+    updateOffscreenMentionCount();
+  }, [refreshConversations, refreshMentions, syncMentionCounts, updateOffscreenMentionCount]);
+
+  const scheduleMentionSync = useCallback(() => {
+    if (mentionSyncTimerRef.current !== null) return;
+    mentionSyncTimerRef.current = window.setTimeout(() => {
+      mentionSyncTimerRef.current = null;
+      void syncVisibleMentions();
+    }, 120);
+  }, [syncVisibleMentions]);
+
 
 
   const loadOlderMessages = async () => {
@@ -392,6 +515,57 @@ export function useThreadsController() {
       setLoadingOlder(false);
     }
   };
+
+  const ensureMessageLoaded = useCallback(async (messageId: string) => {
+    if (mentionLoadRef.current.has(messageId)) return;
+    mentionLoadRef.current.add(messageId);
+    try {
+      let attempts = 0;
+      let lastCount = messagesRef.current.length;
+      while (attempts < 40) {
+        if (messagesRef.current.some((message) => message.id === messageId)) return;
+        const canLoadMore = compressedHistoryRef.current.length > 0 || hasMoreMessages;
+        if (!canLoadMore) return;
+        await loadOlderMessages();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        const nextCount = messagesRef.current.length;
+        if (nextCount == lastCount && compressedHistoryRef.current.length == 0 && !hasMoreMessages) {
+          return;
+        }
+        lastCount = nextCount;
+        attempts += 1;
+      }
+    } finally {
+      mentionLoadRef.current.delete(messageId);
+    }
+  }, [hasMoreMessages, loadOlderMessages]);
+
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(REPLY_SEEN_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return;
+      const cleaned: Record<string, number> = {};
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (typeof value === "number" && Number.isFinite(value)) {
+          cleaned[key] = value;
+        }
+      });
+      setReplySeenCounts(cleaned);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(REPLY_SEEN_STORAGE_KEY, JSON.stringify(replySeenCounts));
+    } catch {
+      // ignore
+    }
+  }, [replySeenCounts]);
 
   const workspacePresence = usePresenceStore((state) => state.workspace);
   const lastSeenByUserId = usePresenceStore((state) => state.lastSeenByUserId);
@@ -505,6 +679,61 @@ export function useThreadsController() {
     setSendError: actions.setSendError
   });
 
+  useEffect(() => {
+    replyTargetIdRef.current = actions.replyTarget?.id ?? null;
+    const activeReplyId = replyTargetIdRef.current;
+    if (!activeReplyId) {
+      setReplyMentionNewCount(0);
+      return;
+    }
+    setReplyMentionNewCount(pendingReplyMentionsByMessageRef.current.get(activeReplyId)?.size ?? 0);
+  }, [actions.replyTarget?.id]);
+
+  const syncVisibleReplyMentions = useCallback(async () => {
+    const replyTargetId = actions.replyTarget?.id;
+    if (!replyTargetId) return;
+    const pending = pendingReplyMentionsByMessageRef.current.get(replyTargetId);
+    if (!pending || pending.size === 0) return;
+    const container = actions.replyListRef.current;
+    if (!container) return;
+    const bounds = container.getBoundingClientRect();
+    const nodes = Array.from(container.querySelectorAll<HTMLElement>("[data-reply-id]"));
+    const seenIds: string[] = [];
+    for (const node of nodes) {
+      const replyId = node.getAttribute("data-reply-id");
+      if (!replyId || !pending.has(replyId)) continue;
+      const rect = node.getBoundingClientRect();
+      if (rect.bottom < bounds.top || rect.top > bounds.bottom) continue;
+      seenIds.push(replyId);
+    }
+    if (seenIds.length === 0) return;
+    seenIds.forEach((id) => pending.delete(id));
+    if (pending.size === 0) {
+      pendingReplyMentionsByMessageRef.current.delete(replyTargetId);
+      setMessages((prev) => prev.map((message) => (
+        message.id === replyTargetId
+          ? { ...message, unreadReplyMentions: 0 }
+          : message
+      )));
+    }
+    syncMentionCounts();
+    try {
+      await markThreadReplyMentionIdsSeen(seenIds);
+    } catch {
+      // ignore
+    }
+    void refreshMentions();
+    void refreshConversations();
+  }, [actions.replyTarget?.id, refreshConversations, refreshMentions, setMessages, syncMentionCounts]);
+
+  const scheduleReplyMentionSync = useCallback(() => {
+    if (replyMentionSyncTimerRef.current !== null) return;
+    replyMentionSyncTimerRef.current = window.setTimeout(() => {
+      replyMentionSyncTimerRef.current = null;
+      void syncVisibleReplyMentions();
+    }, 120);
+  }, [syncVisibleReplyMentions]);
+
 
   const scheduleThreadRefresh = useCallback(() => {
     if (threadRefreshTimerRef.current !== null) return;
@@ -549,9 +778,34 @@ export function useThreadsController() {
       }
     };
   }, []);
+  const syncIsAtBottom = useCallback(() => {
+    const container = messageListRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const atBottom = distanceFromBottom < BOTTOM_SCROLL_THRESHOLD;
+    userAtBottomRef.current = atBottom;
+    setIsAtBottom(atBottom);
+  }, []);
+
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      setOffscreenMentionCount(0);
+      return;
+    }
+    requestAnimationFrame(() => {
+      updateOffscreenMentionCount();
+      syncIsAtBottom();
+    });
+  }, [messages, updateOffscreenMentionCount, syncIsAtBottom]);
+
+  useEffect(() => {
+    if (!messageListRef.current) return;
+    syncIsAtBottom();
+  }, [loadingOlder, syncIsAtBottom]);
 
   useEffect(() => {
     setReplySeenCounts((prev) => {
@@ -711,50 +965,47 @@ export function useThreadsController() {
     compressedHistoryRef.current = [];
     setHasMoreMessages(true);
     setNewMessageCount(0);
-  }, [activeConversation?.id]);
+  }, [activeConversation?.id, loadThreadMentions, syncMentionCounts]);
 
   useEffect(() => {
     if (!activeConversation) {
       setMessages([]);
+      pendingMentionMessageIdsRef.current = new Set();
+      pendingReplyMentionsByMessageRef.current = new Map();
+      pendingNewMessageIdsRef.current.clear();
+      setNewMessageCount(0);
+      setIsAtBottom(true);
+      setOffscreenMentionCount(0);
+      syncMentionCounts();
       return;
     }
 
     let active = true;
     const loadMessages = async () => {
+      const fetchToken = ++latestFetchTokenRef.current;
       try {
+        latestFetchInFlightRef.current = true;
         setLoadingMessages(true);
         const data = await listThreadMessages(activeConversation.id, { limit: MESSAGES_PAGE_SIZE });
         if (!active) return;
+        if (latestFetchTokenRef.current != fetchToken) return;
         pendingScrollRef.current = true;
         userAtBottomRef.current = true;
         lastMessageIdRef.current = null;
         setMessages(data);
         setHasMoreMessages(data.length == MESSAGES_PAGE_SIZE);
         setNewMessageCount(0);
+        pendingNewMessageIdsRef.current.clear();
+        setIsAtBottom(true);
+        setOffscreenMentionCount(0);
 
-        await markThreadMentionsSeen(activeConversation.id);
-        await refreshMentions();
-        if (activeConversation.type === "dm") {
-          setDmConversations((prev) =>
-            prev.map((conversation) =>
-              conversation.id === activeConversation.id
-                ? { ...conversation, unreadMentions: 0, hasUnread: false }
-                : conversation
-            )
-          );
-        } else {
-          setChannelConversations((prev) =>
-            prev.map((conversation) =>
-              conversation.id === activeConversation.id
-                ? { ...conversation, unreadMentions: 0, hasUnread: false }
-                : conversation
-            )
-          );
-        }
+        deferMentionSyncRef.current = true;
+        void loadThreadMentions(activeConversation.id);
       } catch {
         // ignore
       } finally {
-        if (active) {
+        latestFetchInFlightRef.current = false;
+        if (active && latestFetchTokenRef.current == fetchToken) {
           setLoadingMessages(false);
         }
       }
@@ -764,7 +1015,61 @@ export function useThreadsController() {
     return () => {
       active = false;
     };
-  }, [activeConversation?.id, refreshMentions]);
+  }, [activeConversation?.id, loadThreadMentions, syncMentionCounts]);
+
+  useEffect(() => {
+    if (!activeConversation) return;
+    const handleMentionParams = async () => {
+      const mentionMessageId = searchParams.get("mention");
+      if (mentionMessageId && handledMentionParamRef.current !== mentionMessageId) {
+        if (!messagesRef.current.some((message) => message.id === mentionMessageId)) {
+          await ensureMessageLoaded(mentionMessageId);
+        }
+        const target = messagesRef.current.find((message) => message.id === mentionMessageId);
+        if (target) {
+          handledMentionParamRef.current = mentionMessageId;
+          const node = messageListRef.current?.querySelector<HTMLElement>(`#message-${mentionMessageId}`);
+          node?.scrollIntoView({ block: "center", behavior: "smooth" });
+          scheduleMentionSync();
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete("mention");
+            return next;
+          });
+        }
+      }
+
+      const replyMessageId = searchParams.get("reply");
+      const replyMentionId = searchParams.get("replyMention");
+      if (replyMessageId && replyMentionId) {
+        const key = `${replyMessageId}:${replyMentionId}`;
+        if (handledReplyMentionParamRef.current !== key) {
+          if (!messagesRef.current.some((message) => message.id === replyMessageId)) {
+            await ensureMessageLoaded(replyMessageId);
+          }
+          const target = messagesRef.current.find((message) => message.id === replyMessageId);
+          if (target) {
+            handledReplyMentionParamRef.current = key;
+            void actions.openReplyThread(target).then(() => {
+              requestAnimationFrame(() => {
+                const node = actions.replyListRef.current?.querySelector<HTMLElement>(`#reply-${replyMentionId}`);
+                node?.scrollIntoView({ block: "center", behavior: "smooth" });
+                scheduleReplyMentionSync();
+              });
+            });
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete("reply");
+              next.delete("replyMention");
+              return next;
+            });
+          }
+        }
+      }
+    };
+
+    void handleMentionParams();
+  }, [activeConversation?.id, actions.openReplyThread, ensureMessageLoaded, messages, scheduleMentionSync, scheduleReplyMentionSync, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (socketStatus !== "connected") {
@@ -800,6 +1105,7 @@ export function useThreadsController() {
       if (!conversationId) return;
       if (!events.some((event) => event.payload.conversationId === conversationId)) return;
       scheduleThreadRefresh();
+      void loadThreadMentions(conversationId);
       if (actions.replyOpen) {
         scheduleReplyRefresh();
       }
@@ -832,13 +1138,21 @@ export function useThreadsController() {
   const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
     const container = messageListRef.current;
     if (!container) return;
-    container.scrollTo({ top: container.scrollHeight, behavior });
+    if (typeof (container as any).scrollTo === "function") {
+      container.scrollTo({ top: container.scrollHeight, behavior });
+    } else {
+      container.scrollTop = container.scrollHeight;
+    }
   };
 
   const jumpToLatest = () => {
     userAtBottomRef.current = true;
+    setIsAtBottom(true);
     pendingScrollRef.current = true;
     scrollToBottom("smooth");
+    if (pendingNewMessageIdsRef.current.size > 0) {
+      pendingNewMessageIdsRef.current.clear();
+    }
     setNewMessageCount(0);
   };
 
@@ -848,29 +1162,116 @@ export function useThreadsController() {
     const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     const atBottom = distanceFromBottom < BOTTOM_SCROLL_THRESHOLD;
     userAtBottomRef.current = atBottom;
-    if (atBottom && newMessageCount > 0) {
-      setNewMessageCount(0);
+    setIsAtBottom(atBottom);
+    if (atBottom) {
+      if (pendingNewMessageIdsRef.current.size > 0) {
+        pendingNewMessageIdsRef.current.clear();
+      }
+      if (newMessageCount > 0) {
+        setNewMessageCount(0);
+      }
     }
     if (container.scrollTop <= TOP_FETCH_THRESHOLD) {
       void loadOlderMessages();
     }
+    scheduleMentionSync();
+    updateOffscreenMentionCount();
   };
 
+  const handleReplyScroll = () => {
+    actions.handleReplyScroll();
+    scheduleReplyMentionSync();
+  };
+
+  const jumpToNextMention = useCallback(async () => {
+    if (!activeConversation) return;
+    setMentionJumpLoading(true);
+    try {
+      let pendingMessageId: string | undefined;
+      for (let i = messagesRef.current.length - 1; i >= 0; i -= 1) {
+        if (pendingMentionMessageIdsRef.current.has(messagesRef.current[i].id)) {
+          pendingMessageId = messagesRef.current[i].id;
+          break;
+        }
+      }
+      if (!pendingMessageId) {
+        const fallback = Array.from(pendingMentionMessageIdsRef.current);
+        pendingMessageId = fallback[fallback.length - 1];
+      }
+      if (pendingMessageId) {
+        if (!messagesRef.current.some((message) => message.id === pendingMessageId)) {
+          await ensureMessageLoaded(pendingMessageId);
+        }
+        const node = messageListRef.current?.querySelector<HTMLElement>(`#message-${pendingMessageId}`);
+        if (node) {
+          node.scrollIntoView({ block: "center", behavior: "smooth" });
+          scheduleMentionSync();
+          return;
+        }
+      }
+      const replyTargetId = messagesRef.current.find((message) => pendingReplyMentionsByMessageRef.current.has(message.id))?.id
+        ?? Array.from(pendingReplyMentionsByMessageRef.current.keys())[0];
+      if (!replyTargetId) return;
+      const replyIds = pendingReplyMentionsByMessageRef.current.get(replyTargetId);
+      if (!replyIds || replyIds.size === 0) return;
+      if (!messagesRef.current.some((message) => message.id === replyTargetId)) {
+        await ensureMessageLoaded(replyTargetId);
+      }
+      const targetMessage = messagesRef.current.find((message) => message.id === replyTargetId);
+      if (!targetMessage) return;
+      await actions.openReplyThread(targetMessage);
+      const replyId = actions.replies.find((reply) => replyIds.has(reply.id))?.id ?? Array.from(replyIds)[0];
+      requestAnimationFrame(() => {
+        const node = actions.replyListRef.current?.querySelector<HTMLElement>(`#reply-${replyId}`);
+        node?.scrollIntoView({ block: "center", behavior: "smooth" });
+        scheduleReplyMentionSync();
+      });
+    } finally {
+      setMentionJumpLoading(false);
+    }
+  }, [activeConversation, actions.openReplyThread, actions.replies, ensureMessageLoaded, scheduleMentionSync, scheduleReplyMentionSync]);
+
+  const jumpToNextReplyMention = useCallback(() => {
+    const replyTargetId = actions.replyTarget?.id;
+    if (!replyTargetId) return;
+    const pending = pendingReplyMentionsByMessageRef.current.get(replyTargetId);
+    if (!pending || pending.size === 0) return;
+    const replyId = actions.replies.find((reply) => pending.has(reply.id))?.id ?? Array.from(pending)[0];
+    if (!replyId) return;
+    const node = actions.replyListRef.current?.querySelector<HTMLElement>(`#reply-${replyId}`);
+    node?.scrollIntoView({ block: "center", behavior: "smooth" });
+    scheduleReplyMentionSync();
+  }, [actions.replyTarget?.id, actions.replies, scheduleReplyMentionSync]);
 
   useEffect(() => {
     const lastId = messages[messages.length - 1]?.id ?? null;
     if (!lastId) {
       return;
     }
-    const shouldScroll = pendingScrollRef.current || userAtBottomRef.current;
+    const shouldScroll = userAtBottomRef.current && !loadingOlder;
     if (shouldScroll && lastId != lastMessageIdRef.current) {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => scrollToBottom("auto"));
+        requestAnimationFrame(() => {
+          scrollToBottom("auto");
+          if (deferMentionSyncRef.current) {
+            deferMentionSyncRef.current = false;
+            scheduleMentionSync();
+          }
+        });
       });
+    } else if (deferMentionSyncRef.current) {
+      deferMentionSyncRef.current = false;
+      scheduleMentionSync();
     }
     pendingScrollRef.current = false;
     lastMessageIdRef.current = lastId;
-  }, [messages]);
+  }, [messages, scheduleMentionSync, loadingOlder]);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    if (deferMentionSyncRef.current) return;
+    scheduleMentionSync();
+  }, [messages, scheduleMentionSync]);
 
   useEffect(() => {
     if (!activeConversation || socketStatus === "connected") return;
@@ -906,6 +1307,11 @@ export function useThreadsController() {
       requestAnimationFrame(() => scrollToBottom("auto"));
     });
   }, [loadingMessages]);
+
+  useEffect(() => {
+    if (!actions.replyOpen) return;
+    scheduleReplyMentionSync();
+  }, [actions.replies, actions.replyOpen, scheduleReplyMentionSync]);
 
   const handleSelectUser = async (userEntry: ThreadUserSummary) => {
     try {
@@ -1169,7 +1575,12 @@ export function useThreadsController() {
     loadingMessages,
     loadingOlder,
     newMessageCount,
+    mentionNewCount,
+    offscreenMentionCount,
+    mentionJumpLoading,
+    isAtBottom,
     jumpToLatest,
+    jumpToNextMention,
     messageListRef,
     handleMessageScroll,
     replySeenCounts,
@@ -1256,8 +1667,10 @@ export function useThreadsController() {
     replyListRef: actions.replyListRef,
     replyLoadingOlder: actions.replyLoadingOlder,
     replyNewCount: actions.replyNewCount,
-    handleReplyScroll: actions.handleReplyScroll,
+    replyMentionNewCount,
+    handleReplyScroll,
     jumpToLatestReply: actions.jumpToLatestReply,
+    jumpToNextReplyMention,
     hoveredReplyId,
     setHoveredReplyId,
     reactionPickerReplyId,
@@ -1291,7 +1704,6 @@ export function useThreadsController() {
     closeReplyThread: actions.closeReplyThread
   };
 }
-
 
 
 

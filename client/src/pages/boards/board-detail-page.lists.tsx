@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MentionsField } from "@/components/mentions/mentions-input";
 import { Input } from "@/components/ui/input";
-import { CardSummary, CommentNote, ListDropZone, SortableCard, SortableListContainer } from "@/pages/boards/board-detail-page.components";
+import { useAuthStore } from "@/stores/auth-store";
+import { CardSummary, CommentNote, ListDropZone, SortableCard, SortableListContainer, isCommentMentionUnread } from "@/pages/boards/board-detail-page.components";
 import { coverColorSurfaceClasses, toListDragId } from "@/pages/boards/board-detail-page.utils";
 import type { BoardCard, BoardComment, BoardList, BoardMember, ChecklistItem } from "@/types/board";
 
@@ -102,6 +103,7 @@ export function BoardListsSection({
   const cardSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+  const currentUserId = useAuthStore((state) => state.user?.id);
   return (
     <>
       <Card>
@@ -213,6 +215,8 @@ export function BoardListsSection({
                             const listComments = list.comments ?? [];
                             const showAll = expandedListCommentGroups.has(list.id);
                             const visibleComments = showAll ? listComments : listComments.slice(0, 2);
+                            const hiddenComments = showAll ? [] : listComments.slice(2);
+                            const hasHiddenMention = hiddenComments.some((comment) => isCommentMentionUnread(comment, currentUserId));
                             if (listComments.length === 0) {
                               return <p className="text-xs text-muted-foreground">No list notes yet.</p>;
                             }
@@ -232,7 +236,7 @@ export function BoardListsSection({
                                 {listComments.length > 2 && (
                                   <button
                                     type="button"
-                                    className="basis-full text-[10px] text-muted-foreground underline underline-offset-2"
+                                    className={`basis-full text-[10px] underline underline-offset-2 ${hasHiddenMention ? "rounded-full border border-sky-300/60 bg-sky-500/10 px-2 py-0.5 font-semibold text-sky-600" : "text-muted-foreground"}`}
                                     onClick={() => toggleListCommentGroup(list.id)}
                                   >
                                     {showAll ? "Show less" : `Show all (${listComments.length})`}

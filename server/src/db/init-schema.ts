@@ -220,6 +220,27 @@ export const BASE_SCHEMA_SQL = `
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
+
+    CREATE TABLE IF NOT EXISTS announcements (
+      id TEXT PRIMARY KEY,
+      subject TEXT NOT NULL,
+      body TEXT NOT NULL,
+      audience TEXT,
+      created_by TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS announcement_recipients (
+      announcement_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      seen_at INTEGER,
+      PRIMARY KEY (announcement_id, user_id),
+      FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS thread_conversations (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL CHECK (type IN ('dm', 'channel')),
@@ -410,6 +431,8 @@ export const BASE_SCHEMA_SQL = `
 
 export const CLEAR_TEST_DATA_SQL = `
 
+    DELETE FROM announcement_recipients;
+    DELETE FROM announcements;
     DELETE FROM activity_logs;
     DELETE FROM role_scope_overrides;
     DELETE FROM invite_roles;
@@ -447,6 +470,8 @@ export const CLEAR_TEST_DATA_SQL = `
     DELETE FROM users;
   
 `;
+
+
 
 
 

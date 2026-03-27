@@ -2,10 +2,12 @@ import { useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CalendarClock, Check, Download, GripVertical, ListChecks } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import { UserHoverCard } from "@/components/users/user-hover-card";
+import { markCommentMentionsSeen } from "@/lib/mentions-api";
 import { useAuthStore } from "@/stores/auth-store";
+import { useMentionStore } from "@/stores/mentions-store";
 import type { BoardCard, BoardComment, BoardMember, Checklist, ChecklistItem } from "@/types/board";
 import {
   coverColorSurfaceClasses,
@@ -74,9 +76,9 @@ function readDismissedMentions(boardId: string): Set<string> {
   }
 }
 
-function writeDismissedMention(boardId: string, commentId: string): void {
+function writeDismissedMention(boardId: string, commentId: string): boolean {
   const set = readDismissedMentions(boardId);
-  if (set.has(commentId)) return;
+  if (set.has(commentId)) return false;
   set.add(commentId);
   dismissedMentionCache.set(boardId, set);
   try {
@@ -87,7 +89,22 @@ function writeDismissedMention(boardId: string, commentId: string): void {
   } catch {
     // ignore
   }
+  try {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("board-mention-dismissed", { detail: { boardId, commentId } }));
+    }
+  } catch {
+    // ignore
+  }
+  return true;
 }
+
+export function isCommentMentionUnread(comment: BoardComment, currentUserId: string | null | undefined): boolean {
+  if (!currentUserId) return false;
+  if (!comment.mentions?.some((mention) => mention.id === currentUserId)) return false;
+  return !readDismissedMentions(comment.boardId).has(comment.id);
+}
+
 
 export function CommentNote({
   comment,
@@ -105,6 +122,9 @@ export function CommentNote({
   variant?: "default" | "compact";
 }): JSX.Element {
   const currentUserId = useAuthStore((state) => state.user?.id);
+  const refreshMentions = useMentionStore((state) => state.refresh);
+  const mentionMarkedRef = useRef(false);
+  const anchorId = `comment-${comment.id}`;
   const [highlightDismissed, setHighlightDismissed] = useState(() =>
     comment.boardId ? readDismissedMentions(comment.boardId).has(comment.id) : false
   );
@@ -117,7 +137,13 @@ export function CommentNote({
     if (!showHighlight) return;
     setHighlightDismissed(true);
     if (comment.boardId) {
-      writeDismissedMention(comment.boardId, comment.id);
+      const stored = writeDismissedMention(comment.boardId, comment.id);
+      if (stored && !mentionMarkedRef.current) {
+        mentionMarkedRef.current = true;
+        void markCommentMentionsSeen([comment.id])
+          .then(() => refreshMentions())
+          .catch(() => undefined);
+      }
     }
   };
   const displayBody = expanded ? comment.body : getCommentSnippet(comment.body);
@@ -134,6 +160,7 @@ export function CommentNote({
   if (isCompact && !expanded) {
     return (
       <button
+        id={anchorId}
         type="button"
         onClick={(event) => {
           event.stopPropagation();
@@ -156,6 +183,7 @@ export function CommentNote({
   }
   return (
     <div
+      id={anchorId}
       role="button"
       tabIndex={0}
       onClick={(event) => {
@@ -276,11 +304,24 @@ export function CardSummary({
   onToggleCardCommentGroup?: (cardId: string) => void;
   onDownloadAllAttachments?: (card: BoardCard) => void;
 }): JSX.Element {
+  const currentUserId = useAuthStore((state) => state.user?.id);
+  const [mentionRefreshTick, setMentionRefreshTick] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => setMentionRefreshTick((value) => value + 1);
+    window.addEventListener("board-mention-dismissed", handler);
+    return () => window.removeEventListener("board-mention-dismissed", handler);
+  }, []);
+
   const dueLabel = formatDueDateLabel(card.dueDate);
   const checklists = showChecklists ? card.checklists ?? [] : [];
   const cardComments = card.comments ?? [];
   const showAllComments = expandedCardCommentGroups?.has(card.id) ?? false;
   const visibleComments = showAllComments ? cardComments : cardComments.slice(0, 2);
+  const hiddenComments = showAllComments ? [] : cardComments.slice(2);
+  const hasHiddenMention = hiddenComments.some((comment) => isCommentMentionUnread(comment, currentUserId));
+  void mentionRefreshTick;
   const canToggleItems = Boolean(onChecklistItemToggle);
   const handleChecklistBodyClick = (
     event: React.MouseEvent<HTMLElement>,
@@ -364,7 +405,7 @@ export function CardSummary({
               {cardComments.length > 2 && onToggleCardCommentGroup && (
                 <button
                   type="button"
-                  className="basis-full text-[10px] text-muted-foreground underline underline-offset-2"
+                  className={`basis-full text-[10px] underline underline-offset-2 ${hasHiddenMention ? "rounded-full border border-sky-300/60 bg-sky-500/10 px-2 py-0.5 font-semibold text-sky-600" : "text-muted-foreground"}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     onToggleCardCommentGroup(card.id);
@@ -502,7 +543,7 @@ export function SortableCard({
     transition,
   };
   return (
-    <div ref={setNodeRef} style={style} data-card-id={card.id}>
+    <div ref={setNodeRef} style={style} data-card-id={card.id} id={`card-${card.id}`}>
       <div
         className={`group flex items-start gap-2 rounded-md border border-border/70 ${coverColorSurfaceClasses[card.coverColor ?? "none"]} px-3 py-2 transition-all duration-150 ${
           isDragging ? "opacity-30 ring-2 ring-primary/25 shadow-md" : "hover:shadow-sm"

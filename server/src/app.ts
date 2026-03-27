@@ -10,9 +10,11 @@ import { authRouter } from "./modules/auth/auth.route.js";
 import { boardsRouter } from "./modules/boards/boards.route.js";
 import { invitesRouter } from "./modules/invites/invites.route.js";
 import { mentionsRouter } from "./modules/mentions/mentions.route.js";
+import { announcementsRouter } from "./modules/announcements/announcements.route.js";
 import { activityRouter } from "./modules/activity/activity.route.js";
 import { rolesRouter } from "./modules/roles/roles.route.js";
 import { threadsRouter } from "./modules/threads/threads.route.js";
+import { dashboardRouter } from "./modules/dashboard/dashboard.route.js";
 import { healthRouter } from "./routes/health.route.js";
 
 export const app = express();
@@ -34,9 +36,13 @@ app.use("/api/invites", invitesRouter);
 app.use("/api/roles", rolesRouter);
 app.use("/api/threads", threadsRouter);
 app.use("/api/mentions", mentionsRouter);
+app.use("/api/announcements", announcementsRouter);
 app.use("/api/activity", activityRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 app.use(notFoundMiddleware);
 app.use(errorHandler);
+
+
 
 

@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-25 00:00:00 +05:30
+Last checkpoint update: 2026-03-27 04:35:00 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -24,6 +24,11 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 6.3 (Presence): complete
   - Phase 6.4 (Board realtime updates): complete
   - Phase 6.5 (Threads realtime): complete
+  - Phase 10 (Dashboard & Templates): in progress (split into 10.1–10.x)
+  - Phase 10.1 (Dashboard foundation: Team Pulse + invites + stat shell): complete
+  - Phase 10.2 (Personal dashboard summary): complete
+  - Phase 10.3 (Team insights + summaries): complete
+  - Phase 10.4+ (Dashboard UI overhaul + templates): not started
   - Phase 8 (Focus mode + time tracking): complete
 
 - Phase 6 completion highlights:
@@ -35,6 +40,9 @@ Purpose: Resume from this exact project state, not from zero.
   - Threads realtime: conversation rooms + message/reply/reaction/media socket events with polling fallback
 
 - Recent UI/UX work:
+  - Dashboard foundation in place: Team Pulse feed + admin invites panel + stat card shell
+  - Dashboard personal summary: assigned/created task lists with priority/due-date sorting, board/thread mentions, live Pomodoro card
+  - Team insights: weekly/monthly metrics, activity highlights, new joiners, announcements (compose + unread + mark-seen + audience targeting)
   - Card/board confirm dialogs use proper focus trapping
   - Presence indicator dropdown shows “Show online / Show AFK” with hover tooltips
   - Channel manage panel permissions now use a dropdown overlay (no layout shift)
@@ -66,8 +74,9 @@ Purpose: Resume from this exact project state, not from zero.
 
 ## 2) Resume-Next Priority
 
+- Phase 10.4: dashboard UI overhaul + role-based views.
+- Phase 10.3–10.5: dashboard UI overhaul + team insights + templates.
 - Phase 7: calendar + multi-view.
-- Phase 8+: time tracking + focus polish (if revisited).
 
 ## 3) User Preferences to Preserve on Resume
 
@@ -200,3 +209,5 @@ Note: db -shm and -wal files are runtime artifacts; do not delete without user i
   - bun run --cwd server test
 
 This file is the resume checkpoint contract for continuing FlowState safely and quickly.
+
+

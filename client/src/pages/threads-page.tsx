@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageSquareText, Users } from "lucide-react";
+import { ArrowDown, MessageSquareText, Users } from "lucide-react";
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PresenceIndicator } from "@/components/users/presence-indicator";
@@ -75,7 +75,11 @@ export function ThreadsPage(): JSX.Element {
     loadingMessages,
     loadingOlder,
     newMessageCount,
+    offscreenMentionCount,
+    mentionJumpLoading,
+    isAtBottom,
     jumpToLatest,
+    jumpToNextMention,
     messageListRef,
     handleMessageScroll,
     replySeenCounts,
@@ -160,7 +164,9 @@ export function ThreadsPage(): JSX.Element {
     replyListRef,
     replyLoadingOlder,
     replyNewCount,
+    replyMentionNewCount,
     handleReplyScroll,
+    jumpToNextReplyMention,
     jumpToLatestReply,
     hoveredReplyId,
     setHoveredReplyId,
@@ -388,7 +394,7 @@ export function ThreadsPage(): JSX.Element {
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 py-4">
+            <div className="relative flex min-h-0 flex-1 flex-col gap-4 px-4 py-4">
               <ThreadMessageList
                 messages={messages}
                 loadingMessages={loadingMessages}
@@ -428,6 +434,32 @@ export function ThreadsPage(): JSX.Element {
                 onSetVideoPreview={setVideoPreview}
                 onDownloadAttachment={downloadThreadAttachment}
               />
+
+              {offscreenMentionCount > 0 && (
+                <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+                  <button
+                    type="button"
+                    className="pointer-events-auto rounded-full bg-rose-500/90 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-70"
+                    onClick={() => void jumpToNextMention()}
+                    disabled={mentionJumpLoading}
+                  >
+                    {mentionJumpLoading ? "Loading mentions..." : `+${offscreenMentionCount} new mentions`}
+                  </button>
+                </div>
+              )}
+
+              {!isAtBottom && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-24 flex justify-center">
+                  <button
+                    type="button"
+                    className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/70 bg-muted/80 px-3 py-1 text-xs font-semibold text-muted-foreground shadow-sm transition hover:bg-muted"
+                    onClick={jumpToLatest}
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                    Latest
+                  </button>
+                </div>
+              )}
 
               {newMessageCount > 0 && (
                 <div className="flex justify-end">
@@ -779,7 +811,7 @@ export function ThreadsPage(): JSX.Element {
                 </div>
               </div>
             ) : (
-              <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 py-4">
+              <div className="relative flex min-h-0 flex-1 flex-col gap-4 px-4 py-4">
                 <ThreadMessageList
                   messages={messages}
                   loadingMessages={loadingMessages}
@@ -819,6 +851,33 @@ export function ThreadsPage(): JSX.Element {
                   onSetVideoPreview={setVideoPreview}
                   onDownloadAttachment={downloadThreadAttachment}
                 />
+
+              {offscreenMentionCount > 0 && (
+                <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+                  <button
+                    type="button"
+                    className="pointer-events-auto rounded-full bg-rose-500/90 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-70"
+                    onClick={() => void jumpToNextMention()}
+                    disabled={mentionJumpLoading}
+                  >
+                    {mentionJumpLoading ? "Loading mentions..." : `+${offscreenMentionCount} new mentions`}
+                  </button>
+                </div>
+              )}
+
+              {!isAtBottom && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-24 flex justify-center">
+                  <button
+                    type="button"
+                    className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/70 bg-muted/80 px-3 py-1 text-xs font-semibold text-muted-foreground shadow-sm transition hover:bg-muted"
+                    onClick={jumpToLatest}
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                    Latest
+                  </button>
+                </div>
+              )}
+
 
                 {newMessageCount > 0 && (
                   <div className="flex justify-end">
@@ -961,6 +1020,8 @@ export function ThreadsPage(): JSX.Element {
           replyListRef={replyListRef}
           replyLoadingOlder={replyLoadingOlder}
           replyNewCount={replyNewCount}
+          mentionNewCount={replyMentionNewCount}
+          onJumpToNextMention={jumpToNextReplyMention}
           onReplyScroll={handleReplyScroll}
           onJumpToLatestReply={jumpToLatestReply}
           currentUserId={user?.id}

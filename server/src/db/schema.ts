@@ -43,7 +43,8 @@ export const rolePermissions = [
   "channel_members_remove",
   "channel_manage_overrides",
   "channel_delete",
-  "view_settings"
+  "view_settings",
+  "send_announcements"
 ] as const;
 export const roleScopeTypes = ["global", "board", "section", "card"] as const;
 export const roleScopeAccess = ["allow", "deny"] as const;
@@ -329,6 +330,29 @@ export const commentMentions = sqliteTable("comment_mentions", {
 }));
 
 
+export const announcements = sqliteTable("announcements", {
+  id: text("id").primaryKey(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  audience: text("audience"),
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date())
+});
+
+export const announcementRecipients = sqliteTable("announcement_recipients", {
+  announcementId: text("announcement_id")
+    .notNull()
+    .references(() => announcements.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
+  seenAt: integer("seen_at", { mode: "timestamp_ms" })
+}, (table) => ({
+  pk: primaryKey({ columns: [table.announcementId, table.userId] })
+}));
 export const threadConversations = sqliteTable("thread_conversations", {
   id: text("id").primaryKey(),
   type: text("type", { enum: threadConversationTypes }).notNull(),
@@ -600,6 +624,9 @@ export type ThreadMemberRole = (typeof threadMemberRoles)[number];
 export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
+
+
+
 
 
 

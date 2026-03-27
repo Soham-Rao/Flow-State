@@ -39,7 +39,8 @@ export const rolePermissions = [
   "channel_members_remove",
   "channel_manage_overrides",
   "channel_delete",
-  "view_settings"
+  "view_settings",
+  "send_announcements"
 ] as const;
 
 export type RolePermission = (typeof rolePermissions)[number];
@@ -63,6 +64,8 @@ export interface UserRoleAssignment {
   role: "admin" | "member" | "guest";
   roleIds: string[];
 }
+
+
 
 
 

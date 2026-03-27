@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-03-25
+> Last updated: 2026-03-27
 
 ---
 
@@ -227,7 +227,7 @@ Pomodoro timer (configurable intervals), task-level time logging, "Focused" stat
 ### Phase 9: Rich Text, Search & Keyboard Shortcuts
 TipTap editor with slash commands (/todo, /h1, /code), full-text search (FTS5), command palette (Cmd+K), keyboard shortcuts system.
 
-### Phase 10: Dashboard, Analytics & Templates
+### Phase 10: Dashboard, Analytics & Templates (split into 10.1–10.x)
 Home dashboard ("My Tasks", recent activity, completed items feed), weekly team pulse summary, template gallery, profile/settings page, pin/star system.
 
 ### Phase 11: Polish, Advanced Features & Final Testing
@@ -286,7 +286,12 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
 | Phase 8: Time Tracking & Focus | ✅ Completed | 2026-03-14 | 2026-03-14 | Focus mode Pomodoro UI with personal history/stats (local only) |
 | Phase 9: Rich Text, Search, Shortcuts | ⬜ Not Started | — | — | — |
-| Phase 10: Dashboard & Templates | ⬜ Not Started | — | — | — |
+| Phase 10: Dashboard & Templates | 🟡 In Progress | 2026-03-25 | — | Split into 10.1–10.x; dashboard overhaul planned |
+| Phase 10.1: Dashboard foundation (Team Pulse + invites + stat shell) | ✅ Completed | 2026-03-24 | 2026-03-25 | Team Pulse feed + admin invites panel + dashboard stat cards shell |
+| Phase 10.2: Personal workspace summary | ✅ Completed | 2026-03-27 | 2026-03-27 | My tasks, mentions, timers, assignments, unread summaries |
+| Phase 10.3: Team insights + summaries | ✅ Completed | 2026-03-27 | 2026-03-27 | Weekly/monthly summaries, activity highlights, new joiners, announcements |
+| Phase 10.4: Dashboard UI overhaul | ⬜ Not Started | — | — | Dense info layout without clutter, role-based views |
+| Phase 10.5: Templates + pins + settings polish | ⬜ Not Started | — | — | Template gallery, pin/star UX, settings refinements |
 | Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
 
 ---
@@ -333,6 +338,9 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 ## 13. Updates
 
 | Date | Update |
+| 2026-03-27 | Announcement audience roles now auto-complement between include/exclude with user overrides; compose/view modals scroll; home-page tests updated. |
+| 2026-03-27 | Announcements now fully wired: dashboard unread list + compose modal (subject/body + role/user audience targeting), permission gating, and mark-seen flow. |
+| 2026-03-25 | Phase 10 split into subphases; 10.1 completed (dashboard foundation: Team Pulse + admin invites + stat card shell). Phase 10 marked in progress; remaining dashboard overhaul + analytics + templates planned. |
 | 2026-03-25 | Phase 6.4 + 6.5 completed: board realtime refresh on socket events, thread rooms for messages/replies/reactions/media, and polling fallback when sockets are disconnected. |
 | 2026-03-25 | Phase 6.3 completed: workspace/board presence, AFK status, last-seen tracking, and presence indicators wired into threads + channel member lists; threads selection + manage view now persist in URL; channel permission overrides use dropdown with clear-override controls. |
 |------|--------|
@@ -372,6 +380,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |
 | 2026-03-12 | Phase 4.1 delivered: checklists data model + API, board card collapsible checklist previews with progress bars, card modal checklist CRUD, and new client/server checklist tests (user-run pending). |
 | 2026-03-13 | Phase 4.2 delivered: attachments (upload/download/delete), board-level retention settings (day/hour/min + mode toggle), retention-aware time-left labels, attachment cleanup on card deletion, and new attachments API test. User to run tests. |
+
 
 
 

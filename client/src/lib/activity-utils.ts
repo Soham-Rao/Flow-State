@@ -10,7 +10,7 @@ function getMetadataString(metadata: Record<string, unknown> | null, key: string
   return typeof value === "string" ? value : null;
 }
 
-export function formatActivityLabel(entry: ActivityLogEntry): string {
+export function formatActivityLabel(entry: ActivityLogEntry, currentUserId?: string | null): string {
   const actor = getActorName(entry);
   const metadata = entry.metadata ?? null;
   const boardName = getMetadataString(metadata, "boardName");
@@ -57,10 +57,14 @@ export function formatActivityLabel(entry: ActivityLogEntry): string {
       return actor + " moved " + (cardTitle ? "" + cardTitle + "" : "a card") + (toListName ? " to " + toListName : "");
     case "comment.created":
       return actor + " commented";
-    case "mention.board":
-      return actor + " mentioned someone";
-    case "mention.thread":
-      return actor + " mentioned someone";
+    case "mention.board": {
+      const isSelfMention = currentUserId && entry.mentionedUserId === currentUserId;
+      return actor + " mentioned " + (isSelfMention ? "you" : "someone");
+    }
+    case "mention.thread": {
+      const isSelfMention = currentUserId && entry.mentionedUserId === currentUserId;
+      return actor + " mentioned " + (isSelfMention ? "you" : "someone");
+    }
     case "checklist.created":
       return actor + " added checklist " + (checklistTitle ?? "a checklist");
     case "checklist.updated":

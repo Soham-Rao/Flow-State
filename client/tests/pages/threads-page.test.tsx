@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
@@ -40,7 +40,9 @@ const downloadThreadAttachment = vi.fn();
 const downloadThreadReplyAttachment = vi.fn();
 
 const getUnreadMentions = vi.fn();
-const markThreadMentionsSeen = vi.fn();
+const listUnreadThreadMentions = vi.fn();
+const markThreadMessageMentionsSeen = vi.fn();
+const markThreadReplyMentionIdsSeen = vi.fn();
 
 vi.mock("@/lib/threads-api", () => ({
   listDmUsers: (...args: unknown[]) => listDmUsers(...args),
@@ -81,7 +83,9 @@ vi.mock("@/lib/threads-api", () => ({
 
 vi.mock("@/lib/mentions-api", () => ({
   getUnreadMentions: (...args: unknown[]) => getUnreadMentions(...args),
-  markThreadMentionsSeen: (...args: unknown[]) => markThreadMentionsSeen(...args),
+  listUnreadThreadMentions: (...args: unknown[]) => listUnreadThreadMentions(...args),
+  markThreadMessageMentionsSeen: (...args: unknown[]) => markThreadMessageMentionsSeen(...args),
+  markThreadReplyMentionIdsSeen: (...args: unknown[]) => markThreadReplyMentionIdsSeen(...args),
   markCommentMentionsSeen: vi.fn()
 }));
 
@@ -170,7 +174,21 @@ describe("ThreadsPage", () => {
     createThreadMessage.mockResolvedValue(null);
     createThreadReply.mockResolvedValue(null);
     getUnreadMentions.mockResolvedValue({ total: 2, threads: 2, comments: 0 });
-    markThreadMentionsSeen.mockResolvedValue(null);
+    listUnreadThreadMentions.mockResolvedValue([
+      {
+        id: "mention-1",
+        mentionType: "message",
+        conversationId: "conv-1",
+        conversationType: "dm",
+        conversationLabel: "Grace",
+        messageId: "msg-1",
+        replyId: null,
+        body: "Hello Ada",
+        createdAt: Date.now()
+      }
+    ]);
+    markThreadMessageMentionsSeen.mockResolvedValue(null);
+    markThreadReplyMentionIdsSeen.mockResolvedValue(null);
   });
 
   it("renders dm list and opens a conversation", async () => {
@@ -185,7 +203,9 @@ describe("ThreadsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Grace/i }));
 
     expect(await screen.findByText("Hello Ada")).toBeInTheDocument();
-    expect(markThreadMentionsSeen).toHaveBeenCalledWith("conv-1");
+    await waitFor(() => {
+      expect(markThreadMessageMentionsSeen).toHaveBeenCalledWith(["msg-1"]);
+    });
   });
 });
 

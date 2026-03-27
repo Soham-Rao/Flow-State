@@ -20,8 +20,8 @@ burner finger +102 ❌ no longer working
 
 ---
 
-m9jahbyp@anonaddy.me ✔️ 100
-
+m9jahbyp@anonaddy.me ✔️ 0
+o12jhz59@anonaddy.me
 ---
 
 after phase 7, for 8 do team collab version of timer - seeing stats and other stuff
@@ -29,10 +29,43 @@ after phase 7, for 8 do team collab version of timer - seeing stats and other st
 ---
 compression 
 fix image placement 
-manage channel - members - clickable and collapsable perms
-dashboard - your tasks assigned to you
 
 advanced feature - custom notifications - always on somewhere, only mention somewhere, nothing somewhere
 mute notifs for particular dm/channel
+
+checking off comments? top contributer?
+
+sounds everywhere and focus sound louder 
+allow pausing breaks?
+
+circle shows dms + channel, hence notif count = sum 
+
+---
+
+i want to host soon
+hence can you double check the following - 
+1. authorization - when a user is logged in, can they only access their own data and nothing else of anybody else? a logged in user should only be able to access resources that theyre particularly authorized to access. this includes the role based access system we have implemented as well. any other trial of access should fail
+2. validation and sanitization of input - sql injections, cross site scripting, etc, and other methods of exploitation need to be sanitized and validated. maybe use zod (suggestion, anything works). no queries/executions should be made before validation and sanitization
+3. cors policy configuration - only requests from our domain must be served by our api
+4. rate limiting - on all end points. every endpoint must have a reasonable respective rate limiting based on its needs
+5. password reset option and link expiry - password reset link must expire after 30 minutes
+6. unexpected errors in frontend - different screens for different errors and a catchall so end users never see a stack trace
+7. indexing on common database operations - index most commonly queried fields but nothing else, dont need to increase write overhead if not needed. 
+8. logging - for debugging in prod, have only basic logging, not too much, dont want it to be expensive
+9. alerts - to be notified immediately in case something breaks 
+10. rollbacks - if a deployment goes wrong, perhaps a blue green deployment strategy
+11. security - other security precautions 
+12. costs - reducing db and network overheads efficiently but not brazzenly  
+report in detail, before trying to edit anything 
+
+---
+
+i want to host soon
+probably will host using host gator and c panel
+it has an smtp if im not wrong
+research about it 
+tell me how i am supposed to go about it 
+what to setup what to change in code, etc, etc
+list steps 
 
 ---

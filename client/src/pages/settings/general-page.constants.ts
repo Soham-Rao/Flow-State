@@ -117,6 +117,13 @@ export const permissionGroups: PermissionGroup[] = [
         description: "Review workspace events and audit logs.",
         enabledLabel: "Can view activity logs",
         disabledLabel: "Cannot view activity logs"
+      },
+      {
+        permission: "send_announcements",
+        title: "Send announcements",
+        description: "Send workspace-wide announcements.",
+        enabledLabel: "Can send announcements",
+        disabledLabel: "Cannot send announcements"
       }
     ]
   },
@@ -408,6 +415,7 @@ export const permissionGroups: PermissionGroup[] = [
     ]
   }
 ];
+
 
 
 

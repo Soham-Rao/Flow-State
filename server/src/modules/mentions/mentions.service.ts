@@ -9,13 +9,16 @@ import {
   lists,
   rolePermissionsTable,
   roleScopeOverrides,
+  threadConversations,
   threadMentions,
   threadMessages,
   threadReplyMentions,
   threadReplies,
-  threadMembers
+  threadMembers,
+  users
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { decryptDmBody } from "../../utils/encryption.js";
 import { getUserRoleIds } from "../../utils/permissions.js";
 
 export interface MentionUnreadCounts {
@@ -36,6 +39,17 @@ export interface CommentMentionDetail {
   createdAt: number;
 }
 
+export interface ThreadMentionDetail {
+  id: string;
+  mentionType: "message" | "reply";
+  conversationId: string;
+  conversationType: "dm" | "channel";
+  conversationLabel: string;
+  messageId: string;
+  replyId: string | null;
+  body: string | null;
+  createdAt: number;
+}
 function getAccessibleBoardIds(userId: string, boardIds: string[]): Set<string> {
   if (boardIds.length === 0) {
     return new Set();
@@ -242,6 +256,58 @@ export function markThreadMentionsSeen(userId: string, conversationId: string): 
     `)
     .run(now, userId, conversationId);
 }
+export function markThreadMessageMentionsSeen(userId: string, messageIds: string[]): void {
+  if (messageIds.length === 0) {
+    return;
+  }
+
+  const allowed = db
+    .select({ id: threadMessages.id })
+    .from(threadMessages)
+    .innerJoin(
+      threadMembers,
+      and(eq(threadMembers.conversationId, threadMessages.conversationId), eq(threadMembers.userId, userId))
+    )
+    .where(inArray(threadMessages.id, messageIds))
+    .all();
+
+  const allowedIds = allowed.map((row) => row.id);
+  if (allowedIds.length === 0) {
+    return;
+  }
+
+  db.update(threadMentions)
+    .set({ seenAt: new Date() })
+    .where(and(eq(threadMentions.mentionedUserId, userId), inArray(threadMentions.messageId, allowedIds), isNull(threadMentions.seenAt)))
+    .run();
+}
+
+export function markThreadReplyMentionIdsSeen(userId: string, replyIds: string[]): void {
+  if (replyIds.length === 0) {
+    return;
+  }
+
+  const allowed = db
+    .select({ id: threadReplies.id })
+    .from(threadReplies)
+    .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
+    .innerJoin(
+      threadMembers,
+      and(eq(threadMembers.conversationId, threadMessages.conversationId), eq(threadMembers.userId, userId))
+    )
+    .where(inArray(threadReplies.id, replyIds))
+    .all();
+
+  const allowedIds = allowed.map((row) => row.id);
+  if (allowedIds.length === 0) {
+    return;
+  }
+
+  db.update(threadReplyMentions)
+    .set({ seenAt: new Date() })
+    .where(and(eq(threadReplyMentions.mentionedUserId, userId), inArray(threadReplyMentions.replyId, allowedIds), isNull(threadReplyMentions.seenAt)))
+    .run();
+}
 
 export function markThreadReplyMentionsSeen(userId: string, parentMessageId: string): void {
   const message = db
@@ -278,6 +344,153 @@ export function markThreadReplyMentionsSeen(userId: string, parentMessageId: str
         )
     `)
     .run(now, userId, parentMessageId);
+}
+
+function resolveThreadPreviewBody(
+  conversationType: "dm" | "channel",
+  body: string | null,
+  bodyEncrypted: string | null,
+  encryptionVersion: number | null
+): string | null {
+  if (conversationType === "dm" && bodyEncrypted) {
+    return decryptDmBody(bodyEncrypted, encryptionVersion ?? 1);
+  }
+  return body;
+}
+
+export function listUnreadThreadMentions(userId: string): ThreadMentionDetail[] {
+  cleanupInvalidThreadMentions(userId);
+
+  const messageRows = db
+    .select({
+      mentionId: threadMentions.id,
+      messageId: threadMessages.id,
+      conversationId: threadConversations.id,
+      conversationType: threadConversations.type,
+      conversationName: threadConversations.name,
+      body: threadMessages.body,
+      bodyEncrypted: threadMessages.bodyEncrypted,
+      encryptionVersion: threadMessages.encryptionVersion,
+      createdAt: threadMessages.createdAt
+    })
+    .from(threadMentions)
+    .innerJoin(threadMessages, eq(threadMentions.messageId, threadMessages.id))
+    .innerJoin(threadConversations, eq(threadMessages.conversationId, threadConversations.id))
+    .innerJoin(
+      threadMembers,
+      and(eq(threadMembers.conversationId, threadConversations.id), eq(threadMembers.userId, userId))
+    )
+    .where(
+      and(
+        eq(threadMentions.mentionedUserId, userId),
+        isNull(threadMentions.seenAt),
+        ne(threadMessages.authorId, userId)
+      )
+    )
+    .orderBy(desc(threadMessages.createdAt))
+    .limit(50)
+    .all();
+
+  const replyRows = db
+    .select({
+      mentionId: threadReplyMentions.id,
+      replyId: threadReplies.id,
+      messageId: threadReplies.parentMessageId,
+      conversationId: threadConversations.id,
+      conversationType: threadConversations.type,
+      conversationName: threadConversations.name,
+      body: threadReplies.body,
+      bodyEncrypted: threadReplies.bodyEncrypted,
+      encryptionVersion: threadReplies.encryptionVersion,
+      createdAt: threadReplies.createdAt
+    })
+    .from(threadReplyMentions)
+    .innerJoin(threadReplies, eq(threadReplyMentions.replyId, threadReplies.id))
+    .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
+    .innerJoin(threadConversations, eq(threadMessages.conversationId, threadConversations.id))
+    .innerJoin(
+      threadMembers,
+      and(eq(threadMembers.conversationId, threadConversations.id), eq(threadMembers.userId, userId))
+    )
+    .where(
+      and(
+        eq(threadReplyMentions.mentionedUserId, userId),
+        isNull(threadReplyMentions.seenAt),
+        ne(threadReplies.authorId, userId)
+      )
+    )
+    .orderBy(desc(threadReplies.createdAt))
+    .limit(50)
+    .all();
+
+  const dmConversationIds = Array.from(
+    new Set(
+      [...messageRows, ...replyRows]
+        .filter((row) => row.conversationType === "dm")
+        .map((row) => row.conversationId)
+    )
+  );
+
+  const dmUsers = dmConversationIds.length
+    ? db
+        .select({
+          conversationId: threadMembers.conversationId,
+          id: users.id,
+          name: users.name,
+          displayName: users.displayName,
+          username: users.username,
+          email: users.email
+        })
+        .from(threadMembers)
+        .innerJoin(users, eq(threadMembers.userId, users.id))
+        .where(
+          and(
+            inArray(threadMembers.conversationId, dmConversationIds),
+            ne(threadMembers.userId, userId)
+          )
+        )
+        .all()
+    : [];
+
+  const dmLabelMap = new Map<string, string>();
+  dmUsers.forEach((row) => {
+    const label = row.displayName ?? row.name ?? row.username ?? row.email;
+    dmLabelMap.set(row.conversationId, label);
+  });
+
+  const messageMentions = messageRows.map((row) => ({
+    id: row.mentionId,
+    mentionType: "message" as const,
+    conversationId: row.conversationId,
+    conversationType: row.conversationType,
+    conversationLabel:
+      row.conversationType === "channel"
+        ? row.conversationName ?? "Channel"
+        : dmLabelMap.get(row.conversationId) ?? "Direct message",
+    messageId: row.messageId,
+    replyId: null,
+    body: resolveThreadPreviewBody(row.conversationType, row.body, row.bodyEncrypted, row.encryptionVersion),
+    createdAt: typeof row.createdAt === "number" ? row.createdAt : new Date(row.createdAt).getTime()
+  }));
+
+  const replyMentions = replyRows.map((row) => ({
+    id: row.mentionId,
+    mentionType: "reply" as const,
+    conversationId: row.conversationId,
+    conversationType: row.conversationType,
+    conversationLabel:
+      row.conversationType === "channel"
+        ? row.conversationName ?? "Channel"
+        : dmLabelMap.get(row.conversationId) ?? "Direct message",
+    messageId: row.messageId,
+    replyId: row.replyId,
+    body: resolveThreadPreviewBody(row.conversationType, row.body, row.bodyEncrypted, row.encryptionVersion),
+    createdAt: typeof row.createdAt === "number" ? row.createdAt : new Date(row.createdAt).getTime()
+  }));
+
+  return [...messageMentions, ...replyMentions]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 50);
 }
 
 export function listUnreadCommentMentions(userId: string): CommentMentionDetail[] {
@@ -324,6 +537,8 @@ export function listCommentMentions(userId: string): Array<{ commentId: string }
     .where(and(eq(commentMentions.userId, userId), isNull(commentMentions.seenAt)))
     .all();
 }
+
+
 
 
 

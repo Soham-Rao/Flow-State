@@ -32,9 +32,17 @@ const ACTIVITY_BATCH_MS = 350;
 const BOARD_EVENT_BATCH_MS = 300;
 const THREAD_EVENT_BATCH_MS = 300;
 const PRESENCE_STATUS_KEY = "flowstate:presence:status";
+const SOCKET_RECONNECT_ATTEMPTS = 8;
+const SOCKET_RECONNECT_DELAY = 500;
+const SOCKET_RECONNECT_DELAY_MAX = 3000;
+const SOCKET_TIMEOUT_MS = 5000;
+const HEALTH_TIMEOUT_MS = 1500;
+const HEALTH_RETRY_MS = 1000;
 
 let activeSocket: Socket | null = null;
 let activeToken: string | null = null;
+let healthCheckInFlight = false;
+let healthRetryTimer: number | null = null;
 let activityQueue: ActivityLogEntry[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let preferredStatus: PresenceStatus = "online";
@@ -54,6 +62,28 @@ try {
   }
 } catch {
   // ignore storage errors
+}
+
+
+function getHealthUrl(): string {
+  const apiBase = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/$/, "");
+  if (apiBase.startsWith("http")) {
+    return `${apiBase}/health`;
+  }
+  return `${apiBase}/health`;
+}
+
+async function isApiHealthy(): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+  try {
+    const response = await fetch(getHealthUrl(), { signal: controller.signal, credentials: "include" });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
 
 function getSocketUrl(): string | undefined {
@@ -138,53 +168,83 @@ export const useSocketStore = create<SocketStoreState>((set) => ({
       return;
     }
 
-    if (activeSocket) {
-      activeSocket.disconnect();
-      activeSocket = null;
+    if (healthRetryTimer) {
+      window.clearTimeout(healthRetryTimer);
+      healthRetryTimer = null;
     }
 
-    const socketUrl = getSocketUrl();
-    const socket = io(socketUrl ?? "/", {
-      auth: { token },
-      autoConnect: false,
-      transports: ["websocket"]
-    });
+    if (healthCheckInFlight) {
+      return;
+    }
 
-    activeSocket = socket;
-    activeToken = token;
+    healthCheckInFlight = true;
     set({ status: "connecting" });
+    void isApiHealthy().then((ok) => {
+      healthCheckInFlight = false;
+      if (!ok) {
+        set({ status: "idle" });
+        healthRetryTimer = window.setTimeout(() => {
+          healthRetryTimer = null;
+          useSocketStore.getState().connect();
+        }, HEALTH_RETRY_MS);
+        return;
+      }
 
-    socket.on("connect", () => {
-      set({ status: "connected" });
-      socket.emit("presence:set", { status: preferredStatus });
-    });
-    socket.on("disconnect", () => set({ status: "idle" }));
-    socket.on("connect_error", () => set({ status: "error" }));
-    socket.on("activity:new", (payload: ActivityLogEntry) => enqueueActivity(payload));
-    socket.on("board:event", (payload: BoardEventPayload) => enqueueBoardEvent(payload));
+      if (activeSocket) {
+        activeSocket.disconnect();
+        activeSocket = null;
+      }
 
-    const threadEvents = [
-      "threads:message:new",
-      "threads:message:edit",
-      "threads:message:delete",
-      "threads:reply:new",
-      "threads:reply:edit",
-      "threads:reply:delete",
-      "threads:reaction"
-    ];
-    threadEvents.forEach((event) => {
-      socket.on(event, (payload: ThreadEventPayload) => enqueueThreadEvent(event, payload));
-    });
+      const socketUrl = getSocketUrl();
+      const socket = io(socketUrl ?? "/", {
+        auth: { token },
+        autoConnect: false,
+        transports: ["websocket"],
+        reconnection: true,
+        reconnectionAttempts: SOCKET_RECONNECT_ATTEMPTS,
+        reconnectionDelay: SOCKET_RECONNECT_DELAY,
+        reconnectionDelayMax: SOCKET_RECONNECT_DELAY_MAX,
+        timeout: SOCKET_TIMEOUT_MS
+      });
 
-    socket.on("presence:workspace", (payload: { users?: PresenceUser[]; lastSeenByUserId?: Record<string, number> }) => {
-      usePresenceStore.getState().setWorkspace(payload.users ?? [], payload.lastSeenByUserId);
-    });
-    socket.on("presence:board", (payload: { boardId?: string; users?: PresenceUser[] }) => {
-      if (!payload.boardId) return;
-      usePresenceStore.getState().setBoard(payload.boardId, payload.users ?? []);
-    });
+      activeSocket = socket;
+      activeToken = token;
+      set({ status: "connecting" });
 
-    socket.connect();
+      socket.on("connect", () => {
+        set({ status: "connected" });
+        socket.emit("presence:set", { status: preferredStatus });
+      });
+      socket.on("disconnect", () => set({ status: "idle" }));
+      socket.on("connect_error", () => set({ status: "error" }));
+      socket.on("reconnect_attempt", () => set({ status: "connecting" }));
+      socket.on("reconnect_failed", () => set({ status: "error" }));
+      socket.on("activity:new", (payload: ActivityLogEntry) => enqueueActivity(payload));
+      socket.on("board:event", (payload: BoardEventPayload) => enqueueBoardEvent(payload));
+
+      const threadEvents = [
+        "threads:message:new",
+        "threads:message:edit",
+        "threads:message:delete",
+        "threads:reply:new",
+        "threads:reply:edit",
+        "threads:reply:delete",
+        "threads:reaction"
+      ];
+      threadEvents.forEach((event) => {
+        socket.on(event, (payload: ThreadEventPayload) => enqueueThreadEvent(event, payload));
+      });
+
+      socket.on("presence:workspace", (payload: { users?: PresenceUser[]; lastSeenByUserId?: Record<string, number> }) => {
+        usePresenceStore.getState().setWorkspace(payload.users ?? [], payload.lastSeenByUserId);
+      });
+      socket.on("presence:board", (payload: { boardId?: string; users?: PresenceUser[] }) => {
+        if (!payload.boardId) return;
+        usePresenceStore.getState().setBoard(payload.boardId, payload.users ?? []);
+      });
+
+      socket.connect();
+    });
   },
 
   disconnect: () => {

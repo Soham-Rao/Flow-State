@@ -509,7 +509,7 @@ export function ThreadMessageList({
           );
 
           return (
-            <div key={message.id} className="space-y-2">
+            <div key={message.id} className="space-y-2" data-message-id={message.id} id={`message-${message.id}`}>
               {showDate && (
                 <div className="flex justify-center">
                   <span className="rounded-full border border-border/60 bg-background/70 px-3 py-1 text-[11px] text-muted-foreground">{formatDateHeading(message.createdAt)}</span>

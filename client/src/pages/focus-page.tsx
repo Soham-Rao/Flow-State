@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, SkipForward, Sparkles, Timer, TrendingUp } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +55,7 @@ const createId = (): string => {
 
 export function FocusPage(): JSX.Element {
   const user = useAuthStore((state) => state.user);
+  const [searchParams, setSearchParams] = useSearchParams();
   const storageKey = user?.id ? `flowstate:focus:${user.id}` : "flowstate:focus:guest";
 
   const [focusMinutes, setFocusMinutes] = useState(DEFAULT_FOCUS_MINUTES);
@@ -61,6 +63,8 @@ export function FocusPage(): JSX.Element {
   const [mode, setMode] = useState<SessionMode>("focus");
   const [remainingSeconds, setRemainingSeconds] = useState(DEFAULT_FOCUS_MINUTES * 60);
   const [isRunning, setIsRunning] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [history, setHistory] = useState<FocusSessionEntry[]>([]);
   const [sessionId, setSessionId] = useState(() => createId());
   const lastRecordedSessionId = useRef<string | null>(null);
@@ -70,55 +74,113 @@ export function FocusPage(): JSX.Element {
   const audioUnlockedRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(storageKey);
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored) as Partial<{
-        focusMinutes: number;
-        breakMinutes: number;
-        history: Array<FocusSessionEntry & { durationMinutes?: number }>;
-      }>;
-      if (typeof parsed.focusMinutes === "number" && parsed.focusMinutes > 0) {
-        setFocusMinutes(parsed.focusMinutes);
-      }
-      if (typeof parsed.breakMinutes === "number" && parsed.breakMinutes > 0) {
-        setBreakMinutes(parsed.breakMinutes);
-      }
-      if (Array.isArray(parsed.history)) {
-        const normalizedHistory = parsed.history
-          .map((entry) => {
-            const durationSeconds =
-              typeof entry.durationSeconds === "number"
-                ? entry.durationSeconds
-                : typeof entry.durationMinutes === "number"
-                  ? Math.round(entry.durationMinutes * 60)
-                  : 0;
-            if (!entry.id || !entry.completedAt) {
-              return null;
-            }
-            return {
-              id: entry.id,
-              mode: entry.mode,
-              durationSeconds,
-              completedAt: entry.completedAt
-            } satisfies FocusSessionEntry;
-          })
-          .filter((entry): entry is FocusSessionEntry => entry !== null && entry.durationSeconds > 0);
-        setHistory(normalizedHistory);
-      }
-    } catch {
-      // Ignore malformed local storage payloads.
+  if (typeof window === "undefined") return;
+  const stored = window.localStorage.getItem(storageKey);
+  if (!stored) {
+    setHasLoaded(true);
+    return;
+  }
+  try {
+    const parsed = JSON.parse(stored) as Partial<{
+      focusMinutes: number;
+      breakMinutes: number;
+      mode: SessionMode;
+      remainingSeconds: number;
+      isRunning: boolean;
+      updatedAt: number;
+      hasStarted: boolean;
+      history: Array<FocusSessionEntry & { durationMinutes?: number }>;
+    }>;
+    const nextFocus =
+      typeof parsed.focusMinutes === "number" && parsed.focusMinutes > 0
+        ? parsed.focusMinutes
+        : DEFAULT_FOCUS_MINUTES;
+    const nextBreak =
+      typeof parsed.breakMinutes === "number" && parsed.breakMinutes > 0
+        ? parsed.breakMinutes
+        : DEFAULT_BREAK_MINUTES;
+    const nextMode: SessionMode = parsed.mode === "break" ? "break" : "focus";
+    const baseTotalSeconds = (nextMode === "focus" ? nextFocus : nextBreak) * 60;
+    let nextRemaining =
+      typeof parsed.remainingSeconds === "number" ? parsed.remainingSeconds : baseTotalSeconds;
+    if (parsed.isRunning && typeof parsed.updatedAt === "number") {
+      const elapsedSeconds = Math.max(0, Math.floor((Date.now() - parsed.updatedAt) / 1000));
+      nextRemaining = Math.max(0, nextRemaining - elapsedSeconds);
     }
+    const inferredHasStarted = typeof parsed.hasStarted === "boolean"
+      ? parsed.hasStarted
+      : Boolean(parsed.isRunning || (typeof parsed.remainingSeconds === "number" && parsed.remainingSeconds < baseTotalSeconds));
+    const nextHasStarted = inferredHasStarted && nextRemaining > 0;
+    setFocusMinutes(nextFocus);
+    setBreakMinutes(nextBreak);
+    setMode(nextMode);
+    setRemainingSeconds(nextRemaining);
+    setIsRunning(Boolean(parsed.isRunning && nextRemaining > 0));
+    setHasStarted(nextHasStarted);
+    lastDurationKey.current = `focus:${nextFocus}-break:${nextBreak}-mode:${nextMode}`;
+    if (Array.isArray(parsed.history)) {
+      const normalizedHistory = parsed.history
+        .map((entry) => {
+          const durationSeconds =
+            typeof entry.durationSeconds === "number"
+              ? entry.durationSeconds
+              : typeof entry.durationMinutes === "number"
+                ? Math.round(entry.durationMinutes * 60)
+                : 0;
+          if (!entry.id || !entry.completedAt) {
+            return null;
+          }
+          return {
+            id: entry.id,
+            mode: entry.mode,
+            durationSeconds,
+            completedAt: entry.completedAt
+          } satisfies FocusSessionEntry;
+        })
+        .filter((entry): entry is FocusSessionEntry => entry !== null && entry.durationSeconds > 0);
+      setHistory(normalizedHistory);
+    }
+  } catch {
+    // Ignore malformed local storage payloads.
+  }
+  setHasLoaded(true);
+}, [storageKey]);
+
+  useEffect(() => {
+    if (!hasLoaded) return;
+    if (typeof window === "undefined") return;
+    const payload = JSON.stringify({ focusMinutes, breakMinutes, history, mode, remainingSeconds, isRunning, hasStarted, updatedAt: Date.now() });
+    window.localStorage.setItem(storageKey, payload);
+  }, [breakMinutes, focusMinutes, hasLoaded, history, isRunning, mode, remainingSeconds, storageKey]);
+
+  const persistFocusState = useCallback((next: {
+    focusMinutes: number;
+    breakMinutes: number;
+    mode: SessionMode;
+    remainingSeconds: number;
+    isRunning: boolean;
+    hasStarted: boolean;
+    history: FocusSessionEntry[];
+  }) => {
+    if (typeof window === "undefined") return;
+    const payload = JSON.stringify({
+      focusMinutes: next.focusMinutes,
+      breakMinutes: next.breakMinutes,
+      history: next.history,
+      mode: next.mode,
+      remainingSeconds: next.remainingSeconds,
+      isRunning: next.isRunning,
+      hasStarted: next.hasStarted,
+      updatedAt: Date.now()
+    });
+    window.localStorage.setItem(storageKey, payload);
   }, [storageKey]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const payload = JSON.stringify({ focusMinutes, breakMinutes, history });
-    window.localStorage.setItem(storageKey, payload);
-  }, [breakMinutes, focusMinutes, history, storageKey]);
+
+
 
   useEffect(() => {
+    if (!hasLoaded) return;
     if (isRunning) return;
     const nextKey = `focus:${focusMinutes}-break:${breakMinutes}-mode:${mode}`;
     if (nextKey === lastDurationKey.current) return;
@@ -172,6 +234,35 @@ export function FocusPage(): JSX.Element {
     }
     audioUnlockedRef.current = true;
   }, [ensureAudioContext]);
+
+useEffect(() => {
+  const shouldResume = searchParams.get("resume") === "1";
+  if (!shouldResume) return;
+  if (!hasLoaded) return;
+  if (!isRunning) {
+    if (remainingSeconds <= 0) {
+      setRemainingSeconds((mode === "focus" ? focusMinutes : breakMinutes) * 60);
+    }
+    unlockAudio();
+    setHasStarted(true);
+    setIsRunning(true);
+    const nextRemaining = remainingSeconds <= 0
+      ? (mode === "focus" ? focusMinutes : breakMinutes) * 60
+      : remainingSeconds;
+    persistFocusState({
+      focusMinutes,
+      breakMinutes,
+      mode,
+      remainingSeconds: nextRemaining,
+      isRunning: true,
+      hasStarted: true,
+      history
+    });
+  }
+  const nextParams = new URLSearchParams(searchParams);
+  nextParams.delete("resume");
+  setSearchParams(nextParams, { replace: true });
+}, [breakMinutes, focusMinutes, hasLoaded, history, isRunning, mode, remainingSeconds, searchParams, setSearchParams, unlockAudio, persistFocusState]);
 
   const playChime = useCallback(() => {
     const context = ensureAudioContext();
@@ -229,13 +320,24 @@ export function FocusPage(): JSX.Element {
 
       const nextMode = mode === "focus" ? "break" : "focus";
       notifySessionEnd(mode, nextMode);
+      const nextRemaining = (nextMode === "focus" ? focusMinutes : breakMinutes) * 60;
       setMode(nextMode);
-      setRemainingSeconds((nextMode === "focus" ? focusMinutes : breakMinutes) * 60);
+      setRemainingSeconds(nextRemaining);
       setIsRunning(false);
+      setHasStarted(false);
       setSessionId(createId());
       lastDurationKey.current = `focus:${focusMinutes}-break:${breakMinutes}-mode:${nextMode}`;
+      persistFocusState({
+        focusMinutes,
+        breakMinutes,
+        mode: nextMode,
+        remainingSeconds: nextRemaining,
+        isRunning: false,
+        hasStarted: false,
+        history
+      });
     },
-    [breakMinutes, focusMinutes, mode, recordSession]
+    [breakMinutes, focusMinutes, history, mode, persistFocusState, recordSession]
   );
 
   useEffect(() => {
@@ -370,20 +472,48 @@ export function FocusPage(): JSX.Element {
                   if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
                     void Notification.requestPermission();
                   }
-                  setIsRunning((running) => !running);
+                  const nextIsRunning = !isRunning;
+                  const nextRemaining = !isRunning && remainingSeconds <= 0 ? totalSeconds : remainingSeconds;
+                  if (!isRunning && remainingSeconds <= 0) {
+                    setRemainingSeconds(nextRemaining);
+                  }
+                  if (nextIsRunning) {
+                    setHasStarted(true);
+                  }
+                  setIsRunning(nextIsRunning);
+                  persistFocusState({
+                    focusMinutes,
+                    breakMinutes,
+                    mode,
+                    remainingSeconds: nextRemaining,
+                    isRunning: nextIsRunning,
+                    hasStarted: nextIsRunning || hasStarted,
+                    history
+                  });
                 }} className="gap-2">
                   {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                  {isRunning ? "Pause" : "Start"}
+                  {isRunning ? "Pause" : hasStarted ? "Resume" : "Start"}
                 </Button>
                 <Button
                   variant="secondary"
                   className="gap-2"
                   onClick={() => {
                     unlockAudio();
+                    const nextRemaining = (mode === "focus" ? focusMinutes : breakMinutes) * 60;
                     setIsRunning(false);
-                    setRemainingSeconds((mode === "focus" ? focusMinutes : breakMinutes) * 60);
+                    setRemainingSeconds(nextRemaining);
+                    setHasStarted(false);
                     setSessionId(createId());
                     lastDurationKey.current = `focus:${focusMinutes}-break:${breakMinutes}-mode:${mode}`;
+                    persistFocusState({
+                      focusMinutes,
+                      breakMinutes,
+                      mode,
+                      remainingSeconds: nextRemaining,
+                      isRunning: false,
+                      hasStarted: false,
+                      history
+                    });
                   }}
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -543,4 +673,7 @@ export function FocusPage(): JSX.Element {
     </div>
   );
 }
+
+
+
 

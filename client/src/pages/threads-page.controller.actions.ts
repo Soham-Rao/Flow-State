@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 import { extractMentionIds } from "@/lib/mentions";
-import { markThreadReplyMentionsSeen } from "@/lib/mentions-api";
 import { resolveAudioDuration } from "./threads-page.utils";
 import {
   createThreadMessage,
@@ -807,14 +806,6 @@ export function useThreadActions({
     replyCompressedHistoryRef.current = [];
     setReplies(data);
     setReplySeenCounts((prev) => ({ ...prev, [message.id]: Math.max(prev[message.id] ?? 0, message.replyCount ?? 0) }));
-    setMessages((prev) => prev.map((item) => (item.id === message.id ? { ...item, unreadReplyMentions: 0 } : item)));
-    setReplyTarget((prev) => (prev && prev.id === message.id ? { ...prev, unreadReplyMentions: 0 } : prev));
-    void markThreadReplyMentionsSeen(message.id)
-      .then(() => {
-        void refreshConversations();
-        void refreshMentions();
-      })
-      .catch(() => {});
   };
 
   const openInlineReply = (message: ThreadMessageSummary) => {

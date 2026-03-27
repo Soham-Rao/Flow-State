@@ -22,6 +22,8 @@ type ThreadsReplyDrawerProps = {
   replyListRef: RefObject<HTMLDivElement>;
   replyLoadingOlder: boolean;
   replyNewCount: number;
+  mentionNewCount?: number;
+  onJumpToNextMention?: () => void;
   onReplyScroll: () => void;
   onJumpToLatestReply: () => void;
   currentUserId: string | null | undefined;
@@ -84,6 +86,8 @@ export function ThreadsReplyDrawer({
   replyListRef,
   replyLoadingOlder,
   replyNewCount,
+  mentionNewCount,
+  onJumpToNextMention,
   onReplyScroll,
   onJumpToLatestReply,
   currentUserId,
@@ -630,7 +634,7 @@ export function ThreadsReplyDrawer({
             );
 
             return (
-              <div key={reply.id} className="space-y-2">
+              <div key={reply.id} className="space-y-2" data-reply-id={reply.id} id={`reply-${reply.id}`}>
                 {showDate && (
                   <div className="flex justify-center">
                     <span className="rounded-full border border-border/60 bg-background/70 px-3 py-1 text-[11px] text-muted-foreground">
@@ -657,6 +661,18 @@ export function ThreadsReplyDrawer({
             );
           })}
         </div>
+
+        {mentionNewCount && mentionNewCount > 0 && onJumpToNextMention && (
+          <div className="flex justify-center px-4">
+            <button
+              type="button"
+              className="rounded-full bg-rose-500/90 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-rose-500"
+              onClick={onJumpToNextMention}
+            >
+              +{mentionNewCount} new mentions
+            </button>
+          </div>
+        )}
 
         {replyNewCount > 0 && (
           <div className="flex justify-end px-4">
