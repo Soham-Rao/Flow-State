@@ -2,6 +2,7 @@ import { DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, P
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Archive, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import type React from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MentionsField } from "@/components/mentions/mentions-input";
@@ -10,7 +11,35 @@ import { useAuthStore } from "@/stores/auth-store";
 import { CardSummary, CommentNote, ListDropZone, SortableCard, SortableListContainer, isCommentMentionUnread } from "@/pages/boards/board-detail-page.components";
 import { coverColorSurfaceClasses, toListDragId } from "@/pages/boards/board-detail-page.utils";
 import type { BoardCard, BoardComment, BoardList, BoardMember, ChecklistItem } from "@/types/board";
+import { boardGlassCard, boardGlassFrame, boardGlassInput, boardGlassPill, boardGlassStrong, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 
+const LIST_TINT_OPTIONS = [
+  { id: "default", label: "Neutral", className: "" },
+  {
+    id: "sky",
+    label: "Sky",
+    className:
+      "bg-[linear-gradient(135deg,rgba(56,189,248,0.16),rgba(14,116,144,0.10)),repeating-linear-gradient(135deg,rgba(255,255,255,0.14)_0_6px,rgba(255,255,255,0)_6px_12px)] dark:bg-[linear-gradient(135deg,rgba(56,189,248,0.22),rgba(14,116,144,0.14)),repeating-linear-gradient(135deg,rgba(255,255,255,0.08)_0_6px,rgba(255,255,255,0)_6px_12px)]"
+  },
+  {
+    id: "mint",
+    label: "Mint",
+    className:
+      "bg-[linear-gradient(135deg,rgba(52,211,153,0.16),rgba(16,185,129,0.10)),repeating-linear-gradient(135deg,rgba(255,255,255,0.12)_0_6px,rgba(255,255,255,0)_6px_12px)] dark:bg-[linear-gradient(135deg,rgba(52,211,153,0.22),rgba(16,185,129,0.14)),repeating-linear-gradient(135deg,rgba(255,255,255,0.08)_0_6px,rgba(255,255,255,0)_6px_12px)]"
+  },
+  {
+    id: "amber",
+    label: "Amber",
+    className:
+      "bg-[linear-gradient(135deg,rgba(251,191,36,0.16),rgba(245,158,11,0.10)),repeating-linear-gradient(135deg,rgba(255,255,255,0.12)_0_6px,rgba(255,255,255,0)_6px_12px)] dark:bg-[linear-gradient(135deg,rgba(251,191,36,0.22),rgba(245,158,11,0.14)),repeating-linear-gradient(135deg,rgba(255,255,255,0.08)_0_6px,rgba(255,255,255,0)_6px_12px)]"
+  },
+  {
+    id: "plum",
+    label: "Plum",
+    className:
+      "bg-[linear-gradient(135deg,rgba(168,85,247,0.16),rgba(147,51,234,0.10)),repeating-linear-gradient(135deg,rgba(255,255,255,0.12)_0_6px,rgba(255,255,255,0)_6px_12px)] dark:bg-[linear-gradient(135deg,rgba(168,85,247,0.22),rgba(147,51,234,0.14)),repeating-linear-gradient(135deg,rgba(255,255,255,0.08)_0_6px,rgba(255,255,255,0)_6px_12px)]"
+  }
+] as const;
 export function BoardListsSection({
   nowMs,
   retentionMinutes,
@@ -104,9 +133,16 @@ export function BoardListsSection({
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
   const currentUserId = useAuthStore((state) => state.user?.id);
+  const [listTintById, setListTintById] = useState<Record<string, string>>({});
+  const [openTintFor, setOpenTintFor] = useState<string | null>(null);
+
+  const setListTint = (listId: string, tintId: string) => {
+    setListTintById((current) => ({ ...current, [listId]: tintId }));
+    setOpenTintFor(null);
+  };
   return (
     <>
-      <Card>
+      <Card className={boardGlassCard}>
         <CardHeader>
           <CardTitle>Create List</CardTitle>
         </CardHeader>
@@ -116,12 +152,13 @@ export function BoardListsSection({
               value={newListName}
               onChange={(e) => onNewListNameChange(e.target.value)}
               placeholder="List name"
+              className={boardGlassInput}
             />
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input type="checkbox" checked={newListDone} onChange={(e) => onNewListDoneChange(e.target.checked)} />
               Done list
             </label>
-            <Button type="submit">Add list</Button>
+            <Button type="submit" className={boardGlassPill}>Add list</Button>
           </form>
         </CardContent>
       </Card>
@@ -139,12 +176,15 @@ export function BoardListsSection({
             items={orderedLists.map((list) => toListDragId(list.id))}
           >
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {orderedLists.map((list) => (
-                <SortableListContainer key={list.id} listId={list.id}>
-                  {({ dragHandleProps }) => (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between gap-2">
+              {orderedLists.map((list) => {
+                const listTint = listTintById[list.id] ?? "default";
+                const listTintClass = LIST_TINT_OPTIONS.find((option) => option.id === listTint)?.className ?? "";
+                return (
+                  <SortableListContainer key={list.id} listId={list.id}>
+                    {({ dragHandleProps }) => (
+                      <Card className={`${boardGlassCard} ${listTintClass}`}>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between gap-2">
                           <CardTitle className="text-base font-semibold">
                             {listNameDrafts[list.id] ?? list.name}
                           </CardTitle>
@@ -164,6 +204,40 @@ export function BoardListsSection({
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
+                            <div className="relative" data-tint-popover={list.id}>
+                              <button
+                                type="button"
+                                className={`flex h-8 w-8 items-center justify-center rounded-full border ${boardGlassPill}`}
+                                onClick={() => setOpenTintFor((current) => (current === list.id ? null : list.id))}
+                                title="Change list color"
+                                aria-label="Change list color"
+                              >
+                                <span
+                                  className={`h-3.5 w-3.5 rounded-full border border-white/40 shadow-sm ${
+                                    listTintClass ? listTintClass : "bg-white/40 dark:bg-white/10"
+                                  }`}
+                                />
+                              </button>
+                              {openTintFor === list.id && (
+                                <div className={`absolute right-0 top-full z-20 mt-2 w-40 rounded-lg p-2 ${boardGlassStrong}`}>
+                                  {LIST_TINT_OPTIONS.map((option) => (
+                                    <button
+                                      key={option.id}
+                                      type="button"
+                                      className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground ${boardGlassSubtle}`}
+                                      onClick={() => setListTint(list.id, option.id)}
+                                    >
+                                      <span
+                                        className={`h-3 w-3 rounded-full border border-white/40 ${
+                                          option.className || "bg-white/40 dark:bg-white/10"
+                                        }`}
+                                      />
+                                      {option.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             <Button
                               type="button" variant="ghost" size="sm"
                               className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700"
@@ -175,15 +249,15 @@ export function BoardListsSection({
                             <button
                               type="button"
                               {...dragHandleProps}
-                              className="rounded-md p-1 text-muted-foreground hover:bg-secondary/70 cursor-grab active:cursor-grabbing"
+                              className="rounded-md p-1 text-muted-foreground hover:bg-white/20 dark:hover:bg-white/10 cursor-grab active:cursor-grabbing"
                               title="Drag to reorder list"
                             >
                               <GripVertical className="h-4 w-4" />
                             </button>
                           </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
                         {editingListId === list.id && (
                           <div className="space-y-2">
                             <Input
@@ -257,7 +331,7 @@ export function BoardListsSection({
                               dropdownPlacement="top"
                               dropdownMaxHeightClassName="max-h-32"
                             />
-                            <Button type="submit" variant="secondary" className="gap-1">
+                            <Button type="submit" variant="secondary" className={`gap-1 ${boardGlassPill}`}>
                               <Plus className="h-4 w-4" />
                               Note
                             </Button>
@@ -269,7 +343,7 @@ export function BoardListsSection({
                             items={list.cards.map((c) => c.id)}
                             strategy={verticalListSortingStrategy}
                           >
-                            <div className="space-y-2 rounded-md border border-dashed border-border/70 p-2">
+                            <div className={`space-y-2 rounded-md border border-dashed p-2 ${boardGlassSubtle}`}>
                             {list.cards.length === 0 ? (
                               <ListDropZone listId={list.id} isCardDrag={activeCardId !== null} />
                             ) : (
@@ -303,23 +377,25 @@ export function BoardListsSection({
                             value={newCardTitles[list.id] ?? ""}
                             onChange={(e) => onCardTitleChange(list.id, e.target.value)}
                             placeholder="New card title"
+                            className={boardGlassInput}
                           />
-                          <Button type="submit" className="gap-1">
+                          <Button type="submit" className={`gap-1 ${boardGlassPill}`}>
                             <Plus className="h-4 w-4" />
                             Add Card
                           </Button>
                         </form>
-                      </CardContent>
+                        </CardContent>
                     </Card>
                   )}
                 </SortableListContainer>
-              ))}
+              );
+            })}
             </div>
           </SortableContext>
           {/* The floating card that follows your cursor */}
           <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>
             {activeCard ? (
-              <div className={`rotate-1 rounded-md border border-border/70 ${coverColorSurfaceClasses[activeCard.coverColor ?? "none"]} px-3 py-2 shadow-2xl opacity-95 ring-2 ring-primary/30`}>
+              <div className={`rotate-1 rounded-md ${boardGlassFrame} ${coverColorSurfaceClasses[activeCard.coverColor ?? "none"]} bg-white/10 dark:bg-black/25 px-3 py-2 shadow-2xl opacity-95 ring-2 ring-primary/30`}>
                 <CardSummary
                   card={activeCard}
                   nowMs={nowMs}
@@ -334,7 +410,7 @@ export function BoardListsSection({
                 />
               </div>
             ) : activeList ? (
-              <div className="w-80 rotate-1 rounded-xl border border-border/70 bg-card/90 p-4 shadow-2xl opacity-95 ring-2 ring-primary/30">
+              <div className={`w-80 rotate-1 rounded-xl p-4 shadow-2xl opacity-95 ring-2 ring-primary/30 ${boardGlassStrong}`}>
                 <p className="text-sm font-semibold text-foreground">{activeList.name}</p>
                 <p className="text-xs text-muted-foreground">{activeList.cards.length} cards</p>
               </div>
@@ -345,4 +421,42 @@ export function BoardListsSection({
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

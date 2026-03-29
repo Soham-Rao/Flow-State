@@ -9,6 +9,7 @@ import { listInvites } from "@/lib/invites-api";
 import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole, updateUserRoles } from "@/lib/roles-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useThreadSettingsStore } from "@/stores/thread-settings-store";
+import { glassCardClass, glassInputClass, glassSubtleClass } from "@/pages/glassmorphism.styles";
 import type { InviteSummary } from "@/types/invite";
 import { type RolePermission, type RoleSummary, type UserRoleAssignment } from "@/types/roles";
 import {
@@ -362,7 +363,7 @@ export function GeneralSettingsPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
+      <header className={`flex flex-wrap items-start justify-between gap-3 rounded-xl p-4 ${glassSubtleClass}`}>
         <div>
           <h2 className="text-2xl font-semibold">General settings</h2>
           <p className="text-sm text-muted-foreground">{helperText}</p>
@@ -380,7 +381,7 @@ export function GeneralSettingsPage(): JSX.Element {
       </header>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className={glassCardClass}>
           <CardHeader>
             <CardTitle>Roles</CardTitle>
             <CardDescription>Access levels, permissions, and assignments.</CardDescription>
@@ -406,7 +407,7 @@ export function GeneralSettingsPage(): JSX.Element {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={glassCardClass}>
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
             <CardDescription>Pick a theme that fits your focus.</CardDescription>
@@ -445,7 +446,7 @@ export function GeneralSettingsPage(): JSX.Element {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={glassCardClass}>
           <CardHeader>
             <CardTitle>Typography</CardTitle>
             <CardDescription>Choose the reading style you prefer.</CardDescription>
@@ -453,7 +454,7 @@ export function GeneralSettingsPage(): JSX.Element {
           <CardContent className="space-y-3">
             <label className="text-xs uppercase tracking-wide text-muted-foreground">Font</label>
             <select
-              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm"
+              className={`h-10 w-full rounded-md px-3 text-sm ${glassInputClass}`}
               value={selectedFont}
               onChange={(event) => {
                 setSelectedFont(event.target.value as FontOption);
@@ -468,7 +469,7 @@ export function GeneralSettingsPage(): JSX.Element {
             </select>
             <label className="text-xs uppercase tracking-wide text-muted-foreground">Spacing</label>
             <select
-              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm"
+              className={`h-10 w-full rounded-md px-3 text-sm ${glassInputClass}`}
               value={selectedSpacing}
               onChange={(event) => {
                 setSelectedSpacing(event.target.value as SpacingOption);
@@ -484,7 +485,7 @@ export function GeneralSettingsPage(): JSX.Element {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={glassCardClass}>
           <CardHeader>
             <CardTitle>Notifications</CardTitle>
             <CardDescription>Adjust email and in-app alerts.</CardDescription>
@@ -492,7 +493,7 @@ export function GeneralSettingsPage(): JSX.Element {
           <CardContent className="space-y-3">
             <label className="text-xs uppercase tracking-wide text-muted-foreground">Thread counters</label>
             <select
-              className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm"
+              className={`h-10 w-full rounded-md px-3 text-sm ${glassInputClass}`}
               value={threadBadgeMode}
               onChange={(event) => setThreadBadgeMode(event.target.value as "all" | "mentions" | "never")}
             >

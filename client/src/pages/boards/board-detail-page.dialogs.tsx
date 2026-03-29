@@ -1,3 +1,4 @@
+import { boardGlassPill } from "@/pages/boards/board-glass.styles";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getCommentSnippet } from "@/pages/boards/board-detail-page.utils";
 import type { BoardCard, BoardComment, BoardList, Checklist, ChecklistItem } from "@/types/board";
@@ -73,7 +74,7 @@ export function BoardDetailDialogs({
         onConfirm={onDismissPermissionError}
       />
       {showSavedNotice && (
-        <div className="pointer-events-none fixed bottom-5 right-5 z-40 rounded-full border badge-emerald px-4 py-2 text-sm font-medium shadow-lg backdrop-blur">
+        <div className={`pointer-events-none fixed bottom-5 right-5 z-40 px-4 py-2 text-sm font-medium shadow-lg backdrop-blur-md ${boardGlassPill} badge-emerald`}>
           Saved
         </div>
       )}
@@ -152,6 +153,10 @@ export function BoardDetailDialogs({
     </>
   );
 }
+
+
+
+
 
 
 

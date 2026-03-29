@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-27 04:35:00 +05:30
+Last checkpoint update: 2026-03-27 05:10:00 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -28,7 +28,7 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 10.1 (Dashboard foundation: Team Pulse + invites + stat shell): complete
   - Phase 10.2 (Personal dashboard summary): complete
   - Phase 10.3 (Team insights + summaries): complete
-  - Phase 10.4+ (Dashboard UI overhaul + templates): not started
+  - Phase 10.4 (Dashboard UI overhaul): complete
   - Phase 8 (Focus mode + time tracking): complete
 
 - Phase 6 completion highlights:
@@ -43,6 +43,7 @@ Purpose: Resume from this exact project state, not from zero.
   - Dashboard foundation in place: Team Pulse feed + admin invites panel + stat card shell
   - Dashboard personal summary: assigned/created task lists with priority/due-date sorting, board/thread mentions, live Pomodoro card
   - Team insights: weekly/monthly metrics, activity highlights, new joiners, announcements (compose + unread + mark-seen + audience targeting)
+  - Dashboard visual overhaul: glassmorphism styling, two-column layout, priority/alert bands, and low-latency UI polish
   - Card/board confirm dialogs use proper focus trapping
   - Presence indicator dropdown shows “Show online / Show AFK” with hover tooltips
   - Channel manage panel permissions now use a dropdown overlay (no layout shift)

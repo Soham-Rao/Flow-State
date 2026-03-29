@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Activity } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { boardGlassCard, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 import type { ActivityLogEntry } from "@/types/activity";
 import { formatActivityLabel, formatActivityTime, getActivitySnippet } from "@/lib/activity-utils";
 import { useActivityStore } from "@/stores/activity-store";
@@ -80,12 +81,12 @@ export function BoardActivityPanel({ boardId }: BoardActivityPanelProps): JSX.El
         <button
           type="button"
           aria-label="Show board activity"
-          className="peer mr-2 flex h-10 w-10 items-center justify-center rounded-l-lg border border-border/70 bg-card/90 text-muted-foreground shadow-sm transition hover:text-foreground"
+          className={`peer mr-2 flex h-10 w-10 items-center justify-center rounded-l-lg ${boardGlassSubtle} text-muted-foreground shadow-sm transition hover:text-foreground`}
         >
           <Activity className="h-4 w-4" />
         </button>
         <div className="pointer-events-none absolute right-0 top-0 w-80 translate-x-full transition-transform duration-200 peer-hover:pointer-events-auto peer-hover:translate-x-0 hover:pointer-events-auto hover:translate-x-0">
-          <Card className="border border-border/70 bg-card/90 shadow-lg backdrop-blur">
+          <Card className={`shadow-lg ${boardGlassCard}`}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Board activity</CardTitle>
               <CardDescription>Recent updates and mentions.</CardDescription>
@@ -100,7 +101,7 @@ export function BoardActivityPanel({ boardId }: BoardActivityPanelProps): JSX.El
                   <div key={section.key} className="space-y-2">
                     <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       <span>{section.title}</span>
-                      <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px]">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] ${boardGlassSubtle}`}>
                         {section.entries.length}
                       </span>
                     </div>
@@ -109,7 +110,7 @@ export function BoardActivityPanel({ boardId }: BoardActivityPanelProps): JSX.El
                       const time = formatActivityTime(entry);
                       const snippet = getActivitySnippet(entry);
                       return (
-                        <div key={entry.id} className="rounded-md border border-border/60 bg-background/70 px-3 py-2">
+                        <div key={entry.id} className={`rounded-md px-3 py-2 ${boardGlassSubtle}`}>
                           <p className="text-xs font-semibold text-foreground">{label}</p>
                           {snippet && <p className="mt-1 text-xs text-muted-foreground">{snippet}</p>}
                           <p className="mt-1 text-[10px] text-muted-foreground">{time}</p>
@@ -126,3 +127,5 @@ export function BoardActivityPanel({ boardId }: BoardActivityPanelProps): JSX.El
     </div>
   );
 }
+
+

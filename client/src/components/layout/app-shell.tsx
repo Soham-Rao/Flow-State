@@ -3,7 +3,6 @@ import { Bell, ChevronDown, Command, LayoutDashboard, ListTodo, LogOut, MessageC
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
-import { UserHoverCard } from "@/components/users/user-hover-card";
 import { useAuthStore } from "@/stores/auth-store";
 import { useThreadSettingsStore } from "@/stores/thread-settings-store";
 import { useMentionStore } from "@/stores/mentions-store";
@@ -173,15 +172,15 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[radial-gradient(900px_circle_at_top_left,rgba(45,212,191,0.55),transparent_60%),radial-gradient(800px_circle_at_bottom_right,rgba(99,102,241,0.5),transparent_60%),radial-gradient(700px_circle_at_top_right,rgba(251,191,36,0.35),transparent_65%),linear-gradient(135deg,#f8fafc,#eef2ff)] dark:bg-[radial-gradient(900px_circle_at_top_left,rgba(99,102,241,0.32),transparent_58%),radial-gradient(800px_circle_at_bottom_right,rgba(16,185,129,0.28),transparent_60%),radial-gradient(700px_circle_at_top_right,rgba(236,72,153,0.25),transparent_62%),linear-gradient(135deg,#0a0f1f,#030712)]">
       <div className="group/sidebar">
         <div className="hidden lg:block fixed inset-y-0 left-0 z-40 w-3" />
-        <aside className="border-b border-border/70 bg-card/70 px-4 py-4 backdrop-blur-md lg:fixed lg:top-0 lg:left-0 lg:z-50 lg:h-screen lg:w-[280px] lg:-translate-x-full lg:border-b-0 lg:border-r lg:px-6 lg:py-6 lg:transition-transform lg:duration-200 lg:group-hover/sidebar:translate-x-0">
+        <aside className="border-b border-white/30 bg-white/14 px-4 py-4 text-slate-900 backdrop-blur-xl lg:fixed lg:top-0 lg:left-0 lg:z-50 lg:h-screen lg:w-[280px] lg:-translate-x-full lg:border-b-0 lg:border-r lg:border-white/30 lg:px-6 lg:py-6 lg:transition-transform lg:duration-200 lg:group-hover/sidebar:translate-x-0 dark:border-white/18 dark:bg-white/6 dark:text-white/90">
         <div className="mb-6 flex items-center justify-between lg:mb-8">
-          <NavLink to="/" className="text-xl font-bold tracking-tight text-primary">
+          <NavLink to="/" className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
             FlowState
           </NavLink>
-          <Button variant="secondary" size="sm" className="gap-2">
+          <Button variant="secondary" size="sm" className="gap-2 border border-black/10 bg-white/70 text-slate-900 hover:bg-white/80 dark:border-white/20 dark:bg-white/10 dark:text-white/90 dark:hover:bg-white/14">
             <Command className="h-4 w-4" />
             Cmd+K
           </Button>
@@ -195,8 +194,8 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
               className={({ isActive }) =>
                 `flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-secondary text-secondary-foreground"
-                    : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
+                    ? "bg-black/5 text-slate-900 dark:bg-white/15 dark:text-white"
+                    : "text-slate-700 hover:bg-black/5 hover:text-slate-900 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
                 }`
               }
             >
@@ -217,7 +216,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
           <button
             type="button"
             onClick={() => setThreadsOpen((open) => !open)}
-            className="flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground transition hover:text-foreground"
+            className="flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 transition hover:text-slate-900 dark:text-white/60 dark:hover:text-white"
           >
             <span>Threads</span>
             <ChevronDown className={`h-4 w-4 transition ${threadsOpen ? "" : "-rotate-90"}`} />
@@ -229,8 +228,8 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                 className={() =>
                   `flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isThreadsPath && threadsTab === "dms"
-                      ? "bg-secondary text-secondary-foreground"
-                      : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
+                      ? "bg-black/5 text-slate-900 dark:bg-white/15 dark:text-white"
+                      : "text-slate-700 hover:bg-black/5 hover:text-slate-900 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
                   }`
                 }
               >
@@ -249,8 +248,8 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                 className={() =>
                   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isThreadsPath && threadsTab === "channels"
-                      ? "bg-secondary text-secondary-foreground"
-                      : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
+                      ? "bg-black/5 text-slate-900 dark:bg-white/15 dark:text-white"
+                      : "text-slate-700 hover:bg-black/5 hover:text-slate-900 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
                   }`
                 }
               >
@@ -267,7 +266,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
         </div>
 
         <div className="mt-8">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-white/60">
             Settings
           </p>
           <nav className="grid gap-2">
@@ -278,8 +277,8 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-secondary text-secondary-foreground"
-                      : "text-foreground/80 hover:bg-secondary hover:text-secondary-foreground"
+                      ? "bg-black/5 text-slate-900 dark:bg-white/15 dark:text-white"
+                      : "text-slate-700 hover:bg-black/5 hover:text-slate-900 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
                   }`
                 }
               >
@@ -293,11 +292,11 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
       </div>
 
       <main className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-10 border-b border-border/70 bg-background/80 px-4 py-2 backdrop-blur-lg lg:px-6">
+        <header className="sticky top-0 z-10 border-b border-white/30 bg-white/25 px-4 py-2 backdrop-blur-xl lg:px-6 dark:border-white/15 dark:bg-black/35 dark:backdrop-blur-2xl">
           <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-2 text-sm font-semibold">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white/90">
               <span>{displayName}</span>
-              <span className="rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[10px] font-semibold tracking-[0.2em] text-foreground">
+              <span className="rounded-full border border-black/10 bg-black/5 px-2 py-0.5 text-[10px] font-semibold tracking-[0.2em] text-slate-700 dark:border-white/20 dark:bg-white/10 dark:text-white/80">
                 {roleLabel}
               </span>
             </div>
@@ -309,19 +308,19 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                     {workspacePresence.slice(0, 4).map((member) => (
                       <div
                         key={member.id}
-                        className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-card/80 text-[10px] font-semibold text-muted-foreground shadow-sm"
+                        className="flex h-7 w-7 items-center justify-center rounded-full border border-black/10 bg-white/70 text-[10px] font-semibold text-slate-700 shadow-sm dark:border-white/20 dark:bg-black/20 dark:text-white/70"
                         title={member.displayName ?? member.username ?? member.email}
                       >
                         {getInitials(member)}
                       </div>
                     ))}
                     {workspacePresence.length > 4 && (
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-background/80 text-[10px] font-semibold text-muted-foreground shadow-sm">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full border border-black/10 bg-white/70 text-[10px] font-semibold text-slate-700 shadow-sm dark:border-white/20 dark:bg-black/20 dark:text-white/70">
                         +{workspacePresence.length - 4}
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Online</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-white/60">Online</span>
                 </div>
               )}
             </div>
@@ -331,25 +330,19 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                 <button
                   type="button"
                   onClick={() => setMenuOpen((open) => !open)}
-                  className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/70 px-3 py-1.5 text-right transition hover:bg-card"
+                  className="flex items-center gap-2 rounded-lg border border-white/35 bg-white/30 px-3 py-1.5 text-right text-slate-900 backdrop-blur-xl transition hover:bg-white/40 hover:border-white/60 dark:border-white/16 dark:bg-black/30 dark:text-white/90 dark:hover:bg-black/40"
                 >
                   <div>
-                    {user ? (
-                      <UserHoverCard user={user}>
-                        <p className="text-sm font-medium leading-tight">{displayName}</p>
-                      </UserHoverCard>
-                    ) : (
-                      <p className="text-sm font-medium leading-tight">{displayName}</p>
-                    )}
+                    <p className="text-sm font-medium leading-tight">{displayName}</p>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 text-slate-500 dark:text-white/70" />
                 </button>
 
                 {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-lg border border-border/70 bg-card/95 p-2 shadow-lg backdrop-blur">
+                  <div className="absolute right-0 mt-2 w-56 rounded-lg border border-white/45 bg-white/45 p-2 text-slate-900 shadow-xl backdrop-blur-2xl dark:border-white/16 dark:bg-black/40 dark:text-white/95">
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary"
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
                       onClick={() => {
                         setMenuOpen(false);
                         navigate("/settings/profile");
@@ -360,7 +353,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                     </button>
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary"
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
                       onClick={() => {
                         setMenuOpen(false);
                         navigate("/settings/general");
@@ -371,16 +364,16 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                     </button>
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground"
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-500 dark:text-white/70"
                       disabled
                     >
                       <Bell className="h-4 w-4" />
                       Help center
                     </button>
-                    <div className="my-2 border-t border-border/70" />
+                    <div className="my-2 border-t border-black/10 dark:border-white/10" />
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-500/10"
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10"
                       onClick={() => void onLogout()}
                       disabled={isSubmitting}
                     >
@@ -391,7 +384,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                 )}
               </div>
 
-              <Button variant="ghost" size="sm" className="gap-2">
+              <Button variant="ghost" size="sm" className="gap-2 text-slate-700 hover:text-slate-900 hover:bg-black/5 dark:text-white/80 dark:hover:text-white dark:hover:bg-white/10">
                 <Bell className="h-4 w-4" />
                 Alerts
               </Button>
@@ -404,6 +397,13 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     </div>
   );
 }
+
+
+
+
+
+
+
 
 
 

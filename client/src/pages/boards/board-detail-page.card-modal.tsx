@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MentionsField } from "@/components/mentions/mentions-input";
 import { UserHoverCard } from "@/components/users/user-hover-card";
 import { Input } from "@/components/ui/input";
+import { boardGlassModal, boardGlassModalInput, boardGlassOverlay, boardGlassOverlayDark, boardGlassPill, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 import { CommentNote } from "@/pages/boards/board-detail-page.components";
 import {
   clampYearInDateInput,
@@ -121,7 +122,7 @@ export function CardDetailModal({
   const card = selectedCardWithList.card;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+      className={`fixed inset-0 z-[70] h-[100dvh] w-screen flex items-center justify-center ${boardGlassOverlay} ${boardGlassOverlayDark} p-4`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           closeCardEditor();
@@ -129,10 +130,10 @@ export function CardDetailModal({
       }}
     >
       <Card
-        className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden"
+        className={`flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden ${boardGlassModal}`}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <CardHeader className="sticky top-0 z-10 shrink-0 border-b border-border/60 bg-card/95 backdrop-blur">
+        <CardHeader className={`sticky top-0 z-10 shrink-0 border-b border-white/10 ${boardGlassSubtle}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>Edit Card</CardTitle>
@@ -180,6 +181,7 @@ export function CardDetailModal({
               value={cardDraft.title}
               onChange={(e) => { const v = e.target.value; onCardDraftChange((c) => ({ ...c, title: v })); }}
               placeholder="Card title"
+              className={boardGlassModalInput}
             />
           </div>
           <div className="flex flex-wrap gap-1">
@@ -188,7 +190,7 @@ export function CardDetailModal({
               value={cardDraft.description}
               onChange={(e) => { const v = e.target.value; onCardDraftChange((c) => ({ ...c, description: v })); }}
               placeholder="Describe the task"
-              className="min-h-[140px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+              className={`min-h-[140px] w-full rounded-md px-3 py-2 text-sm ${boardGlassModalInput}`}
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -197,7 +199,7 @@ export function CardDetailModal({
               <select
                 value={cardDraft.priority}
                 onChange={(e) => { const v = e.target.value as CardPriority; onCardDraftChange((c) => ({ ...c, priority: v })); }}
-                className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm"
+                className={`h-10 w-full rounded-md px-3 text-sm ${boardGlassModalInput}`}
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -209,6 +211,7 @@ export function CardDetailModal({
               <span className="text-xs text-muted-foreground">Due date</span>
               <Input
                 type="datetime-local"
+                className={boardGlassModalInput}
                 value={cardDraft.dueDate}
                 onChange={(e) => { const v = clampYearInDateInput(e.target.value); onCardDraftChange((c) => ({ ...c, dueDate: v })); }}
               />
@@ -226,7 +229,7 @@ export function CardDetailModal({
                     key={color}
                     type="button"
                     onClick={() => onCardDraftChange((c) => ({ ...c, coverColor: color }))}
-                    className={`h-8 w-10 rounded-full border ${isSelected ? "border-primary ring-2 ring-primary/40" : "border-border"}`}
+                    className={`h-8 w-10 rounded-full border ${boardGlassSubtle} ${isSelected ? "border-primary ring-2 ring-primary/40" : "border-border"}`}
                     aria-pressed={isSelected}
                     title={color === "none" ? "No cover" : `${color} cover`}
                   >
@@ -323,7 +326,7 @@ export function CardDetailModal({
                   type="button"
                   variant="secondary"
                   size="sm"
-                  className="gap-1"
+                  className={`gap-1 ${boardGlassPill}`}
                   onClick={() => attachmentInputRef.current?.click()}
                   disabled={isUploadingAttachments}
                 >
@@ -340,7 +343,7 @@ export function CardDetailModal({
             ) : (
               <div className="space-y-2">
                 {selectedCardAttachments.map((attachment) => (
-                  <div key={attachment.id} className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background/80 px-3 py-2">
+                  <div key={attachment.id} className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 ${boardGlassSubtle}`}>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">{attachment.originalName}</p>
                       <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</p>
@@ -350,7 +353,7 @@ export function CardDetailModal({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="gap-1"
+                        className={`gap-1 ${boardGlassPill}`}
                         onClick={() => { void onDownloadAttachment(attachment); }}
                       >
                         <Download className="h-4 w-4" />
@@ -360,7 +363,7 @@ export function CardDetailModal({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="gap-1 text-red-600 hover:text-red-700"
+                        className={`gap-1 text-red-600 hover:text-red-700 ${boardGlassPill}`}
                         onClick={() => { void onDeleteAttachment(attachment.id); }}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -400,12 +403,12 @@ export function CardDetailModal({
                 members={boardMembers}
                 placeholder="Add a comment"
                 multiline
-                className="min-h-[96px] w-full"
+                className={`min-h-[96px] w-full ${boardGlassModalInput}`}
                 dropdownPlacement="top"
                 dropdownMaxHeightClassName="max-h-32"
               />
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button type="submit" variant="secondary" size="sm" className="gap-1">
+                <Button type="submit" variant="secondary" size="sm" className={`gap-1 ${boardGlassPill}`}>
                   <Plus className="h-4 w-4" />
                   Add comment
                 </Button>
@@ -430,7 +433,7 @@ export function CardDetailModal({
                     <div
                       key={checklist.id}
                       ref={(node) => { checklistSectionRefs.current[checklist.id] = node; }}
-                      className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3"
+                      className={`space-y-3 rounded-lg p-3 ${boardGlassSubtle}`}
                     >
                       <div className="flex items-center gap-2">
                         <Input
@@ -448,12 +451,13 @@ export function CardDetailModal({
                             }
                           }}
                           placeholder="Checklist title"
+                          className={boardGlassModalInput}
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          className={`h-8 w-8 p-0 text-red-600 hover:text-red-700 ${boardGlassPill}`}
                           onClick={() => onSetChecklistToDelete(checklist)}
                           title="Delete checklist"
                         >
@@ -502,12 +506,13 @@ export function CardDetailModal({
                                     }
                                   }}
                                   placeholder="Checklist item"
+                                  className={boardGlassModalInput}
                                 />
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="mt-0.5 h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                  className={`mt-0.5 h-8 w-8 p-0 text-red-600 hover:text-red-700 ${boardGlassPill}`}
                                   onClick={() => onSetChecklistItemToDelete({ item, cardId: card.id })}
                                   title="Delete item"
                                 >
@@ -529,8 +534,9 @@ export function CardDetailModal({
                             onChecklistItemDraftChange(checklist.id, value);
                           }}
                           placeholder="New checklist item"
+                          className={boardGlassModalInput}
                         />
-                        <Button type="submit" className="gap-1">
+                        <Button type="submit" className={`gap-1 ${boardGlassPill}`}>
                           <Plus className="h-4 w-4" />
                           Add item
                         </Button>
@@ -545,8 +551,9 @@ export function CardDetailModal({
                 value={newChecklistTitle}
                 onChange={(event) => onChecklistTitleChange(event.target.value)}
                 placeholder="New checklist title"
+                className={boardGlassModalInput}
               />
-              <Button type="submit" className="gap-1">
+              <Button type="submit" className={`gap-1 ${boardGlassPill}`}>
                 <Plus className="h-4 w-4" />
                 Add checklist
               </Button>
@@ -557,5 +564,16 @@ export function CardDetailModal({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
 
 

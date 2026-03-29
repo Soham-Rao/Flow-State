@@ -3,6 +3,7 @@ import type { MutableRefObject } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { boardGlassCard, boardGlassPill } from "@/pages/boards/board-glass.styles";
 import { ArchivedListsModal } from "@/pages/boards/board-detail-page.archived-panel";
 import { CardDetailModal } from "@/pages/boards/board-detail-page.card-modal";
 import { BoardDetailDialogs } from "@/pages/boards/board-detail-page.dialogs";
@@ -195,14 +196,14 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
   }
   if (!state.board) {
     return (
-      <Card>
+      <Card className={boardGlassCard}>
         <CardHeader>
           <CardTitle>Board not found</CardTitle>
           <CardDescription>The board may have been deleted or is unavailable.</CardDescription>
         </CardHeader>
         <CardContent>
           <Link to="/boards">
-            <Button type="button">Back to boards</Button>
+            <Button type="button" className={boardGlassPill}>Back to boards</Button>
           </Link>
         </CardContent>
       </Card>
@@ -413,6 +414,9 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
     </>
   );
 }
+
+
+
 
 
 

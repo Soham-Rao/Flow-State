@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { glassCardClass, glassInputClass, glassSubtleClass } from "@/pages/glassmorphism.styles";
 import { useAuthStore } from "@/stores/auth-store";
 
 interface ProfileFormState {
@@ -147,7 +148,7 @@ export function ProfileSettingsPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
+      <header className={`flex flex-wrap items-start justify-between gap-3 rounded-xl p-4 ${glassSubtleClass}`}>
         <div>
           <h2 className="text-2xl font-semibold">Profile settings</h2>
           <p className="text-sm text-muted-foreground">{helperText}</p>
@@ -161,7 +162,7 @@ export function ProfileSettingsPage(): JSX.Element {
 
       <form className="space-y-6" onSubmit={onSubmit}>
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
+          <Card className={glassCardClass}>
             <CardHeader>
               <CardTitle>Basic details</CardTitle>
               <CardDescription>These appear across the workspace.</CardDescription>
@@ -169,23 +170,23 @@ export function ProfileSettingsPage(): JSX.Element {
             <CardContent className="grid gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Full name</label>
-                <Input value={form.name} onChange={onChange("name")} placeholder="Your name" required />
+                <Input className={glassInputClass} value={form.name} onChange={onChange("name")} placeholder="Your name" required />
                 <p className="text-xs text-muted-foreground">Stored as your real name (not shown in the UI yet).</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Username</label>
-                <Input value={form.username} onChange={onChange("username")} placeholder="Username" />
+                <Input className={glassInputClass} value={form.username} onChange={onChange("username")} placeholder="Username" />
                 <p className={`text-xs ${usernameError ? "text-red-600" : "text-muted-foreground"}`}>{usernameError ?? "Unique handle for the workspace. Mentions use @username."}</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Display name</label>
-                <Input value={form.displayName} onChange={onChange("displayName")} placeholder="Display name" />
+                <Input className={glassInputClass} value={form.displayName} onChange={onChange("displayName")} placeholder="Display name" />
                 <p className="text-xs text-muted-foreground">Shown everywhere as your visible name. Can be shared with others.</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={glassCardClass}>
             <CardHeader>
               <CardTitle>About you</CardTitle>
               <CardDescription>Short bio and personal details.</CardDescription>
@@ -194,7 +195,7 @@ export function ProfileSettingsPage(): JSX.Element {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Bio</label>
                 <textarea
-                  className="min-h-[120px] w-full rounded-md border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className={`min-h-[120px] w-full rounded-md px-3 py-2 text-sm ${glassInputClass}`}
                   value={form.bio}
                   onChange={onChange("bio")}
                   placeholder="A quick summary about you"
@@ -204,6 +205,7 @@ export function ProfileSettingsPage(): JSX.Element {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Age</label>
                   <Input
+                    className={glassInputClass}
                     type="number"
                     min={0}
                     max={130}
@@ -215,6 +217,7 @@ export function ProfileSettingsPage(): JSX.Element {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Date of birth</label>
                   <Input
+                    className={glassInputClass}
                     type="date"
                     value={form.dateOfBirth}
                     onChange={(event) => {
@@ -242,3 +245,8 @@ export function ProfileSettingsPage(): JSX.Element {
     </div>
   );
 }
+
+
+
+
+

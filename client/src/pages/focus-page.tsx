@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { glassCardClass, glassInputClass, glassStrongClass, glassSubtleClass } from "@/pages/glassmorphism.styles";
 import { useAuthStore } from "@/stores/auth-store";
 
 type SessionMode = "focus" | "break";
@@ -412,7 +413,7 @@ useEffect(() => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 ${glassSubtleClass}`}>
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Focus mode</h2>
           <p className="text-sm text-muted-foreground">
@@ -422,7 +423,7 @@ useEffect(() => {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <Card className="relative overflow-hidden">
+        <Card className={`relative overflow-hidden ${glassStrongClass}`}>
           <div
             className={`absolute inset-0 focus-timer-surface ${
               mode === "focus" ? "focus-timer-focus" : "focus-timer-break"
@@ -454,7 +455,7 @@ useEffect(() => {
               </div>
 
               <div className="relative h-64 w-64 rounded-full p-2" style={ringStyle}>
-                <div className="absolute inset-3 rounded-full bg-background/80 shadow-inner backdrop-blur">
+                <div className={`absolute inset-3 rounded-full ${glassSubtleClass} shadow-inner`}>
                   <div className="flex h-full flex-col items-center justify-center gap-2">
                     <span className="text-5xl font-semibold tracking-tight">
                       {formatTime(remainingSeconds)}
@@ -541,7 +542,7 @@ useEffect(() => {
         </Card>
 
         <div className="space-y-6">
-          <Card>
+          <Card className={glassCardClass}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Timer className="h-4 w-4" />
@@ -574,6 +575,7 @@ useEffect(() => {
                 <label className="space-y-2 text-sm font-medium">
                   Focus minutes
                   <Input
+                    className={glassInputClass}
                     type="number"
                     min={10}
                     max={180}
@@ -590,6 +592,7 @@ useEffect(() => {
                 <label className="space-y-2 text-sm font-medium">
                   Break minutes
                   <Input
+                    className={glassInputClass}
                     type="number"
                     min={5}
                     max={60}
@@ -612,7 +615,7 @@ useEffect(() => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={glassCardClass}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <TrendingUp className="h-4 w-4" />
@@ -622,25 +625,25 @@ useEffect(() => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border bg-card/60 p-3">
+                <div className={`rounded-lg p-3 ${glassSubtleClass}`}>
                   <p className="text-xs text-muted-foreground">Today</p>
                   <p className="text-xl font-semibold">{formatDuration(stats.todayFocusSeconds)}</p>
                 </div>
-                <div className="rounded-lg border bg-card/60 p-3">
+                <div className={`rounded-lg p-3 ${glassSubtleClass}`}>
                   <p className="text-xs text-muted-foreground">This week</p>
                   <p className="text-xl font-semibold">{formatDuration(stats.weekFocusSeconds)}</p>
                 </div>
-                <div className="rounded-lg border bg-card/60 p-3">
+                <div className={`rounded-lg p-3 ${glassSubtleClass}`}>
                   <p className="text-xs text-muted-foreground">Total focus</p>
                   <p className="text-xl font-semibold">{formatDuration(stats.totalFocusSeconds)}</p>
                 </div>
-                <div className="rounded-lg border bg-card/60 p-3">
+                <div className={`rounded-lg p-3 ${glassSubtleClass}`}>
                   <p className="text-xs text-muted-foreground">Focus sessions</p>
                   <p className="text-xl font-semibold">{stats.focusSessions}</p>
                 </div>
               </div>
 
-              <div className="rounded-lg border bg-card/60 p-3">
+              <div className={`rounded-lg p-3 ${glassSubtleClass}`}>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Recent sessions
                 </p>
@@ -648,7 +651,7 @@ useEffect(() => {
                   {history.slice(0, 6).map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex items-center justify-between rounded-md border bg-background/60 px-3 py-2 text-xs"
+                      className={`flex items-center justify-between rounded-md px-3 py-2 text-xs ${glassSubtleClass}`}
                     >
                       <div>
                         <p className="font-semibold capitalize">{entry.mode}</p>

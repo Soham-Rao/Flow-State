@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { boardGlassModal, boardGlassOverlay, boardGlassOverlayDark, boardGlassPill, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 import { getArchiveCountdownLabel } from "@/pages/boards/board-detail-page.utils";
 import type { ArchivedListEntry, BoardCard } from "@/types/board";
 
@@ -27,7 +28,7 @@ export function ArchivedListsModal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+      className={`fixed inset-0 z-[70] h-[100dvh] w-screen flex items-center justify-center ${boardGlassOverlay} ${boardGlassOverlayDark} p-4`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -35,7 +36,7 @@ export function ArchivedListsModal({
       }}
     >
       <Card
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden"
+        className={`flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden ${boardGlassModal}`}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <CardHeader className="flex flex-row items-start justify-between gap-3">
@@ -43,7 +44,7 @@ export function ArchivedListsModal({
             <CardTitle>Archived lists</CardTitle>
             <CardDescription>Restore archived lists and cards before they are cleaned up.</CardDescription>
           </div>
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" className={boardGlassPill} onClick={onClose}>
             Close
           </Button>
         </CardHeader>
@@ -61,7 +62,7 @@ export function ArchivedListsModal({
                   ? getArchiveCountdownLabel(entry.archivedAt, nowMs, archiveRetentionTotalMinutes)
                   : "";
                 return (
-                  <div key={entry.id} className="rounded-lg border border-border/60 bg-background/80 p-3">
+                  <div key={entry.id} className={`rounded-lg p-3 ${boardGlassSubtle}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold text-foreground">{entry.name}</p>
@@ -81,7 +82,7 @@ export function ArchivedListsModal({
                           </p>
                         )}
                       </div>
-                      <Button type="button" size="sm" onClick={() => onRestore(entry)}>
+                      <Button type="button" size="sm" className={boardGlassPill} onClick={() => onRestore(entry)}>
                         Restore
                       </Button>
                     </div>
@@ -92,7 +93,7 @@ export function ArchivedListsModal({
                           return (
                             <div
                               key={card.id}
-                              className="flex items-center gap-2 rounded-md border border-border/50 bg-card/70 px-2 py-1 text-xs text-muted-foreground"
+                              className={`flex items-center gap-2 rounded-md px-2 py-1 text-xs text-muted-foreground ${boardGlassSubtle}`}
                             >
                               <span className="font-medium text-foreground">{card.title}</span>
                               {entry.kind === "cards" && cardCountdown && (
@@ -105,7 +106,7 @@ export function ArchivedListsModal({
                                   type="button"
                                   size="sm"
                                   variant="ghost"
-                                  className="h-7 px-2 text-[11px]"
+                                  className={`h-7 px-2 text-[11px] ${boardGlassPill}`}
                                   onClick={() => onRestoreCard(entry, card)}
                                 >
                                   Restore
@@ -126,3 +127,10 @@ export function ArchivedListsModal({
     </div>
   );
 }
+
+
+
+
+
+
+

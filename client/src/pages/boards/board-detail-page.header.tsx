@@ -6,7 +6,7 @@ import { MentionsField } from "@/components/mentions/mentions-input";
 import { CommentNote } from "@/pages/boards/board-detail-page.components";
 import type { BoardComment, BoardMember } from "@/types/board";
 import type { PresenceUser } from "@/types/presence";
-
+import { boardGlassInput, boardGlassPill, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 
 function getPresenceInitials(user: PresenceUser): string {
   const raw = user.displayName || user.username || user.name || user.email || "?";
@@ -79,8 +79,9 @@ export function BoardHeaderSection({
                   placeholder="Add a board note"
                   dropdownPlacement="top"
                   dropdownMaxHeightClassName="max-h-32"
+                  className={`min-h-[44px] flex-1 ${boardGlassInput}`}
                 />
-                <Button type="submit" className="gap-1">
+                <Button type="submit" className={`gap-1 ${boardGlassPill}`}>
                   <Plus className="h-4 w-4" />
                   Add note
                 </Button>
@@ -96,14 +97,14 @@ export function BoardHeaderSection({
                 {boardPresence.slice(0, 3).map((member) => (
                   <div
                     key={member.id}
-                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-card/80 text-[10px] font-semibold text-muted-foreground shadow-sm"
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold text-muted-foreground shadow-sm ${boardGlassSubtle}`}
                     title={member.displayName ?? member.username ?? member.email}
                   >
                     {getPresenceInitials(member)}
                   </div>
                 ))}
                 {boardPresence.length > 3 && (
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 bg-background/80 text-[10px] font-semibold text-muted-foreground shadow-sm">
+                  <div className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold text-muted-foreground shadow-sm ${boardGlassSubtle}`}>
                     +{boardPresence.length - 3}
                   </div>
                 )}
@@ -112,11 +113,11 @@ export function BoardHeaderSection({
             </div>
           )}
 
-          <Button type="button" variant="secondary" onClick={onOpenArchivedLists}>
+          <Button type="button" variant="secondary" className={boardGlassPill} onClick={onOpenArchivedLists}>
             Archived lists
           </Button>
           <Link to="/boards">
-            <Button type="button" variant="ghost">Back to boards</Button>
+            <Button type="button" variant="ghost" className={boardGlassPill}>Back to boards</Button>
           </Link>
         </div>
       </div>
@@ -128,3 +129,8 @@ export function BoardHeaderSection({
     </>
   );
 }
+
+
+
+
+

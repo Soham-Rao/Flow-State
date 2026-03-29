@@ -3,6 +3,7 @@ import type React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { boardGlassCard, boardGlassInput, boardGlassPill, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 import { boardBackgroundPresets, type BoardBackgroundPreset } from "@/lib/board-backgrounds";
 import { labelColorStyles, labelColors, parseRetentionInput } from "@/pages/boards/board-detail-page.utils";
 import type { BoardBackground, BoardLabel, LabelColor, RetentionMode } from "@/types/board";
@@ -79,7 +80,7 @@ export function BoardSettingsSection({
   onOpenDeleteBoard: () => void;
 }): JSX.Element {
   return (
-    <Card>
+    <Card className={boardGlassCard}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -90,7 +91,7 @@ export function BoardSettingsSection({
             variant="secondary"
             size="sm"
             onClick={onToggleSettingsOpen}
-            className="gap-1"
+            className={`gap-1 ${boardGlassPill}`}
           >
             {isSettingsOpen ? (<>Hide <ChevronUp className="h-4 w-4" /></>) : (<>Show <ChevronDown className="h-4 w-4" /></>)}
           </Button>
@@ -98,12 +99,12 @@ export function BoardSettingsSection({
       </CardHeader>
       {isSettingsOpen && (
         <CardContent className="space-y-4">
-          <Input value={boardName} onChange={(e) => onBoardNameChange(e.target.value)} />
+          <Input value={boardName} onChange={(e) => onBoardNameChange(e.target.value)} className={boardGlassInput} />
           <textarea
             value={boardDescription}
             onChange={(e) => onBoardDescriptionChange(e.target.value)}
             placeholder="Description"
-            className="min-h-[88px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+            className={`min-h-[88px] w-full rounded-md px-3 py-2 text-sm ${boardGlassInput}`}
           />
           <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
             {boardBackgroundPresets.map((preset: BoardBackgroundPreset) => (
@@ -111,14 +112,14 @@ export function BoardSettingsSection({
                 key={preset.id}
                 type="button"
                 onClick={() => onApplyBoardBackground(preset.id)}
-                className={`overflow-hidden rounded-md border text-left ${boardBackground === preset.id ? "border-primary ring-2 ring-primary/40" : "border-border"}`}
+                className={`overflow-hidden rounded-md border text-left ${boardGlassSubtle} ${boardBackground === preset.id ? "border-primary ring-2 ring-primary/40" : "border-border"}`}
               >
                 <div className={`h-10 ${preset.className}`} />
                 <p className="px-2 py-1 text-[11px] text-muted-foreground">{preset.label}</p>
               </button>
             ))}
           </div>
-          <div className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3">
+          <div className={`space-y-3 rounded-lg p-3 ${boardGlassSubtle}`}>
             <div className="flex flex-wrap gap-1">
               <p className="text-sm font-medium">Done card retention</p>
               <p className="text-xs text-muted-foreground">Set how long completed cards remain before cleanup.</p>
@@ -128,6 +129,7 @@ export function BoardSettingsSection({
                 <span>Days</span>
                 <Input
                   type="number"
+                  className={boardGlassInput}
                   min={0}
                   max={365}
                   value={retentionDays}
@@ -141,6 +143,7 @@ export function BoardSettingsSection({
                 <span>Hours</span>
                 <Input
                   type="number"
+                  className={boardGlassInput}
                   min={0}
                   max={23}
                   value={retentionHours}
@@ -154,6 +157,7 @@ export function BoardSettingsSection({
                 <span>Minutes</span>
                 <Input
                   type="number"
+                  className={boardGlassInput}
                   min={0}
                   max={59}
                   value={retentionMinutesPart}
@@ -169,6 +173,7 @@ export function BoardSettingsSection({
                 type="button"
                 variant={retentionMode === "card_and_attachments" ? "default" : "secondary"}
                 onClick={() => onRetentionModeChange("card_and_attachments")}
+                className={boardGlassPill}
               >
                 Delete card + attachments
               </Button>
@@ -176,12 +181,13 @@ export function BoardSettingsSection({
                 type="button"
                 variant={retentionMode === "attachments_only" ? "default" : "secondary"}
                 onClick={() => onRetentionModeChange("attachments_only")}
+                className={boardGlassPill}
               >
                 Delete attachments only
               </Button>
             </div>
           </div>
-          <div className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3">
+          <div className={`space-y-3 rounded-lg p-3 ${boardGlassSubtle}`}>
             <div className="flex flex-wrap gap-1">
               <p className="text-sm font-medium">Archive retention</p>
               <p className="text-xs text-muted-foreground">How long archived lists and cards remain before cleanup.</p>
@@ -191,6 +197,7 @@ export function BoardSettingsSection({
                 <span>Days</span>
                 <Input
                   type="number"
+                  className={boardGlassInput}
                   min={0}
                   max={365}
                   value={archiveRetentionDays}
@@ -204,6 +211,7 @@ export function BoardSettingsSection({
                 <span>Hours</span>
                 <Input
                   type="number"
+                  className={boardGlassInput}
                   min={0}
                   max={23}
                   value={archiveRetentionHours}
@@ -217,6 +225,7 @@ export function BoardSettingsSection({
                 <span>Minutes</span>
                 <Input
                   type="number"
+                  className={boardGlassInput}
                   min={0}
                   max={59}
                   value={archiveRetentionMinutesPart}
@@ -228,7 +237,7 @@ export function BoardSettingsSection({
               </label>
             </div>
           </div>
-          <div className="space-y-3 rounded-lg border border-border/60 bg-background/80 p-3">
+          <div className={`space-y-3 rounded-lg p-3 ${boardGlassSubtle}`}>
             <div className="flex items-center gap-2 text-sm font-medium">
               <Tag className="h-4 w-4 text-muted-foreground" />
               Labels
@@ -242,7 +251,7 @@ export function BoardSettingsSection({
               <select
                 value={newLabelColor}
                 onChange={(event) => onNewLabelColorChange(event.target.value as LabelColor)}
-                className="h-10 rounded-md border border-input bg-card px-3 text-sm"
+                className={`h-10 rounded-md px-3 text-sm ${boardGlassInput}`}
               >
                 {labelColors.map((color) => (
                   <option key={color} value={color}>
@@ -250,7 +259,7 @@ export function BoardSettingsSection({
                   </option>
                 ))}
               </select>
-              <Button type="submit" className="gap-1">
+              <Button type="submit" className={`gap-1 ${boardGlassPill}`}>
                 <Plus className="h-4 w-4" />
                 Add label
               </Button>
@@ -272,7 +281,7 @@ export function BoardSettingsSection({
                           onLabelDraftChange(label.id, value);
                           scheduleLabelAutosave(label.id, value, draftColor);
                         }}
-                        className="h-9 max-w-[220px]"
+                        className={`h-9 max-w-[220px] ${boardGlassInput}`}
                       />
                       <select
                         value={draftColor}
@@ -281,7 +290,7 @@ export function BoardSettingsSection({
                           onLabelColorDraftChange(label.id, value);
                           scheduleLabelAutosave(label.id, draftName, value);
                         }}
-                        className="h-9 rounded-md border border-input bg-card px-2 text-xs"
+                        className={`h-9 rounded-md px-2 text-xs ${boardGlassInput}`}
                       >
                         {labelColors.map((color) => (
                           <option key={color} value={color}>
@@ -293,7 +302,7 @@ export function BoardSettingsSection({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                        className={`h-8 w-8 p-0 text-red-600 hover:text-red-700 ${boardGlassPill}`}
                         onClick={() => onLabelDelete(label)}
                         title="Delete label"
                       >
@@ -313,10 +322,10 @@ export function BoardSettingsSection({
               {isAutosavingBoard ? "Saving..." : "Changes save automatically"}
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="ghost" onClick={onOpenArchiveBoard}>
+              <Button type="button" variant="ghost" className={boardGlassPill} onClick={onOpenArchiveBoard}>
                 Archive board
               </Button>
-              <Button type="button" variant="ghost" onClick={onOpenDeleteBoard}>
+              <Button type="button" variant="ghost" className={boardGlassPill} onClick={onOpenDeleteBoard}>
                 Delete board
               </Button>
             </div>
@@ -326,4 +335,8 @@ export function BoardSettingsSection({
     </Card>
   );
 }
+
+
+
+
 

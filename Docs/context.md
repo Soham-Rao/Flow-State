@@ -290,7 +290,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 10.1: Dashboard foundation (Team Pulse + invites + stat shell) | ✅ Completed | 2026-03-24 | 2026-03-25 | Team Pulse feed + admin invites panel + dashboard stat cards shell |
 | Phase 10.2: Personal workspace summary | ✅ Completed | 2026-03-27 | 2026-03-27 | My tasks, mentions, timers, assignments, unread summaries |
 | Phase 10.3: Team insights + summaries | ✅ Completed | 2026-03-27 | 2026-03-27 | Weekly/monthly summaries, activity highlights, new joiners, announcements |
-| Phase 10.4: Dashboard UI overhaul | ⬜ Not Started | — | — | Dense info layout without clutter, role-based views |
+| Phase 10.4: Dashboard UI overhaul | ✅ Completed | 2026-03-27 | 2026-03-27 | Glassmorphism redesign, two-column layout, priority/alert styling, visual polish only |
 | Phase 10.5: Templates + pins + settings polish | ⬜ Not Started | — | — | Template gallery, pin/star UX, settings refinements |
 | Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
 
@@ -338,6 +338,7 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 ## 13. Updates
 
 | Date | Update |
+| 2026-03-27 | Phase 10.4 completed: dashboard visual overhaul with glassmorphism, two-column layout, priority bands, and alert styling; no backend changes. |
 | 2026-03-27 | Announcement audience roles now auto-complement between include/exclude with user overrides; compose/view modals scroll; home-page tests updated. |
 | 2026-03-27 | Announcements now fully wired: dashboard unread list + compose modal (subject/body + role/user audience targeting), permission gating, and mark-seen flow. |
 | 2026-03-25 | Phase 10 split into subphases; 10.1 completed (dashboard foundation: Team Pulse + admin invites + stat card shell). Phase 10 marked in progress; remaining dashboard overhaul + analytics + templates planned. |

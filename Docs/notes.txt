@@ -22,6 +22,8 @@ burner finger +102 ❌ no longer working
 
 m9jahbyp@anonaddy.me ✔️ 0
 o12jhz59@anonaddy.me
+pukwl6ut@anonaddy.me
+q2kuq7y6@anonaddy.me
 ---
 
 after phase 7, for 8 do team collab version of timer - seeing stats and other stuff
@@ -57,15 +59,16 @@ hence can you double check the following -
 11. security - other security precautions 
 12. costs - reducing db and network overheads efficiently but not brazzenly  
 report in detail, before trying to edit anything 
-
+13. prod database - never resets upon updates and ci/cd changes, old data remains uncorrupted
+14. storage - proper encryption and compression of sensitive data and old data and appropriate decryption and decompression
 ---
 
 i want to host soon
-probably will host using host gator and c panel
+probably will host using host gator (big rock) and c panel
 it has an smtp if im not wrong
 research about it 
-tell me how i am supposed to go about it 
+tell me how i am supposed to go about using it / setting it up 
 what to setup what to change in code, etc, etc
 list steps 
-
+it has github repo support as well i think 
 ---

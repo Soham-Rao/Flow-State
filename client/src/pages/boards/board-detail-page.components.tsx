@@ -9,6 +9,7 @@ import { markCommentMentionsSeen } from "@/lib/mentions-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMentionStore } from "@/stores/mentions-store";
 import type { BoardCard, BoardComment, BoardMember, Checklist, ChecklistItem } from "@/types/board";
+import { boardGlassFrame, boardGlassStrong, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 import {
   coverColorSurfaceClasses,
   formatDueDateLabel,
@@ -430,7 +431,7 @@ export function CardSummary({
               return (
                 <details
                   key={checklist.id}
-                  className="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5"
+                  className={`rounded-md px-2 py-1.5 ${boardGlassSubtle}`}
                   onClick={(event) => {
                     event.stopPropagation();
                   }}
@@ -543,9 +544,9 @@ export function SortableCard({
     transition,
   };
   return (
-    <div ref={setNodeRef} style={style} data-card-id={card.id} id={`card-${card.id}`}>
+    <div ref={setNodeRef} style={style} data-card-id={card.id} id={`card-${card.id}`} className="odd:[&>div]:after:bg-white/6 even:[&>div]:after:bg-white/12 dark:odd:[&>div]:after:bg-white/8 dark:even:[&>div]:after:bg-white/14">
       <div
-        className={`group flex items-start gap-2 rounded-md border border-border/70 ${coverColorSurfaceClasses[card.coverColor ?? "none"]} px-3 py-2 transition-all duration-150 ${
+        className={`group relative flex items-start gap-2 rounded-md ${boardGlassFrame} border-2 border-white/30 dark:border-white/15 ${coverColorSurfaceClasses[card.coverColor ?? "none"]} bg-white/10 dark:bg-black/25 px-3 py-2 transition-all duration-150 after:content-[''] after:absolute after:inset-0 after:rounded-md after:pointer-events-none after:mix-blend-soft-light ${
           isDragging ? "opacity-30 ring-2 ring-primary/25 shadow-md" : "hover:shadow-sm"
         }`}
       >
@@ -649,11 +650,22 @@ export function ListDropZone({ listId, isCardDrag }: { listId: string; isCardDra
     <div
       ref={setNodeRef}
       className={`rounded-md border border-dashed px-3 py-4 text-sm text-muted-foreground transition-colors ${
-        active ? "border-primary/50 bg-primary/5" : "border-border/50 bg-background/70"
+        active ? "border-primary/50 bg-primary/10" : "border-white/20 bg-white/12 dark:bg-black/20 dark:border-white/10 backdrop-blur-sm"
       }`}
     >
       {active ? "Drop here" : "No cards yet. Add one below."}
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
 

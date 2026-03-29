@@ -11,7 +11,7 @@ import { listUnreadCommentMentions } from "@/lib/mentions-api";
 import { useMentionStore } from "@/stores/mentions-store";
 import type { BoardBackground, BoardSummary } from "@/types/board";
 import type { CommentMentionDetail } from "@/types/mentions";
-
+import { boardGlassCard, boardGlassModal, boardGlassModalInput, boardGlassOverlay, boardGlassOverlayDark, boardGlassPill, boardGlassStrong, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 const BOARD_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
 
 function getArchiveCountdownLabel(archivedAt: string | null, retentionMinutes: number, expiredLabel = "Deleting soon"): string {
@@ -217,13 +217,13 @@ export function BoardsPage(): JSX.Element {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 ${boardGlassCard}`}>
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Boards</h2>
             <p className="text-sm text-muted-foreground">Create and organize your team workspaces.</p>
           </div>
 
-          <Button type="button" onClick={() => setIsCreateOpen(true)}>
+          <Button type="button" onClick={() => setIsCreateOpen(true)} className={boardGlassPill}>
             New board
           </Button>
         </div>
@@ -237,7 +237,7 @@ export function BoardsPage(): JSX.Element {
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading boards...</p>
         ) : activeBoards.length === 0 ? (
-          <Card>
+          <Card className={boardGlassCard}>
             <CardHeader>
               <CardTitle>No active boards yet</CardTitle>
               <CardDescription>
@@ -250,7 +250,7 @@ export function BoardsPage(): JSX.Element {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {activeBoards.map((board) => (
-              <Card key={board.id} className="overflow-hidden">
+              <Card key={board.id} className={`overflow-hidden ${boardGlassCard}`}>
                 <Link to={`/boards/${board.id}`}>
                   <div className={`h-24 w-full ${getBoardBackgroundClass(board.background)}`} />
                 </Link>
@@ -269,11 +269,11 @@ export function BoardsPage(): JSX.Element {
                           >
                             {badgeMentions.length}
                           </button>
-                          <div className="pointer-events-none absolute right-0 top-7 z-10 w-72 translate-y-1 rounded-lg border border-border/70 bg-card/95 p-3 text-left opacity-0 shadow-lg backdrop-blur transition group-hover/mentions:pointer-events-auto group-hover/mentions:opacity-100">
+                          <div className={`pointer-events-none absolute right-0 top-7 z-10 w-72 translate-y-1 rounded-lg p-3 text-left opacity-0 shadow-lg transition ${boardGlassStrong} group-hover/mentions:pointer-events-auto group-hover/mentions:opacity-100`}>
                             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Mentions</p>
                             <div className="mt-2 space-y-2">
                               {badgeMentions.map((mention) => (
-                                <div key={mention.commentId} className="rounded-md border border-border/60 bg-background/70 px-2 py-2">
+                                <div key={mention.commentId} className={`rounded-md px-2 py-2 ${boardGlassSubtle}`}>
                                   <p className="text-xs font-semibold">{getMentionLocation(mention)}</p>
                                   <p className="mt-1 text-[10px] text-muted-foreground">{getMentionSnippet(mention.body)}</p>
                                 </div>
@@ -291,7 +291,7 @@ export function BoardsPage(): JSX.Element {
                   <p className="text-sm text-muted-foreground">{board.listCount} lists</p>
                   <div className="flex gap-2">
                     <Link to={`/boards/${board.id}`}>
-                      <Button type="button" variant="secondary" size="sm">
+                      <Button type="button" variant="secondary" size="sm" className={boardGlassPill}>
                         Open
                       </Button>
                     </Link>
@@ -299,12 +299,12 @@ export function BoardsPage(): JSX.Element {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="text-amber-600 hover:text-amber-700"
+                      className={`text-amber-600 hover:text-amber-700 ${boardGlassPill}`}
                       onClick={() => setBoardToArchive(board)}
                     >
                       Archive
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setBoardToDelete(board)}>
+                    <Button type="button" variant="ghost" size="sm" className={boardGlassPill} onClick={() => setBoardToDelete(board)}>
                       Delete
                     </Button>
                   </div>
@@ -326,7 +326,7 @@ export function BoardsPage(): JSX.Element {
               {archivedBoards.map((board) => {
                 const countdownLabel = getArchiveCountdownLabel(board.archivedAt, BOARD_ARCHIVE_RETENTION_MINUTES);
                 return (
-                <Card key={board.id} className="overflow-hidden border border-amber-200/60">
+                <Card key={board.id} className={`overflow-hidden ${boardGlassCard} border-amber-200/60 dark:border-amber-200/30`}>
                   <div className={`h-20 w-full ${getBoardBackgroundClass(board.background)}`} />
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2">
@@ -348,7 +348,7 @@ export function BoardsPage(): JSX.Element {
                     <p className="text-xs text-muted-foreground">
                       Archived {board.archivedAt ? new Date(board.archivedAt).toLocaleDateString() : "recently"}
                     </p>
-                    <Button type="button" size="sm" onClick={() => { void onRestoreBoard(board.id); }}>
+                    <Button type="button" size="sm" className={boardGlassPill} onClick={() => { void onRestoreBoard(board.id); }}>
                       Restore
                     </Button>
                   </CardContent>
@@ -360,7 +360,7 @@ export function BoardsPage(): JSX.Element {
         )}
 
         {isCreateOpen && (
-          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4"
+          <div className={`fixed inset-0 z-[70] h-[100dvh] w-screen flex items-center justify-center ${boardGlassOverlay} ${boardGlassOverlayDark} p-4`}
             onMouseDown={(event) => {
               if (event.target === event.currentTarget) {
                 setIsCreateOpen(false);
@@ -368,7 +368,7 @@ export function BoardsPage(): JSX.Element {
               }
             }}
           >
-            <Card className="w-full max-w-lg" onMouseDown={(event) => event.stopPropagation()}>
+            <Card className={`w-full max-w-lg ${boardGlassModal}`} onMouseDown={(event) => event.stopPropagation()}>
               <CardHeader>
                 <CardTitle>Create board</CardTitle>
                 <CardDescription>Choose a name, short description, and visual background.</CardDescription>
@@ -379,6 +379,7 @@ export function BoardsPage(): JSX.Element {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Board name"
+                    className={boardGlassModalInput}
                     minLength={2}
                     required
                   />
@@ -386,7 +387,7 @@ export function BoardsPage(): JSX.Element {
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
                     placeholder="Description (optional)"
-                    className="min-h-[88px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+                    className={`min-h-[88px] w-full rounded-md px-3 py-2 text-sm ${boardGlassModalInput}`}
                     maxLength={500}
                   />
 
@@ -396,12 +397,12 @@ export function BoardsPage(): JSX.Element {
                         key={preset.id}
                         type="button"
                         onClick={() => setBackground(preset.id)}
-                        className={`overflow-hidden rounded-md border text-left ${
+                        className={`overflow-hidden rounded-md border text-left ${boardGlassSubtle} ${
                           background === preset.id ? "border-primary ring-2 ring-primary/40" : "border-border"
                         }`}
                       >
                         <div className={`h-12 ${preset.className}`} />
-                        <p className="px-2 py-1 text-xs text-muted-foreground">{preset.label}</p>
+                        <p className="px-2 py-1 text-xs text-white">{preset.label}</p>
                       </button>
                     ))}
                   </div>
@@ -410,6 +411,7 @@ export function BoardsPage(): JSX.Element {
                     <Button
                       type="button"
                       variant="ghost"
+                      className={`${boardGlassPill}`}
                       onClick={() => {
                         setIsCreateOpen(false);
                         resetCreateForm();
@@ -417,7 +419,7 @@ export function BoardsPage(): JSX.Element {
                     >
                       Cancel
                     </Button>
-                    <Button type="submit">Create</Button>
+                    <Button type="submit" className={`${boardGlassPill}`}>Create</Button>
                   </div>
                 </form>
               </CardContent>
@@ -451,3 +453,34 @@ export function BoardsPage(): JSX.Element {
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
