@@ -20,43 +20,41 @@ import {
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { decryptDmBody } from "../../utils/encryption.js";
-import type { ThreadAttachment, ThreadReaction, ThreadVoiceNote, ThreadReplyAttachment, ThreadReplyVoiceNote } from "./threads.service.types.js";
+import type { ThreadAttachment, ThreadReaction, ThreadVoiceNote, ThreadReplyAttachment, ThreadReplyVoiceNote, ThreadUserSummary } from "./threads.service.types.js";
 
 
-export function getThreadReplyDeletionSet(userId: string, replyIds: string[]): Set<string> {
+export async function getThreadReplyDeletionSet(userId: string, replyIds: string[]): Promise<Set<string>> {
   if (replyIds.length === 0) {
     return new Set();
   }
 
-  const rows = db
+  const rows: Array<{ replyId: string }> = await db
     .select({ replyId: threadReplyDeletions.replyId })
     .from(threadReplyDeletions)
-    .where(and(eq(threadReplyDeletions.userId, userId), inArray(threadReplyDeletions.replyId, replyIds)))
-    .all();
+    .where(and(eq(threadReplyDeletions.userId, userId), inArray(threadReplyDeletions.replyId, replyIds)));
 
   return new Set(rows.map((row) => row.replyId));
 }
 
-export function getThreadMessageDeletionSet(userId: string, messageIds: string[]): Set<string> {
+export async function getThreadMessageDeletionSet(userId: string, messageIds: string[]): Promise<Set<string>> {
   if (messageIds.length === 0) {
     return new Set();
   }
 
-  const rows = db
+  const rows: Array<{ messageId: string }> = await db
     .select({ messageId: threadMessageDeletions.messageId })
     .from(threadMessageDeletions)
-    .where(and(eq(threadMessageDeletions.userId, userId), inArray(threadMessageDeletions.messageId, messageIds)))
-    .all();
+    .where(and(eq(threadMessageDeletions.userId, userId), inArray(threadMessageDeletions.messageId, messageIds)));
 
   return new Set(rows.map((row) => row.messageId));
 }
 
-export function getThreadMessageReactions(messageIds: string[]): Map<string, ThreadReaction[]> {
+export async function getThreadMessageReactions(messageIds: string[]): Promise<Map<string, ThreadReaction[]>> {
   if (messageIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: Array<{ messageId: string; emoji: string; count: number }> = await db
     .select({
       messageId: threadMessageReactions.messageId,
       emoji: threadMessageReactions.emoji,
@@ -64,8 +62,7 @@ export function getThreadMessageReactions(messageIds: string[]): Map<string, Thr
     })
     .from(threadMessageReactions)
     .where(inArray(threadMessageReactions.messageId, messageIds))
-    .groupBy(threadMessageReactions.messageId, threadMessageReactions.emoji)
-    .all();
+    .groupBy(threadMessageReactions.messageId, threadMessageReactions.emoji);
 
   const map = new Map<string, ThreadReaction[]>();
   for (const row of rows) {
@@ -76,12 +73,12 @@ export function getThreadMessageReactions(messageIds: string[]): Map<string, Thr
   return map;
 }
 
-export function getThreadReplyReactions(replyIds: string[]): Map<string, ThreadReaction[]> {
+export async function getThreadReplyReactions(replyIds: string[]): Promise<Map<string, ThreadReaction[]>> {
   if (replyIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: Array<{ replyId: string; emoji: string; count: number }> = await db
     .select({
       replyId: threadReplyReactions.replyId,
       emoji: threadReplyReactions.emoji,
@@ -89,8 +86,7 @@ export function getThreadReplyReactions(replyIds: string[]): Map<string, ThreadR
     })
     .from(threadReplyReactions)
     .where(inArray(threadReplyReactions.replyId, replyIds))
-    .groupBy(threadReplyReactions.replyId, threadReplyReactions.emoji)
-    .all();
+    .groupBy(threadReplyReactions.replyId, threadReplyReactions.emoji);
 
   const map = new Map<string, ThreadReaction[]>();
   for (const row of rows) {
@@ -101,12 +97,12 @@ export function getThreadReplyReactions(replyIds: string[]): Map<string, ThreadR
   return map;
 }
 
-export function getThreadReplyCounts(messageIds: string[], userId?: string): Map<string, number> {
+export async function getThreadReplyCounts(messageIds: string[], userId?: string): Promise<Map<string, number>> {
   if (messageIds.length === 0) {
     return new Map();
   }
 
-  const rows = (userId
+  const query = userId
     ? db
         .select({
           parentMessageId: threadReplies.parentMessageId,
@@ -130,10 +126,9 @@ export function getThreadReplyCounts(messageIds: string[], userId?: string): Map
           count: sql<number>`count(*)`
         })
         .from(threadReplies)
-        .where(and(inArray(threadReplies.parentMessageId, messageIds), isNull(threadReplies.deletedAt)))
-  )
-    .groupBy(threadReplies.parentMessageId)
-    .all();
+        .where(and(inArray(threadReplies.parentMessageId, messageIds), isNull(threadReplies.deletedAt)));
+
+  const rows: Array<{ parentMessageId: string; count: number }> = await query.groupBy(threadReplies.parentMessageId);
 
   const map = new Map<string, number>();
   for (const row of rows) {
@@ -141,12 +136,12 @@ export function getThreadReplyCounts(messageIds: string[], userId?: string): Map
   }
   return map;
 }
-export function getThreadReplyMentionCounts(messageIds: string[], userId: string): Map<string, number> {
+export async function getThreadReplyMentionCounts(messageIds: string[], userId: string): Promise<Map<string, number>> {
   if (messageIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: Array<{ parentMessageId: string; count: number }> = await db
     .select({
       parentMessageId: threadReplies.parentMessageId,
       count: sql<number>`count(*)`
@@ -166,8 +161,7 @@ export function getThreadReplyMentionCounts(messageIds: string[], userId: string
         ne(threadReplies.authorId, threadReplyMentions.mentionedUserId)
       )
     )
-    .groupBy(threadReplies.parentMessageId)
-    .all();
+    .groupBy(threadReplies.parentMessageId);
 
   const map = new Map<string, number>();
   for (const row of rows) {
@@ -177,12 +171,12 @@ export function getThreadReplyMentionCounts(messageIds: string[], userId: string
 }
 
 
-export function getThreadAttachmentsForMessages(messageIds: string[]): Map<string, ThreadAttachment[]> {
+export async function getThreadAttachmentsForMessages(messageIds: string[]): Promise<Map<string, ThreadAttachment[]>> {
   if (messageIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: Array<{ id: string; messageId: string; originalName: string; mimeType: string | null; size: number; createdAt: Date }> = await db
     .select({
       id: threadAttachments.id,
       messageId: threadAttachments.messageId,
@@ -193,8 +187,7 @@ export function getThreadAttachmentsForMessages(messageIds: string[]): Map<strin
     })
     .from(threadAttachments)
     .where(inArray(threadAttachments.messageId, messageIds))
-    .orderBy(threadAttachments.createdAt)
-    .all();
+    .orderBy(threadAttachments.createdAt);
 
   const map = new Map<string, ThreadAttachment[]>();
   for (const row of rows) {
@@ -212,12 +205,12 @@ export function getThreadAttachmentsForMessages(messageIds: string[]): Map<strin
   return map;
 }
 
-export function getThreadVoiceNotesForMessages(messageIds: string[]): Map<string, ThreadVoiceNote> {
+export async function getThreadVoiceNotesForMessages(messageIds: string[]): Promise<Map<string, ThreadVoiceNote>> {
   if (messageIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: Array<{ id: string; messageId: string; durationSec: number; createdAt: Date }> = await db
     .select({
       id: threadVoiceNotes.id,
       messageId: threadVoiceNotes.messageId,
@@ -225,8 +218,7 @@ export function getThreadVoiceNotesForMessages(messageIds: string[]): Map<string
       createdAt: threadVoiceNotes.createdAt
     })
     .from(threadVoiceNotes)
-    .where(inArray(threadVoiceNotes.messageId, messageIds))
-    .all();
+    .where(inArray(threadVoiceNotes.messageId, messageIds));
 
   const map = new Map<string, ThreadVoiceNote>();
   for (const row of rows) {
@@ -241,12 +233,12 @@ export function getThreadVoiceNotesForMessages(messageIds: string[]): Map<string
 }
 
 
-export function getThreadAttachmentsForReplies(replyIds: string[]): Map<string, ThreadReplyAttachment[]> {
+export async function getThreadAttachmentsForReplies(replyIds: string[]): Promise<Map<string, ThreadReplyAttachment[]>> {
   if (replyIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: Array<{ id: string; replyId: string; originalName: string; mimeType: string | null; size: number; createdAt: Date }> = await db
     .select({
       id: threadReplyAttachments.id,
       replyId: threadReplyAttachments.replyId,
@@ -257,8 +249,7 @@ export function getThreadAttachmentsForReplies(replyIds: string[]): Map<string, 
     })
     .from(threadReplyAttachments)
     .where(inArray(threadReplyAttachments.replyId, replyIds))
-    .orderBy(threadReplyAttachments.createdAt)
-    .all();
+    .orderBy(threadReplyAttachments.createdAt);
 
   const map = new Map<string, ThreadReplyAttachment[]>();
   for (const row of rows) {
@@ -276,12 +267,12 @@ export function getThreadAttachmentsForReplies(replyIds: string[]): Map<string, 
   return map;
 }
 
-export function getThreadVoiceNotesForReplies(replyIds: string[]): Map<string, ThreadReplyVoiceNote> {
+export async function getThreadVoiceNotesForReplies(replyIds: string[]): Promise<Map<string, ThreadReplyVoiceNote>> {
   if (replyIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: Array<{ id: string; replyId: string; durationSec: number; createdAt: Date }> = await db
     .select({
       id: threadReplyVoiceNotes.id,
       replyId: threadReplyVoiceNotes.replyId,
@@ -289,8 +280,7 @@ export function getThreadVoiceNotesForReplies(replyIds: string[]): Map<string, T
       createdAt: threadReplyVoiceNotes.createdAt
     })
     .from(threadReplyVoiceNotes)
-    .where(inArray(threadReplyVoiceNotes.replyId, replyIds))
-    .all();
+    .where(inArray(threadReplyVoiceNotes.replyId, replyIds));
 
   const map = new Map<string, ThreadReplyVoiceNote>();
   for (const row of rows) {
@@ -304,8 +294,8 @@ export function getThreadVoiceNotesForReplies(replyIds: string[]): Map<string, T
   return map;
 }
 
-export function getThreadReplyAttachmentRecord(attachmentId: string) {
-  const row = db
+export async function getThreadReplyAttachmentRecord(attachmentId: string): Promise<{ id: string; replyId: string; originalName: string; storagePath: string }> {
+  const rows: Array<{ id: string; replyId: string; originalName: string; storagePath: string }> = await db
     .select({
       id: threadReplyAttachments.id,
       replyId: threadReplyAttachments.replyId,
@@ -314,7 +304,9 @@ export function getThreadReplyAttachmentRecord(attachmentId: string) {
     })
     .from(threadReplyAttachments)
     .where(eq(threadReplyAttachments.id, attachmentId))
-    .get();
+    .limit(1);
+
+  const row = rows[0];
 
   if (!row) {
     throw new ApiError(404, "Attachment not found");
@@ -323,8 +315,8 @@ export function getThreadReplyAttachmentRecord(attachmentId: string) {
   return row;
 }
 
-export function getThreadReplyVoiceNoteRecord(voiceNoteId: string) {
-  const row = db
+export async function getThreadReplyVoiceNoteRecord(voiceNoteId: string): Promise<{ id: string; replyId: string; storagePath: string }> {
+  const rows: Array<{ id: string; replyId: string; storagePath: string }> = await db
     .select({
       id: threadReplyVoiceNotes.id,
       replyId: threadReplyVoiceNotes.replyId,
@@ -332,7 +324,9 @@ export function getThreadReplyVoiceNoteRecord(voiceNoteId: string) {
     })
     .from(threadReplyVoiceNotes)
     .where(eq(threadReplyVoiceNotes.id, voiceNoteId))
-    .get();
+    .limit(1);
+
+  const row = rows[0];
 
   if (!row) {
     throw new ApiError(404, "Voice message not found");
@@ -341,8 +335,8 @@ export function getThreadReplyVoiceNoteRecord(voiceNoteId: string) {
   return row;
 }
 
-export function getThreadAttachmentRecord(attachmentId: string) {
-  const row = db
+export async function getThreadAttachmentRecord(attachmentId: string): Promise<{ id: string; messageId: string; originalName: string; storagePath: string }> {
+  const rows: Array<{ id: string; messageId: string; originalName: string; storagePath: string }> = await db
     .select({
       id: threadAttachments.id,
       messageId: threadAttachments.messageId,
@@ -351,7 +345,9 @@ export function getThreadAttachmentRecord(attachmentId: string) {
     })
     .from(threadAttachments)
     .where(eq(threadAttachments.id, attachmentId))
-    .get();
+    .limit(1);
+
+  const row = rows[0];
 
   if (!row) {
     throw new ApiError(404, "Attachment not found");
@@ -360,8 +356,8 @@ export function getThreadAttachmentRecord(attachmentId: string) {
   return row;
 }
 
-export function getThreadVoiceNoteRecord(voiceNoteId: string) {
-  const row = db
+export async function getThreadVoiceNoteRecord(voiceNoteId: string): Promise<{ id: string; messageId: string; storagePath: string }> {
+  const rows: Array<{ id: string; messageId: string; storagePath: string }> = await db
     .select({
       id: threadVoiceNotes.id,
       messageId: threadVoiceNotes.messageId,
@@ -369,7 +365,9 @@ export function getThreadVoiceNoteRecord(voiceNoteId: string) {
     })
     .from(threadVoiceNotes)
     .where(eq(threadVoiceNotes.id, voiceNoteId))
-    .get();
+    .limit(1);
+
+  const row = rows[0];
 
   if (!row) {
     throw new ApiError(404, "Voice message not found");
@@ -398,7 +396,7 @@ export function getThreadReactionUsers(reactionRow: { userId: string }[]): { use
   return reactionRow;
 }
 
-export function getThreadUsersByIds(userIds: string[]) {
+export async function getThreadUsersByIds(userIds: string[]): Promise<ThreadUserSummary[]> {
   if (userIds.length === 0) {
     return [];
   }
@@ -412,24 +410,23 @@ export function getThreadUsersByIds(userIds: string[]) {
       role: users.role
     })
     .from(users)
-    .where(inArray(users.id, userIds))
-    .all();
+    .where(inArray(users.id, userIds));
 }
 
-export function getThreadConversationMemberIds(conversationId: string, userIds: string[]): string[] {
+export async function getThreadConversationMemberIds(conversationId: string, userIds: string[]): Promise<string[]> {
   if (userIds.length === 0) {
     return [];
   }
 
-  return db
+  const rows: Array<{ userId: string }> = await db
     .select({ userId: threadMembers.userId })
     .from(threadMembers)
-    .where(and(eq(threadMembers.conversationId, conversationId), inArray(threadMembers.userId, userIds)))
-    .all()
-    .map((row) => row.userId);
+    .where(and(eq(threadMembers.conversationId, conversationId), inArray(threadMembers.userId, userIds)));
+
+  return rows.map((row) => row.userId);
 }
 
-export function getDmConversationRows(userId: string) {
+export async function getDmConversationRows(userId: string): Promise<Array<{ id: string; lastMessageAt: Date | null; createdAt: Date; lastReadAt: Date | null }>> {
   return db
     .select({
       id: threadConversations.id,
@@ -439,17 +436,16 @@ export function getDmConversationRows(userId: string) {
     })
     .from(threadMembers)
     .innerJoin(threadConversations, eq(threadMembers.conversationId, threadConversations.id))
-    .where(and(eq(threadMembers.userId, userId), eq(threadConversations.type, "dm")))
-    .all();
+    .where(and(eq(threadMembers.userId, userId), eq(threadConversations.type, "dm")));
 }
 
-export function getThreadMessageMentionCounts(userId: string, conversationIds: string[]) {
+export async function getThreadMessageMentionCounts(userId: string, conversationIds: string[]): Promise<Map<string, number>> {
   if (conversationIds.length === 0) {
     return new Map<string, number>();
   }
 
   const mentionCounts = new Map<string, number>();
-  const messageMentionRows = db
+  const messageMentionRows = await db
     .select({
       conversationId: threadMessages.conversationId,
       count: sql<number>`count(*)`
@@ -468,8 +464,7 @@ export function getThreadMessageMentionCounts(userId: string, conversationIds: s
         inArray(threadMessages.conversationId, conversationIds)
       )
     )
-    .groupBy(threadMessages.conversationId)
-    .all();
+    .groupBy(threadMessages.conversationId);
 
   for (const row of messageMentionRows) {
     mentionCounts.set(row.conversationId, row.count);
@@ -478,13 +473,13 @@ export function getThreadMessageMentionCounts(userId: string, conversationIds: s
   return mentionCounts;
 }
 
-export function getThreadReplyMentionCountsByConversation(userId: string, conversationIds: string[]) {
+export async function getThreadReplyMentionCountsByConversation(userId: string, conversationIds: string[]): Promise<Map<string, number>> {
   if (conversationIds.length === 0) {
     return new Map<string, number>();
   }
 
   const mentionCounts = new Map<string, number>();
-  const replyMentionRows = db
+  const replyMentionRows = await db
     .select({
       conversationId: threadMessages.conversationId,
       count: sql<number>`count(*)`
@@ -504,8 +499,7 @@ export function getThreadReplyMentionCountsByConversation(userId: string, conver
         inArray(threadMessages.conversationId, conversationIds)
       )
     )
-    .groupBy(threadMessages.conversationId)
-    .all();
+    .groupBy(threadMessages.conversationId);
 
   for (const row of replyMentionRows) {
     mentionCounts.set(row.conversationId, row.count);

@@ -37,23 +37,25 @@ export async function createThreadAttachments(
   messageId: string,
   files: Express.Multer.File[]
 ): Promise<ThreadAttachment[]> {
-  const message = db
+  const messageRows = await db
     .select({ id: threadMessages.id, conversationId: threadMessages.conversationId })
     .from(threadMessages)
     .where(eq(threadMessages.id, messageId))
-    .get();
+    .limit(1);
+
+  const message = messageRows[0];
 
   if (!message) {
     throw new ApiError(404, "Message not found");
   }
 
-  const conversation = getConversation(message.conversationId);
-  assertConversationMember(userId, message.conversationId);
+  const conversation = await getConversation(message.conversationId);
+  await assertConversationMember(userId, message.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, message.conversationId, "dm_write");
+    await assertConversationPermission(userId, message.conversationId, "dm_write");
   } else {
-    assertConversationPermission(userId, message.conversationId, "channel_write");
+    await assertConversationPermission(userId, message.conversationId, "channel_write");
   }
 
   if (!files || files.length === 0) {
@@ -74,7 +76,7 @@ export async function createThreadAttachments(
     await ensureThreadAttachmentDirectory(absolutePath);
     await fs.writeFile(absolutePath, file.buffer);
 
-    db.insert(threadAttachments)
+    await db.insert(threadAttachments)
       .values({
         id: attachmentId,
         messageId,
@@ -84,7 +86,7 @@ export async function createThreadAttachments(
         storagePath,
         createdAt: now
       })
-      .run();
+      .execute();
 
     created.push({
       id: attachmentId,
@@ -110,7 +112,7 @@ export async function createThreadVoiceNote(
     throw new ApiError(400, "Voice message is required");
   }
 
-  const message = db
+  const messageRows = await db
     .select({
       id: threadMessages.id,
       conversationId: threadMessages.conversationId,
@@ -118,30 +120,34 @@ export async function createThreadVoiceNote(
     })
     .from(threadMessages)
     .where(eq(threadMessages.id, messageId))
-    .get();
+    .limit(1);
+
+  const message = messageRows[0];
 
   if (!message) {
     throw new ApiError(404, "Message not found");
   }
 
-  const conversation = getConversation(message.conversationId);
-  assertConversationMember(userId, message.conversationId);
+  const conversation = await getConversation(message.conversationId);
+  await assertConversationMember(userId, message.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, message.conversationId, "dm_write");
+    await assertConversationPermission(userId, message.conversationId, "dm_write");
   } else {
-    assertConversationPermission(userId, message.conversationId, "channel_write");
+    await assertConversationPermission(userId, message.conversationId, "channel_write");
   }
 
   if (message.authorId !== userId) {
     throw new ApiError(403, "Only the message author can upload a voice note");
   }
 
-  const existing = db
+  const existingRows = await db
     .select({ id: threadVoiceNotes.id })
     .from(threadVoiceNotes)
     .where(eq(threadVoiceNotes.messageId, messageId))
-    .get();
+    .limit(1);
+
+  const existing = existingRows[0];
 
   if (existing) {
     throw new ApiError(400, "Voice note already exists for this message");
@@ -158,7 +164,7 @@ export async function createThreadVoiceNote(
   const now = new Date();
   const normalizedDuration = Number.isFinite(durationSec) ? Math.max(0, Math.round(durationSec)) : 0;
 
-  db.insert(threadVoiceNotes)
+  await db.insert(threadVoiceNotes)
     .values({
       id: voiceNoteId,
       messageId,
@@ -166,7 +172,7 @@ export async function createThreadVoiceNote(
       storagePath,
       createdAt: now
     })
-    .run();
+    .execute();
 
   const summary = {
     id: voiceNoteId,
@@ -184,33 +190,37 @@ export async function createThreadReplyAttachments(
   replyId: string,
   files: Express.Multer.File[]
 ): Promise<ThreadReplyAttachment[]> {
-  const reply = db
+  const replyRows = await db
     .select({ id: threadReplies.id, parentMessageId: threadReplies.parentMessageId })
     .from(threadReplies)
     .where(eq(threadReplies.id, replyId))
-    .get();
+    .limit(1);
+
+  const reply = replyRows[0];
 
   if (!reply) {
     throw new ApiError(404, "Reply not found");
   }
 
-  const parent = db
+  const parentRows = await db
     .select({ conversationId: threadMessages.conversationId })
     .from(threadMessages)
     .where(eq(threadMessages.id, reply.parentMessageId))
-    .get();
+    .limit(1);
+
+  const parent = parentRows[0];
 
   if (!parent) {
     throw new ApiError(404, "Message not found");
   }
 
-  const conversation = getConversation(parent.conversationId);
-  assertConversationMember(userId, parent.conversationId);
+  const conversation = await getConversation(parent.conversationId);
+  await assertConversationMember(userId, parent.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, parent.conversationId, "dm_write");
+    await assertConversationPermission(userId, parent.conversationId, "dm_write");
   } else {
-    assertConversationPermission(userId, parent.conversationId, "channel_write");
+    await assertConversationPermission(userId, parent.conversationId, "channel_write");
   }
 
   if (!files || files.length === 0) {
@@ -231,7 +241,7 @@ export async function createThreadReplyAttachments(
     await ensureThreadReplyAttachmentDirectory(absolutePath);
     await fs.writeFile(absolutePath, file.buffer);
 
-    db.insert(threadReplyAttachments)
+    await db.insert(threadReplyAttachments)
       .values({
         id: attachmentId,
         replyId,
@@ -241,7 +251,7 @@ export async function createThreadReplyAttachments(
         storagePath,
         createdAt: now
       })
-      .run();
+      .execute();
 
     created.push({
       id: attachmentId,
@@ -268,44 +278,50 @@ export async function createThreadReplyVoiceNote(
     throw new ApiError(400, "Voice message is required");
   }
 
-  const reply = db
+  const replyRows = await db
     .select({ id: threadReplies.id, parentMessageId: threadReplies.parentMessageId, authorId: threadReplies.authorId })
     .from(threadReplies)
     .where(eq(threadReplies.id, replyId))
-    .get();
+    .limit(1);
+
+  const reply = replyRows[0];
 
   if (!reply) {
     throw new ApiError(404, "Reply not found");
   }
 
-  const parent = db
+  const parentRows = await db
     .select({ conversationId: threadMessages.conversationId })
     .from(threadMessages)
     .where(eq(threadMessages.id, reply.parentMessageId))
-    .get();
+    .limit(1);
+
+  const parent = parentRows[0];
 
   if (!parent) {
     throw new ApiError(404, "Message not found");
   }
 
-  const conversation = getConversation(parent.conversationId);
-  assertConversationMember(userId, parent.conversationId);
+  const conversation = await getConversation(parent.conversationId);
+  await assertConversationMember(userId, parent.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, parent.conversationId, "dm_write");
+    await assertConversationPermission(userId, parent.conversationId, "dm_write");
   } else {
-    assertConversationPermission(userId, parent.conversationId, "channel_write");
+    await assertConversationPermission(userId, parent.conversationId, "channel_write");
   }
 
   if (reply.authorId !== userId) {
     throw new ApiError(403, "Only the reply author can upload a voice note");
   }
 
-  const existing = db
+  const existingRows = await db
     .select({ id: threadReplyVoiceNotes.id })
     .from(threadReplyVoiceNotes)
     .where(eq(threadReplyVoiceNotes.replyId, replyId))
-    .get();
+    .limit(1);
+
+  const existing = existingRows[0];
 
   if (existing) {
     throw new ApiError(400, "Voice note already exists for this reply");
@@ -322,7 +338,7 @@ export async function createThreadReplyVoiceNote(
   const now = new Date();
   const normalizedDuration = Number.isFinite(durationSec) ? Math.max(0, Math.round(durationSec)) : 0;
 
-  db.insert(threadReplyVoiceNotes)
+  await db.insert(threadReplyVoiceNotes)
     .values({
       id: voiceNoteId,
       replyId,
@@ -330,7 +346,7 @@ export async function createThreadReplyVoiceNote(
       storagePath,
       createdAt: now
     })
-    .run();
+    .execute();
 
   const summary = {
     id: voiceNoteId,
@@ -342,38 +358,42 @@ export async function createThreadReplyVoiceNote(
   return summary;
 }
 
-export function getThreadReplyVoiceNoteDownloadInfo(
+export async function getThreadReplyVoiceNoteDownloadInfo(
   userId: string,
   voiceNoteId: string
-): { filePath: string; filename: string } {
-  const voiceNote = getThreadReplyVoiceNoteRecord(voiceNoteId);
-  const reply = db
+): Promise<{ filePath: string; filename: string }> {
+  const voiceNote = await getThreadReplyVoiceNoteRecord(voiceNoteId);
+  const replyRows = await db
     .select({ parentMessageId: threadReplies.parentMessageId })
     .from(threadReplies)
     .where(eq(threadReplies.id, voiceNote.replyId))
-    .get();
+    .limit(1);
+
+  const reply = replyRows[0];
 
   if (!reply) {
     throw new ApiError(404, "Reply not found");
   }
 
-  const parent = db
+  const parentRows = await db
     .select({ conversationId: threadMessages.conversationId })
     .from(threadMessages)
     .where(eq(threadMessages.id, reply.parentMessageId))
-    .get();
+    .limit(1);
+
+  const parent = parentRows[0];
 
   if (!parent) {
     throw new ApiError(404, "Message not found");
   }
 
-  const conversation = getConversation(parent.conversationId);
-  assertConversationMember(userId, parent.conversationId);
+  const conversation = await getConversation(parent.conversationId);
+  await assertConversationMember(userId, parent.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, parent.conversationId, "dm_read");
+    await assertConversationPermission(userId, parent.conversationId, "dm_read");
   } else {
-    assertConversationPermission(userId, parent.conversationId, "channel_read");
+    await assertConversationPermission(userId, parent.conversationId, "channel_read");
   }
 
   const filePath = resolveThreadReplyVoiceNotePath(voiceNote.storagePath);
@@ -385,38 +405,42 @@ export function getThreadReplyVoiceNoteDownloadInfo(
   };
 }
 
-export function getThreadReplyAttachmentDownloadInfo(
+export async function getThreadReplyAttachmentDownloadInfo(
   userId: string,
   attachmentId: string
-): { filePath: string; originalName: string } {
-  const attachment = getThreadReplyAttachmentRecord(attachmentId);
-  const reply = db
+): Promise<{ filePath: string; originalName: string }> {
+  const attachment = await getThreadReplyAttachmentRecord(attachmentId);
+  const replyRows = await db
     .select({ parentMessageId: threadReplies.parentMessageId })
     .from(threadReplies)
     .where(eq(threadReplies.id, attachment.replyId))
-    .get();
+    .limit(1);
+
+  const reply = replyRows[0];
 
   if (!reply) {
     throw new ApiError(404, "Reply not found");
   }
 
-  const parent = db
+  const parentRows = await db
     .select({ conversationId: threadMessages.conversationId })
     .from(threadMessages)
     .where(eq(threadMessages.id, reply.parentMessageId))
-    .get();
+    .limit(1);
+
+  const parent = parentRows[0];
 
   if (!parent) {
     throw new ApiError(404, "Message not found");
   }
 
-  const conversation = getConversation(parent.conversationId);
-  assertConversationMember(userId, parent.conversationId);
+  const conversation = await getConversation(parent.conversationId);
+  await assertConversationMember(userId, parent.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, parent.conversationId, "dm_read");
+    await assertConversationPermission(userId, parent.conversationId, "dm_read");
   } else {
-    assertConversationPermission(userId, parent.conversationId, "channel_read");
+    await assertConversationPermission(userId, parent.conversationId, "channel_read");
   }
 
   return {
@@ -425,28 +449,30 @@ export function getThreadReplyAttachmentDownloadInfo(
   };
 }
 
-export function getThreadVoiceNoteDownloadInfo(
+export async function getThreadVoiceNoteDownloadInfo(
   userId: string,
   voiceNoteId: string
-): { filePath: string; filename: string } {
-  const voiceNote = getThreadVoiceNoteRecord(voiceNoteId);
-  const message = db
+): Promise<{ filePath: string; filename: string }> {
+  const voiceNote = await getThreadVoiceNoteRecord(voiceNoteId);
+  const messageRows = await db
     .select({ conversationId: threadMessages.conversationId })
     .from(threadMessages)
     .where(eq(threadMessages.id, voiceNote.messageId))
-    .get();
+    .limit(1);
+
+  const message = messageRows[0];
 
   if (!message) {
     throw new ApiError(404, "Message not found");
   }
 
-  const conversation = getConversation(message.conversationId);
-  assertConversationMember(userId, message.conversationId);
+  const conversation = await getConversation(message.conversationId);
+  await assertConversationMember(userId, message.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, message.conversationId, "dm_read");
+    await assertConversationPermission(userId, message.conversationId, "dm_read");
   } else {
-    assertConversationPermission(userId, message.conversationId, "channel_read");
+    await assertConversationPermission(userId, message.conversationId, "channel_read");
   }
 
   const filePath = resolveThreadVoiceNotePath(voiceNote.storagePath);
@@ -458,11 +484,10 @@ export function getThreadVoiceNoteDownloadInfo(
   };
 }
 
-export function getThreadAttachmentDownloadInfo(attachmentId: string): { filePath: string; originalName: string } {
-  const attachment = getThreadAttachmentRecord(attachmentId);
+export async function getThreadAttachmentDownloadInfo(attachmentId: string): Promise<{ filePath: string; originalName: string }> {
+  const attachment = await getThreadAttachmentRecord(attachmentId);
   return {
     filePath: resolveThreadAttachmentPath(attachment.storagePath),
     originalName: attachment.originalName
   };
 }
-

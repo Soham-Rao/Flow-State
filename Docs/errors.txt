@@ -1,6 +1,0 @@
-## Client typecheck
-System.Object[]
-
-## Server typecheck
-System.Object[]
-

@@ -11,7 +11,9 @@ import {
   threadMembers,
   threadMessageDeletions,
   threadMessages,
-  users
+  users,
+  type UserRole,
+  type ThreadMemberRole
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { assertPermission } from "../../utils/permissions.js";
@@ -44,14 +46,14 @@ function normalizeChannelOverrides(overrides?: ThreadPermissionOverride[]): Thre
   return Array.from(map.values());
 }
 
-function setMemberOverrides(conversationId: string, userId: string, overrides?: ThreadPermissionOverride[]): void {
+async function setMemberOverrides(conversationId: string, userId: string, overrides?: ThreadPermissionOverride[]): Promise<void> {
   const normalized = normalizeChannelOverrides(overrides);
-  db.delete(threadMemberPermissions)
+  await db.delete(threadMemberPermissions)
     .where(and(eq(threadMemberPermissions.conversationId, conversationId), eq(threadMemberPermissions.userId, userId)))
-    .run();
+    .execute();
   if (normalized.length === 0) return;
   const now = new Date();
-  db.insert(threadMemberPermissions)
+  await db.insert(threadMemberPermissions)
     .values(normalized.map((override) => ({
       conversationId,
       userId,
@@ -59,11 +61,11 @@ function setMemberOverrides(conversationId: string, userId: string, overrides?: 
       access: override.access,
       createdAt: now
     })))
-    .run();
+    .execute();
 }
 
-export function listDmUsers(userId: string): ThreadUserSummary[] {
-  assertPermission(userId, "dm_read");
+export async function listDmUsers(userId: string): Promise<ThreadUserSummary[]> {
+  await assertPermission(userId, "dm_read");
   return db
     .select({
       id: users.id,
@@ -74,25 +76,24 @@ export function listDmUsers(userId: string): ThreadUserSummary[] {
       role: users.role
     })
     .from(users)
-    .orderBy(users.name)
-    .all();
+    .orderBy(users.name);
 }
 
-export function listDmConversations(userId: string): DmConversationSummary[] {
-  assertPermission(userId, "dm_read");
+export async function listDmConversations(userId: string): Promise<DmConversationSummary[]> {
+  await assertPermission(userId, "dm_read");
 
-  const rows = getDmConversationRows(userId);
+  const rows = await getDmConversationRows(userId);
 
   if (rows.length === 0) {
     return [];
   }
 
   const conversationIds = rows.map((row) => row.id);
-  const mentionCounts = getThreadMessageMentionCounts(userId, conversationIds);
-  const replyMentionCounts = getThreadReplyMentionCountsByConversation(userId, conversationIds);
+  const mentionCounts = await getThreadMessageMentionCounts(userId, conversationIds);
+  const replyMentionCounts = await getThreadReplyMentionCountsByConversation(userId, conversationIds);
 
-  const summaries = rows.map((row) => {
-    const otherMember = db
+  const summaries: DmConversationSummary[] = await Promise.all(rows.map(async (row) => {
+    const otherMembers = await db
       .select({
         id: users.id,
         name: users.name,
@@ -104,12 +105,12 @@ export function listDmConversations(userId: string): DmConversationSummary[] {
       .from(threadMembers)
       .innerJoin(users, eq(threadMembers.userId, users.id))
       .where(and(eq(threadMembers.conversationId, row.id), ne(threadMembers.userId, userId)))
-      .limit(1)
-      .get();
+      .limit(1);
 
-    const otherUser = otherMember ?? ensureUserExists(userId);
+    const otherMember = otherMembers[0];
+    const otherUser = otherMember ?? await ensureUserExists(userId);
 
-    const lastMessage = db
+    const lastMessages = await db
       .select({
         body: threadMessages.body,
         bodyEncrypted: threadMessages.bodyEncrypted,
@@ -125,8 +126,9 @@ export function listDmConversations(userId: string): DmConversationSummary[] {
       )
       .where(and(eq(threadMessages.conversationId, row.id), isNull(threadMessageDeletions.messageId)))
       .orderBy(desc(threadMessages.createdAt))
-      .limit(1)
-      .get();
+      .limit(1);
+
+    const lastMessage = lastMessages[0];
 
     const preview = lastMessage ? buildMessagePreview("dm", lastMessage) : null;
     const lastMessageAt = lastMessage?.createdAt ?? row.lastMessageAt ?? row.createdAt ?? null;
@@ -148,7 +150,7 @@ export function listDmConversations(userId: string): DmConversationSummary[] {
       unreadReplyMentions: replyMentionCounts.get(row.id) ?? 0,
       hasUnread
     };
-  });
+  }));
 
   return summaries.sort((a, b) => {
     const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
@@ -157,15 +159,14 @@ export function listDmConversations(userId: string): DmConversationSummary[] {
   });
 }
 
-export function getOrCreateDmConversation(userId: string, otherUserId: string): DmConversationSummary {
-  assertPermission(userId, "dm_write");
-  const otherUser = ensureUserExists(otherUserId);
+export async function getOrCreateDmConversation(userId: string, otherUserId: string): Promise<DmConversationSummary> {
+  await assertPermission(userId, "dm_write");
+  const otherUser = await ensureUserExists(otherUserId);
 
-  const existingMemberships = db
+  const existingMemberships: Array<{ conversationId: string }> = await db
     .select({ conversationId: threadMembers.conversationId })
     .from(threadMembers)
-    .where(eq(threadMembers.userId, userId))
-    .all();
+    .where(eq(threadMembers.userId, userId));
 
   const candidateIds = existingMemberships.map((row) => row.conversationId);
   let existingId: string | null = null;
@@ -173,43 +174,45 @@ export function getOrCreateDmConversation(userId: string, otherUserId: string): 
   if (candidateIds.length > 0) {
     if (userId === otherUserId) {
       for (const id of candidateIds) {
-        const conversation = db
+        const conversationRows = await db
           .select({ id: threadConversations.id })
           .from(threadConversations)
           .where(and(eq(threadConversations.id, id), eq(threadConversations.type, "dm")))
-          .get();
+          .limit(1);
+        const conversation = conversationRows[0];
         if (!conversation) continue;
-        const countRow = db
+        const countRows = await db
           .select({ count: sql<number>`count(*)` })
           .from(threadMembers)
           .where(eq(threadMembers.conversationId, id))
-          .get();
-        if ((countRow?.count ?? 0) === 1) {
+          .limit(1);
+        if ((countRows[0]?.count ?? 0) === 1) {
           existingId = id;
           break;
         }
       }
     } else {
-      const otherMemberships = db
+      const otherMembershipRows: Array<{ conversationId: string }> = await db
         .select({ conversationId: threadMembers.conversationId })
         .from(threadMembers)
-        .where(and(inArray(threadMembers.conversationId, candidateIds), eq(threadMembers.userId, otherUserId)))
-        .all()
-        .map((row) => row.conversationId);
+        .where(and(inArray(threadMembers.conversationId, candidateIds), eq(threadMembers.userId, otherUserId)));
+
+      const otherMemberships = otherMembershipRows.map((row) => row.conversationId);
 
       for (const id of otherMemberships) {
-        const conversation = db
+        const conversationRows = await db
           .select({ id: threadConversations.id })
           .from(threadConversations)
           .where(and(eq(threadConversations.id, id), eq(threadConversations.type, "dm")))
-          .get();
+          .limit(1);
+        const conversation = conversationRows[0];
         if (!conversation) continue;
-        const countRow = db
+        const countRows = await db
           .select({ count: sql<number>`count(*)` })
           .from(threadMembers)
           .where(eq(threadMembers.conversationId, id))
-          .get();
-        if ((countRow?.count ?? 0) <= 2) {
+          .limit(1);
+        if ((countRows[0]?.count ?? 0) <= 2) {
           existingId = id;
           break;
         }
@@ -218,7 +221,7 @@ export function getOrCreateDmConversation(userId: string, otherUserId: string): 
   }
 
   if (existingId) {
-    const summaries = listDmConversations(userId);
+    const summaries = await listDmConversations(userId);
     const existingSummary = summaries.find((summary) => summary.id === existingId);
     if (existingSummary) {
       return existingSummary;
@@ -227,7 +230,7 @@ export function getOrCreateDmConversation(userId: string, otherUserId: string): 
 
   const now = new Date();
   const conversationId = crypto.randomUUID();
-  db.insert(threadConversations)
+  await db.insert(threadConversations)
     .values({
       id: conversationId,
       type: "dm",
@@ -235,7 +238,7 @@ export function getOrCreateDmConversation(userId: string, otherUserId: string): 
       updatedAt: now,
       lastMessageAt: null
     })
-    .run();
+    .execute();
 
   const members = [
     {
@@ -256,14 +259,14 @@ export function getOrCreateDmConversation(userId: string, otherUserId: string): 
     });
   }
 
-  db.insert(threadMembers)
+  await db.insert(threadMembers)
     .values(members)
-    .run();
+    .execute();
 
   return {
     id: conversationId,
     type: "dm",
-    otherUser: otherUser ?? ensureUserExists(userId),
+    otherUser: otherUser ?? await ensureUserExists(userId),
     lastMessageAt: null,
     lastMessagePreview: null,
     unreadMentions: 0,
@@ -272,8 +275,16 @@ export function getOrCreateDmConversation(userId: string, otherUserId: string): 
   };
 }
 
-export function listChannelConversations(userId: string): ChannelConversationSummary[] {
-  const rows = db
+export async function listChannelConversations(userId: string): Promise<ChannelConversationSummary[]> {
+  const rows: Array<{
+      id: string;
+      name: string | null;
+      description: string | null;
+      createdBy: string | null;
+      lastMessageAt: Date | null;
+      createdAt: Date;
+      lastReadAt: Date | null;
+    }> = await db
     .select({
       id: threadConversations.id,
       name: threadConversations.name,
@@ -285,32 +296,31 @@ export function listChannelConversations(userId: string): ChannelConversationSum
     })
     .from(threadMembers)
     .innerJoin(threadConversations, eq(threadMembers.conversationId, threadConversations.id))
-    .where(and(eq(threadMembers.userId, userId), eq(threadConversations.type, "channel")))
-    .all();
+    .where(and(eq(threadMembers.userId, userId), eq(threadConversations.type, "channel")));
 
   if (rows.length === 0) {
     return [];
   }
 
-  const permittedRows = rows.filter((row) => userHasConversationPermission(userId, row.id, "channel_read"));
+  const permissions = await Promise.all(rows.map((row) => userHasConversationPermission(userId, row.id, "channel_read")));
+  const permittedRows = rows.filter((_, index) => permissions[index]);
   if (permittedRows.length === 0) {
     return [];
   }
 
   const conversationIds = permittedRows.map((row) => row.id);
-  const mentionCounts = getThreadMessageMentionCounts(userId, conversationIds);
-  const replyMentionCounts = getThreadReplyMentionCountsByConversation(userId, conversationIds);
+  const mentionCounts = await getThreadMessageMentionCounts(userId, conversationIds);
+  const replyMentionCounts = await getThreadReplyMentionCountsByConversation(userId, conversationIds);
 
-  const memberCounts = db
+  const memberCounts: Array<{ conversationId: string; count: number }> = await db
     .select({ conversationId: threadMembers.conversationId, count: sql<number>`count(*)` })
     .from(threadMembers)
     .where(inArray(threadMembers.conversationId, conversationIds))
-    .groupBy(threadMembers.conversationId)
-    .all();
+    .groupBy(threadMembers.conversationId);
   const memberCountById = new Map(memberCounts.map((row) => [row.conversationId, row.count]));
 
-  const summaries = permittedRows.map((row) => {
-    const lastMessage = db
+  const summaries: ChannelConversationSummary[] = await Promise.all(permittedRows.map(async (row) => {
+    const lastMessages = await db
       .select({
         body: threadMessages.body,
         bodyEncrypted: threadMessages.bodyEncrypted,
@@ -326,8 +336,9 @@ export function listChannelConversations(userId: string): ChannelConversationSum
       )
       .where(and(eq(threadMessages.conversationId, row.id), isNull(threadMessageDeletions.messageId)))
       .orderBy(desc(threadMessages.createdAt))
-      .limit(1)
-      .get();
+      .limit(1);
+
+    const lastMessage = lastMessages[0];
 
     const preview = lastMessage ? buildMessagePreview("channel", lastMessage) : null;
     const lastMessageAt = lastMessage?.createdAt ?? row.lastMessageAt ?? row.createdAt ?? null;
@@ -352,7 +363,7 @@ export function listChannelConversations(userId: string): ChannelConversationSum
       hasUnread,
       memberCount: memberCountById.get(row.id) ?? 0
     };
-  });
+  }));
 
   return summaries.sort((a, b) => {
     const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
@@ -361,8 +372,8 @@ export function listChannelConversations(userId: string): ChannelConversationSum
   });
 }
 
-export function createChannelConversation(userId: string, input: CreateChannelInput): ChannelConversationSummary {
-  assertPermission(userId, "channel_write");
+export async function createChannelConversation(userId: string, input: CreateChannelInput): Promise<ChannelConversationSummary> {
+  await assertPermission(userId, "channel_write");
 
   const now = new Date();
   const conversationId = crypto.randomUUID();
@@ -370,7 +381,7 @@ export function createChannelConversation(userId: string, input: CreateChannelIn
   const description = input.description?.trim();
   const normalizedDescription = description && description.length > 0 ? description : null;
 
-  db.insert(threadConversations)
+  await db.insert(threadConversations)
     .values({
       id: conversationId,
       type: "channel",
@@ -381,9 +392,9 @@ export function createChannelConversation(userId: string, input: CreateChannelIn
       updatedAt: now,
       lastMessageAt: null
     })
-    .run();
+    .execute();
 
-  db.insert(threadMembers)
+  await db.insert(threadMembers)
     .values({
       conversationId,
       userId,
@@ -391,16 +402,16 @@ export function createChannelConversation(userId: string, input: CreateChannelIn
       createdAt: now,
       lastReadAt: null
     })
-    .run();
+    .execute();
 
   const members = input.members ?? [];
   for (const member of members) {
     if (member.userId === userId) {
       continue;
     }
-    ensureUserExists(member.userId);
+    await ensureUserExists(member.userId);
     try {
-      db.insert(threadMembers)
+      await db.insert(threadMembers)
         .values({
           conversationId,
           userId: member.userId,
@@ -408,11 +419,11 @@ export function createChannelConversation(userId: string, input: CreateChannelIn
           createdAt: now,
           lastReadAt: null
         })
-        .run();
+        .execute();
     } catch {
       // ignore duplicates
     }
-    setMemberOverrides(conversationId, member.userId, member.overrides);
+    await setMemberOverrides(conversationId, member.userId, member.overrides);
   }
 
   return {
@@ -430,12 +441,12 @@ export function createChannelConversation(userId: string, input: CreateChannelIn
   };
 }
 
-export function updateChannelConversation(
+export async function updateChannelConversation(
   userId: string,
   conversationId: string,
   input: UpdateChannelInput
-): ChannelConversationSummary {
-  const conversation = getConversation(conversationId);
+): Promise<ChannelConversationSummary> {
+  const conversation = await getConversation(conversationId);
   if (conversation.type !== "channel") {
     throw new ApiError(400, "Only channel conversations can be updated");
   }
@@ -443,7 +454,7 @@ export function updateChannelConversation(
 
   const isCreator = conversation.createdBy === userId;
   if (!isCreator) {
-    assertConversationPermission(userId, conversationId, "channel_edit");
+    await assertConversationPermission(userId, conversationId, "channel_edit");
   }
 
   const updates: Record<string, unknown> = {};
@@ -457,13 +468,13 @@ export function updateChannelConversation(
 
   if (Object.keys(updates).length > 0) {
     updates.updatedAt = new Date();
-    db.update(threadConversations)
+    await db.update(threadConversations)
       .set(updates)
       .where(eq(threadConversations.id, conversationId))
-      .run();
+      .execute();
   }
 
-  const summaries = listChannelConversations(userId);
+  const summaries = await listChannelConversations(userId);
   const updated = summaries.find((summary) => summary.id === conversationId);
   if (!updated) {
     throw new ApiError(404, "Channel not found");
@@ -471,57 +482,65 @@ export function updateChannelConversation(
   return updated;
 }
 
-export function leaveChannelConversation(userId: string, conversationId: string): { id: string } {
-  const conversation = getConversation(conversationId);
+export async function leaveChannelConversation(userId: string, conversationId: string): Promise<{ id: string }> {
+  const conversation = await getConversation(conversationId);
   if (conversation.type !== "channel") {
     throw new ApiError(400, "Only channel conversations can be left");
   }
 
-  assertConversationMember(userId, conversationId);
+  await assertConversationMember(userId, conversationId);
 
-  db.delete(threadMemberPermissions)
+  await db.delete(threadMemberPermissions)
     .where(and(eq(threadMemberPermissions.conversationId, conversationId), eq(threadMemberPermissions.userId, userId)))
-    .run();
-  db.delete(threadMembers)
+    .execute();
+  await db.delete(threadMembers)
     .where(and(eq(threadMembers.conversationId, conversationId), eq(threadMembers.userId, userId)))
-    .run();
+    .execute();
 
   return { id: conversationId };
 }
 
-export function deleteChannelConversation(userId: string, conversationId: string): { id: string } {
-  const conversation = getConversation(conversationId);
+export async function deleteChannelConversation(userId: string, conversationId: string): Promise<{ id: string }> {
+  const conversation = await getConversation(conversationId);
   if (conversation.type !== "channel") {
     throw new ApiError(400, "Only channel conversations can be deleted");
   }
 
   const isCreator = conversation.createdBy === userId;
-  if (!isCreator && !userHasConversationPermission(userId, conversationId, "channel_delete")) {
+  if (!isCreator && !(await userHasConversationPermission(userId, conversationId, "channel_delete"))) {
     throw new ApiError(403, "You do not have permission to perform this action");
   }
   if (!isCreator) {
-    assertConversationMember(userId, conversationId);
+    await assertConversationMember(userId, conversationId);
   }
 
   const uploadsRoot = path.resolve(process.cwd(), "uploads", "threads", conversationId);
   void fs.rm(uploadsRoot, { recursive: true, force: true }).catch(() => {});
 
-  db.delete(threadConversations)
+  await db.delete(threadConversations)
     .where(eq(threadConversations.id, conversationId))
-    .run();
+    .execute();
 
   return { id: conversationId };
 }
-export function listChannelMembers(userId: string, conversationId: string): ChannelMemberSummary[] {
-  const conversation = getConversation(conversationId);
+export async function listChannelMembers(userId: string, conversationId: string): Promise<ChannelMemberSummary[]> {
+  const conversation = await getConversation(conversationId);
   if (conversation.type !== "channel") {
     throw new ApiError(400, "Only channel conversations support member listing");
   }
 
-  assertConversationMember(userId, conversationId);
-  assertConversationPermission(userId, conversationId, "channel_read");
+  await assertConversationMember(userId, conversationId);
+  await assertConversationPermission(userId, conversationId, "channel_read");
 
-  const members = db
+  const members: Array<{
+      userId: string;
+      name: string;
+      displayName: string | null;
+      username: string | null;
+      email: string;
+      role: UserRole;
+      memberRole: ThreadMemberRole;
+    }> = await db
     .select({
       userId: users.id,
       name: users.name,
@@ -534,18 +553,20 @@ export function listChannelMembers(userId: string, conversationId: string): Chan
     .from(threadMembers)
     .innerJoin(users, eq(threadMembers.userId, users.id))
     .where(eq(threadMembers.conversationId, conversationId))
-    .orderBy(users.name)
-    .all();
+    .orderBy(users.name);
 
-  const overrides = db
+  const overrides: Array<{
+      userId: string;
+      permission: string;
+      access: "allow" | "deny";
+    }> = await db
     .select({
       userId: threadMemberPermissions.userId,
       permission: threadMemberPermissions.permission,
       access: threadMemberPermissions.access
     })
     .from(threadMemberPermissions)
-    .where(eq(threadMemberPermissions.conversationId, conversationId))
-    .all();
+    .where(eq(threadMemberPermissions.conversationId, conversationId));
 
   const overridesByUser = new Map<string, ThreadPermissionOverride[]>();
   for (const override of overrides) {
@@ -558,49 +579,61 @@ export function listChannelMembers(userId: string, conversationId: string): Chan
     overridesByUser.set(override.userId, existing);
   }
 
-  return members.map((member) => ({
-    user: {
-      id: member.userId,
-      name: member.name,
-      displayName: member.displayName,
-      username: member.username,
-      email: member.email,
-      role: member.role
-    },
-    role: member.memberRole,
-    overrides: overridesByUser.get(member.userId) ?? [],
-    effectivePermissions: {
-      channel_read: userHasConversationPermission(member.userId, conversationId, "channel_read"),
-      channel_write: userHasConversationPermission(member.userId, conversationId, "channel_write"),
-      channel_edit: userHasConversationPermission(member.userId, conversationId, "channel_edit"),
-      channel_members_add: userHasConversationPermission(member.userId, conversationId, "channel_members_add"),
-      channel_members_remove: userHasConversationPermission(member.userId, conversationId, "channel_members_remove"),
-      channel_manage_overrides: userHasConversationPermission(member.userId, conversationId, "channel_manage_overrides"),
-      channel_delete: userHasConversationPermission(member.userId, conversationId, "channel_delete")
-    }
+  return Promise.all(members.map(async (member) => {
+    const [canRead, canWrite, canEdit, canAdd, canRemove, canManage, canDelete] = await Promise.all([
+      userHasConversationPermission(member.userId, conversationId, "channel_read"),
+      userHasConversationPermission(member.userId, conversationId, "channel_write"),
+      userHasConversationPermission(member.userId, conversationId, "channel_edit"),
+      userHasConversationPermission(member.userId, conversationId, "channel_members_add"),
+      userHasConversationPermission(member.userId, conversationId, "channel_members_remove"),
+      userHasConversationPermission(member.userId, conversationId, "channel_manage_overrides"),
+      userHasConversationPermission(member.userId, conversationId, "channel_delete")
+    ]);
+
+    return {
+      user: {
+        id: member.userId,
+        name: member.name,
+        displayName: member.displayName,
+        username: member.username,
+        email: member.email,
+        role: member.role
+      },
+      role: member.memberRole,
+      overrides: overridesByUser.get(member.userId) ?? [],
+      effectivePermissions: {
+        channel_read: canRead,
+        channel_write: canWrite,
+        channel_edit: canEdit,
+        channel_members_add: canAdd,
+        channel_members_remove: canRemove,
+        channel_manage_overrides: canManage,
+        channel_delete: canDelete
+      }
+    };
   }));
 }
 
-export function addChannelMembers(
+export async function addChannelMembers(
   userId: string,
   conversationId: string,
   input: AddChannelMembersInput
-): ChannelMemberSummary[] {
-  const conversation = getConversation(conversationId);
+): Promise<ChannelMemberSummary[]> {
+  const conversation = await getConversation(conversationId);
   if (conversation.type !== "channel") {
     throw new ApiError(400, "Only channel conversations support members");
   }
-  assertConversationMember(userId, conversationId);
+  await assertConversationMember(userId, conversationId);
   const isCreator = conversation.createdBy === userId;
   if (!isCreator) {
-    assertConversationPermission(userId, conversationId, "channel_members_add");
+    await assertConversationPermission(userId, conversationId, "channel_members_add");
   }
 
   const now = new Date();
   for (const member of input.members) {
-    ensureUserExists(member.userId);
+    await ensureUserExists(member.userId);
     try {
-      db.insert(threadMembers)
+      await db.insert(threadMembers)
         .values({
           conversationId,
           userId: member.userId,
@@ -608,45 +641,46 @@ export function addChannelMembers(
           createdAt: now,
           lastReadAt: null
         })
-        .run();
+        .execute();
     } catch {
       // ignore duplicates
     }
-    setMemberOverrides(conversationId, member.userId, member.overrides);
+    await setMemberOverrides(conversationId, member.userId, member.overrides);
   }
 
   return listChannelMembers(userId, conversationId);
 }
 
-export function updateChannelMemberOverrides(
+export async function updateChannelMemberOverrides(
   userId: string,
   conversationId: string,
   memberId: string,
   input: UpdateChannelMemberOverridesInput
-): ChannelMemberSummary {
-  const conversation = getConversation(conversationId);
+): Promise<ChannelMemberSummary> {
+  const conversation = await getConversation(conversationId);
   if (conversation.type !== "channel") {
     throw new ApiError(400, "Only channel conversations support overrides");
   }
 
-  assertConversationMember(userId, conversationId);
+  await assertConversationMember(userId, conversationId);
   const isCreator = conversation.createdBy === userId;
   if (!isCreator) {
-    assertConversationPermission(userId, conversationId, "channel_manage_overrides");
+    await assertConversationPermission(userId, conversationId, "channel_manage_overrides");
   }
 
-  const member = db
+  const memberRows = await db
     .select({ userId: threadMembers.userId })
     .from(threadMembers)
     .where(and(eq(threadMembers.conversationId, conversationId), eq(threadMembers.userId, memberId)))
-    .get();
+    .limit(1);
+  const member = memberRows[0];
   if (!member) {
     throw new ApiError(404, "Member not found");
   }
 
-  setMemberOverrides(conversationId, memberId, input.overrides as ThreadPermissionOverride[]);
+  await setMemberOverrides(conversationId, memberId, input.overrides as ThreadPermissionOverride[]);
 
-  const members = listChannelMembers(userId, conversationId);
+  const members = await listChannelMembers(userId, conversationId);
   const updated = members.find((entry) => entry.user.id === memberId);
   if (!updated) {
     throw new ApiError(404, "Member not found");
@@ -654,32 +688,25 @@ export function updateChannelMemberOverrides(
   return updated;
 }
 
-export function removeChannelMember(userId: string, conversationId: string, memberId: string): { id: string } {
-  const conversation = getConversation(conversationId);
+export async function removeChannelMember(userId: string, conversationId: string, memberId: string): Promise<{ id: string }> {
+  const conversation = await getConversation(conversationId);
   if (conversation.type !== "channel") {
     throw new ApiError(400, "Only channel conversations support members");
   }
 
-  assertConversationMember(userId, conversationId);
+  await assertConversationMember(userId, conversationId);
   const isCreator = conversation.createdBy === userId;
   if (!isCreator) {
-    assertConversationPermission(userId, conversationId, "channel_members_remove");
+    await assertConversationPermission(userId, conversationId, "channel_members_remove");
   }
 
-  db.delete(threadMemberPermissions)
+  await db.delete(threadMemberPermissions)
     .where(and(eq(threadMemberPermissions.conversationId, conversationId), eq(threadMemberPermissions.userId, memberId)))
-    .run();
-  db.delete(threadMembers)
+    .execute();
+  await db.delete(threadMembers)
     .where(and(eq(threadMembers.conversationId, conversationId), eq(threadMembers.userId, memberId)))
-    .run();
+    .execute();
 
   return { id: memberId };
 }
-
-
-
-
-
-
-
 

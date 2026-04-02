@@ -7,9 +7,9 @@ export const dashboardRouter = Router();
 
 dashboardRouter.use(requireAuth);
 
-dashboardRouter.get("/summary", (req, res, next) => {
+dashboardRouter.get("/summary", async (req, res, next) => {
   try {
-    const data = getDashboardSummary(req.auth!.userId);
+    const data = await getDashboardSummary(req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);

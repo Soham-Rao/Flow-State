@@ -46,12 +46,19 @@ const boardPresence = new Map<string, Map<string, number>>();
 const userStatus = new Map<string, PresenceStatus>();
 const userLastSeen = new Map<string, number>();
 
-function getPresenceUsers(userIds: string[], statusByUserId?: Map<string, PresenceStatus>): PresenceUser[] {
+async function getPresenceUsers(userIds: string[], statusByUserId?: Map<string, PresenceStatus>): Promise<PresenceUser[]> {
   if (userIds.length === 0) {
     return [];
   }
 
-  const rows = db
+  const rows: Array<{
+      id: string;
+      name: string;
+      displayName: string | null;
+      username: string | null;
+      email: string;
+      role: string;
+    }> = await db
     .select({
       id: users.id,
       name: users.name,
@@ -61,8 +68,7 @@ function getPresenceUsers(userIds: string[], statusByUserId?: Map<string, Presen
       role: users.role
     })
     .from(users)
-    .where(inArray(users.id, userIds))
-    .all();
+    .where(inArray(users.id, userIds));
 
   const byId = new Map(rows.map((row) => [row.id, row]));
   return userIds
@@ -79,19 +85,19 @@ function getPresenceUsers(userIds: string[], statusByUserId?: Map<string, Presen
     }));
 }
 
-function emitWorkspacePresence(): void {
+async function emitWorkspacePresence(): Promise<void> {
   if (!io) return;
   const userIds = Array.from(userSockets.keys());
-  const usersList = getPresenceUsers(userIds, userStatus);
+  const usersList = await getPresenceUsers(userIds, userStatus);
   const lastSeenByUserId = Object.fromEntries(userLastSeen);
   io.to(WORKSPACE_ROOM).emit("presence:workspace", { users: usersList, lastSeenByUserId });
 }
 
-function emitBoardPresence(boardId: string): void {
+async function emitBoardPresence(boardId: string): Promise<void> {
   if (!io) return;
   const entries = boardPresence.get(boardId);
   const userIds = entries ? Array.from(entries.keys()) : [];
-  const usersList = getPresenceUsers(userIds, userStatus);
+  const usersList = await getPresenceUsers(userIds, userStatus);
   io.to(boardRoom(boardId)).emit("presence:board", { boardId, users: usersList });
 }
 
@@ -166,7 +172,7 @@ export function initSocket(server: HttpServer): Server {
     userStatus.set(userId, userStatus.get(userId) ?? "online");
 
     socket.join(WORKSPACE_ROOM);
-    emitWorkspacePresence();
+    void emitWorkspacePresence();
 
     const joinedBoards = new Set<string>();
 
@@ -176,7 +182,7 @@ export function initSocket(server: HttpServer): Server {
       socket.join(boardRoom(boardId));
       joinedBoards.add(boardId);
       incrementBoardPresence(boardId, userId);
-      emitBoardPresence(boardId);
+      void emitBoardPresence(boardId);
     });
 
     socket.on("board:leave", (payload: { boardId?: string }) => {
@@ -185,7 +191,7 @@ export function initSocket(server: HttpServer): Server {
       socket.leave(boardRoom(boardId));
       joinedBoards.delete(boardId);
       decrementBoardPresence(boardId, userId);
-      emitBoardPresence(boardId);
+      void emitBoardPresence(boardId);
     });
 
     socket.on("thread:join", (payload: { conversationId?: string }) => {
@@ -204,8 +210,8 @@ export function initSocket(server: HttpServer): Server {
       const status = payload?.status;
       if (status !== "online" && status !== "afk") return;
       userStatus.set(userId, status);
-      emitWorkspacePresence();
-      joinedBoards.forEach((boardId) => emitBoardPresence(boardId));
+      void emitWorkspacePresence();
+      joinedBoards.forEach((boardId) => void emitBoardPresence(boardId));
     });
 
     socket.on("presence:ping", () => {
@@ -219,11 +225,11 @@ export function initSocket(server: HttpServer): Server {
         userStatus.delete(userId);
         userLastSeen.set(userId, Date.now());
       }
-      emitWorkspacePresence();
+      void emitWorkspacePresence();
 
       joinedBoards.forEach((boardId) => {
         decrementBoardPresence(boardId, userId);
-        emitBoardPresence(boardId);
+        void emitBoardPresence(boardId);
       });
     });
   });

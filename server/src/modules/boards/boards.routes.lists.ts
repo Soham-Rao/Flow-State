@@ -20,11 +20,11 @@ import {
 
 export const boardsListsRouter = Router();
 
-boardsListsRouter.post("/:boardId/lists", (req, res, next) => {
+boardsListsRouter.post("/:boardId/lists", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_lists");
+    await assertPermission(req.auth!.userId, "manage_lists");
     const body = createListSchema.parse(req.body);
-    const data = createList(req.params.boardId, body, req.auth!.userId);
+    const data = await createList(req.params.boardId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -35,11 +35,11 @@ boardsListsRouter.post("/:boardId/lists", (req, res, next) => {
   }
 });
 
-boardsListsRouter.post("/:boardId/lists/reorder", (req, res, next) => {
+boardsListsRouter.post("/:boardId/lists/reorder", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_lists");
+    await assertPermission(req.auth!.userId, "manage_lists");
     const body = reorderListsSchema.parse(req.body);
-    const data = reorderLists(req.params.boardId, body, req.auth!.userId);
+    const data = await reorderLists(req.params.boardId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -50,11 +50,11 @@ boardsListsRouter.post("/:boardId/lists/reorder", (req, res, next) => {
   }
 });
 
-boardsListsRouter.patch("/lists/:listId", (req, res, next) => {
+boardsListsRouter.patch("/lists/:listId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_lists");
+    await assertPermission(req.auth!.userId, "manage_lists");
     const body = updateListSchema.parse(req.body);
-    const data = updateList(req.params.listId, body, req.auth!.userId);
+    const data = await updateList(req.params.listId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -65,10 +65,10 @@ boardsListsRouter.patch("/lists/:listId", (req, res, next) => {
   }
 });
 
-boardsListsRouter.delete("/lists/:listId", (req, res, next) => {
+boardsListsRouter.delete("/lists/:listId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_lists");
-    deleteList(req.params.listId, req.auth!.userId);
+    await assertPermission(req.auth!.userId, "manage_lists");
+    await deleteList(req.params.listId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -81,10 +81,10 @@ boardsListsRouter.delete("/lists/:listId", (req, res, next) => {
   }
 });
 
-boardsListsRouter.post("/lists/:listId/archive", (req, res, next) => {
+boardsListsRouter.post("/lists/:listId/archive", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_lists");
-    const data = archiveList(req.params.listId, req.auth!.userId);
+    await assertPermission(req.auth!.userId, "manage_lists");
+    const data = await archiveList(req.params.listId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -95,11 +95,11 @@ boardsListsRouter.post("/lists/:listId/archive", (req, res, next) => {
   }
 });
 
-boardsListsRouter.post("/lists/:listId/restore", (req, res, next) => {
+boardsListsRouter.post("/lists/:listId/restore", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_lists");
+    await assertPermission(req.auth!.userId, "manage_lists");
     const body = restoreArchiveSchema.parse(req.body);
-    const data = restoreList(req.params.listId, body.renameConflicts ?? false, req.auth!.userId);
+    const data = await restoreList(req.params.listId, body.renameConflicts ?? false, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -110,11 +110,11 @@ boardsListsRouter.post("/lists/:listId/restore", (req, res, next) => {
   }
 });
 
-boardsListsRouter.post("/lists/:listId/comments", (req, res, next) => {
+boardsListsRouter.post("/lists/:listId/comments", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "comment");
+    await assertPermission(req.auth!.userId, "comment");
     const body = createCommentSchema.parse(req.body);
-    const data = createListComment(req.params.listId, body, req.auth!.userId);
+    const data = await createListComment(req.params.listId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -124,4 +124,3 @@ boardsListsRouter.post("/lists/:listId/comments", (req, res, next) => {
     next(error);
   }
 });
-

@@ -13,36 +13,35 @@ function normalizeMentions(mentions: string[] | undefined): string[] {
   return Array.from(new Set(mentions));
 }
 
-export function storeThreadMentions(
+export async function storeThreadMentions(
   conversationId: string,
   messageId: string,
   mentions: string[] | undefined,
   authorId: string
-): void {
+): Promise<void> {
   const uniqueMentions = normalizeMentions(mentions).filter((mentionId) => mentionId !== authorId);
   if (uniqueMentions.length === 0) {
     return;
   }
 
-  const existingUsers = db
+  const existingUsers: Array<{ id: string }> = await db
     .select({ id: users.id })
     .from(users)
-    .where(inArray(users.id, uniqueMentions))
-    .all();
+    .where(inArray(users.id, uniqueMentions));
 
   if (existingUsers.length === 0) {
     return;
   }
 
-  const allowed = db
+  const allowedRows: Array<{ userId: string }> = await db
     .select({ userId: threadMembers.userId })
     .from(threadMembers)
     .where(and(
       eq(threadMembers.conversationId, conversationId),
       inArray(threadMembers.userId, existingUsers.map((user) => user.id))
-    ))
-    .all()
-    .map((row) => row.userId)
+    ));
+
+  const allowed = allowedRows.map((row) => row.userId)
     .filter((userId) => userId !== authorId);
 
   if (allowed.length === 0) {
@@ -50,7 +49,7 @@ export function storeThreadMentions(
   }
 
   const now = new Date();
-  db.insert(threadMentions)
+  await db.insert(threadMentions)
     .values(allowed.map((userId) => ({
       id: crypto.randomUUID(),
       messageId,
@@ -58,50 +57,47 @@ export function storeThreadMentions(
       createdAt: now,
       seenAt: null
     })))
-    .run();
+    .execute();
 
-  allowed.forEach((mentionedUserId) => {
-    recordActivity({
-      type: "mention.thread",
-      actorId: authorId,
-      threadConversationId: conversationId,
-      threadMessageId: messageId,
-      mentionedUserId,
-      metadata: { source: "message" }
-    });
-  });
+  await Promise.all(allowed.map((mentionedUserId) => recordActivity({
+    type: "mention.thread",
+    actorId: authorId,
+    threadConversationId: conversationId,
+    threadMessageId: messageId,
+    mentionedUserId,
+    metadata: { source: "message" }
+  })));
 }
 
-export function storeThreadReplyMentions(
+export async function storeThreadReplyMentions(
   conversationId: string,
   replyId: string,
   mentions: string[] | undefined,
   authorId: string
-): void {
+): Promise<void> {
   const uniqueMentions = normalizeMentions(mentions).filter((mentionId) => mentionId !== authorId);
   if (uniqueMentions.length === 0) {
     return;
   }
 
-  const existingUsers = db
+  const existingUsers: Array<{ id: string }> = await db
     .select({ id: users.id })
     .from(users)
-    .where(inArray(users.id, uniqueMentions))
-    .all();
+    .where(inArray(users.id, uniqueMentions));
 
   if (existingUsers.length === 0) {
     return;
   }
 
-  const allowed = db
+  const allowedRows: Array<{ userId: string }> = await db
     .select({ userId: threadMembers.userId })
     .from(threadMembers)
     .where(and(
       eq(threadMembers.conversationId, conversationId),
       inArray(threadMembers.userId, existingUsers.map((user) => user.id))
-    ))
-    .all()
-    .map((row) => row.userId)
+    ));
+
+  const allowed = allowedRows.map((row) => row.userId)
     .filter((userId) => userId !== authorId);
 
   if (allowed.length === 0) {
@@ -109,7 +105,7 @@ export function storeThreadReplyMentions(
   }
 
   const now = new Date();
-  db.insert(threadReplyMentions)
+  await db.insert(threadReplyMentions)
     .values(allowed.map((userId) => ({
       id: crypto.randomUUID(),
       replyId,
@@ -117,16 +113,14 @@ export function storeThreadReplyMentions(
       createdAt: now,
       seenAt: null
     })))
-    .run();
+    .execute();
 
-  allowed.forEach((mentionedUserId) => {
-    recordActivity({
-      type: "mention.thread",
-      actorId: authorId,
-      threadConversationId: conversationId,
-      threadReplyId: replyId,
-      mentionedUserId,
-      metadata: { source: "reply" }
-    });
-  });
+  await Promise.all(allowed.map((mentionedUserId) => recordActivity({
+    type: "mention.thread",
+    actorId: authorId,
+    threadConversationId: conversationId,
+    threadReplyId: replyId,
+    mentionedUserId,
+    metadata: { source: "reply" }
+  })));
 }

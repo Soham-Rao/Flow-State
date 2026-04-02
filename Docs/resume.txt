@@ -1,6 +1,6 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-27 05:10:00 +05:30
+Last checkpoint update: 2026-03-31 15:28:54 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
@@ -24,12 +24,20 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 6.3 (Presence): complete
   - Phase 6.4 (Board realtime updates): complete
   - Phase 6.5 (Threads realtime): complete
+  - Phase 8 (Focus mode + time tracking): complete
   - Phase 10 (Dashboard & Templates): in progress (split into 10.1–10.x)
   - Phase 10.1 (Dashboard foundation: Team Pulse + invites + stat shell): complete
   - Phase 10.2 (Personal dashboard summary): complete
   - Phase 10.3 (Team insights + summaries): complete
   - Phase 10.4 (Dashboard UI overhaul): complete
-  - Phase 8 (Focus mode + time tracking): complete
+  - Phase 10.5 (Templates + settings polish): deferred by request (templates/polish + pins/templates gallery later)
+  - Phase 12 (Hosting & production readiness): in progress (planning + checklist drafted)
+  - Phase 12.0 (DB platform switch): complete (MySQL, DDL-only)
+  - Phase 12.1 (Hosting + deployment setup): not started
+  - Phase 12.2 (Security hardening): not started
+  - Phase 12.3 (Reliability + observability): not started
+  - Phase 12.4 (Data durability + performance): not started
+  - Phase 12.5 (User-facing docs): not started
 
 - Phase 6 completion highlights:
   - Socket.IO server + auth + workspace/board rooms + client socket store
@@ -44,6 +52,9 @@ Purpose: Resume from this exact project state, not from zero.
   - Dashboard personal summary: assigned/created task lists with priority/due-date sorting, board/thread mentions, live Pomodoro card
   - Team insights: weekly/monthly metrics, activity highlights, new joiners, announcements (compose + unread + mark-seen + audience targeting)
   - Dashboard visual overhaul: glassmorphism styling, two-column layout, priority/alert bands, and low-latency UI polish
+  - Hosting plan drafted in Docs/hosting.md (Phase 12 checklist + deployment pipeline, canonical flo-state.in)
+  - MySQL migration completed (mysql2 + Drizzle migrations); server tests passing with single-worker Vitest + truncate-based resets
+  - Settings templates/polish work deferred by request (will revisit later)
   - Card/board confirm dialogs use proper focus trapping
   - Presence indicator dropdown shows “Show online / Show AFK” with hover tooltips
   - Channel manage panel permissions now use a dropdown overlay (no layout shift)
@@ -75,8 +86,9 @@ Purpose: Resume from this exact project state, not from zero.
 
 ## 2) Resume-Next Priority
 
-- Phase 10.4: dashboard UI overhaul + role-based views.
-- Phase 10.3–10.5: dashboard UI overhaul + team insights + templates.
+- Phase 10.5 deferred; revisit templates/polish + pins/templates gallery later.
+- Phase 12.1–12.5: hosting/security/observability/durability/docs implementation (rate limiting, reset flows, alerts, CSP/CSRF, backups).
+- Phase 12 planning ongoing; implementation deferred until plan signoff.
 - Phase 7: calendar + multi-view.
 
 ## 3) User Preferences to Preserve on Resume
@@ -210,5 +222,18 @@ Note: db -shm and -wal files are runtime artifacts; do not delete without user i
   - bun run --cwd server test
 
 This file is the resume checkpoint contract for continuing FlowState safely and quickly.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

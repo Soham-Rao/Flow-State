@@ -10,7 +10,7 @@ const envSchema = z.object({
   CLIENT_ORIGIN: z.string().url().default("http://localhost:5173"),
   JWT_SECRET: z.string().min(16).default("dev-only-secret-change-this"),
   JWT_EXPIRES_IN: z.string().min(2).default("7d"),
-  DATABASE_URL: z.string().default("./data/flowstate.db"),
+  MYSQL_URL: z.string().url().default("mysql://root:root@localhost:3306/flowstate_dev"),
   FLOWSTATE_DM_ENCRYPTION_KEY: z.string().refine(
     (val) =>
       (val.length === 64 && /^[0-9a-fA-F]+$/.test(val)) ||

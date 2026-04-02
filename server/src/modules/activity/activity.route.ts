@@ -9,14 +9,14 @@ export const activityRouter = Router();
 
 activityRouter.use(requireAuth);
 
-activityRouter.get("/", (req, res, next) => {
+activityRouter.get("/", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "view_activity_logs");
+    await assertPermission(req.auth!.userId, "view_activity_logs");
 
     const boardId = typeof req.query.boardId === "string" ? req.query.boardId : undefined;
     if (boardId) {
-      assertBoardExists(boardId);
-      const canView = userHasPermission(req.auth!.userId, "view_boards", { scopeType: "board", scopeId: boardId });
+      await assertBoardExists(boardId);
+      const canView = await userHasPermission(req.auth!.userId, "view_boards", { scopeType: "board", scopeId: boardId });
       if (!canView) {
         return res.status(403).json({
           success: false,
@@ -25,7 +25,7 @@ activityRouter.get("/", (req, res, next) => {
       }
     }
 
-    const data = listActivityLogs({ boardId });
+    const data = await listActivityLogs({ boardId });
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);

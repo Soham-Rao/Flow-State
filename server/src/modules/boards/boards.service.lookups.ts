@@ -5,15 +5,15 @@ import { attachments, boards, cards, checklists, checklistItems, comments, label
 import { ApiError } from "../../utils/api-error.js";
 import type { AttachmentRecord, BoardLabel, BoardMember, CardRecord, ListRecord } from "./boards.service.types.js";
 
-export function assertBoardExists(boardId: string): void {
-  const row = db.select({ id: boards.id }).from(boards).where(eq(boards.id, boardId)).limit(1).get();
-  if (!row) {
+export async function assertBoardExists(boardId: string): Promise<void> {
+  const rows = await db.select({ id: boards.id }).from(boards).where(eq(boards.id, boardId)).limit(1);
+  if (!rows[0]) {
     throw new ApiError(404, "Board not found");
   }
 }
 
-export function getBoardRecord(boardId: string): { id: string; name: string; archivedAt: Date | null; archiveRetentionMinutes: number } {
-  const board = db
+export async function getBoardRecord(boardId: string): Promise<{ id: string; name: string; archivedAt: Date | null; archiveRetentionMinutes: number }> {
+  const rows = await db
     .select({
       id: boards.id,
       name: boards.name,
@@ -22,8 +22,9 @@ export function getBoardRecord(boardId: string): { id: string; name: string; arc
     })
     .from(boards)
     .where(eq(boards.id, boardId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const board = rows[0];
 
   if (!board) {
     throw new ApiError(404, "Board not found");
@@ -32,20 +33,22 @@ export function getBoardRecord(boardId: string): { id: string; name: string; arc
   return board;
 }
 
-export function assertBoardNameAvailable(name: string, excludeBoardId?: string): void {
-  const existing = db
+export async function assertBoardNameAvailable(name: string, excludeBoardId?: string): Promise<void> {
+  const rows = await db
     .select({ id: boards.id })
     .from(boards)
     .where(eq(boards.name, name))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const existing = rows[0];
 
   if (existing && existing.id !== excludeBoardId) {
     throw new ApiError(409, "Board name already exists");
   }
 }
-export function assertListExists(listId: string): ListRecord {
-  const list = db
+
+export async function assertListExists(listId: string): Promise<ListRecord> {
+  const rows = await db
     .select({
       id: lists.id,
       boardId: lists.boardId,
@@ -55,8 +58,9 @@ export function assertListExists(listId: string): ListRecord {
     })
     .from(lists)
     .where(eq(lists.id, listId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const list = rows[0];
 
   if (!list) {
     throw new ApiError(404, "List not found");
@@ -65,24 +69,26 @@ export function assertListExists(listId: string): ListRecord {
   return list;
 }
 
-export function getListRecord(listId: string): ListRecord {
+export async function getListRecord(listId: string): Promise<ListRecord> {
   return assertListExists(listId);
 }
 
-export function assertListNameAvailable(boardId: string, name: string, excludeListId?: string): void {
-  const existing = db
+export async function assertListNameAvailable(boardId: string, name: string, excludeListId?: string): Promise<void> {
+  const rows = await db
     .select({ id: lists.id })
     .from(lists)
     .where(and(eq(lists.boardId, boardId), eq(lists.name, name), isNull(lists.archivedAt)))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const existing = rows[0];
 
   if (existing && existing.id !== excludeListId) {
     throw new ApiError(409, "List name already exists");
   }
 }
-export function assertCardExists(cardId: string): CardRecord {
-  const card = db
+
+export async function assertCardExists(cardId: string): Promise<CardRecord> {
+  const rows = await db
     .select({
       id: cards.id,
       listId: cards.listId,
@@ -100,8 +106,9 @@ export function assertCardExists(cardId: string): CardRecord {
     })
     .from(cards)
     .where(eq(cards.id, cardId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const card = rows[0];
 
   if (!card) {
     throw new ApiError(404, "Card not found");
@@ -110,8 +117,8 @@ export function assertCardExists(cardId: string): CardRecord {
   return card;
 }
 
-export function assertLabelExists(labelId: string): BoardLabel {
-  const label = db
+export async function assertLabelExists(labelId: string): Promise<BoardLabel> {
+  const rows = await db
     .select({
       id: labels.id,
       boardId: labels.boardId,
@@ -122,8 +129,9 @@ export function assertLabelExists(labelId: string): BoardLabel {
     })
     .from(labels)
     .where(eq(labels.id, labelId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const label = rows[0];
 
   if (!label) {
     throw new ApiError(404, "Label not found");
@@ -132,8 +140,8 @@ export function assertLabelExists(labelId: string): BoardLabel {
   return label;
 }
 
-export function assertUserExists(userId: string): BoardMember {
-  const user = db
+export async function assertUserExists(userId: string): Promise<BoardMember> {
+  const rows = await db
     .select({
       id: users.id,
       name: users.name,
@@ -145,8 +153,9 @@ export function assertUserExists(userId: string): BoardMember {
     })
     .from(users)
     .where(eq(users.id, userId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const user = rows[0];
 
   if (!user) {
     throw new ApiError(404, "User not found");
@@ -155,13 +164,14 @@ export function assertUserExists(userId: string): BoardMember {
   return user;
 }
 
-export function assertChecklistExists(checklistId: string): { id: string; cardId: string } {
-  const checklist = db
+export async function assertChecklistExists(checklistId: string): Promise<{ id: string; cardId: string }> {
+  const rows = await db
     .select({ id: checklists.id, cardId: checklists.cardId })
     .from(checklists)
     .where(eq(checklists.id, checklistId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const checklist = rows[0];
 
   if (!checklist) {
     throw new ApiError(404, "Checklist not found");
@@ -170,13 +180,14 @@ export function assertChecklistExists(checklistId: string): { id: string; cardId
   return checklist;
 }
 
-export function assertChecklistItemExists(itemId: string): { id: string; checklistId: string } {
-  const item = db
+export async function assertChecklistItemExists(itemId: string): Promise<{ id: string; checklistId: string }> {
+  const rows = await db
     .select({ id: checklistItems.id, checklistId: checklistItems.checklistId })
     .from(checklistItems)
     .where(eq(checklistItems.id, itemId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const item = rows[0];
 
   if (!item) {
     throw new ApiError(404, "Checklist item not found");
@@ -185,8 +196,8 @@ export function assertChecklistItemExists(itemId: string): { id: string; checkli
   return item;
 }
 
-export function assertCommentExists(commentId: string): { id: string; boardId: string; listId: string | null; cardId: string | null; authorId: string } {
-  const comment = db
+export async function assertCommentExists(commentId: string): Promise<{ id: string; boardId: string; listId: string | null; cardId: string | null; authorId: string }> {
+  const rows = await db
     .select({
       id: comments.id,
       boardId: comments.boardId,
@@ -196,8 +207,9 @@ export function assertCommentExists(commentId: string): { id: string; boardId: s
     })
     .from(comments)
     .where(eq(comments.id, commentId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const comment = rows[0];
 
   if (!comment) {
     throw new ApiError(404, "Comment not found");
@@ -206,8 +218,8 @@ export function assertCommentExists(commentId: string): { id: string; boardId: s
   return comment;
 }
 
-export function getAttachmentRecordById(attachmentId: string): AttachmentRecord {
-  const attachment = db
+export async function getAttachmentRecordById(attachmentId: string): Promise<AttachmentRecord> {
+  const rows = await db
     .select({
       id: attachments.id,
       cardId: attachments.cardId,
@@ -220,8 +232,9 @@ export function getAttachmentRecordById(attachmentId: string): AttachmentRecord 
     })
     .from(attachments)
     .where(eq(attachments.id, attachmentId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const attachment = rows[0];
 
   if (!attachment) {
     throw new ApiError(404, "Attachment not found");
@@ -230,14 +243,15 @@ export function getAttachmentRecordById(attachmentId: string): AttachmentRecord 
   return attachment;
 }
 
-export function getCardBoardContext(cardId: string): { cardId: string; boardId: string } {
-  const row = db
+export async function getCardBoardContext(cardId: string): Promise<{ cardId: string; boardId: string }> {
+  const rows = await db
     .select({ cardId: cards.id, boardId: lists.boardId })
     .from(cards)
     .innerJoin(lists, eq(cards.listId, lists.id))
     .where(eq(cards.id, cardId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const row = rows[0];
 
   if (!row) {
     throw new ApiError(404, "Card not found");
@@ -245,6 +259,3 @@ export function getCardBoardContext(cardId: string): { cardId: string; boardId: 
 
   return row;
 }
-
-
-

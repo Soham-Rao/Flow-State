@@ -23,11 +23,11 @@ import {
 
 export const boardsCardsRouter = Router();
 
-boardsCardsRouter.post("/lists/:listId/cards", (req, res, next) => {
+boardsCardsRouter.post("/lists/:listId/cards", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "create_cards");
+    await assertPermission(req.auth!.userId, "create_cards");
     const body = createCardSchema.parse(req.body);
-    const data = createCard(req.params.listId, body, req.auth!.userId);
+    const data = await createCard(req.params.listId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -38,11 +38,11 @@ boardsCardsRouter.post("/lists/:listId/cards", (req, res, next) => {
   }
 });
 
-boardsCardsRouter.patch("/cards/:cardId", (req, res, next) => {
+boardsCardsRouter.patch("/cards/:cardId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "edit_cards");
+    await assertPermission(req.auth!.userId, "edit_cards");
     const body = updateCardSchema.parse(req.body);
-    const data = updateCard(req.params.cardId, body, req.auth!.userId);
+    const data = await updateCard(req.params.cardId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -53,10 +53,10 @@ boardsCardsRouter.patch("/cards/:cardId", (req, res, next) => {
   }
 });
 
-boardsCardsRouter.post("/cards/:cardId/archive", (req, res, next) => {
+boardsCardsRouter.post("/cards/:cardId/archive", async (req, res, next) => {
   try {
-    const permissions = getUserPermissions(req.auth!.userId);
-    const data = archiveCard(req.params.cardId, {
+    const permissions = await getUserPermissions(req.auth!.userId);
+    const data = await archiveCard(req.params.cardId, {
       userId: req.auth!.userId,
       canDeleteAny: permissions.has("delete_cards_any"),
       canDeleteOwn: permissions.has("delete_cards_own")
@@ -71,11 +71,11 @@ boardsCardsRouter.post("/cards/:cardId/archive", (req, res, next) => {
   }
 });
 
-boardsCardsRouter.post("/cards/:cardId/restore", (req, res, next) => {
+boardsCardsRouter.post("/cards/:cardId/restore", async (req, res, next) => {
   try {
     const body = restoreArchiveSchema.parse(req.body);
-    const permissions = getUserPermissions(req.auth!.userId);
-    const data = restoreCard(
+    const permissions = await getUserPermissions(req.auth!.userId);
+    const data = await restoreCard(
       req.params.cardId,
       body.renameConflicts ?? false,
       {
@@ -94,11 +94,11 @@ boardsCardsRouter.post("/cards/:cardId/restore", (req, res, next) => {
   }
 });
 
-boardsCardsRouter.post("/cards/:cardId/comments", (req, res, next) => {
+boardsCardsRouter.post("/cards/:cardId/comments", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "comment");
+    await assertPermission(req.auth!.userId, "comment");
     const body = createCommentSchema.parse(req.body);
-    const data = createCardComment(req.params.cardId, body, req.auth!.userId);
+    const data = await createCardComment(req.params.cardId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -109,11 +109,11 @@ boardsCardsRouter.post("/cards/:cardId/comments", (req, res, next) => {
   }
 });
 
-boardsCardsRouter.post("/cards/:cardId/assignees", (req, res, next) => {
+boardsCardsRouter.post("/cards/:cardId/assignees", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "assign_members");
+    await assertPermission(req.auth!.userId, "assign_members");
     const body = assignAssigneeSchema.parse(req.body);
-    const data = assignMemberToCard(req.params.cardId, body);
+    const data = await assignMemberToCard(req.params.cardId, body);
 
     res.status(200).json({
       success: true,
@@ -124,10 +124,10 @@ boardsCardsRouter.post("/cards/:cardId/assignees", (req, res, next) => {
   }
 });
 
-boardsCardsRouter.delete("/cards/:cardId/assignees/:userId", (req, res, next) => {
+boardsCardsRouter.delete("/cards/:cardId/assignees/:userId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "assign_members");
-    const data = removeMemberFromCard(req.params.cardId, req.params.userId);
+    await assertPermission(req.auth!.userId, "assign_members");
+    const data = await removeMemberFromCard(req.params.cardId, req.params.userId);
 
     res.status(200).json({
       success: true,
@@ -138,11 +138,11 @@ boardsCardsRouter.delete("/cards/:cardId/assignees/:userId", (req, res, next) =>
   }
 });
 
-boardsCardsRouter.post("/cards/move", (req, res, next) => {
+boardsCardsRouter.post("/cards/move", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "edit_cards");
+    await assertPermission(req.auth!.userId, "edit_cards");
     const body = moveCardSchema.parse(req.body);
-    const data = moveCard(body, req.auth!.userId);
+    const data = await moveCard(body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -155,7 +155,7 @@ boardsCardsRouter.post("/cards/move", (req, res, next) => {
 
 boardsCardsRouter.delete("/cards/:cardId", async (req, res, next) => {
   try {
-    const permissions = getUserPermissions(req.auth!.userId);
+    const permissions = await getUserPermissions(req.auth!.userId);
     await deleteCard(req.params.cardId, {
       userId: req.auth!.userId,
       canDeleteAny: permissions.has("delete_cards_any"),

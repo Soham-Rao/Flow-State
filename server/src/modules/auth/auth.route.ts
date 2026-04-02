@@ -43,9 +43,9 @@ authRouter.post("/logout", requireAuth, (_req, res) => {
   });
 });
 
-authRouter.get("/me", requireAuth, (req, res, next) => {
+authRouter.get("/me", requireAuth, async (req, res, next) => {
   try {
-    const data = getCurrentUser(req.auth!.userId);
+    const data = await getCurrentUser(req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -56,10 +56,10 @@ authRouter.get("/me", requireAuth, (req, res, next) => {
   }
 });
 
-authRouter.patch("/me", requireAuth, (req, res, next) => {
+authRouter.patch("/me", requireAuth, async (req, res, next) => {
   try {
     const body = updateProfileSchema.parse(req.body);
-    const data = updateProfile(req.auth!.userId, body);
+    const data = await updateProfile(req.auth!.userId, body);
 
     res.status(200).json({
       success: true,

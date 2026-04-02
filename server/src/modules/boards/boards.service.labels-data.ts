@@ -4,7 +4,7 @@ import { db } from "../../db/connection.js";
 import { labels } from "../../db/schema.js";
 import type { BoardLabel } from "./boards.service.types.js";
 
-export function getLabelsForBoard(boardId: string): BoardLabel[] {
+export async function getLabelsForBoard(boardId: string): Promise<BoardLabel[]> {
   return db
     .select({
       id: labels.id,
@@ -16,6 +16,5 @@ export function getLabelsForBoard(boardId: string): BoardLabel[] {
     })
     .from(labels)
     .where(eq(labels.boardId, boardId))
-    .orderBy(asc(labels.createdAt))
-    .all();
+    .orderBy(asc(labels.createdAt));
 }

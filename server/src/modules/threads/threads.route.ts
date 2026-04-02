@@ -57,74 +57,74 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 
 
 threadsRouter.use(requireAuth);
 
-threadsRouter.get("/dms/users", (req, res, next) => {
+threadsRouter.get("/dms/users", async (req, res, next) => {
   try {
-    const data = listDmUsers(req.auth!.userId);
+    const data = await listDmUsers(req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.get("/dms", (req, res, next) => {
+threadsRouter.get("/dms", async (req, res, next) => {
   try {
-    const data = listDmConversations(req.auth!.userId);
+    const data = await listDmConversations(req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.post("/dms/:userId", (req, res, next) => {
+threadsRouter.post("/dms/:userId", async (req, res, next) => {
   try {
-    const data = getOrCreateDmConversation(req.auth!.userId, req.params.userId);
+    const data = await getOrCreateDmConversation(req.auth!.userId, req.params.userId);
     res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.get("/channels", (req, res, next) => {
+threadsRouter.get("/channels", async (req, res, next) => {
   try {
-    const data = listChannelConversations(req.auth!.userId);
+    const data = await listChannelConversations(req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.post("/channels", (req, res, next) => {
+threadsRouter.post("/channels", async (req, res, next) => {
   try {
     const body = createChannelSchema.parse(req.body ?? {});
-    const data = createChannelConversation(req.auth!.userId, body);
+    const data = await createChannelConversation(req.auth!.userId, body);
     res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.patch("/channels/:conversationId", (req, res, next) => {
+threadsRouter.patch("/channels/:conversationId", async (req, res, next) => {
   try {
     const body = updateChannelSchema.parse(req.body ?? {});
-    const data = updateChannelConversation(req.auth!.userId, req.params.conversationId, body);
+    const data = await updateChannelConversation(req.auth!.userId, req.params.conversationId, body);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.post("/channels/:conversationId/leave", (req, res, next) => {
+threadsRouter.post("/channels/:conversationId/leave", async (req, res, next) => {
   try {
-    const data = leaveChannelConversation(req.auth!.userId, req.params.conversationId);
+    const data = await leaveChannelConversation(req.auth!.userId, req.params.conversationId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.delete("/channels/:conversationId", (req, res, next) => {
+threadsRouter.delete("/channels/:conversationId", async (req, res, next) => {
   try {
-    const data = deleteChannelConversation(req.auth!.userId, req.params.conversationId);
+    const data = await deleteChannelConversation(req.auth!.userId, req.params.conversationId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
@@ -132,118 +132,118 @@ threadsRouter.delete("/channels/:conversationId", (req, res, next) => {
 });
 
 
-threadsRouter.get("/channels/:conversationId/members", (req, res, next) => {
+threadsRouter.get("/channels/:conversationId/members", async (req, res, next) => {
   try {
-    const data = listChannelMembers(req.auth!.userId, req.params.conversationId);
+    const data = await listChannelMembers(req.auth!.userId, req.params.conversationId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.post("/channels/:conversationId/members", (req, res, next) => {
+threadsRouter.post("/channels/:conversationId/members", async (req, res, next) => {
   try {
     const body = addChannelMembersSchema.parse(req.body ?? {});
-    const data = addChannelMembers(req.auth!.userId, req.params.conversationId, body);
+    const data = await addChannelMembers(req.auth!.userId, req.params.conversationId, body);
     res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.patch("/channels/:conversationId/members/:memberId/overrides", (req, res, next) => {
+threadsRouter.patch("/channels/:conversationId/members/:memberId/overrides", async (req, res, next) => {
   try {
     const body = updateChannelMemberOverridesSchema.parse(req.body ?? {});
-    const data = updateChannelMemberOverrides(req.auth!.userId, req.params.conversationId, req.params.memberId, body);
+    const data = await updateChannelMemberOverrides(req.auth!.userId, req.params.conversationId, req.params.memberId, body);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.delete("/channels/:conversationId/members/:memberId", (req, res, next) => {
+threadsRouter.delete("/channels/:conversationId/members/:memberId", async (req, res, next) => {
   try {
-    const data = removeChannelMember(req.auth!.userId, req.params.conversationId, req.params.memberId);
+    const data = await removeChannelMember(req.auth!.userId, req.params.conversationId, req.params.memberId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.get("/conversations/:conversationId/messages", (req, res, next) => {
+threadsRouter.get("/conversations/:conversationId/messages", async (req, res, next) => {
   try {
     const params = threadMessageListSchema.parse(req.query ?? {});
-    const data = listThreadMessages(req.auth!.userId, req.params.conversationId, params);
+    const data = await listThreadMessages(req.auth!.userId, req.params.conversationId, params);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.post("/conversations/:conversationId/messages", (req, res, next) => {
+threadsRouter.post("/conversations/:conversationId/messages", async (req, res, next) => {
   try {
     const body = createThreadMessageSchema.parse(req.body ?? {});
-    const data = createThreadMessage(req.auth!.userId, req.params.conversationId, body);
+    const data = await createThreadMessage(req.auth!.userId, req.params.conversationId, body);
     res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.patch("/messages/:messageId", (req, res, next) => {
+threadsRouter.patch("/messages/:messageId", async (req, res, next) => {
   try {
     const body = updateThreadMessageSchema.parse(req.body ?? {});
-    const data = updateThreadMessage(req.auth!.userId, req.params.messageId, body);
+    const data = await updateThreadMessage(req.auth!.userId, req.params.messageId, body);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.delete("/messages/:messageId", (req, res, next) => {
+threadsRouter.delete("/messages/:messageId", async (req, res, next) => {
   try {
     const body = deleteThreadMessageSchema.parse(req.body ?? {});
-    const data = deleteThreadMessage(req.auth!.userId, req.params.messageId, body.scope);
+    const data = await deleteThreadMessage(req.auth!.userId, req.params.messageId, body.scope);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.get("/messages/:messageId/replies", (req, res, next) => {
+threadsRouter.get("/messages/:messageId/replies", async (req, res, next) => {
   try {
     const params = threadMessageListSchema.parse(req.query ?? {});
-    const data = listThreadReplies(req.auth!.userId, req.params.messageId, params);
+    const data = await listThreadReplies(req.auth!.userId, req.params.messageId, params);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.post("/messages/:messageId/replies", (req, res, next) => {
+threadsRouter.post("/messages/:messageId/replies", async (req, res, next) => {
   try {
     const body = createThreadReplySchema.parse(req.body ?? {});
-    const data = createThreadReply(req.auth!.userId, req.params.messageId, body);
+    const data = await createThreadReply(req.auth!.userId, req.params.messageId, body);
     res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.patch("/replies/:replyId", (req, res, next) => {
+threadsRouter.patch("/replies/:replyId", async (req, res, next) => {
   try {
     const body = updateThreadReplySchema.parse(req.body ?? {});
-    const data = updateThreadReply(req.auth!.userId, req.params.replyId, body);
+    const data = await updateThreadReply(req.auth!.userId, req.params.replyId, body);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.delete("/replies/:replyId", (req, res, next) => {
+threadsRouter.delete("/replies/:replyId", async (req, res, next) => {
   try {
     const body = deleteThreadReplySchema.parse(req.body ?? {});
-    const data = deleteThreadReply(req.auth!.userId, req.params.replyId, body.scope);
+    const data = await deleteThreadReply(req.auth!.userId, req.params.replyId, body.scope);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
@@ -292,74 +292,74 @@ threadsRouter.post("/replies/:replyId/voice-note", upload.single("voice"), async
   }
 });
 
-threadsRouter.get("/reply-voice-notes/:voiceNoteId/download", (req, res, next) => {
+threadsRouter.get("/reply-voice-notes/:voiceNoteId/download", async (req, res, next) => {
   try {
-    const voiceNote = getThreadReplyVoiceNoteDownloadInfo(req.auth!.userId, req.params.voiceNoteId);
+    const voiceNote = await getThreadReplyVoiceNoteDownloadInfo(req.auth!.userId, req.params.voiceNoteId);
     res.download(voiceNote.filePath, voiceNote.filename);
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.get("/reply-attachments/:attachmentId/download", (req, res, next) => {
+threadsRouter.get("/reply-attachments/:attachmentId/download", async (req, res, next) => {
   try {
-    const attachment = getThreadReplyAttachmentDownloadInfo(req.auth!.userId, req.params.attachmentId);
+    const attachment = await getThreadReplyAttachmentDownloadInfo(req.auth!.userId, req.params.attachmentId);
     res.download(attachment.filePath, attachment.originalName);
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.get("/voice-notes/:voiceNoteId/download", (req, res, next) => {
+threadsRouter.get("/voice-notes/:voiceNoteId/download", async (req, res, next) => {
   try {
-    const voiceNote = getThreadVoiceNoteDownloadInfo(req.auth!.userId, req.params.voiceNoteId);
+    const voiceNote = await getThreadVoiceNoteDownloadInfo(req.auth!.userId, req.params.voiceNoteId);
     res.download(voiceNote.filePath, voiceNote.filename);
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.get("/attachments/:attachmentId/download", (req, res, next) => {
+threadsRouter.get("/attachments/:attachmentId/download", async (req, res, next) => {
   try {
-    const attachment = getThreadAttachmentDownloadInfo(req.params.attachmentId);
+    const attachment = await getThreadAttachmentDownloadInfo(req.params.attachmentId);
     res.download(attachment.filePath, attachment.originalName);
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.get("/messages/:messageId/reactions/details", (req, res, next) => {
+threadsRouter.get("/messages/:messageId/reactions/details", async (req, res, next) => {
   try {
-    const data = listThreadMessageReactionDetails(req.auth!.userId, req.params.messageId);
+    const data = await listThreadMessageReactionDetails(req.auth!.userId, req.params.messageId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.get("/replies/:replyId/reactions/details", (req, res, next) => {
+threadsRouter.get("/replies/:replyId/reactions/details", async (req, res, next) => {
   try {
-    const data = listThreadReplyReactionDetails(req.auth!.userId, req.params.replyId);
+    const data = await listThreadReplyReactionDetails(req.auth!.userId, req.params.replyId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.post("/messages/:messageId/reactions", (req, res, next) => {
+threadsRouter.post("/messages/:messageId/reactions", async (req, res, next) => {
   try {
     const body = threadReactionSchema.parse(req.body ?? {});
-    const data = toggleThreadMessageReaction(req.auth!.userId, req.params.messageId, body);
+    const data = await toggleThreadMessageReaction(req.auth!.userId, req.params.messageId, body);
     res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-threadsRouter.post("/replies/:replyId/reactions", (req, res, next) => {
+threadsRouter.post("/replies/:replyId/reactions", async (req, res, next) => {
   try {
     const body = threadReactionSchema.parse(req.body ?? {});
-    const data = toggleThreadReplyReaction(req.auth!.userId, req.params.replyId, body);
+    const data = await toggleThreadReplyReaction(req.auth!.userId, req.params.replyId, body);
     res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);

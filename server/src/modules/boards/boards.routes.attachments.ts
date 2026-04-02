@@ -14,7 +14,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 
 
 boardsAttachmentsRouter.post("/cards/:cardId/attachments", upload.array("files", 10), async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "upload_files");
+    await assertPermission(req.auth!.userId, "upload_files");
     const files = (req.files ?? []) as Express.Multer.File[];
     const data = await createAttachments(req.params.cardId, files);
 
@@ -27,10 +27,10 @@ boardsAttachmentsRouter.post("/cards/:cardId/attachments", upload.array("files",
   }
 });
 
-boardsAttachmentsRouter.get("/attachments/:attachmentId/download", (req, res, next) => {
+boardsAttachmentsRouter.get("/attachments/:attachmentId/download", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "view_boards");
-    const attachment = getAttachmentDownloadInfo(req.params.attachmentId);
+    await assertPermission(req.auth!.userId, "view_boards");
+    const attachment = await getAttachmentDownloadInfo(req.params.attachmentId);
     res.download(attachment.filePath, attachment.originalName);
   } catch (error) {
     next(error);
@@ -39,7 +39,7 @@ boardsAttachmentsRouter.get("/attachments/:attachmentId/download", (req, res, ne
 
 boardsAttachmentsRouter.delete("/attachments/:attachmentId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "upload_files");
+    await assertPermission(req.auth!.userId, "upload_files");
     await deleteAttachment(req.params.attachmentId);
 
     res.status(200).json({

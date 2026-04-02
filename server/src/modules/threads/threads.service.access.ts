@@ -9,11 +9,11 @@ import {
   type RolePermission
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
-import { assertPermission, userHasPermission } from "../../utils/permissions.js";
+import { userHasPermission } from "../../utils/permissions.js";
 import type { ThreadUserSummary } from "./threads.service.types.js";
 
-export function getUserSummary(userId: string): ThreadUserSummary | null {
-  const row = db
+export async function getUserSummary(userId: string): Promise<ThreadUserSummary | null> {
+  const rows = await db
     .select({
       id: users.id,
       name: users.name,
@@ -24,47 +24,48 @@ export function getUserSummary(userId: string): ThreadUserSummary | null {
     })
     .from(users)
     .where(eq(users.id, userId))
-    .get();
-  return row ?? null;
+    .limit(1);
+  return rows[0] ?? null;
 }
 
-export function ensureUserExists(userId: string): ThreadUserSummary {
-  const user = getUserSummary(userId);
+export async function ensureUserExists(userId: string): Promise<ThreadUserSummary> {
+  const user = await getUserSummary(userId);
   if (!user) {
     throw new ApiError(404, "User not found");
   }
   return user;
 }
 
-export function getConversation(conversationId: string) {
-  const conversation = db
+export async function getConversation(conversationId: string): Promise<{ id: string; type: "dm" | "channel"; createdBy: string | null }> {
+  const rows = await db
     .select({ id: threadConversations.id, type: threadConversations.type, createdBy: threadConversations.createdBy })
     .from(threadConversations)
     .where(eq(threadConversations.id, conversationId))
-    .get();
+    .limit(1);
+  const conversation = rows[0];
   if (!conversation) {
     throw new ApiError(404, "Conversation not found");
   }
   return conversation;
 }
 
-export function assertConversationMember(userId: string, conversationId: string): void {
-  const membership = db
+export async function assertConversationMember(userId: string, conversationId: string): Promise<void> {
+  const rows = await db
     .select({ userId: threadMembers.userId })
     .from(threadMembers)
     .where(and(eq(threadMembers.conversationId, conversationId), eq(threadMembers.userId, userId)))
-    .get();
-  if (!membership) {
+    .limit(1);
+  if (!rows[0]) {
     throw new ApiError(403, "You do not have access to this conversation");
   }
 }
 
-function getConversationPermissionOverride(
+async function getConversationPermissionOverride(
   userId: string,
   conversationId: string,
   permission: RolePermission
-): "allow" | "deny" | null {
-  const row = db
+): Promise<"allow" | "deny" | null> {
+  const rows = await db
     .select({ access: threadMemberPermissions.access })
     .from(threadMemberPermissions)
     .where(and(
@@ -72,24 +73,24 @@ function getConversationPermissionOverride(
       eq(threadMemberPermissions.userId, userId),
       eq(threadMemberPermissions.permission, permission)
     ))
-    .get();
-  return row?.access ?? null;
+    .limit(1);
+  return rows[0]?.access ?? null;
 }
 
-export function userHasConversationPermission(
+export async function userHasConversationPermission(
   userId: string,
   conversationId: string,
   permission: RolePermission
-): boolean {
-  const override = getConversationPermissionOverride(userId, conversationId, permission);
+): Promise<boolean> {
+  const override = await getConversationPermissionOverride(userId, conversationId, permission);
   if (override === "allow") return true;
   if (override === "deny") return false;
 
   if (permission === "channel_read") {
-    const writeOverride = getConversationPermissionOverride(userId, conversationId, "channel_write");
+    const writeOverride = await getConversationPermissionOverride(userId, conversationId, "channel_write");
     if (writeOverride === "allow") return true;
     if (writeOverride === "deny") return false;
-    if (userHasPermission(userId, "channel_write", { scopeType: "section", scopeId: conversationId })) {
+    if (await userHasPermission(userId, "channel_write", { scopeType: "section", scopeId: conversationId })) {
       return true;
     }
   }
@@ -97,12 +98,12 @@ export function userHasConversationPermission(
   return userHasPermission(userId, permission, { scopeType: "section", scopeId: conversationId });
 }
 
-export function assertConversationPermission(
+export async function assertConversationPermission(
   userId: string,
   conversationId: string,
   permission: RolePermission
-): void {
-  if (!userHasConversationPermission(userId, conversationId, permission)) {
+): Promise<void> {
+  if (!await userHasConversationPermission(userId, conversationId, permission)) {
     throw new ApiError(403, "You do not have permission to perform this action");
   }
 }

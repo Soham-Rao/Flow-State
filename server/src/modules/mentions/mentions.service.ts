@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 
-import { db, sqlite } from "../../db/connection.js";
+import { db } from "../../db/connection.js";
 import {
   boards,
   cards,
@@ -50,25 +50,25 @@ export interface ThreadMentionDetail {
   body: string | null;
   createdAt: number;
 }
-function getAccessibleBoardIds(userId: string, boardIds: string[]): Set<string> {
+
+async function getAccessibleBoardIds(userId: string, boardIds: string[]): Promise<Set<string>> {
   if (boardIds.length === 0) {
     return new Set();
   }
 
-  const roleIds = getUserRoleIds(userId);
+  const roleIds = await getUserRoleIds(userId);
   if (roleIds.length === 0) {
     return new Set();
   }
 
-  const permissions = db
+  const permissions: Array<{ permission: string }> = await db
     .select({ permission: rolePermissionsTable.permission })
     .from(rolePermissionsTable)
-    .where(inArray(rolePermissionsTable.roleId, roleIds))
-    .all();
+    .where(inArray(rolePermissionsTable.roleId, roleIds));
 
   const hasGlobalView = permissions.some((row) => row.permission === "view_boards");
 
-  const overrides = db
+  const overrides: Array<{ scopeId: string; access: "allow" | "deny" }> = await db
     .select({ scopeId: roleScopeOverrides.scopeId, access: roleScopeOverrides.access })
     .from(roleScopeOverrides)
     .where(
@@ -78,8 +78,7 @@ function getAccessibleBoardIds(userId: string, boardIds: string[]): Set<string> 
         eq(roleScopeOverrides.permission, "view_boards"),
         inArray(roleScopeOverrides.scopeId, boardIds)
       )
-    )
-    .all();
+    );
 
   const allowed = new Set<string>();
   const denied = new Set<string>();
@@ -103,20 +102,19 @@ function getAccessibleBoardIds(userId: string, boardIds: string[]): Set<string> 
   return accessible;
 }
 
-function cleanupInvalidCommentMentions(userId: string): void {
-  const rows = db
+async function cleanupInvalidCommentMentions(userId: string): Promise<void> {
+  const rows: Array<{ commentId: string; boardId: string }> = await db
     .select({ commentId: commentMentions.commentId, boardId: comments.boardId })
     .from(commentMentions)
     .innerJoin(comments, eq(commentMentions.commentId, comments.id))
-    .where(eq(commentMentions.userId, userId))
-    .all();
+    .where(eq(commentMentions.userId, userId));
 
   if (rows.length === 0) {
     return;
   }
 
   const boardIds = Array.from(new Set(rows.map((row) => row.boardId)));
-  const accessible = getAccessibleBoardIds(userId, boardIds);
+  const accessible = await getAccessibleBoardIds(userId, boardIds);
 
   if (accessible.size === boardIds.length) {
     return;
@@ -130,16 +128,15 @@ function cleanupInvalidCommentMentions(userId: string): void {
     return;
   }
 
-  db.delete(commentMentions)
+  await db.delete(commentMentions)
     .where(and(eq(commentMentions.userId, userId), inArray(commentMentions.commentId, invalidCommentIds)))
-    .run();
+    .execute();
 }
 
-function cleanupInvalidThreadMentions(userId: string): void {
-  sqlite
-    .prepare(`
+async function cleanupInvalidThreadMentions(userId: string): Promise<void> {
+  await db.execute(sql`
       DELETE FROM thread_mentions
-      WHERE mentioned_user_id = ?
+      WHERE mentioned_user_id = ${userId}
         AND NOT EXISTS (
           SELECT 1
           FROM thread_messages tm
@@ -148,13 +145,11 @@ function cleanupInvalidThreadMentions(userId: string): void {
            AND m.user_id = thread_mentions.mentioned_user_id
           WHERE tm.id = thread_mentions.message_id
         )
-    `)
-    .run(userId);
+    `);
 
-  sqlite
-    .prepare(`
+  await db.execute(sql`
       DELETE FROM thread_reply_mentions
-      WHERE mentioned_user_id = ?
+      WHERE mentioned_user_id = ${userId}
         AND NOT EXISTS (
           SELECT 1
           FROM thread_replies tr
@@ -164,14 +159,13 @@ function cleanupInvalidThreadMentions(userId: string): void {
            AND m.user_id = thread_reply_mentions.mentioned_user_id
           WHERE tr.id = thread_reply_mentions.reply_id
         )
-    `)
-    .run(userId);
+    `);
 }
 
-export function getUnreadMentions(userId: string): MentionUnreadCounts {
-  cleanupInvalidThreadMentions(userId);
-  cleanupInvalidCommentMentions(userId);
-  const commentCount = db
+export async function getUnreadMentions(userId: string): Promise<MentionUnreadCounts> {
+  await cleanupInvalidThreadMentions(userId);
+  await cleanupInvalidCommentMentions(userId);
+  const commentCountRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(commentMentions)
     .innerJoin(comments, eq(commentMentions.commentId, comments.id))
@@ -181,10 +175,9 @@ export function getUnreadMentions(userId: string): MentionUnreadCounts {
         isNull(commentMentions.seenAt),
         ne(comments.authorId, commentMentions.userId)
       )
-    )
-    .get();
+    );
 
-  const threadMessageCount = db
+  const threadMessageCountRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(threadMentions)
     .innerJoin(threadMessages, eq(threadMentions.messageId, threadMessages.id))
@@ -195,10 +188,9 @@ export function getUnreadMentions(userId: string): MentionUnreadCounts {
         isNull(threadMentions.seenAt),
         ne(threadMessages.authorId, threadMentions.mentionedUserId)
       )
-    )
-    .get();
+    );
 
-  const threadReplyCount = db
+  const threadReplyCountRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(threadReplyMentions)
     .innerJoin(threadReplies, eq(threadReplyMentions.replyId, threadReplies.id))
@@ -210,11 +202,10 @@ export function getUnreadMentions(userId: string): MentionUnreadCounts {
         isNull(threadReplyMentions.seenAt),
         ne(threadReplies.authorId, threadReplyMentions.mentionedUserId)
       )
-    )
-    .get();
+    );
 
-  const threads = (threadMessageCount?.count ?? 0) + (threadReplyCount?.count ?? 0);
-  const commentTotal = commentCount?.count ?? 0;
+  const threads = (threadMessageCountRows[0]?.count ?? 0) + (threadReplyCountRows[0]?.count ?? 0);
+  const commentTotal = commentCountRows[0]?.count ?? 0;
 
   return {
     total: threads + commentTotal,
@@ -223,71 +214,69 @@ export function getUnreadMentions(userId: string): MentionUnreadCounts {
   };
 }
 
-export function markCommentMentionsSeen(userId: string, commentIds: string[]): void {
+export async function markCommentMentionsSeen(userId: string, commentIds: string[]): Promise<void> {
   if (commentIds.length === 0) {
     return;
   }
 
-  db.update(commentMentions)
+  await db.update(commentMentions)
     .set({ seenAt: new Date() })
     .where(and(eq(commentMentions.userId, userId), inArray(commentMentions.commentId, commentIds), isNull(commentMentions.seenAt)))
-    .run();
+    .execute();
 }
 
-export function markThreadMentionsSeen(userId: string, conversationId: string): void {
-  const membership = db
+export async function markThreadMentionsSeen(userId: string, conversationId: string): Promise<void> {
+  const membershipRows = await db
     .select({ userId: threadMembers.userId })
     .from(threadMembers)
     .where(and(eq(threadMembers.conversationId, conversationId), eq(threadMembers.userId, userId)))
-    .get();
+    .limit(1);
 
-  if (!membership) {
+  if (!membershipRows[0]) {
     throw new ApiError(403, "You do not have access to this conversation");
   }
 
-  const now = Date.now();
-  sqlite
-    .prepare(`
+  const now = new Date();
+  await db.execute(sql`
       UPDATE thread_mentions
-      SET seen_at = ?
-      WHERE mentioned_user_id = ?
+      SET seen_at = ${now}
+      WHERE mentioned_user_id = ${userId}
         AND seen_at IS NULL
-        AND message_id IN (SELECT id FROM thread_messages WHERE conversation_id = ?)
-    `)
-    .run(now, userId, conversationId);
+        AND message_id IN (SELECT id FROM thread_messages WHERE conversation_id = ${conversationId})
+    `);
 }
-export function markThreadMessageMentionsSeen(userId: string, messageIds: string[]): void {
+
+export async function markThreadMessageMentionsSeen(userId: string, messageIds: string[]): Promise<void> {
   if (messageIds.length === 0) {
     return;
   }
 
-  const allowed = db
+  const allowed: Array<{ id: string }> = await db
     .select({ id: threadMessages.id })
     .from(threadMessages)
     .innerJoin(
       threadMembers,
       and(eq(threadMembers.conversationId, threadMessages.conversationId), eq(threadMembers.userId, userId))
     )
-    .where(inArray(threadMessages.id, messageIds))
-    .all();
+    .where(inArray(threadMessages.id, messageIds));
 
   const allowedIds = allowed.map((row) => row.id);
   if (allowedIds.length === 0) {
     return;
   }
 
-  db.update(threadMentions)
+  await db.update(threadMentions)
     .set({ seenAt: new Date() })
     .where(and(eq(threadMentions.mentionedUserId, userId), inArray(threadMentions.messageId, allowedIds), isNull(threadMentions.seenAt)))
-    .run();
+    .execute();
 }
 
-export function markThreadReplyMentionIdsSeen(userId: string, replyIds: string[]): void {
+export async function markThreadReplyMentionIdsSeen(userId: string, replyIds: string[]): Promise<void> {
   if (replyIds.length === 0) {
     return;
   }
 
-  const allowed = db
+  const allowed: Array<{ id: string }> = await db
     .select({ id: threadReplies.id })
     .from(threadReplies)
     .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
@@ -295,55 +284,54 @@ export function markThreadReplyMentionIdsSeen(userId: string, replyIds: string[]
       threadMembers,
       and(eq(threadMembers.conversationId, threadMessages.conversationId), eq(threadMembers.userId, userId))
     )
-    .where(inArray(threadReplies.id, replyIds))
-    .all();
+    .where(inArray(threadReplies.id, replyIds));
 
   const allowedIds = allowed.map((row) => row.id);
   if (allowedIds.length === 0) {
     return;
   }
 
-  db.update(threadReplyMentions)
+  await db.update(threadReplyMentions)
     .set({ seenAt: new Date() })
     .where(and(eq(threadReplyMentions.mentionedUserId, userId), inArray(threadReplyMentions.replyId, allowedIds), isNull(threadReplyMentions.seenAt)))
-    .run();
+    .execute();
 }
 
-export function markThreadReplyMentionsSeen(userId: string, parentMessageId: string): void {
-  const message = db
+export async function markThreadReplyMentionsSeen(userId: string, parentMessageId: string): Promise<void> {
+  const messageRows: Array<{ conversationId: string }> = await db
     .select({ conversationId: threadMessages.conversationId })
     .from(threadMessages)
     .where(eq(threadMessages.id, parentMessageId))
-    .get();
+    .limit(1);
+
+  const message = messageRows[0];
 
   if (!message) {
     throw new ApiError(404, "Message not found");
   }
 
-  const membership = db
+  const membershipRows = await db
     .select({ userId: threadMembers.userId })
     .from(threadMembers)
     .where(and(eq(threadMembers.conversationId, message.conversationId), eq(threadMembers.userId, userId)))
-    .get();
+    .limit(1);
 
-  if (!membership) {
+  if (!membershipRows[0]) {
     throw new ApiError(403, "You do not have access to this conversation");
   }
 
-  const now = Date.now();
-  sqlite
-    .prepare(`
+  const now = new Date();
+  await db.execute(sql`
       UPDATE thread_reply_mentions
-      SET seen_at = ?
-      WHERE mentioned_user_id = ?
+      SET seen_at = ${now}
+      WHERE mentioned_user_id = ${userId}
         AND seen_at IS NULL
         AND reply_id IN (
           SELECT tr.id
           FROM thread_replies tr
-          WHERE tr.parent_message_id = ?
+          WHERE tr.parent_message_id = ${parentMessageId}
         )
-    `)
-    .run(now, userId, parentMessageId);
+    `);
 }
 
 function resolveThreadPreviewBody(
@@ -358,10 +346,20 @@ function resolveThreadPreviewBody(
   return body;
 }
 
-export function listUnreadThreadMentions(userId: string): ThreadMentionDetail[] {
-  cleanupInvalidThreadMentions(userId);
+export async function listUnreadThreadMentions(userId: string): Promise<ThreadMentionDetail[]> {
+  await cleanupInvalidThreadMentions(userId);
 
-  const messageRows = db
+  const messageRows: Array<{
+      mentionId: string;
+      messageId: string;
+      conversationId: string;
+      conversationType: "dm" | "channel";
+      conversationName: string | null;
+      body: string | null;
+      bodyEncrypted: string | null;
+      encryptionVersion: number | null;
+      createdAt: Date | number;
+    }> = await db
     .select({
       mentionId: threadMentions.id,
       messageId: threadMessages.id,
@@ -388,10 +386,20 @@ export function listUnreadThreadMentions(userId: string): ThreadMentionDetail[] 
       )
     )
     .orderBy(desc(threadMessages.createdAt))
-    .limit(50)
-    .all();
+    .limit(50);
 
-  const replyRows = db
+  const replyRows: Array<{
+      mentionId: string;
+      replyId: string;
+      messageId: string;
+      conversationId: string;
+      conversationType: "dm" | "channel";
+      conversationName: string | null;
+      body: string | null;
+      bodyEncrypted: string | null;
+      encryptionVersion: number | null;
+      createdAt: Date | number;
+    }> = await db
     .select({
       mentionId: threadReplyMentions.id,
       replyId: threadReplies.id,
@@ -420,8 +428,7 @@ export function listUnreadThreadMentions(userId: string): ThreadMentionDetail[] 
       )
     )
     .orderBy(desc(threadReplies.createdAt))
-    .limit(50)
-    .all();
+    .limit(50);
 
   const dmConversationIds = Array.from(
     new Set(
@@ -431,8 +438,15 @@ export function listUnreadThreadMentions(userId: string): ThreadMentionDetail[] 
     )
   );
 
-  const dmUsers = dmConversationIds.length
-    ? db
+  const dmUsers: Array<{
+          conversationId: string;
+          id: string;
+          name: string;
+          displayName: string | null;
+          username: string | null;
+          email: string;
+        }> = dmConversationIds.length
+    ? await db
         .select({
           conversationId: threadMembers.conversationId,
           id: users.id,
@@ -449,7 +463,6 @@ export function listUnreadThreadMentions(userId: string): ThreadMentionDetail[] 
             ne(threadMembers.userId, userId)
           )
         )
-        .all()
     : [];
 
   const dmLabelMap = new Map<string, string>();
@@ -493,9 +506,19 @@ export function listUnreadThreadMentions(userId: string): ThreadMentionDetail[] 
     .slice(0, 50);
 }
 
-export function listUnreadCommentMentions(userId: string): CommentMentionDetail[] {
-  cleanupInvalidCommentMentions(userId);
-  const rows = db
+export async function listUnreadCommentMentions(userId: string): Promise<CommentMentionDetail[]> {
+  await cleanupInvalidCommentMentions(userId);
+  const rows: Array<{
+    commentId: string;
+    boardId: string;
+    boardName: string;
+    listId: string | null;
+    listName: string | null;
+    cardId: string | null;
+    cardTitle: string | null;
+    body: string;
+    createdAt: Date | number;
+  }> = await db
     .select({
       commentId: commentMentions.commentId,
       boardId: comments.boardId,
@@ -520,8 +543,7 @@ export function listUnreadCommentMentions(userId: string): CommentMentionDetail[
       )
     )
     .orderBy(desc(comments.createdAt))
-    .limit(50)
-    .all();
+    .limit(50);
 
   return rows.map((row) => ({
     ...row,
@@ -529,22 +551,10 @@ export function listUnreadCommentMentions(userId: string): CommentMentionDetail[
   }));
 }
 
-export function listCommentMentions(userId: string): Array<{ commentId: string }> {
-  cleanupInvalidCommentMentions(userId);
+export async function listCommentMentions(userId: string): Promise<Array<{ commentId: string }>> {
+  await cleanupInvalidCommentMentions(userId);
   return db
     .select({ commentId: commentMentions.commentId })
     .from(commentMentions)
-    .where(and(eq(commentMentions.userId, userId), isNull(commentMentions.seenAt)))
-    .all();
+    .where(and(eq(commentMentions.userId, userId), isNull(commentMentions.seenAt)));
 }
-
-
-
-
-
-
-
-
-
-
-

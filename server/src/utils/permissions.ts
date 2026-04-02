@@ -16,31 +16,30 @@ export interface PermissionContext {
   scopeId?: string;
 }
 
-export function getUserRoleIds(userId: string): string[] {
-  return db
+export async function getUserRoleIds(userId: string): Promise<string[]> {
+  const rows: Array<{ roleId: string }> = await db
     .select({ roleId: userRoleAssignments.roleId })
     .from(userRoleAssignments)
-    .where(eq(userRoleAssignments.userId, userId))
-    .all()
-    .map((row) => row.roleId);
+    .where(eq(userRoleAssignments.userId, userId));
+
+  return rows.map((row) => row.roleId);
 }
 
-export function getUserPermissions(userId: string, context?: PermissionContext): Set<RolePermission> {
-  const roleIds = getUserRoleIds(userId);
+export async function getUserPermissions(userId: string, context?: PermissionContext): Promise<Set<RolePermission>> {
+  const roleIds = await getUserRoleIds(userId);
   if (roleIds.length === 0) {
     return new Set();
   }
 
-  const permissions = db
+  const permissions: Array<{ permission: RolePermission }> = await db
     .select({ permission: rolePermissionsTable.permission })
     .from(rolePermissionsTable)
-    .where(inArray(rolePermissionsTable.roleId, roleIds))
-    .all();
+    .where(inArray(rolePermissionsTable.roleId, roleIds));
 
   const effective = new Set<RolePermission>(permissions.map((row) => row.permission));
 
   if (context?.scopeType && context.scopeId) {
-    const overrides = db
+    const overrides: Array<{ permission: RolePermission; access: "allow" | "deny" }> = await db
       .select({ permission: roleScopeOverrides.permission, access: roleScopeOverrides.access })
       .from(roleScopeOverrides)
       .where(
@@ -49,8 +48,7 @@ export function getUserPermissions(userId: string, context?: PermissionContext):
           eq(roleScopeOverrides.scopeType, context.scopeType),
           eq(roleScopeOverrides.scopeId, context.scopeId)
         )
-      )
-      .all();
+      );
 
     for (const override of overrides) {
       if (override.access === "deny") {
@@ -64,39 +62,54 @@ export function getUserPermissions(userId: string, context?: PermissionContext):
   return effective;
 }
 
-export function userHasPermission(userId: string, permission: RolePermission, context?: PermissionContext): boolean {
-  return getUserPermissions(userId, context).has(permission);
+export async function userHasPermission(
+  userId: string,
+  permission: RolePermission,
+  context?: PermissionContext
+): Promise<boolean> {
+  const permissions = await getUserPermissions(userId, context);
+  return permissions.has(permission);
 }
 
-export function assertPermission(userId: string, permission: RolePermission, context?: PermissionContext): void {
-  if (!userHasPermission(userId, permission, context)) {
+export async function assertPermission(
+  userId: string,
+  permission: RolePermission,
+  context?: PermissionContext
+): Promise<void> {
+  const allowed = await userHasPermission(userId, permission, context);
+  if (!allowed) {
     throw new ApiError(403, "You do not have permission to perform this action");
   }
 }
 
-export function assertAnyPermission(userId: string, permissions: RolePermission[], context?: PermissionContext): void {
-  const current = getUserPermissions(userId, context);
+export async function assertAnyPermission(
+  userId: string,
+  permissions: RolePermission[],
+  context?: PermissionContext
+): Promise<void> {
+  const current = await getUserPermissions(userId, context);
   if (permissions.some((permission) => current.has(permission))) {
     return;
   }
   throw new ApiError(403, "You do not have permission to perform this action");
 }
 
-export function getUserHighestRole(userId: string): { id: string; name: string; priority: number } | null {
-  const row = db
+export async function getUserHighestRole(
+  userId: string
+): Promise<{ id: string; name: string; priority: number } | null> {
+  const rows: Array<{ id: string; name: string; priority: number }> = await db
     .select({ id: roles.id, name: roles.name, priority: roles.priority })
     .from(userRoleAssignments)
     .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
     .where(eq(userRoleAssignments.userId, userId))
     .orderBy(desc(roles.priority))
-    .limit(1)
-    .get();
+    .limit(1);
 
-  return row ?? null;
+  return rows[0] ?? null;
 }
 
-export function assertRoleHierarchy(actorId: string, rolePriority: number): void {
-  const highest = getUserHighestRole(actorId);
+export async function assertRoleHierarchy(actorId: string, rolePriority: number): Promise<void> {
+  const highest = await getUserHighestRole(actorId);
   if (!highest || highest.priority <= rolePriority) {
     throw new ApiError(403, "You cannot manage roles at or above your own role");
   }

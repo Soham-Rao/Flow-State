@@ -17,39 +17,39 @@ import { assertCardExists, assertChecklistExists, assertChecklistItemExists, get
 import { getChecklistById, getChecklistItemById } from "./boards.service.checklists-data.js";
 import { getCardById } from "./boards.service.cards-data.js";
 
-function getCardListContext(cardId: string): { card: ReturnType<typeof getCardById>; list: ReturnType<typeof getListRecord> } {
-  const card = getCardById(cardId);
-  const list = getListRecord(card.listId);
+async function getCardListContext(cardId: string): Promise<{ card: Awaited<ReturnType<typeof getCardById>>; list: Awaited<ReturnType<typeof getListRecord>> }> {
+  const card = await getCardById(cardId);
+  const list = await getListRecord(card.listId);
   return { card, list };
 }
 
-export function createChecklist(cardId: string, input: CreateChecklistInput, userId: string): BoardChecklist {
-  assertCardExists(cardId);
+export async function createChecklist(cardId: string, input: CreateChecklistInput, userId: string): Promise<BoardChecklist> {
+  await assertCardExists(cardId);
 
-  const maxPositionRow = db
+  const maxPositionRows = await db
     .select({ maxPosition: sql<number>`coalesce(max(${checklists.position}), -1)` })
     .from(checklists)
     .where(eq(checklists.cardId, cardId))
-    .get();
+    .limit(1);
 
   const now = new Date();
   const checklistId = crypto.randomUUID();
 
-  db.insert(checklists)
+  await db.insert(checklists)
     .values({
       id: checklistId,
       cardId,
       title: input.title.trim(),
-      position: (maxPositionRow?.maxPosition ?? -1) + 1,
+      position: (maxPositionRows[0]?.maxPosition ?? -1) + 1,
       createdAt: now,
       updatedAt: now
     })
-    .run();
+    .execute();
 
-  const checklist = getChecklistById(checklistId);
-  const { card, list } = getCardListContext(cardId);
+  const checklist = await getChecklistById(checklistId);
+  const { card, list } = await getCardListContext(cardId);
 
-  recordActivity({
+  await recordActivity({
     type: "checklist.created",
     actorId: userId,
     boardId: list.boardId,
@@ -65,9 +65,9 @@ export function createChecklist(cardId: string, input: CreateChecklistInput, use
   return checklist;
 }
 
-export function updateChecklist(checklistId: string, input: UpdateChecklistInput, userId: string): BoardChecklist {
-  const existing = getChecklistById(checklistId);
-  assertChecklistExists(checklistId);
+export async function updateChecklist(checklistId: string, input: UpdateChecklistInput, userId: string): Promise<BoardChecklist> {
+  const existing = await getChecklistById(checklistId);
+  await assertChecklistExists(checklistId);
 
   const updatePayload: {
     title?: string;
@@ -80,13 +80,13 @@ export function updateChecklist(checklistId: string, input: UpdateChecklistInput
     updatePayload.title = input.title.trim();
   }
 
-  db.update(checklists).set(updatePayload).where(eq(checklists.id, checklistId)).run();
+  await db.update(checklists).set(updatePayload).where(eq(checklists.id, checklistId)).execute();
 
-  const updated = getChecklistById(checklistId);
-  const { card, list } = getCardListContext(updated.cardId);
+  const updated = await getChecklistById(checklistId);
+  const { card, list } = await getCardListContext(updated.cardId);
 
   if (input.title !== undefined && input.title.trim() !== existing.title) {
-    recordActivity({
+    await recordActivity({
       type: "checklist.updated",
       actorId: userId,
       boardId: list.boardId,
@@ -103,17 +103,17 @@ export function updateChecklist(checklistId: string, input: UpdateChecklistInput
   return updated;
 }
 
-export function deleteChecklist(checklistId: string, userId: string): void {
-  const existing = getChecklistById(checklistId);
-  const { card, list } = getCardListContext(existing.cardId);
+export async function deleteChecklist(checklistId: string, userId: string): Promise<void> {
+  const existing = await getChecklistById(checklistId);
+  const { card, list } = await getCardListContext(existing.cardId);
 
-  const result = db.delete(checklists).where(eq(checklists.id, checklistId)).run();
+  const [result] = await db.delete(checklists).where(eq(checklists.id, checklistId)).execute();
 
-  if (result.changes === 0) {
+  if (result.affectedRows === 0) {
     throw new ApiError(404, "Checklist not found");
   }
 
-  recordActivity({
+  await recordActivity({
     type: "checklist.deleted",
     actorId: userId,
     boardId: list.boardId,
@@ -127,38 +127,38 @@ export function deleteChecklist(checklistId: string, userId: string): void {
   });
 }
 
-export function createChecklistItem(
+export async function createChecklistItem(
   checklistId: string,
   input: CreateChecklistItemInput,
   userId: string
-): BoardChecklistItem {
-  const checklist = getChecklistById(checklistId);
+): Promise<BoardChecklistItem> {
+  const checklist = await getChecklistById(checklistId);
 
-  const maxPositionRow = db
+  const maxPositionRows = await db
     .select({ maxPosition: sql<number>`coalesce(max(${checklistItems.position}), -1)` })
     .from(checklistItems)
     .where(eq(checklistItems.checklistId, checklistId))
-    .get();
+    .limit(1);
 
   const now = new Date();
   const itemId = crypto.randomUUID();
 
-  db.insert(checklistItems)
+  await db.insert(checklistItems)
     .values({
       id: itemId,
       checklistId,
       title: input.title.trim(),
       isDone: false,
-      position: (maxPositionRow?.maxPosition ?? -1) + 1,
+      position: (maxPositionRows[0]?.maxPosition ?? -1) + 1,
       createdAt: now,
       updatedAt: now
     })
-    .run();
+    .execute();
 
-  const item = getChecklistItemById(itemId);
-  const { card, list } = getCardListContext(checklist.cardId);
+  const item = await getChecklistItemById(itemId);
+  const { card, list } = await getCardListContext(checklist.cardId);
 
-  recordActivity({
+  await recordActivity({
     type: "checklist.item.created",
     actorId: userId,
     boardId: list.boardId,
@@ -175,10 +175,10 @@ export function createChecklistItem(
   return item;
 }
 
-export function updateChecklistItem(itemId: string, input: UpdateChecklistItemInput, userId: string): BoardChecklistItem {
-  const existing = getChecklistItemById(itemId);
-  const checklist = getChecklistById(existing.checklistId);
-  assertChecklistItemExists(itemId);
+export async function updateChecklistItem(itemId: string, input: UpdateChecklistItemInput, userId: string): Promise<BoardChecklistItem> {
+  const existing = await getChecklistItemById(itemId);
+  const checklist = await getChecklistById(existing.checklistId);
+  await assertChecklistItemExists(itemId);
 
   const updatePayload: {
     title?: string;
@@ -196,13 +196,13 @@ export function updateChecklistItem(itemId: string, input: UpdateChecklistItemIn
     updatePayload.isDone = input.isDone;
   }
 
-  db.update(checklistItems).set(updatePayload).where(eq(checklistItems.id, itemId)).run();
+  await db.update(checklistItems).set(updatePayload).where(eq(checklistItems.id, itemId)).execute();
 
-  const updated = getChecklistItemById(itemId);
-  const { card, list } = getCardListContext(checklist.cardId);
+  const updated = await getChecklistItemById(itemId);
+  const { card, list } = await getCardListContext(checklist.cardId);
 
   if (input.isDone !== undefined && input.isDone !== existing.isDone) {
-    recordActivity({
+    await recordActivity({
       type: input.isDone ? "checklist.item.completed" : "checklist.item.uncompleted",
       actorId: userId,
       boardId: list.boardId,
@@ -216,7 +216,7 @@ export function updateChecklistItem(itemId: string, input: UpdateChecklistItemIn
       }
     });
   } else if (input.title !== undefined && input.title.trim() !== existing.title) {
-    recordActivity({
+    await recordActivity({
       type: "checklist.item.updated",
       actorId: userId,
       boardId: list.boardId,
@@ -234,18 +234,18 @@ export function updateChecklistItem(itemId: string, input: UpdateChecklistItemIn
   return updated;
 }
 
-export function deleteChecklistItem(itemId: string, userId: string): void {
-  const existing = getChecklistItemById(itemId);
-  const checklist = getChecklistById(existing.checklistId);
-  const { card, list } = getCardListContext(checklist.cardId);
+export async function deleteChecklistItem(itemId: string, userId: string): Promise<void> {
+  const existing = await getChecklistItemById(itemId);
+  const checklist = await getChecklistById(existing.checklistId);
+  const { card, list } = await getCardListContext(checklist.cardId);
 
-  const result = db.delete(checklistItems).where(eq(checklistItems.id, itemId)).run();
+  const [result] = await db.delete(checklistItems).where(eq(checklistItems.id, itemId)).execute();
 
-  if (result.changes === 0) {
+  if (result.affectedRows === 0) {
     throw new ApiError(404, "Checklist item not found");
   }
 
-  recordActivity({
+  await recordActivity({
     type: "checklist.item.deleted",
     actorId: userId,
     boardId: list.boardId,
@@ -259,3 +259,4 @@ export function deleteChecklistItem(itemId: string, userId: string): void {
     }
   });
 }
+

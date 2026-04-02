@@ -1,21 +1,26 @@
 import request from "supertest";
 
+const testDbUrl = "mysql://root:root@localhost:3306/flowstate_test";
+
 let app: import("express").Express;
-let initializeDatabase: () => void;
+let initializeDatabase: () => Promise<void>;
+let closePool: () => Promise<void>;
 
 beforeAll(async () => {
   process.env.NODE_ENV = "test";
-  process.env.DATABASE_URL = "./data/flowstate.health.test.db";
+  process.env.MYSQL_URL = testDbUrl;
   process.env.JWT_SECRET = "test-secret-123456";
   process.env.JWT_EXPIRES_IN = "1h";
 
   const appModule = await import("../src/app.js");
   const dbInitModule = await import("../src/db/init.js");
+  const dbModule = await import("../src/db/connection.js");
 
   app = appModule.app;
   initializeDatabase = dbInitModule.initializeDatabase;
+  closePool = dbModule.closePool;
 
-  initializeDatabase();
+  await initializeDatabase();
 });
 
 describe("GET /api/health", () => {
@@ -27,4 +32,8 @@ describe("GET /api/health", () => {
     expect(response.body.data.status).toBe("ok");
     expect(typeof response.body.data.timestamp).toBe("string");
   });
+});
+
+afterAll(async () => {
+  await closePool();
 });

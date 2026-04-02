@@ -18,11 +18,11 @@ import {
 
 export const boardsChecklistsRouter = Router();
 
-boardsChecklistsRouter.post("/cards/:cardId/checklists", (req, res, next) => {
+boardsChecklistsRouter.post("/cards/:cardId/checklists", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_checklists");
+    await assertPermission(req.auth!.userId, "manage_checklists");
     const body = createChecklistSchema.parse(req.body);
-    const data = createChecklist(req.params.cardId, body, req.auth!.userId);
+    const data = await createChecklist(req.params.cardId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -33,11 +33,11 @@ boardsChecklistsRouter.post("/cards/:cardId/checklists", (req, res, next) => {
   }
 });
 
-boardsChecklistsRouter.patch("/checklists/:checklistId", (req, res, next) => {
+boardsChecklistsRouter.patch("/checklists/:checklistId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_checklists");
+    await assertPermission(req.auth!.userId, "manage_checklists");
     const body = updateChecklistSchema.parse(req.body);
-    const data = updateChecklist(req.params.checklistId, body, req.auth!.userId);
+    const data = await updateChecklist(req.params.checklistId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -48,10 +48,10 @@ boardsChecklistsRouter.patch("/checklists/:checklistId", (req, res, next) => {
   }
 });
 
-boardsChecklistsRouter.delete("/checklists/:checklistId", (req, res, next) => {
+boardsChecklistsRouter.delete("/checklists/:checklistId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_checklists");
-    deleteChecklist(req.params.checklistId, req.auth!.userId);
+    await assertPermission(req.auth!.userId, "manage_checklists");
+    await deleteChecklist(req.params.checklistId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -64,11 +64,11 @@ boardsChecklistsRouter.delete("/checklists/:checklistId", (req, res, next) => {
   }
 });
 
-boardsChecklistsRouter.post("/checklists/:checklistId/items", (req, res, next) => {
+boardsChecklistsRouter.post("/checklists/:checklistId/items", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_checklists");
+    await assertPermission(req.auth!.userId, "manage_checklists");
     const body = createChecklistItemSchema.parse(req.body);
-    const data = createChecklistItem(req.params.checklistId, body, req.auth!.userId);
+    const data = await createChecklistItem(req.params.checklistId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -79,11 +79,11 @@ boardsChecklistsRouter.post("/checklists/:checklistId/items", (req, res, next) =
   }
 });
 
-boardsChecklistsRouter.patch("/checklist-items/:itemId", (req, res, next) => {
+boardsChecklistsRouter.patch("/checklist-items/:itemId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_checklists");
+    await assertPermission(req.auth!.userId, "manage_checklists");
     const body = updateChecklistItemSchema.parse(req.body);
-    const data = updateChecklistItem(req.params.itemId, body, req.auth!.userId);
+    const data = await updateChecklistItem(req.params.itemId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -94,10 +94,10 @@ boardsChecklistsRouter.patch("/checklist-items/:itemId", (req, res, next) => {
   }
 });
 
-boardsChecklistsRouter.delete("/checklist-items/:itemId", (req, res, next) => {
+boardsChecklistsRouter.delete("/checklist-items/:itemId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_checklists");
-    deleteChecklistItem(req.params.itemId, req.auth!.userId);
+    await assertPermission(req.auth!.userId, "manage_checklists");
+    await deleteChecklistItem(req.params.itemId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -109,4 +109,3 @@ boardsChecklistsRouter.delete("/checklist-items/:itemId", (req, res, next) => {
     next(error);
   }
 });
-

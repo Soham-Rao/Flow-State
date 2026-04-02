@@ -14,47 +14,47 @@ export const announcementsRouter = Router();
 
 announcementsRouter.use(requireAuth);
 
-announcementsRouter.get("/capabilities", (req, res, next) => {
+announcementsRouter.get("/capabilities", async (req, res, next) => {
   try {
-    const canSend = canSendAnnouncements(req.auth!.userId);
+    const canSend = await canSendAnnouncements(req.auth!.userId);
     res.status(200).json({ success: true, data: { canSend } });
   } catch (error) {
     next(error);
   }
 });
 
-announcementsRouter.get("/audience", (req, res, next) => {
+announcementsRouter.get("/audience", async (req, res, next) => {
   try {
-    const data = listAnnouncementAudienceOptions(req.auth!.userId);
+    const data = await listAnnouncementAudienceOptions(req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-announcementsRouter.get("/unread", (req, res, next) => {
+announcementsRouter.get("/unread", async (req, res, next) => {
   try {
-    const data = listUnreadAnnouncements(req.auth!.userId);
+    const data = await listUnreadAnnouncements(req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-announcementsRouter.post("/", (req, res, next) => {
+announcementsRouter.post("/", async (req, res, next) => {
   try {
     const body = createAnnouncementSchema.parse(req.body);
-    const data = createAnnouncement(body, req.auth!.userId);
+    const data = await createAnnouncement(body, req.auth!.userId);
     res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-announcementsRouter.post("/seen", (req, res, next) => {
+announcementsRouter.post("/seen", async (req, res, next) => {
   try {
     const body = markAnnouncementsSeenSchema.parse(req.body);
-    markAnnouncementsSeen(req.auth!.userId, body.ids);
+    await markAnnouncementsSeen(req.auth!.userId, body.ids);
     res.status(200).json({ success: true, data: { ids: body.ids } });
   } catch (error) {
     next(error);

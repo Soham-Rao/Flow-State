@@ -8,10 +8,10 @@ import { createInvite, listInvites, lookupInvite, revokeInvite, updateInviteRole
 
 export const invitesRouter = Router();
 
-invitesRouter.get("/lookup/:token", (req, res, next) => {
+invitesRouter.get("/lookup/:token", async (req, res, next) => {
   try {
     const token = req.params.token;
-    const data = lookupInvite(token);
+    const data = await lookupInvite(token);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
@@ -20,42 +20,42 @@ invitesRouter.get("/lookup/:token", (req, res, next) => {
 
 invitesRouter.use(requireAuth);
 
-invitesRouter.get("/", (req, res, next) => {
+invitesRouter.get("/", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "invite_users");
-    const data = listInvites();
+    await assertPermission(req.auth!.userId, "invite_users");
+    const data = await listInvites();
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-invitesRouter.post("/", (req, res, next) => {
+invitesRouter.post("/", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "invite_users");
+    await assertPermission(req.auth!.userId, "invite_users");
     const body = createInviteSchema.parse(req.body ?? {});
-    const data = createInvite(body, req.auth!.userId);
+    const data = await createInvite(body, req.auth!.userId);
     res.status(201).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-invitesRouter.delete("/:inviteId", (req, res, next) => {
+invitesRouter.delete("/:inviteId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "invite_users");
-    revokeInvite(req.params.inviteId);
+    await assertPermission(req.auth!.userId, "invite_users");
+    await revokeInvite(req.params.inviteId);
     res.status(200).json({ success: true, data: { message: "Invite revoked" } });
   } catch (error) {
     next(error);
   }
 });
 
-invitesRouter.patch("/:inviteId/roles", (req, res, next) => {
+invitesRouter.patch("/:inviteId/roles", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "manage_roles");
+    await assertPermission(req.auth!.userId, "manage_roles");
     const body = updateInviteRolesSchema.parse(req.body ?? {});
-    const data = updateInviteRoles(req.params.inviteId, body.roleIds, req.auth!.userId);
+    const data = await updateInviteRoles(req.params.inviteId, body.roleIds, req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);

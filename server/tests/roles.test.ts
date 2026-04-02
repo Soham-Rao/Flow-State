@@ -1,30 +1,33 @@
 import request from "supertest";
 
-const testDbRelative = "./data/flowstate.roles.test.db";
+const testDbUrl = "mysql://root:root@localhost:3306/flowstate_test";
 
 let app: import("express").Express;
-let initializeDatabase: () => void;
-let clearDatabaseForTests: () => void;
+let initializeDatabase: () => Promise<void>;
+let clearDatabaseForTests: () => Promise<void>;
+let closePool: () => Promise<void>;
 
 beforeAll(async () => {
   process.env.NODE_ENV = "test";
-  process.env.DATABASE_URL = testDbRelative;
+  process.env.MYSQL_URL = testDbUrl;
   process.env.JWT_SECRET = "test-secret-123456";
   process.env.JWT_EXPIRES_IN = "1h";
   process.env.CLIENT_ORIGIN = "http://localhost:5173";
 
   const appModule = await import("../src/app.js");
   const dbInitModule = await import("../src/db/init.js");
+  const dbModule = await import("../src/db/connection.js");
 
   app = appModule.app;
   initializeDatabase = dbInitModule.initializeDatabase;
   clearDatabaseForTests = dbInitModule.clearDatabaseForTests;
+  closePool = dbModule.closePool;
 
-  initializeDatabase();
+  await initializeDatabase();
 });
 
-beforeEach(() => {
-  clearDatabaseForTests();
+beforeEach(async () => {
+  await clearDatabaseForTests();
 });
 
 async function registerUser(name: string, email: string): Promise<{ token: string; id: string }> {
@@ -100,8 +103,7 @@ describe("Roles API", () => {
   });
 });
 
-afterAll(() => {
-  clearDatabaseForTests();
+afterAll(async () => {
+  await clearDatabaseForTests();
+  await closePool();
 });
-
-

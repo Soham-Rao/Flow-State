@@ -6,23 +6,30 @@ import { initializeDatabase } from "./db/init.js";
 import { cleanupExpiredCards } from "./modules/boards/boards.service.js";
 import { initSocket } from "./realtime/socket.js";
 
-initializeDatabase();
-
 const CLEANUP_INTERVAL_MS = 60 * 1000;
 
-void cleanupExpiredCards().catch((error) => {
-  console.error("Cleanup failed", error);
-});
+async function startServer(): Promise<void> {
+  await initializeDatabase();
 
-setInterval(() => {
   void cleanupExpiredCards().catch((error) => {
     console.error("Cleanup failed", error);
   });
-}, CLEANUP_INTERVAL_MS);
 
-const server = http.createServer(app);
-initSocket(server);
+  setInterval(() => {
+    void cleanupExpiredCards().catch((error) => {
+      console.error("Cleanup failed", error);
+    });
+  }, CLEANUP_INTERVAL_MS);
 
-server.listen(env.PORT, () => {
-  console.log(`FlowState server listening on port ${env.PORT}`);
+  const server = http.createServer(app);
+  initSocket(server);
+
+  server.listen(env.PORT, () => {
+    console.log(`FlowState server listening on port ${env.PORT}`);
+  });
+}
+
+void startServer().catch((error) => {
+  console.error("Failed to start server", error);
+  process.exit(1);
 });

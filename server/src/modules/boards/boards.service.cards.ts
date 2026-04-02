@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 
 import { and, eq, isNull, sql } from "drizzle-orm";
 
-import { db } from "../../db/connection.js";
+import { db, type DbTransaction } from "../../db/connection.js";
 import { recordActivity } from "../activity/activity.service.js";
 import { cards, type CardCoverColor } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
@@ -12,19 +12,19 @@ import { clampIndex, normalizeCoverColor, normalizeDueDate, normalizeOptionalDes
 import { assertCardExists, assertListExists, getListRecord } from "./boards.service.lookups.js";
 import { deleteAttachmentsForCard, getCardById, getCardByIdIncludingArchived, getCardsForList } from "./boards.service.cards-data.js";
 
-export function createCard(listId: string, input: CreateCardInput, userId: string): BoardCard {
-  const list = assertListExists(listId);
+export async function createCard(listId: string, input: CreateCardInput, userId: string): Promise<BoardCard> {
+  const list = await assertListExists(listId);
 
-  const maxPositionRow = db
+  const maxPositionRows = await db
     .select({ maxPosition: sql<number>`coalesce(max(${cards.position}), -1)` })
     .from(cards)
     .where(and(eq(cards.listId, list.id), isNull(cards.archivedAt)))
-    .get();
+    .limit(1);
 
   const now = new Date();
   const cardId = crypto.randomUUID();
 
-  db.insert(cards)
+  await db.insert(cards)
     .values({
       id: cardId,
       listId: list.id,
@@ -33,15 +33,15 @@ export function createCard(listId: string, input: CreateCardInput, userId: strin
       priority: input.priority,
       coverColor: normalizeCoverColor(input.coverColor) ?? null,
       dueDate: normalizeDueDate(input.dueDate) ?? null,
-      position: (maxPositionRow?.maxPosition ?? -1) + 1,
+      position: (maxPositionRows[0]?.maxPosition ?? -1) + 1,
       createdBy: userId,
       doneEnteredAt: list.isDoneList ? now : null,
       createdAt: now,
       updatedAt: now
     })
-    .run();
+    .execute();
 
-  recordActivity({
+  await recordActivity({
     type: "card.created",
     actorId: userId,
     boardId: list.boardId,
@@ -53,8 +53,8 @@ export function createCard(listId: string, input: CreateCardInput, userId: strin
   return getCardById(cardId);
 }
 
-export function updateCard(cardId: string, input: UpdateCardInput, userId: string): BoardCard {
-  assertCardExists(cardId);
+export async function updateCard(cardId: string, input: UpdateCardInput, userId: string): Promise<BoardCard> {
+  await assertCardExists(cardId);
 
   const updatePayload: {
     title?: string;
@@ -87,11 +87,11 @@ export function updateCard(cardId: string, input: UpdateCardInput, userId: strin
     updatePayload.dueDate = normalizeDueDate(input.dueDate) ?? null;
   }
 
-  db.update(cards).set(updatePayload).where(eq(cards.id, cardId)).run();
+  await db.update(cards).set(updatePayload).where(eq(cards.id, cardId)).execute();
 
-  const updated = getCardById(cardId);
-  const list = getListRecord(updated.listId);
-  recordActivity({
+  const updated = await getCardById(cardId);
+  const list = await getListRecord(updated.listId);
+  await recordActivity({
     type: "card.updated",
     actorId: userId,
     boardId: list.boardId,
@@ -107,8 +107,8 @@ export async function deleteCard(
   cardId: string,
   requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }
 ): Promise<void> {
-  const existing = assertCardExists(cardId);
-  const list = getListRecord(existing.listId);
+  const existing = await assertCardExists(cardId);
+  const list = await getListRecord(existing.listId);
 
   const canDelete = requester.canDeleteAny || (requester.canDeleteOwn && existing.createdBy === requester.userId);
   if (!canDelete) {
@@ -117,13 +117,13 @@ export async function deleteCard(
 
   await deleteAttachmentsForCard(cardId);
 
-  const result = db.delete(cards).where(eq(cards.id, cardId)).run();
+  const [result] = await db.delete(cards).where(eq(cards.id, cardId)).execute();
 
-  if (result.changes === 0) {
+  if (result.affectedRows === 0) {
     throw new ApiError(404, "Card not found");
   }
 
-  recordActivity({
+  await recordActivity({
     type: "card.deleted",
     actorId: requester.userId,
     boardId: list.boardId,
@@ -133,24 +133,24 @@ export async function deleteCard(
   });
 }
 
-export function archiveCard(
+export async function archiveCard(
   cardId: string,
   requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }
-): BoardCard {
-  const existing = assertCardExists(cardId);
+): Promise<BoardCard> {
+  const existing = await assertCardExists(cardId);
 
   const canArchive = requester.canDeleteAny || (requester.canDeleteOwn && existing.createdBy === requester.userId);
   if (!canArchive) {
     throw new ApiError(403, "You can only archive cards you created");
   }
 
-  db.update(cards)
+  await db.update(cards)
     .set({ archivedAt: new Date(), updatedAt: new Date() })
     .where(eq(cards.id, cardId))
-    .run();
+    .execute();
 
-  const list = getListRecord(existing.listId);
-  recordActivity({
+  const list = await getListRecord(existing.listId);
+  await recordActivity({
     type: "card.archived",
     actorId: requester.userId,
     boardId: list.boardId,
@@ -162,12 +162,12 @@ export function archiveCard(
   return getCardByIdIncludingArchived(cardId);
 }
 
-export function restoreCard(
+export async function restoreCard(
   cardId: string,
   renameConflicts: boolean,
   requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }
-): BoardCard {
-  const card = getCardByIdIncludingArchived(cardId);
+): Promise<BoardCard> {
+  const card = await getCardByIdIncludingArchived(cardId);
   if (!card.archivedAt) {
     return card;
   }
@@ -177,12 +177,12 @@ export function restoreCard(
     throw new ApiError(403, "You can only restore cards you created");
   }
 
-  const list = getListRecord(card.listId);
+  const list = await getListRecord(card.listId);
   if (list.archivedAt) {
     throw new ApiError(400, "List is archived. Restore the list first.");
   }
 
-  const existingCards = getCardsForList(list.id);
+  const existingCards = await getCardsForList(list.id);
   const existingNames = new Set(existingCards.map((item) => item.title));
   let nextTitle = card.title;
 
@@ -193,23 +193,23 @@ export function restoreCard(
     nextTitle = resolveRestoredName(nextTitle, existingNames);
   }
 
-  const maxPositionRow = db
+  const maxPositionRows = await db
     .select({ maxPosition: sql<number>`coalesce(max(${cards.position}), -1)` })
     .from(cards)
     .where(and(eq(cards.listId, list.id), isNull(cards.archivedAt)))
-    .get();
+    .limit(1);
 
-  db.update(cards)
+  await db.update(cards)
     .set({
       archivedAt: null,
       title: nextTitle,
-      position: (maxPositionRow?.maxPosition ?? -1) + 1,
+      position: (maxPositionRows[0]?.maxPosition ?? -1) + 1,
       updatedAt: new Date()
     })
     .where(eq(cards.id, cardId))
-    .run();
+    .execute();
 
-  recordActivity({
+  await recordActivity({
     type: "card.restored",
     actorId: requester.userId,
     boardId: list.boardId,
@@ -221,22 +221,22 @@ export function restoreCard(
   return getCardById(cardId);
 }
 
-export function moveCard(input: MoveCardInput, userId: string): MoveCardResult {
-  const sourceList = assertListExists(input.sourceListId);
-  const destinationList = assertListExists(input.destinationListId);
+export async function moveCard(input: MoveCardInput, userId: string): Promise<MoveCardResult> {
+  const sourceList = await assertListExists(input.sourceListId);
+  const destinationList = await assertListExists(input.destinationListId);
 
   if (sourceList.boardId !== destinationList.boardId) {
     throw new ApiError(400, "Source and destination lists must belong to the same board");
   }
 
-  const movingCard = getCardById(input.cardId);
+  const movingCard = await getCardById(input.cardId);
 
   if (movingCard.listId !== sourceList.id) {
     throw new ApiError(400, "Card does not belong to the provided source list");
   }
 
   const now = new Date();
-  const sourceCards = getCardsForList(sourceList.id);
+  const sourceCards = await getCardsForList(sourceList.id);
 
   if (!sourceCards.some((card) => card.id === movingCard.id)) {
     throw new ApiError(400, "Card does not belong to the source list");
@@ -250,13 +250,13 @@ export function moveCard(input: MoveCardInput, userId: string): MoveCardResult {
     const [removed] = reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, removed);
 
-    db.transaction((tx) => {
-      reordered.forEach((card, index) => {
-        tx.update(cards).set({ position: index, updatedAt: now }).where(eq(cards.id, card.id)).run();
-      });
+    await db.transaction(async (tx: DbTransaction) => {
+      for (const [index, card] of reordered.entries()) {
+        await tx.update(cards).set({ position: index, updatedAt: now }).where(eq(cards.id, card.id)).execute();
+      }
     });
 
-    recordActivity({
+    await recordActivity({
       type: "card.moved",
       actorId: userId,
       boardId: sourceList.boardId,
@@ -271,7 +271,7 @@ export function moveCard(input: MoveCardInput, userId: string): MoveCardResult {
       }
     });
 
-    const updated = getCardsForList(sourceList.id);
+    const updated = await getCardsForList(sourceList.id);
 
     return {
       sourceListId: sourceList.id,
@@ -281,7 +281,7 @@ export function moveCard(input: MoveCardInput, userId: string): MoveCardResult {
     };
   }
 
-  const destinationCards = getCardsForList(destinationList.id);
+  const destinationCards = await getCardsForList(destinationList.id);
   const destinationIndex = clampIndex(input.destinationIndex, 0, destinationCards.length);
 
   const nextSourceCards = sourceCards.filter((card) => card.id !== movingCard.id);
@@ -296,12 +296,12 @@ export function moveCard(input: MoveCardInput, userId: string): MoveCardResult {
     nextDoneEnteredAt = null;
   }
 
-  db.transaction((tx) => {
-    nextSourceCards.forEach((card, index) => {
-      tx.update(cards).set({ position: index, updatedAt: now }).where(eq(cards.id, card.id)).run();
-    });
+  await db.transaction(async (tx: DbTransaction) => {
+    for (const [index, card] of nextSourceCards.entries()) {
+      await tx.update(cards).set({ position: index, updatedAt: now }).where(eq(cards.id, card.id)).execute();
+    }
 
-    nextDestinationCards.forEach((card, index) => {
+    for (const [index, card] of nextDestinationCards.entries()) {
       const updatePayload: {
         position: number;
         updatedAt: Date;
@@ -317,11 +317,11 @@ export function moveCard(input: MoveCardInput, userId: string): MoveCardResult {
         updatePayload.doneEnteredAt = nextDoneEnteredAt;
       }
 
-      tx.update(cards).set(updatePayload).where(eq(cards.id, card.id)).run();
-    });
+      await tx.update(cards).set(updatePayload).where(eq(cards.id, card.id)).execute();
+    }
   });
 
-  recordActivity({
+  await recordActivity({
     type: "card.moved",
     actorId: userId,
     boardId: sourceList.boardId,
@@ -339,9 +339,7 @@ export function moveCard(input: MoveCardInput, userId: string): MoveCardResult {
   return {
     sourceListId: sourceList.id,
     destinationListId: destinationList.id,
-    sourceCards: getCardsForList(sourceList.id),
-    destinationCards: getCardsForList(destinationList.id)
+    sourceCards: await getCardsForList(sourceList.id),
+    destinationCards: await getCardsForList(destinationList.id)
   };
 }
-
-

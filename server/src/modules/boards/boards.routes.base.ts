@@ -21,10 +21,10 @@ import {
 
 export const boardsBaseRouter = Router();
 
-boardsBaseRouter.get("/", (req, res, next) => {
+boardsBaseRouter.get("/", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "view_boards");
-    const data = getBoards();
+    await assertPermission(req.auth!.userId, "view_boards");
+    const data = await getBoards();
 
     res.status(200).json({
       success: true,
@@ -35,11 +35,11 @@ boardsBaseRouter.get("/", (req, res, next) => {
   }
 });
 
-boardsBaseRouter.post("/", (req, res, next) => {
+boardsBaseRouter.post("/", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "create_boards");
+    await assertPermission(req.auth!.userId, "create_boards");
     const body = createBoardSchema.parse(req.body);
-    const data = createBoard(body, req.auth!.userId);
+    const data = await createBoard(body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -52,9 +52,9 @@ boardsBaseRouter.post("/", (req, res, next) => {
 
 boardsBaseRouter.get("/:boardId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "view_boards");
+    await assertPermission(req.auth!.userId, "view_boards");
     await cleanupExpiredCards();
-    const data = getBoardById(req.params.boardId);
+    const data = await getBoardById(req.params.boardId);
 
     res.status(200).json({
       success: true,
@@ -65,11 +65,11 @@ boardsBaseRouter.get("/:boardId", async (req, res, next) => {
   }
 });
 
-boardsBaseRouter.patch("/:boardId", (req, res, next) => {
+boardsBaseRouter.patch("/:boardId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "edit_boards");
+    await assertPermission(req.auth!.userId, "edit_boards");
     const body = updateBoardSchema.parse(req.body);
-    const data = updateBoard(req.params.boardId, body, req.auth!.userId);
+    const data = await updateBoard(req.params.boardId, body, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -80,10 +80,10 @@ boardsBaseRouter.patch("/:boardId", (req, res, next) => {
   }
 });
 
-boardsBaseRouter.get("/:boardId/archived-lists", (req, res, next) => {
+boardsBaseRouter.get("/:boardId/archived-lists", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "view_boards");
-    const data = getArchivedLists(req.params.boardId);
+    await assertPermission(req.auth!.userId, "view_boards");
+    const data = await getArchivedLists(req.params.boardId);
 
     res.status(200).json({
       success: true,
@@ -94,10 +94,10 @@ boardsBaseRouter.get("/:boardId/archived-lists", (req, res, next) => {
   }
 });
 
-boardsBaseRouter.post("/:boardId/archive", (req, res, next) => {
+boardsBaseRouter.post("/:boardId/archive", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "delete_boards");
-    const data = archiveBoard(req.params.boardId, req.auth!.userId);
+    await assertPermission(req.auth!.userId, "delete_boards");
+    const data = await archiveBoard(req.params.boardId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -108,10 +108,10 @@ boardsBaseRouter.post("/:boardId/archive", (req, res, next) => {
   }
 });
 
-boardsBaseRouter.post("/:boardId/restore", (req, res, next) => {
+boardsBaseRouter.post("/:boardId/restore", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "delete_boards");
-    const data = restoreBoard(req.params.boardId, req.auth!.userId);
+    await assertPermission(req.auth!.userId, "delete_boards");
+    const data = await restoreBoard(req.params.boardId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -122,11 +122,11 @@ boardsBaseRouter.post("/:boardId/restore", (req, res, next) => {
   }
 });
 
-boardsBaseRouter.post("/:boardId/comments", (req, res, next) => {
+boardsBaseRouter.post("/:boardId/comments", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "comment");
+    await assertPermission(req.auth!.userId, "comment");
     const body = createCommentSchema.parse(req.body);
-    const data = createBoardComment(req.params.boardId, body, req.auth!.userId);
+    const data = await createBoardComment(req.params.boardId, body, req.auth!.userId);
 
     res.status(201).json({
       success: true,
@@ -137,10 +137,10 @@ boardsBaseRouter.post("/:boardId/comments", (req, res, next) => {
   }
 });
 
-boardsBaseRouter.delete("/:boardId", (req, res, next) => {
+boardsBaseRouter.delete("/:boardId", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "delete_boards");
-    const data = deleteBoard(req.params.boardId, req.auth!.userId);
+    await assertPermission(req.auth!.userId, "delete_boards");
+    const data = await deleteBoard(req.params.boardId, req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -150,4 +150,3 @@ boardsBaseRouter.delete("/:boardId", (req, res, next) => {
     next(error);
   }
 });
-

@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { and, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 
 import { env } from "../../config/env.js";
-import { db } from "../../db/connection.js";
+import { db, type DbTransaction } from "../../db/connection.js";
 import { inviteRoleAssignments, invites, roles, users, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { assertRoleHierarchy } from "../../utils/permissions.js";
@@ -13,6 +13,20 @@ import type { CreateInviteInput } from "./invites.schema.js";
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type InviteStatus = "pending" | "accepted" | "revoked" | "expired";
+
+type InviteRow = {
+  id: string;
+  token: string;
+  email: string | null;
+  role: UserRole;
+  createdBy: string;
+  acceptedBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt: Date;
+  acceptedAt: Date | null;
+  revokedAt: Date | null;
+};
 
 export interface InviteSummary {
   id: string;
@@ -83,20 +97,8 @@ function toInviteSummary(row: {
   };
 }
 
-function getInviteByToken(token: string): {
-  id: string;
-  token: string;
-  email: string | null;
-  role: UserRole;
-  createdBy: string;
-  acceptedBy: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  expiresAt: Date;
-  acceptedAt: Date | null;
-  revokedAt: Date | null;
-} {
-  const row = db
+async function getInviteByToken(token: string): Promise<InviteRow> {
+  const rows: InviteRow[] = await db
     .select({
       id: invites.id,
       token: invites.token,
@@ -112,8 +114,9 @@ function getInviteByToken(token: string): {
     })
     .from(invites)
     .where(eq(invites.token, token))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const row = rows[0];
 
   if (!row) {
     throw new ApiError(404, "Invite not found");
@@ -122,20 +125,8 @@ function getInviteByToken(token: string): {
   return row;
 }
 
-function getInviteById(inviteId: string): {
-  id: string;
-  token: string;
-  email: string | null;
-  role: UserRole;
-  createdBy: string;
-  acceptedBy: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  expiresAt: Date;
-  acceptedAt: Date | null;
-  revokedAt: Date | null;
-} {
-  const row = db
+async function getInviteById(inviteId: string): Promise<InviteRow> {
+  const rows: InviteRow[] = await db
     .select({
       id: invites.id,
       token: invites.token,
@@ -151,8 +142,9 @@ function getInviteById(inviteId: string): {
     })
     .from(invites)
     .where(eq(invites.id, inviteId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const row = rows[0];
 
   if (!row) {
     throw new ApiError(404, "Invite not found");
@@ -161,13 +153,12 @@ function getInviteById(inviteId: string): {
   return row;
 }
 
-function getInviteRoleIds(inviteIds: string[]): Map<string, string[]> {
+async function getInviteRoleIds(inviteIds: string[]): Promise<Map<string, string[]>> {
   if (inviteIds.length === 0) return new Map();
-  const rows = db
+  const rows: Array<{ inviteId: string; roleId: string }> = await db
     .select({ inviteId: inviteRoleAssignments.inviteId, roleId: inviteRoleAssignments.roleId })
     .from(inviteRoleAssignments)
-    .where(inArray(inviteRoleAssignments.inviteId, inviteIds))
-    .all();
+    .where(inArray(inviteRoleAssignments.inviteId, inviteIds));
 
   const map = new Map<string, string[]>();
   for (const row of rows) {
@@ -179,18 +170,18 @@ function getInviteRoleIds(inviteIds: string[]): Map<string, string[]> {
   return map;
 }
 
-function replaceInviteRoles(inviteId: string, roleIds: string[]): void {
+async function replaceInviteRoles(inviteId: string, roleIds: string[]): Promise<void> {
   const now = new Date();
-  db.transaction((tx) => {
-    tx.delete(inviteRoleAssignments).where(eq(inviteRoleAssignments.inviteId, inviteId)).run();
-    tx.insert(inviteRoleAssignments)
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.delete(inviteRoleAssignments).where(eq(inviteRoleAssignments.inviteId, inviteId)).execute();
+    await tx.insert(inviteRoleAssignments)
       .values(roleIds.map((roleId) => ({ inviteId, roleId, createdAt: now })))
-      .run();
+      .execute();
   });
 }
 
-export function listInvites(): InviteSummary[] {
-  const rows = db
+export async function listInvites(): Promise<InviteSummary[]> {
+  const rows: InviteRow[] = await db
     .select({
       id: invites.id,
       token: invites.token,
@@ -205,24 +196,28 @@ export function listInvites(): InviteSummary[] {
       revokedAt: invites.revokedAt
     })
     .from(invites)
-    .orderBy(desc(invites.createdAt))
-    .all();
+    .orderBy(desc(invites.createdAt));
 
-  const roleMap = getInviteRoleIds(rows.map((row) => row.id));
+  const roleMap = await getInviteRoleIds(rows.map((row) => row.id));
 
   return rows.map((row) => toInviteSummary(row, roleMap.get(row.id) ?? []));
 }
 
-export function createInvite(input: CreateInviteInput, creatorId: string): InviteSummary {
+export async function createInvite(input: CreateInviteInput, creatorId: string): Promise<InviteSummary> {
   const email = input.email ? normalizeEmail(input.email) : null;
 
   if (email) {
-    const existingUser = db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1).get();
-    if (existingUser) {
+    const existingUserRows = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    if (existingUserRows[0]) {
       throw new ApiError(409, "User already exists");
     }
 
-    const existingInvite = db
+    const existingInviteRows: InviteRow[] = await db
       .select({
         id: invites.id,
         token: invites.token,
@@ -245,11 +240,12 @@ export function createInvite(input: CreateInviteInput, creatorId: string): Invit
           gt(invites.expiresAt, new Date())
         )
       )
-      .limit(1)
-      .get();
+      .limit(1);
+
+    const existingInvite = existingInviteRows[0];
 
     if (existingInvite) {
-      const roleMap = getInviteRoleIds([existingInvite.id]);
+      const roleMap = await getInviteRoleIds([existingInvite.id]);
       return toInviteSummary(existingInvite, roleMap.get(existingInvite.id) ?? []);
     }
   }
@@ -259,7 +255,7 @@ export function createInvite(input: CreateInviteInput, creatorId: string): Invit
   const token = crypto.randomBytes(24).toString("hex");
   const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
 
-  db.insert(invites)
+  await db.insert(invites)
     .values({
       id: inviteId,
       token,
@@ -270,12 +266,12 @@ export function createInvite(input: CreateInviteInput, creatorId: string): Invit
       createdAt: now,
       updatedAt: now
     })
-    .run();
+    .execute();
 
-  const { guestRoleId } = getSystemRoleIds();
-  replaceInviteRoles(inviteId, [guestRoleId]);
+  const { guestRoleId } = await getSystemRoleIds();
+  await replaceInviteRoles(inviteId, [guestRoleId]);
 
-  const created = db
+  const createdRows: InviteRow[] = await db
     .select({
       id: invites.id,
       token: invites.token,
@@ -291,7 +287,9 @@ export function createInvite(input: CreateInviteInput, creatorId: string): Invit
     })
     .from(invites)
     .where(eq(invites.id, inviteId))
-    .get();
+    .limit(1);
+
+  const created = createdRows[0];
 
   if (!created) {
     throw new ApiError(500, "Failed to create invite");
@@ -300,20 +298,20 @@ export function createInvite(input: CreateInviteInput, creatorId: string): Invit
   return toInviteSummary(created, [guestRoleId]);
 }
 
-export function revokeInvite(inviteId: string): void {
-  const result = db
+export async function revokeInvite(inviteId: string): Promise<void> {
+  const [result] = await db
     .update(invites)
     .set({ revokedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(invites.id, inviteId), isNull(invites.revokedAt)))
-    .run();
+    .execute();
 
-  if (result.changes === 0) {
+  if (result.affectedRows === 0) {
     throw new ApiError(404, "Invite not found");
   }
 }
 
-export function lookupInvite(token: string): InviteLookup {
-  const invite = getInviteByToken(token);
+export async function lookupInvite(token: string): Promise<InviteLookup> {
+  const invite = await getInviteByToken(token);
   const now = new Date();
   const status = getInviteStatus(invite, now);
 
@@ -324,8 +322,8 @@ export function lookupInvite(token: string): InviteLookup {
   };
 }
 
-export function validateInviteForRegistration(token: string, email: string): { inviteId: string; roleIds: string[] } {
-  const invite = getInviteByToken(token);
+export async function validateInviteForRegistration(token: string, email: string): Promise<{ inviteId: string; roleIds: string[] }> {
+  const invite = await getInviteByToken(token);
   const now = new Date();
   const status = getInviteStatus(invite, now);
 
@@ -337,65 +335,65 @@ export function validateInviteForRegistration(token: string, email: string): { i
     throw new ApiError(400, "Invite email does not match");
   }
 
-  const roleMap = getInviteRoleIds([invite.id]);
+  const roleMap = await getInviteRoleIds([invite.id]);
   const roleIds = roleMap.get(invite.id) ?? [];
   if (roleIds.length === 0) {
-    const { guestRoleId } = getSystemRoleIds();
+    const { guestRoleId } = await getSystemRoleIds();
     return { inviteId: invite.id, roleIds: [guestRoleId] };
   }
 
   return { inviteId: invite.id, roleIds };
 }
 
-export function consumeInvite(inviteId: string, userId: string): void {
-  const result = db
+export async function consumeInvite(inviteId: string, userId: string): Promise<void> {
+  const [result] = await db
     .update(invites)
     .set({ acceptedAt: new Date(), acceptedBy: userId, updatedAt: new Date() })
     .where(and(eq(invites.id, inviteId), isNull(invites.acceptedAt), isNull(invites.revokedAt)))
-    .run();
+    .execute();
 
-  if (result.changes === 0) {
+  if (result.affectedRows === 0) {
     throw new ApiError(409, "Invite has already been used");
   }
 }
 
-export function updateInviteRoles(inviteId: string, roleIds: string[], actorId: string): InviteSummary {
+export async function updateInviteRoles(inviteId: string, roleIds: string[], actorId: string): Promise<InviteSummary> {
   const uniqueRoleIds = Array.from(new Set(roleIds));
   if (uniqueRoleIds.length === 0) {
     throw new ApiError(400, "At least one role is required");
   }
 
-  const invite = getInviteById(inviteId);
+  const invite = await getInviteById(inviteId);
   const now = new Date();
   const status = getInviteStatus(invite, now);
   if (status !== "pending") {
     throw new ApiError(409, "Invite is no longer pending");
   }
 
-  const rolesRows = db
+  const rolesRows = await db
     .select({ id: roles.id, priority: roles.priority })
     .from(roles)
-    .where(inArray(roles.id, uniqueRoleIds))
-    .all();
+    .where(inArray(roles.id, uniqueRoleIds));
 
   if (rolesRows.length !== uniqueRoleIds.length) {
     throw new ApiError(400, "One or more roles are invalid");
   }
 
   for (const role of rolesRows) {
-    assertRoleHierarchy(actorId, role.priority);
+    await assertRoleHierarchy(actorId, role.priority);
   }
 
-  replaceInviteRoles(inviteId, uniqueRoleIds);
+  await replaceInviteRoles(inviteId, uniqueRoleIds);
 
-  const { adminRoleId, memberRoleId } = getSystemRoleIds();
+  const { adminRoleId, memberRoleId } = await getSystemRoleIds();
   const legacyRole: UserRole = uniqueRoleIds.includes(adminRoleId)
     ? "admin"
     : uniqueRoleIds.includes(memberRoleId)
       ? "member"
       : "guest";
-  db.update(invites).set({ role: legacyRole, updatedAt: new Date() }).where(eq(invites.id, inviteId)).run();
 
-  const refreshed = getInviteById(inviteId);
+  await db.update(invites).set({ role: legacyRole, updatedAt: new Date() }).where(eq(invites.id, inviteId)).execute();
+
+  const refreshed = await getInviteById(inviteId);
   return toInviteSummary(refreshed, uniqueRoleIds);
 }

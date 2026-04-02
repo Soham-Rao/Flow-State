@@ -9,12 +9,16 @@ import { assertCardExists } from "./boards.service.lookups.js";
 import { normalizeDueDate, removeFileIfExists, resolveAttachmentPath } from "./boards.service.utils.js";
 import type { AttachmentRecord, BoardAttachment, BoardCard, BoardChecklist, BoardLabel, BoardMember, BoardSummary, CardRecord } from "./boards.service.types.js";
 
-export function getAttachmentsForCards(cardIds: string[]): Map<string, BoardAttachment[]> {
+type CardLabelRow = BoardLabel & { cardId: string };
+type CardAssigneeRow = BoardMember & { cardId: string };
+type ChecklistRow = Omit<BoardChecklist, "items">;
+
+export async function getAttachmentsForCards(cardIds: string[]): Promise<Map<string, BoardAttachment[]>> {
   if (cardIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: AttachmentRecord[] = await db
     .select({
       id: attachments.id,
       cardId: attachments.cardId,
@@ -27,11 +31,10 @@ export function getAttachmentsForCards(cardIds: string[]): Map<string, BoardAtta
     })
     .from(attachments)
     .where(inArray(attachments.cardId, cardIds))
-    .orderBy(asc(attachments.createdAt))
-    .all() as AttachmentRecord[];
+    .orderBy(asc(attachments.createdAt));
 
   const attachmentsByCardId = new Map<string, BoardAttachment[]>();
-  for (const attachment of rows) {
+  for (const attachment of rows as AttachmentRecord[]) {
     const list = attachmentsByCardId.get(attachment.cardId) ?? [];
     list.push({
       id: attachment.id,
@@ -47,12 +50,12 @@ export function getAttachmentsForCards(cardIds: string[]): Map<string, BoardAtta
   return attachmentsByCardId;
 }
 
-export function getLabelsForCards(cardIds: string[]): Map<string, BoardLabel[]> {
+export async function getLabelsForCards(cardIds: string[]): Promise<Map<string, BoardLabel[]>> {
   if (cardIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: CardLabelRow[] = await db
     .select({
       cardId: cardLabels.cardId,
       id: labels.id,
@@ -65,8 +68,7 @@ export function getLabelsForCards(cardIds: string[]): Map<string, BoardLabel[]> 
     .from(cardLabels)
     .innerJoin(labels, eq(cardLabels.labelId, labels.id))
     .where(inArray(cardLabels.cardId, cardIds))
-    .orderBy(asc(labels.createdAt))
-    .all();
+    .orderBy(asc(labels.createdAt));
 
   const labelsByCardId = new Map<string, BoardLabel[]>();
   for (const row of rows) {
@@ -85,12 +87,12 @@ export function getLabelsForCards(cardIds: string[]): Map<string, BoardLabel[]> 
   return labelsByCardId;
 }
 
-export function getAssigneesForCards(cardIds: string[]): Map<string, BoardMember[]> {
+export async function getAssigneesForCards(cardIds: string[]): Promise<Map<string, BoardMember[]>> {
   if (cardIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows: CardAssigneeRow[] = await db
     .select({
       cardId: cardAssignees.cardId,
       id: users.id,
@@ -104,8 +106,7 @@ export function getAssigneesForCards(cardIds: string[]): Map<string, BoardMember
     .from(cardAssignees)
     .innerJoin(users, eq(cardAssignees.userId, users.id))
     .where(inArray(cardAssignees.cardId, cardIds))
-    .orderBy(asc(users.name))
-    .all();
+    .orderBy(asc(users.name));
 
   const assigneesByCardId = new Map<string, BoardMember[]>();
   for (const row of rows) {
@@ -125,12 +126,12 @@ export function getAssigneesForCards(cardIds: string[]): Map<string, BoardMember
   return assigneesByCardId;
 }
 
-export function getChecklistsForCards(cardIds: string[]): Map<string, BoardChecklist[]> {
+export async function getChecklistsForCards(cardIds: string[]): Promise<Map<string, BoardChecklist[]>> {
   if (cardIds.length === 0) {
     return new Map();
   }
 
-  const checklistRows = db
+  const checklistRows: ChecklistRow[] = await db
     .select({
       id: checklists.id,
       cardId: checklists.cardId,
@@ -141,18 +142,17 @@ export function getChecklistsForCards(cardIds: string[]): Map<string, BoardCheck
     })
     .from(checklists)
     .where(inArray(checklists.cardId, cardIds))
-    .orderBy(asc(checklists.position), asc(checklists.createdAt))
-    .all() as Array<Omit<BoardChecklist, "items">>;
+    .orderBy(asc(checklists.position), asc(checklists.createdAt));
 
   if (checklistRows.length === 0) {
     return new Map();
   }
 
   const checklistIds = checklistRows.map((row) => row.id);
-  const itemsByChecklistId = getChecklistItemsForChecklists(checklistIds);
+  const itemsByChecklistId = await getChecklistItemsForChecklists(checklistIds);
 
   const checklistsByCardId = new Map<string, BoardChecklist[]>();
-  for (const checklist of checklistRows) {
+  for (const checklist of checklistRows as Array<Omit<BoardChecklist, "items">>) {
     const items = itemsByChecklistId.get(checklist.id) ?? [];
     const cardLists = checklistsByCardId.get(checklist.cardId) ?? [];
     cardLists.push({ ...checklist, items });
@@ -162,13 +162,15 @@ export function getChecklistsForCards(cardIds: string[]): Map<string, BoardCheck
   return checklistsByCardId;
 }
 
-export function attachChecklistsToCards(cardsData: CardRecord[]): BoardCard[] {
+export async function attachChecklistsToCards(cardsData: CardRecord[]): Promise<BoardCard[]> {
   const cardIds = cardsData.map((card) => card.id);
-  const checklistsByCardId = getChecklistsForCards(cardIds);
-  const attachmentsByCardId = getAttachmentsForCards(cardIds);
-  const labelsByCardId = getLabelsForCards(cardIds);
-  const assigneesByCardId = getAssigneesForCards(cardIds);
-  const commentsByCardId = getCommentsForCards(cardIds);
+  const [checklistsByCardId, attachmentsByCardId, labelsByCardId, assigneesByCardId, commentsByCardId] = await Promise.all([
+    getChecklistsForCards(cardIds),
+    getAttachmentsForCards(cardIds),
+    getLabelsForCards(cardIds),
+    getAssigneesForCards(cardIds),
+    getCommentsForCards(cardIds)
+  ]);
 
   return cardsData.map((card) => ({
     ...card,
@@ -182,22 +184,21 @@ export function attachChecklistsToCards(cardsData: CardRecord[]): BoardCard[] {
 }
 
 export async function deleteAttachmentsForCard(cardId: string): Promise<void> {
-  const records = db
+  const records: Array<{ id: string; storagePath: string }> = await db
     .select({
       id: attachments.id,
       storagePath: attachments.storagePath
     })
     .from(attachments)
-    .where(eq(attachments.cardId, cardId))
-    .all() as Array<{ id: string; storagePath: string }>;
+    .where(eq(attachments.cardId, cardId));
 
   await Promise.all(records.map((record) => removeFileIfExists(resolveAttachmentPath(record.storagePath))));
 
-  db.delete(attachments).where(eq(attachments.cardId, cardId)).run();
+  await db.delete(attachments).where(eq(attachments.cardId, cardId)).execute();
 }
 
-export function getCardsForList(listId: string): BoardCard[] {
-  const rows = db
+export async function getCardsForList(listId: string): Promise<BoardCard[]> {
+  const rows = await db
     .select({
       id: cards.id,
       listId: cards.listId,
@@ -215,14 +216,13 @@ export function getCardsForList(listId: string): BoardCard[] {
     })
     .from(cards)
     .where(and(eq(cards.listId, listId), isNull(cards.archivedAt)))
-    .orderBy(asc(cards.position), asc(cards.createdAt))
-    .all() as CardRecord[];
+    .orderBy(asc(cards.position), asc(cards.createdAt));
 
-  return attachChecklistsToCards(rows);
+  return attachChecklistsToCards(rows as CardRecord[]);
 }
 
-export function getCardsForListIncludingArchived(listId: string): BoardCard[] {
-  const rows = db
+export async function getCardsForListIncludingArchived(listId: string): Promise<BoardCard[]> {
+  const rows = await db
     .select({
       id: cards.id,
       listId: cards.listId,
@@ -240,19 +240,18 @@ export function getCardsForListIncludingArchived(listId: string): BoardCard[] {
     })
     .from(cards)
     .where(eq(cards.listId, listId))
-    .orderBy(asc(cards.position), asc(cards.createdAt))
-    .all() as CardRecord[];
+    .orderBy(asc(cards.position), asc(cards.createdAt));
 
-  return attachChecklistsToCards(rows);
+  return attachChecklistsToCards(rows as CardRecord[]);
 }
 
-export function getCardById(cardId: string): BoardCard {
-  const card = assertCardExists(cardId);
-  return attachChecklistsToCards([card])[0];
+export async function getCardById(cardId: string): Promise<BoardCard> {
+  const card = await assertCardExists(cardId);
+  return (await attachChecklistsToCards([card]))[0];
 }
 
-export function getCardByIdIncludingArchived(cardId: string): BoardCard {
-  const card = db
+export async function getCardByIdIncludingArchived(cardId: string): Promise<BoardCard> {
+  const rows = await db
     .select({
       id: cards.id,
       listId: cards.listId,
@@ -270,18 +269,19 @@ export function getCardByIdIncludingArchived(cardId: string): BoardCard {
     })
     .from(cards)
     .where(eq(cards.id, cardId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const card = rows[0];
 
   if (!card) {
     throw new ApiError(404, "Card not found");
   }
 
-  return attachChecklistsToCards([card])[0];
+  return (await attachChecklistsToCards([card]))[0];
 }
 
-export function getBoardSummaryById(boardId: string): BoardSummary {
-  const board = db
+export async function getBoardSummaryById(boardId: string): Promise<BoardSummary> {
+  const rows = await db
     .select({
       id: boards.id,
       name: boards.name,
@@ -297,21 +297,22 @@ export function getBoardSummaryById(boardId: string): BoardSummary {
     })
     .from(boards)
     .where(eq(boards.id, boardId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const board = rows[0];
 
   if (!board) {
     throw new ApiError(404, "Board not found");
   }
 
-  const listCountRow = db
+  const listCountRows = await db
     .select({ listCount: count(lists.id) })
     .from(lists)
     .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
-    .get();
+    .limit(1);
 
   return {
     ...board,
-    listCount: listCountRow?.listCount ?? 0
+    listCount: listCountRows[0]?.listCount ?? 0
   };
 }

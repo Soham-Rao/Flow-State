@@ -16,13 +16,13 @@ export async function createAttachments(
   cardId: string,
   files: Express.Multer.File[]
 ): Promise<BoardAttachment[]> {
-  assertCardExists(cardId);
+  await assertCardExists(cardId);
 
   if (!files || files.length === 0) {
     throw new ApiError(400, "No attachments provided");
   }
 
-  const { boardId } = getCardBoardContext(cardId);
+  const { boardId } = await getCardBoardContext(cardId);
   const now = new Date();
   const created: BoardAttachment[] = [];
 
@@ -37,7 +37,7 @@ export async function createAttachments(
     await ensureAttachmentDirectory(absolutePath);
     await fs.writeFile(absolutePath, file.buffer);
 
-    db.insert(attachments)
+    await db.insert(attachments)
       .values({
         id: attachmentId,
         cardId,
@@ -48,7 +48,7 @@ export async function createAttachments(
         storagePath,
         createdAt: now
       })
-      .run();
+      .execute();
 
     created.push({
       id: attachmentId,
@@ -69,8 +69,8 @@ export async function createAttachments(
   return created;
 }
 
-export function getAttachmentDownloadInfo(attachmentId: string): { filePath: string; originalName: string } {
-  const attachment = getAttachmentRecordById(attachmentId);
+export async function getAttachmentDownloadInfo(attachmentId: string): Promise<{ filePath: string; originalName: string }> {
+  const attachment = await getAttachmentRecordById(attachmentId);
   return {
     filePath: resolveAttachmentPath(attachment.storagePath),
     originalName: attachment.originalName
@@ -78,13 +78,13 @@ export function getAttachmentDownloadInfo(attachmentId: string): { filePath: str
 }
 
 export async function deleteAttachment(attachmentId: string): Promise<void> {
-  const attachment = getAttachmentRecordById(attachmentId);
-  const { boardId } = getCardBoardContext(attachment.cardId);
+  const attachment = await getAttachmentRecordById(attachmentId);
+  const { boardId } = await getCardBoardContext(attachment.cardId);
   await removeFileIfExists(resolveAttachmentPath(attachment.storagePath));
 
-  const result = db.delete(attachments).where(eq(attachments.id, attachmentId)).run();
+  const [result] = await db.delete(attachments).where(eq(attachments.id, attachmentId)).execute();
 
-  if (result.changes === 0) {
+  if (result.affectedRows === 0) {
     throw new ApiError(404, "Attachment not found");
   }
 

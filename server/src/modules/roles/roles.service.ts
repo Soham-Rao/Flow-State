@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 
 import { and, desc, eq, inArray, lt, ne, sql } from "drizzle-orm";
 
-import { db } from "../../db/connection.js";
+import { db, type DbTransaction } from "../../db/connection.js";
 import {
   rolePermissionsTable,
   roles,
@@ -14,6 +14,8 @@ import {
 import { ApiError } from "../../utils/api-error.js";
 import { assertRoleHierarchy } from "../../utils/permissions.js";
 import type { CreateRoleInput, UpdateRoleInput } from "./roles.schema.js";
+
+type RoleRow = typeof roles.$inferSelect;
 
 const ADMIN_ROLE_NAME = "Admin";
 const MEMBER_ROLE_NAME = "Member";
@@ -43,16 +45,15 @@ function normalizeRoleIds(roleIds: string[]): string[] {
   return Array.from(new Set(roleIds));
 }
 
-function getSystemRoles(): {
+async function getSystemRoles(): Promise<{
   admin: typeof roles.$inferSelect;
   member: typeof roles.$inferSelect;
   guest: typeof roles.$inferSelect;
-} {
-  const rows = db
+}> {
+  const rows: RoleRow[] = await db
     .select()
     .from(roles)
-    .where(inArray(roles.name, [ADMIN_ROLE_NAME, MEMBER_ROLE_NAME, GUEST_ROLE_NAME]))
-    .all();
+    .where(inArray(roles.name, [ADMIN_ROLE_NAME, MEMBER_ROLE_NAME, GUEST_ROLE_NAME]));
 
   const admin = rows.find((row) => row.name === ADMIN_ROLE_NAME);
   const member = rows.find((row) => row.name === MEMBER_ROLE_NAME);
@@ -65,14 +66,13 @@ function getSystemRoles(): {
   return { admin, member, guest };
 }
 
-export function getSystemRoleIds(): { adminRoleId: string; memberRoleId: string; guestRoleId: string } {
-  const { admin, member, guest } = getSystemRoles();
+export async function getSystemRoleIds(): Promise<{ adminRoleId: string; memberRoleId: string; guestRoleId: string }> {
+  const { admin, member, guest } = await getSystemRoles();
   return { adminRoleId: admin.id, memberRoleId: member.id, guestRoleId: guest.id };
 }
 
-
-function resolveLegacyRole(roleIds: string[]): UserRole {
-  const { adminRoleId, memberRoleId } = getSystemRoleIds();
+async function resolveLegacyRole(roleIds: string[]): Promise<UserRole> {
+  const { adminRoleId, memberRoleId } = await getSystemRoleIds();
   if (roleIds.includes(adminRoleId)) {
     return "admin";
   }
@@ -82,16 +82,15 @@ function resolveLegacyRole(roleIds: string[]): UserRole {
   return "guest";
 }
 
-function getPermissionsForRoles(roleIds: string[]): Map<string, RolePermission[]> {
+async function getPermissionsForRoles(roleIds: string[]): Promise<Map<string, RolePermission[]>> {
   if (roleIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows = await db
     .select({ roleId: rolePermissionsTable.roleId, permission: rolePermissionsTable.permission })
     .from(rolePermissionsTable)
-    .where(inArray(rolePermissionsTable.roleId, roleIds))
-    .all();
+    .where(inArray(rolePermissionsTable.roleId, roleIds));
 
   const map = new Map<string, RolePermission[]>();
   for (const row of rows) {
@@ -103,14 +102,14 @@ function getPermissionsForRoles(roleIds: string[]): Map<string, RolePermission[]
   return map;
 }
 
-function getMaxPriorityBelow(limit: number): number {
-  const row = db
+async function getMaxPriorityBelow(limit: number): Promise<number> {
+  const rows = await db
     .select({ maxPriority: sql<number | null>`max(${roles.priority})` })
     .from(roles)
     .where(lt(roles.priority, limit))
-    .get();
+    .limit(1);
 
-  const maxPriority = row?.maxPriority ?? limit - 1;
+  const maxPriority = rows[0]?.maxPriority ?? limit - 1;
   return Math.max(1, Math.min(maxPriority, limit - 1));
 }
 
@@ -120,14 +119,13 @@ function isReservedRoleName(name: string): boolean {
     .some((roleName) => roleName.toLowerCase() === normalized);
 }
 
-export function listRoles(): RoleSummary[] {
-  const rows = db
+export async function listRoles(): Promise<RoleSummary[]> {
+  const rows: RoleRow[] = await db
     .select()
     .from(roles)
-    .orderBy(desc(roles.priority), roles.name)
-    .all();
+    .orderBy(desc(roles.priority), roles.name);
 
-  const permissionsMap = getPermissionsForRoles(rows.map((row) => row.id));
+  const permissionsMap = await getPermissionsForRoles(rows.map((row) => row.id));
 
   return rows.map((role) => ({
     id: role.id,
@@ -140,38 +138,43 @@ export function listRoles(): RoleSummary[] {
   }));
 }
 
-export function createRole(input: CreateRoleInput, actorId: string): RoleSummary {
+export async function createRole(input: CreateRoleInput, actorId: string): Promise<RoleSummary> {
   const name = input.name.trim();
   if (isReservedRoleName(name)) {
     throw new ApiError(409, "That role name is reserved");
   }
 
-  const existing = db.select({ id: roles.id }).from(roles).where(eq(roles.name, name)).limit(1).get();
-  if (existing) {
+  const existingRows = await db
+    .select({ id: roles.id })
+    .from(roles)
+    .where(eq(roles.name, name))
+    .limit(1);
+  if (existingRows[0]) {
     throw new ApiError(409, "Role name already exists");
   }
 
-  const actorHighest = db
+  const actorHighestRows = await db
     .select({ priority: roles.priority })
     .from(userRoleAssignments)
     .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
     .where(eq(userRoleAssignments.userId, actorId))
     .orderBy(desc(roles.priority))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const actorHighest = actorHighestRows[0];
 
   if (!actorHighest) {
     throw new ApiError(403, "You cannot create roles without a role assigned");
   }
 
-  const priority = input.priority ?? getMaxPriorityBelow(actorHighest.priority);
-  assertRoleHierarchy(actorId, priority);
+  const priority = input.priority ?? await getMaxPriorityBelow(actorHighest.priority);
+  await assertRoleHierarchy(actorId, priority);
 
   const roleId = crypto.randomUUID();
   const now = new Date();
 
-  db.transaction((tx) => {
-    tx.insert(roles)
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.insert(roles)
       .values({
         id: roleId,
         name,
@@ -182,11 +185,11 @@ export function createRole(input: CreateRoleInput, actorId: string): RoleSummary
         createdAt: now,
         updatedAt: now
       })
-      .run();
+      .execute();
 
-    tx.insert(rolePermissionsTable)
+    await tx.insert(rolePermissionsTable)
       .values(input.permissions.map((permission) => ({ roleId, permission, createdAt: now })))
-      .run();
+      .execute();
   });
 
   return {
@@ -200,8 +203,9 @@ export function createRole(input: CreateRoleInput, actorId: string): RoleSummary
   };
 }
 
-export function updateRole(roleId: string, input: UpdateRoleInput, actorId: string): RoleSummary {
-  const role = db.select().from(roles).where(eq(roles.id, roleId)).limit(1).get();
+export async function updateRole(roleId: string, input: UpdateRoleInput, actorId: string): Promise<RoleSummary> {
+  const roleRows: RoleRow[] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+  const role = roleRows[0];
   if (!role) {
     throw new ApiError(404, "Role not found");
   }
@@ -218,25 +222,24 @@ export function updateRole(roleId: string, input: UpdateRoleInput, actorId: stri
   }
 
   if (input.name) {
-    const existing = db
+    const existingRows = await db
       .select({ id: roles.id })
       .from(roles)
       .where(and(eq(roles.name, nextName), ne(roles.id, roleId)))
-      .limit(1)
-      .get();
+      .limit(1);
 
-    if (existing) {
+    if (existingRows[0]) {
       throw new ApiError(409, "Role name already exists");
     }
   }
 
   const nextPriority = input.priority ?? role.priority;
-  assertRoleHierarchy(actorId, nextPriority);
+  await assertRoleHierarchy(actorId, nextPriority);
 
   const now = new Date();
 
-  db.transaction((tx) => {
-    tx.update(roles)
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.update(roles)
       .set({
         name: nextName,
         color: input.color ?? role.color,
@@ -245,17 +248,17 @@ export function updateRole(roleId: string, input: UpdateRoleInput, actorId: stri
         updatedAt: now
       })
       .where(eq(roles.id, roleId))
-      .run();
+      .execute();
 
     if (input.permissions) {
-      tx.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, roleId)).run();
-      tx.insert(rolePermissionsTable)
+      await tx.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, roleId)).execute();
+      await tx.insert(rolePermissionsTable)
         .values(input.permissions.map((permission) => ({ roleId, permission, createdAt: now })))
-        .run();
+        .execute();
     }
   });
 
-  const permissions = input.permissions ?? getPermissionsForRoles([roleId]).get(roleId) ?? [];
+  const permissions = input.permissions ?? (await getPermissionsForRoles([roleId])).get(roleId) ?? [];
 
   return {
     id: roleId,
@@ -268,8 +271,9 @@ export function updateRole(roleId: string, input: UpdateRoleInput, actorId: stri
   };
 }
 
-export function deleteRole(roleId: string, actorId: string): void {
-  const role = db.select().from(roles).where(eq(roles.id, roleId)).limit(1).get();
+export async function deleteRole(roleId: string, actorId: string): Promise<void> {
+  const roleRows: RoleRow[] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+  const role = roleRows[0];
   if (!role) {
     throw new ApiError(404, "Role not found");
   }
@@ -277,13 +281,13 @@ export function deleteRole(roleId: string, actorId: string): void {
     throw new ApiError(403, "System roles cannot be deleted");
   }
 
-  assertRoleHierarchy(actorId, role.priority);
+  await assertRoleHierarchy(actorId, role.priority);
 
-  db.delete(roles).where(eq(roles.id, roleId)).run();
+  await db.delete(roles).where(eq(roles.id, roleId)).execute();
 }
 
-export function listRoleAssignments(): UserRoleAssignment[] {
-  const usersRows = db
+export async function listRoleAssignments(): Promise<UserRoleAssignment[]> {
+  const usersRows = await db
     .select({
       id: users.id,
       name: users.name,
@@ -293,13 +297,11 @@ export function listRoleAssignments(): UserRoleAssignment[] {
       role: users.role
     })
     .from(users)
-    .orderBy(desc(users.createdAt))
-    .all();
+    .orderBy(desc(users.createdAt));
 
-  const assignments = db
+  const assignments = await db
     .select({ userId: userRoleAssignments.userId, roleId: userRoleAssignments.roleId })
-    .from(userRoleAssignments)
-    .all();
+    .from(userRoleAssignments);
 
   const map = new Map<string, string[]>();
   for (const row of assignments) {
@@ -308,10 +310,11 @@ export function listRoleAssignments(): UserRoleAssignment[] {
     map.set(row.userId, list);
   }
 
-  return usersRows.map((user) => {
+  const results: UserRoleAssignment[] = [];
+  for (const user of usersRows) {
     const roleIds = normalizeRoleIds(map.get(user.id) ?? []);
-    const legacyRole = roleIds.length > 0 ? resolveLegacyRole(roleIds) : user.role;
-    return {
+    const legacyRole = roleIds.length > 0 ? await resolveLegacyRole(roleIds) : user.role;
+    results.push({
       id: user.id,
       name: user.name,
       email: user.email,
@@ -319,17 +322,19 @@ export function listRoleAssignments(): UserRoleAssignment[] {
       displayName: user.displayName ?? null,
       role: legacyRole,
       roleIds
-    };
-  });
+    });
+  }
+
+  return results;
 }
 
-export function updateUserRoles(userId: string, roleIds: string[], actorId: string): UserRoleAssignment {
+export async function updateUserRoles(userId: string, roleIds: string[], actorId: string): Promise<UserRoleAssignment> {
   const uniqueRoleIds = normalizeRoleIds(roleIds);
   if (uniqueRoleIds.length === 0) {
     throw new ApiError(400, "At least one role is required");
   }
 
-  const user = db
+  const userRows = await db
     .select({
       id: users.id,
       name: users.name,
@@ -340,36 +345,36 @@ export function updateUserRoles(userId: string, roleIds: string[], actorId: stri
     })
     .from(users)
     .where(eq(users.id, userId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const user = userRows[0];
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
-  const rolesRows = db
+  const rolesRows: Array<{ id: string; priority: number }> = await db
     .select({ id: roles.id, priority: roles.priority })
     .from(roles)
-    .where(inArray(roles.id, uniqueRoleIds))
-    .all();
+    .where(inArray(roles.id, uniqueRoleIds));
 
   if (rolesRows.length !== uniqueRoleIds.length) {
     throw new ApiError(400, "One or more roles are invalid");
   }
 
   for (const role of rolesRows) {
-    assertRoleHierarchy(actorId, role.priority);
+    await assertRoleHierarchy(actorId, role.priority);
   }
 
   const now = new Date();
-  db.transaction((tx) => {
-    tx.delete(userRoleAssignments).where(eq(userRoleAssignments.userId, userId)).run();
-    tx.insert(userRoleAssignments)
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.delete(userRoleAssignments).where(eq(userRoleAssignments.userId, userId)).execute();
+    await tx.insert(userRoleAssignments)
       .values(uniqueRoleIds.map((roleId) => ({ userId, roleId, createdAt: now })))
-      .run();
+      .execute();
 
-    const legacyRole = resolveLegacyRole(uniqueRoleIds);
-    tx.update(users).set({ role: legacyRole, updatedAt: now }).where(eq(users.id, userId)).run();
+    const legacyRole = await resolveLegacyRole(uniqueRoleIds);
+    await tx.update(users).set({ role: legacyRole, updatedAt: now }).where(eq(users.id, userId)).execute();
   });
 
   return {
@@ -378,36 +383,34 @@ export function updateUserRoles(userId: string, roleIds: string[], actorId: stri
     email: user.email,
     username: user.username ?? null,
     displayName: user.displayName ?? null,
-    role: resolveLegacyRole(uniqueRoleIds),
+    role: await resolveLegacyRole(uniqueRoleIds),
     roleIds: uniqueRoleIds
   };
 }
 
-export function setUserRoles(userId: string, roleIds: string[]): void {
+export async function setUserRoles(userId: string, roleIds: string[]): Promise<void> {
   const uniqueRoleIds = normalizeRoleIds(roleIds);
   if (uniqueRoleIds.length === 0) {
     throw new ApiError(400, "At least one role is required");
   }
 
-  const rolesRows = db
+  const rolesRows = await db
     .select({ id: roles.id })
     .from(roles)
-    .where(inArray(roles.id, uniqueRoleIds))
-    .all();
+    .where(inArray(roles.id, uniqueRoleIds));
 
   if (rolesRows.length !== uniqueRoleIds.length) {
     throw new ApiError(400, "One or more roles are invalid");
   }
 
   const now = new Date();
-  db.transaction((tx) => {
-    tx.delete(userRoleAssignments).where(eq(userRoleAssignments.userId, userId)).run();
-    tx.insert(userRoleAssignments)
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.delete(userRoleAssignments).where(eq(userRoleAssignments.userId, userId)).execute();
+    await tx.insert(userRoleAssignments)
       .values(uniqueRoleIds.map((roleId) => ({ userId, roleId, createdAt: now })))
-      .run();
+      .execute();
 
-    const legacyRole = resolveLegacyRole(uniqueRoleIds);
-    tx.update(users).set({ role: legacyRole, updatedAt: now }).where(eq(users.id, userId)).run();
+    const legacyRole = await resolveLegacyRole(uniqueRoleIds);
+    await tx.update(users).set({ role: legacyRole, updatedAt: now }).where(eq(users.id, userId)).execute();
   });
 }
-

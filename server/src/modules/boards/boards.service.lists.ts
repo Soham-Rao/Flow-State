@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 
 import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
-import { db } from "../../db/connection.js";
+import { db, type DbTransaction } from "../../db/connection.js";
 import { recordActivity } from "../activity/activity.service.js";
 import { cards, lists } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
@@ -14,35 +14,35 @@ import { getCommentsForLists } from "./boards.service.comments-data.js";
 import { getCardsForList, getCardsForListIncludingArchived } from "./boards.service.cards-data.js";
 import { getBoardById } from "./boards.service.boards.js";
 
-export function createList(boardId: string, input: CreateListInput, userId: string): BoardList {
-  assertBoardExists(boardId);
+export async function createList(boardId: string, input: CreateListInput, userId: string): Promise<BoardList> {
+  await assertBoardExists(boardId);
 
-  const maxPositionRow = db
+  const maxPositionRows = await db
     .select({ maxPosition: sql<number>`coalesce(max(${lists.position}), -1)` })
     .from(lists)
     .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
-    .get();
+    .limit(1);
 
   const now = new Date();
   const listId = crypto.randomUUID();
   const trimmedName = input.name.trim();
 
-  assertListNameAvailable(boardId, trimmedName);
+  await assertListNameAvailable(boardId, trimmedName);
 
-  db.insert(lists)
+  await db.insert(lists)
     .values({
       id: listId,
       boardId,
       name: trimmedName,
-      position: (maxPositionRow?.maxPosition ?? -1) + 1,
+      position: (maxPositionRows[0]?.maxPosition ?? -1) + 1,
       isDoneList: input.isDoneList,
       archivedAt: null,
       createdAt: now,
       updatedAt: now
     })
-    .run();
+    .execute();
 
-  const created = db
+  const createdRows = await db
     .select({
       id: lists.id,
       boardId: lists.boardId,
@@ -55,14 +55,15 @@ export function createList(boardId: string, input: CreateListInput, userId: stri
     })
     .from(lists)
     .where(eq(lists.id, listId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const created = createdRows[0];
 
   if (!created) {
     throw new ApiError(500, "Failed to create list");
   }
 
-  recordActivity({
+  await recordActivity({
     type: "list.created",
     actorId: userId,
     boardId,
@@ -77,8 +78,8 @@ export function createList(boardId: string, input: CreateListInput, userId: stri
   };
 }
 
-export function updateList(listId: string, input: UpdateListInput, userId: string): BoardList {
-  const existing = assertListExists(listId);
+export async function updateList(listId: string, input: UpdateListInput, userId: string): Promise<BoardList> {
+  const existing = await assertListExists(listId);
 
   const updatePayload: {
     name?: string;
@@ -96,27 +97,27 @@ export function updateList(listId: string, input: UpdateListInput, userId: strin
     updatePayload.isDoneList = input.isDoneList;
   }
 
-  db.update(lists)
+  await db.update(lists)
     .set(updatePayload)
     .where(and(eq(lists.id, listId), eq(lists.boardId, existing.boardId)))
-    .run();
+    .execute();
 
   if (input.isDoneList !== undefined && input.isDoneList !== existing.isDoneList) {
     const now = new Date();
     if (input.isDoneList) {
-      db.update(cards)
+      await db.update(cards)
         .set({ doneEnteredAt: now, updatedAt: now })
         .where(and(eq(cards.listId, listId), isNull(cards.archivedAt), isNull(cards.doneEnteredAt)))
-        .run();
+        .execute();
     } else {
-      db.update(cards)
+      await db.update(cards)
         .set({ doneEnteredAt: null, updatedAt: now })
         .where(and(eq(cards.listId, listId), isNull(cards.archivedAt), isNotNull(cards.doneEnteredAt)))
-        .run();
+        .execute();
     }
   }
 
-  const updated = db
+  const updatedRows = await db
     .select({
       id: lists.id,
       boardId: lists.boardId,
@@ -129,14 +130,15 @@ export function updateList(listId: string, input: UpdateListInput, userId: strin
     })
     .from(lists)
     .where(eq(lists.id, listId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const updated = updatedRows[0];
 
   if (!updated) {
     throw new ApiError(404, "List not found");
   }
 
-  recordActivity({
+  await recordActivity({
     type: "list.updated",
     actorId: userId,
     boardId: updated.boardId,
@@ -146,20 +148,20 @@ export function updateList(listId: string, input: UpdateListInput, userId: strin
 
   return {
     ...updated,
-    cards: getCardsForList(updated.id),
-    comments: getCommentsForLists([updated.id]).get(updated.id) ?? []
+    cards: await getCardsForList(updated.id),
+    comments: (await getCommentsForLists([updated.id])).get(updated.id) ?? []
   };
 }
 
-export function deleteList(listId: string, userId: string): void {
-  const list = getListRecord(listId);
-  const result = db.delete(lists).where(eq(lists.id, listId)).run();
+export async function deleteList(listId: string, userId: string): Promise<void> {
+  const list = await getListRecord(listId);
+  const [result] = await db.delete(lists).where(eq(lists.id, listId)).execute();
 
-  if (result.changes === 0) {
+  if (result.affectedRows === 0) {
     throw new ApiError(404, "List not found");
   }
 
-  recordActivity({
+  await recordActivity({
     type: "list.deleted",
     actorId: userId,
     boardId: list.boardId,
@@ -168,16 +170,16 @@ export function deleteList(listId: string, userId: string): void {
   });
 }
 
-export function archiveList(listId: string, userId: string): void {
-  const list = assertListExists(listId);
+export async function archiveList(listId: string, userId: string): Promise<void> {
+  const list = await assertListExists(listId);
   if (list.archivedAt) return;
 
-  db.update(lists)
+  await db.update(lists)
     .set({ archivedAt: new Date(), updatedAt: new Date() })
     .where(eq(lists.id, listId))
-    .run();
+    .execute();
 
-  recordActivity({
+  await recordActivity({
     type: "list.archived",
     actorId: userId,
     boardId: list.boardId,
@@ -186,11 +188,11 @@ export function archiveList(listId: string, userId: string): void {
   });
 }
 
-export function restoreList(listId: string, renameConflicts: boolean, userId: string): BoardDetail {
-  const list = getListRecord(listId);
+export async function restoreList(listId: string, renameConflicts: boolean, userId: string): Promise<BoardDetail> {
+  const list = await getListRecord(listId);
   if (!list.archivedAt) {
-    const restored = getBoardById(list.boardId);
-    recordActivity({
+    const restored = await getBoardById(list.boardId);
+    await recordActivity({
       type: "list.restored",
       actorId: userId,
       boardId: list.boardId,
@@ -200,18 +202,19 @@ export function restoreList(listId: string, renameConflicts: boolean, userId: st
     return restored;
   }
 
-  const existingList = db
+  const existingRows: Array<{ id: string; name: string }> = await db
     .select({ id: lists.id, name: lists.name })
     .from(lists)
     .where(and(eq(lists.boardId, list.boardId), eq(lists.name, list.name), isNull(lists.archivedAt)))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const existingList = existingRows[0];
 
   const now = new Date();
 
   if (existingList) {
-    const archivedCards = getCardsForListIncludingArchived(list.id);
-    const existingCards = getCardsForList(existingList.id);
+    const archivedCards = await getCardsForListIncludingArchived(list.id);
+    const existingCards = await getCardsForList(existingList.id);
     const existingNames = new Set(existingCards.map((card) => card.title));
 
     const renameMap = new Map<string, string>();
@@ -227,18 +230,18 @@ export function restoreList(listId: string, renameConflicts: boolean, userId: st
       existingNames.add(nextName);
     }
 
-    const maxPositionRow = db
+    const maxPositionRows = await db
       .select({ maxPosition: sql<number>`coalesce(max(${cards.position}), -1)` })
       .from(cards)
       .where(and(eq(cards.listId, existingList.id), isNull(cards.archivedAt)))
-      .get();
+      .limit(1);
 
-    let nextPosition = (maxPositionRow?.maxPosition ?? -1) + 1;
+    let nextPosition = (maxPositionRows[0]?.maxPosition ?? -1) + 1;
 
-    db.transaction((tx) => {
-      archivedCards.forEach((card) => {
+    await db.transaction(async (tx: DbTransaction) => {
+      for (const card of archivedCards) {
         const nextTitle = renameMap.get(card.id) ?? card.title;
-        tx.update(cards)
+        await tx.update(cards)
           .set({
             listId: existingList.id,
             title: nextTitle,
@@ -247,14 +250,14 @@ export function restoreList(listId: string, renameConflicts: boolean, userId: st
             updatedAt: now
           })
           .where(eq(cards.id, card.id))
-          .run();
-      });
+          .execute();
+      }
 
-      tx.delete(lists).where(eq(lists.id, list.id)).run();
+      await tx.delete(lists).where(eq(lists.id, list.id)).execute();
     });
 
-    const restored = getBoardById(list.boardId);
-    recordActivity({
+    const restored = await getBoardById(list.boardId);
+    await recordActivity({
       type: "list.restored",
       actorId: userId,
       boardId: list.boardId,
@@ -264,20 +267,20 @@ export function restoreList(listId: string, renameConflicts: boolean, userId: st
     return restored;
   }
 
-  db.transaction((tx) => {
-    tx.update(lists)
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.update(lists)
       .set({ archivedAt: null, updatedAt: now })
       .where(eq(lists.id, list.id))
-      .run();
+      .execute();
 
-    tx.update(cards)
+    await tx.update(cards)
       .set({ archivedAt: null, updatedAt: now })
       .where(eq(cards.listId, list.id))
-      .run();
+      .execute();
   });
 
-  const restored = getBoardById(list.boardId);
-  recordActivity({
+  const restored = await getBoardById(list.boardId);
+  await recordActivity({
     type: "list.restored",
     actorId: userId,
     boardId: list.boardId,
@@ -287,14 +290,13 @@ export function restoreList(listId: string, renameConflicts: boolean, userId: st
   return restored;
 }
 
-export function reorderLists(boardId: string, input: ReorderListsInput, userId: string): BoardList[] {
-  assertBoardExists(boardId);
+export async function reorderLists(boardId: string, input: ReorderListsInput, userId: string): Promise<BoardList[]> {
+  await assertBoardExists(boardId);
 
-  const existing = db
+  const existing: Array<{ id: string }> = await db
     .select({ id: lists.id })
     .from(lists)
-    .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
-    .all();
+    .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)));
 
   const existingIds = existing.map((row) => row.id);
 
@@ -311,16 +313,16 @@ export function reorderLists(boardId: string, input: ReorderListsInput, userId: 
 
   const now = new Date();
 
-  db.transaction((tx) => {
-    input.listIds.forEach((listId, index) => {
-      tx.update(lists)
+  await db.transaction(async (tx: DbTransaction) => {
+    for (const [index, listId] of input.listIds.entries()) {
+      await tx.update(lists)
         .set({ position: index, updatedAt: now })
         .where(and(eq(lists.id, listId), eq(lists.boardId, boardId)))
-        .run();
-    });
+        .execute();
+    }
   });
 
-  const updatedLists = db
+  const updatedLists: Array<Omit<BoardList, "cards" | "comments">> = await db
     .select({
       id: lists.id,
       boardId: lists.boardId,
@@ -333,21 +335,25 @@ export function reorderLists(boardId: string, input: ReorderListsInput, userId: 
     })
     .from(lists)
     .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
-    .orderBy(asc(lists.position), asc(lists.createdAt))
-    .all();
+    .orderBy(asc(lists.position), asc(lists.createdAt));
 
-  const commentsByListId = getCommentsForLists(updatedLists.map((list) => list.id));
+  const commentsByListId = await getCommentsForLists(updatedLists.map((list) => list.id));
 
-  recordActivity({
+  await recordActivity({
     type: "list.reordered",
     actorId: userId,
     boardId,
     metadata: { listIds: input.listIds }
   });
 
-  return updatedLists.map((list) => ({
-    ...list,
-    cards: getCardsForList(list.id),
-    comments: commentsByListId.get(list.id) ?? []
-  }));
+  const results: BoardList[] = [];
+  for (const list of updatedLists) {
+    results.push({
+      ...list,
+      cards: await getCardsForList(list.id),
+      comments: commentsByListId.get(list.id) ?? []
+    });
+  }
+
+  return results;
 }

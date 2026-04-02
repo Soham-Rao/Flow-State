@@ -9,46 +9,45 @@ import type { BoardCard } from "./boards.service.types.js";
 import { assertCardExists, assertUserExists, getCardBoardContext } from "./boards.service.lookups.js";
 import { getCardById } from "./boards.service.cards-data.js";
 
-export function assignMemberToCard(cardId: string, input: AssignAssigneeInput): BoardCard {
-  assertCardExists(cardId);
-  assertUserExists(input.userId);
-  const { boardId } = getCardBoardContext(cardId);
+export async function assignMemberToCard(cardId: string, input: AssignAssigneeInput): Promise<BoardCard> {
+  await assertCardExists(cardId);
+  await assertUserExists(input.userId);
+  const { boardId } = await getCardBoardContext(cardId);
 
-  const existing = db
+  const existingRows = await db
     .select({ cardId: cardAssignees.cardId })
     .from(cardAssignees)
     .where(and(eq(cardAssignees.cardId, cardId), eq(cardAssignees.userId, input.userId)))
-    .limit(1)
-    .get();
+    .limit(1);
 
-  if (!existing) {
-    db.insert(cardAssignees)
+  if (!existingRows[0]) {
+    await db.insert(cardAssignees)
       .values({
         cardId,
         userId: input.userId,
         createdAt: new Date()
       })
-      .run();
+      .execute();
   }
 
-  const card = getCardById(cardId);
+  const card = await getCardById(cardId);
   emitBoardEvent(boardId, { boardId, type: "card.assignee.updated", data: { cardId } });
   return card;
 }
 
-export function removeMemberFromCard(cardId: string, userId: string): BoardCard {
-  assertCardExists(cardId);
-  const { boardId } = getCardBoardContext(cardId);
-  const result = db
+export async function removeMemberFromCard(cardId: string, userId: string): Promise<BoardCard> {
+  await assertCardExists(cardId);
+  const { boardId } = await getCardBoardContext(cardId);
+  const [result] = await db
     .delete(cardAssignees)
     .where(and(eq(cardAssignees.cardId, cardId), eq(cardAssignees.userId, userId)))
-    .run();
+    .execute();
 
-  if (result.changes === 0) {
+  if (result.affectedRows === 0) {
     throw new ApiError(404, "Assignee not found");
   }
 
-  const card = getCardById(cardId);
+  const card = await getCardById(cardId);
   emitBoardEvent(boardId, { boardId, type: "card.assignee.updated", data: { cardId } });
   return card;
 }

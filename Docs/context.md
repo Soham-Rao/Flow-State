@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-03-27
+> Last updated: 2026-03-31
 
 ---
 
@@ -99,7 +99,7 @@ Think → Plan phase (use instructions.md for notes if needed)
 | O2 | Keyboard shortcuts | System-wide shortcuts for common actions (new card, search, navigate, etc.) |
 | O3 | Pomodoro timer | Configurable intervals (25/5, 90/10). Integrated per-card. Broadcasts "Focused" state |
 | O4 | Task time tracking | Log time spent on tasks. Timer history and stats |
-| O5 | Full-text search | Search across all cards, boards, descriptions. Powered by SQLite FTS5 |
+| O5 | Full-text search | Search across all cards, boards, descriptions. Powered by MySQL FULLTEXT (planned) |
 | O6 | Recurring tasks | Option to set tasks to auto-recreate on a schedule |
 | O7 | Task dependencies | Checkbox "Has prerequisites" → dropdown to select prerequisite cards (1 or more) |
 | O8 | Pin/Star | Pin boards & cards. Personal pins per user + admin global pins |
@@ -152,8 +152,8 @@ Think → Plan phase (use instructions.md for notes if needed)
 | Design System | modern ui + shadcn primitives | Backdrop-blur, semi-transparent, color-coded |
 | State Management | Zustand | Lightweight, no boilerplate |
 | Backend | Node.js + Express | Same language front-to-back |
-| Database | SQLite (via `better-sqlite3`) | WAL mode, single file, perfect for 5-20 users |
-| ORM | Drizzle ORM | Lightweight, type-safe, excellent SQLite support |
+| Database | MySQL 8.0 (via `mysql2/promise`) | Primary DB; schema managed via Drizzle migrations |
+| ORM | Drizzle ORM | Lightweight, type-safe, MySQL support via mysql2 |
 | Real-time | Socket.IO | Rooms per board, event-based |
 | Auth | JWT + bcryptjs | Stateless, simple, no native bcrypt build dependency |
 | File Storage | Local filesystem | `/uploads/{boardId}/{cardId}/` structure |
@@ -161,8 +161,7 @@ Think → Plan phase (use instructions.md for notes if needed)
 | Rich Text | TipTap (ProseMirror) | Slash command support, extensible |
 | Calendar | Custom built on `date-fns` | Full UI control for modern styling |
 | Email | Nodemailer (deferred) | No SMTP setup yet; in-app notifications first, email later |
-| Full-text Search | SQLite FTS5 | Built-in extension, fast |
-| Testing | Vitest (unit) + Supertest (API) + Playwright (E2E) | Industry standard for Vite projects |
+| Full-text Search | MySQL FULLTEXT (planned) | To be wired when search is implemented |`r`n| Testing | Vitest (unit) + Supertest (API) + Playwright (E2E) | Industry standard for Vite projects |
 
 ---
 
@@ -237,13 +236,9 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 ## 9. Deployment Considerations
 
-> **SQLite + Render Free Tier WARNING**: Render's free tier uses an ephemeral filesystem — the SQLite file gets wiped on every deploy/restart. Options:
-> 1. Use Render's paid tier with persistent disk (~$7/mo)
-> 2. Use **Turso** (SQLite-compatible cloud DB, free tier available) — drop-in replacement via `@libsql/client`
-> 3. Use **Hostgator** (traditional hosting with persistent filesystem) — SQLite works natively
-> 4. Use **Railway** or **Fly.io** which have persistent volumes on free/cheap tiers
->
-> **Recommendation**: Build with standard SQLite via `better-sqlite3` locally. When deploying, if on Render free tier, swap to Turso with minimal code changes (Drizzle ORM abstracts the connection). If on Hostgator, SQLite works as-is.
+> MySQL 8.0 is required. Use separate databases for dev/test/prod via MYSQL_URL.
+> Run db:migrate against prod during deploys; never point dev/test at prod.
+> Configure DB backups at the host level (daily + PITR if available).
 
 ### Deployment Architecture
 - **Single-service deployment**: Express serves both the API (`/api/*`) and the built React frontend (`/*` as static files).
@@ -291,8 +286,15 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 10.2: Personal workspace summary | ✅ Completed | 2026-03-27 | 2026-03-27 | My tasks, mentions, timers, assignments, unread summaries |
 | Phase 10.3: Team insights + summaries | ✅ Completed | 2026-03-27 | 2026-03-27 | Weekly/monthly summaries, activity highlights, new joiners, announcements |
 | Phase 10.4: Dashboard UI overhaul | ✅ Completed | 2026-03-27 | 2026-03-27 | Glassmorphism redesign, two-column layout, priority/alert styling, visual polish only |
-| Phase 10.5: Templates + pins + settings polish | ⬜ Not Started | — | — | Template gallery, pin/star UX, settings refinements |
+| Phase 10.5: Templates + pins + settings polish | 🟡 Deferred | 2026-03-30 | — | Deferred by request; revisit later (templates/polish + pins/templates gallery) |
 | Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
+| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Hosting checklist + hosting.md drafted; implementation pending |
+| Phase 12.0: Database Platform Switch | ✅ Completed | 2026-03-31 | 2026-03-31 | MySQL switch + Drizzle migrations + test infra |
+| Phase 12.1: Hosting + Deployment Setup | ⬜ Not Started | — | — | cPanel/Git/DNS/SSL/env + backups |
+| Phase 12.2: Security Hardening | ⬜ Not Started | — | — | sanitization, CORS, rate limits, reset, CSRF/CSP, audit logging |
+| Phase 12.3: Reliability + Observability | ⬜ Not Started | — | — | error boundaries, prod logging, alerts, rollback |
+| Phase 12.4: Data Durability + Performance | ⬜ Not Started | — | — | encryption, compression, atomic migrations, caching |
+| Phase 12.5: User-Facing Docs | ⬜ Not Started | — | — | onboarding/tutorials |
 
 ---
 
@@ -314,8 +316,8 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Monorepo tooling | Plain folders/workspaces | Simpler setup; user runs commands per workspace |
 | Frontend framework | React + Vite | Industry standard, fast, huge ecosystem |
 | UI library | shadcn/ui + Tailwind | User suggested, great primitives + customizable |
-| Database | SQLite | Perfect for 5-20 users, zero config, easy backup |
-| ORM | Drizzle | Lighter than Prisma, great SQLite support |
+| Database | MySQL 8.0 (via `mysql2/promise`) | Primary DB; schema managed via Drizzle migrations |
+| ORM | Drizzle | Lighter than Prisma, MySQL support via mysql2 |
 | Real-time | Socket.IO | Battle-tested, handles reconnection, rooms/namespaces |
 | Auth | JWT + bcryptjs | Simple, no native bcrypt addon dependency, Google OAuth later |
 | Drag & drop | @dnd-kit | Modern, accessible, react-beautiful-dnd deprecated |
@@ -338,6 +340,12 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 ## 13. Updates
 
 | Date | Update |
+| 2026-03-31 | Phase 12.0 completed: MySQL switch (mysql2 + Drizzle migrations), test DB reset speedups (truncate + single-worker Vitest), and user-run server tests passing. |
+| 2026-03-31 | Phase 12 planning updated: canonical domain flo-state.in (www redirect), added Phase 12.0 DB switch (MySQL, DDL-only), and expanded hosting plan sections in Docs/hosting.md. |
+| 2026-03-31 | Phase 12 planning: moved hosting plan to Docs/hosting.md, set domain to flo-state.in, and split Phase 12 into subphases (12.1–12.5). |
+| 2026-03-31 | Phase 12 started: production readiness checklist + hosting plan (hosting.md) drafted; no implementation changes yet. |
+| 2026-03-30 | Deferred Phase 10.5 templates/polish work by request; to be revisited later. |
+| 2026-03-30 | Settings templates implemented (panel/form/list/modal), a11y focus/hover polish across settings, and client tests run. |
 | 2026-03-27 | Phase 10.4 completed: dashboard visual overhaul with glassmorphism, two-column layout, priority bands, and alert styling; no backend changes. |
 | 2026-03-27 | Announcement audience roles now auto-complement between include/exclude with user overrides; compose/view modals scroll; home-page tests updated. |
 | 2026-03-27 | Announcements now fully wired: dashboard unread list + compose modal (subject/body + role/user audience targeting), permission gating, and mark-seen flow. |
@@ -381,6 +389,21 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |
 | 2026-03-12 | Phase 4.1 delivered: checklists data model + API, board card collapsible checklist previews with progress bars, card modal checklist CRUD, and new client/server checklist tests (user-run pending). |
 | 2026-03-13 | Phase 4.2 delivered: attachments (upload/download/delete), board-level retention settings (day/hour/min + mode toggle), retention-aware time-left labels, attachment cleanup on card deletion, and new attachments API test. User to run tests. |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

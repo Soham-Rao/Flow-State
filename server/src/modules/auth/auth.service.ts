@@ -62,27 +62,33 @@ function toPublicUser(user: {
 export async function registerUser(input: RegisterBody): Promise<AuthResponse> {
   const email = normalizeEmail(input.email);
   const inviteToken = input.inviteToken?.trim();
-  const invite = inviteToken ? validateInviteForRegistration(inviteToken, email) : null;
+  const invite = inviteToken ? await validateInviteForRegistration(inviteToken, email) : null;
 
-  const existing = db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1).get();
+  const existingRows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  const existing = existingRows[0];
 
   if (existing) {
     throw new ApiError(409, "Email is already in use");
   }
 
-  const [{ totalUsers }] = db
+  const totalRows = await db
     .select({ totalUsers: count(users.id) })
-    .from(users)
-    .all();
+    .from(users);
+  const totalUsers = totalRows[0]?.totalUsers ?? 0;
 
-  const { adminRoleId, memberRoleId, guestRoleId } = getSystemRoleIds();
+  const { adminRoleId, memberRoleId, guestRoleId } = await getSystemRoleIds();
   const roleIds = totalUsers === 0 ? [adminRoleId] : (invite?.roleIds ?? [guestRoleId]);
   const role: UserRole = roleIds.includes(adminRoleId) ? "admin" : roleIds.includes(memberRoleId) ? "member" : "guest";
   const passwordHash = await bcrypt.hash(input.password, 12);
   const now = new Date();
   const userId = crypto.randomUUID();
 
-  db.insert(users)
+  await db
+    .insert(users)
     .values({
       id: userId,
       name: input.name.trim(),
@@ -92,10 +98,11 @@ export async function registerUser(input: RegisterBody): Promise<AuthResponse> {
       createdAt: now,
       updatedAt: now
     })
-    .run();
-  setUserRoles(userId, roleIds);
+    .execute();
 
-  const created = db
+  await setUserRoles(userId, roleIds);
+
+  const createdRows = await db
     .select({
       id: users.id,
       name: users.name,
@@ -110,14 +117,16 @@ export async function registerUser(input: RegisterBody): Promise<AuthResponse> {
     })
     .from(users)
     .where(eq(users.id, userId))
-    .get();
+    .limit(1);
+
+  const created = createdRows[0];
 
   if (!created) {
     throw new ApiError(500, "Failed to create user");
   }
 
   if (invite) {
-    consumeInvite(invite.inviteId, userId);
+    await consumeInvite(invite.inviteId, userId);
   }
 
   const token = signAccessToken({
@@ -135,7 +144,7 @@ export async function registerUser(input: RegisterBody): Promise<AuthResponse> {
 export async function loginUser(input: LoginBody): Promise<AuthResponse> {
   const email = normalizeEmail(input.email);
 
-  const user = db
+  const userRows = await db
     .select({
       id: users.id,
       name: users.name,
@@ -151,8 +160,9 @@ export async function loginUser(input: LoginBody): Promise<AuthResponse> {
     })
     .from(users)
     .where(eq(users.email, email))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const user = userRows[0];
 
   if (!user) {
     throw new ApiError(401, "Invalid email or password");
@@ -176,8 +186,8 @@ export async function loginUser(input: LoginBody): Promise<AuthResponse> {
   };
 }
 
-export function getCurrentUser(userId: string): PublicUser {
-  const user = db
+export async function getCurrentUser(userId: string): Promise<PublicUser> {
+  const userRows = await db
     .select({
       id: users.id,
       name: users.name,
@@ -192,8 +202,9 @@ export function getCurrentUser(userId: string): PublicUser {
     })
     .from(users)
     .where(eq(users.id, userId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const user = userRows[0];
 
   if (!user) {
     throw new ApiError(404, "User not found");
@@ -202,7 +213,7 @@ export function getCurrentUser(userId: string): PublicUser {
   return toPublicUser(user);
 }
 
-export function updateProfile(userId: string, input: UpdateProfileBody): PublicUser {
+export async function updateProfile(userId: string, input: UpdateProfileBody): Promise<PublicUser> {
   const now = new Date();
   const updates: Partial<typeof users.$inferInsert> = {
     updatedAt: now
@@ -217,12 +228,13 @@ export function updateProfile(userId: string, input: UpdateProfileBody): PublicU
       updates.username = null;
     } else {
       const normalized = input.username.trim();
-      const existing = db
+      const existingRows = await db
         .select({ id: users.id })
         .from(users)
         .where(and(eq(users.username, normalized), ne(users.id, userId)))
-        .limit(1)
-        .get();
+        .limit(1);
+
+      const existing = existingRows[0];
 
       if (existing) {
         throw new ApiError(409, "Username is already in use");
@@ -248,12 +260,9 @@ export function updateProfile(userId: string, input: UpdateProfileBody): PublicU
     updates.dateOfBirth = input.dateOfBirth;
   }
 
-  db.update(users)
-    .set(updates)
-    .where(eq(users.id, userId))
-    .run();
+  await db.update(users).set(updates).where(eq(users.id, userId)).execute();
 
-  const user = db
+  const userRows = await db
     .select({
       id: users.id,
       name: users.name,
@@ -268,8 +277,9 @@ export function updateProfile(userId: string, input: UpdateProfileBody): PublicU
     })
     .from(users)
     .where(eq(users.id, userId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const user = userRows[0];
 
   if (!user) {
     throw new ApiError(404, "User not found");
@@ -277,12 +287,3 @@ export function updateProfile(userId: string, input: UpdateProfileBody): PublicU
 
   return toPublicUser(user);
 }
-
-
-
-
-
-
-
-
-

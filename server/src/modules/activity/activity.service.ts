@@ -87,7 +87,7 @@ function mapActivityRow(row: {
   };
 }
 
-export function createActivityLog(input: {
+export async function createActivityLog(input: {
   type: string;
   actorId: string;
   boardId?: string | null;
@@ -98,11 +98,11 @@ export function createActivityLog(input: {
   threadReplyId?: string | null;
   mentionedUserId?: string | null;
   metadata?: Record<string, unknown> | null;
-}): ActivityLogEntry {
+}): Promise<ActivityLogEntry> {
   const now = new Date();
   const id = crypto.randomUUID();
 
-  db.insert(activityLogs)
+  await db.insert(activityLogs)
     .values({
       id,
       type: input.type,
@@ -117,14 +117,14 @@ export function createActivityLog(input: {
       metadata: input.metadata ? JSON.stringify(input.metadata) : null,
       createdAt: now
     })
-    .run();
+    .execute();
 
   const cutoff = new Date(Date.now() - RETENTION_MS);
-  db.delete(activityLogs)
+  await db.delete(activityLogs)
     .where(lt(activityLogs.createdAt, cutoff))
-    .run();
+    .execute();
 
-  const row = db
+  const rows = await db
     .select({
       id: activityLogs.id,
       type: activityLogs.type,
@@ -147,7 +147,9 @@ export function createActivityLog(input: {
     .from(activityLogs)
     .innerJoin(users, eq(activityLogs.actorId, users.id))
     .where(eq(activityLogs.id, id))
-    .get();
+    .limit(1);
+
+  const row = rows[0];
 
   if (!row) {
     return {
@@ -176,7 +178,7 @@ export function createActivityLog(input: {
   return mapActivityRow(row);
 }
 
-export function recordActivity(input: {
+export async function recordActivity(input: {
   type: string;
   actorId: string;
   boardId?: string | null;
@@ -187,8 +189,8 @@ export function recordActivity(input: {
   threadReplyId?: string | null;
   mentionedUserId?: string | null;
   metadata?: Record<string, unknown> | null;
-}): ActivityLogEntry {
-  const entry = createActivityLog(input);
+}): Promise<ActivityLogEntry> {
+  const entry = await createActivityLog(input);
   emitActivityEvent({ ...entry, createdAt: entry.createdAt.toISOString() });
   if (entry.boardId) {
     emitBoardEvent(entry.boardId, { boardId: entry.boardId, type: "board.activity", data: { activityType: entry.type } });
@@ -196,9 +198,9 @@ export function recordActivity(input: {
   return entry;
 }
 
-export function listActivityLogs(params: { boardId?: string; limit?: number }): ActivityLogEntry[] {
+export async function listActivityLogs(params: { boardId?: string; limit?: number }): Promise<ActivityLogEntry[]> {
   const limit = params.limit ?? 50;
-  const query = db
+  const baseQuery = db
     .select({
       id: activityLogs.id,
       type: activityLogs.type,
@@ -222,13 +224,9 @@ export function listActivityLogs(params: { boardId?: string; limit?: number }): 
     .innerJoin(users, eq(activityLogs.actorId, users.id))
     .orderBy(desc(activityLogs.createdAt))
     .limit(limit);
-
-  if (params.boardId) {
-    query.where(eq(activityLogs.boardId, params.boardId));
-  }
-
-  const rows = query.all();
+  const rows = await (params.boardId
+    ? baseQuery.where(eq(activityLogs.boardId, params.boardId))
+    : baseQuery);
   return rows.map(mapActivityRow);
 }
-
 

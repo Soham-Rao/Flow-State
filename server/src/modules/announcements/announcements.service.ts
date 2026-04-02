@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
-import { db } from "../../db/connection.js";
+import { db, type DbTransaction } from "../../db/connection.js";
 import {
   announcementRecipients,
   announcements,
@@ -34,41 +34,38 @@ export interface AnnouncementDetail {
 
 const normalizeIds = (values: string[]): string[] => Array.from(new Set(values.filter(Boolean)));
 
-function ensureRolesExist(roleIds: string[]): void {
+async function ensureRolesExist(roleIds: string[]): Promise<void> {
   if (roleIds.length === 0) return;
-  const rows = db
+  const rows: Array<{ id: string }> = await db
     .select({ id: roles.id })
     .from(roles)
-    .where(inArray(roles.id, roleIds))
-    .all();
+    .where(inArray(roles.id, roleIds));
   if (rows.length !== roleIds.length) {
     throw new ApiError(400, "One or more roles are invalid");
   }
 }
 
-function ensureUsersExist(userIds: string[]): void {
+async function ensureUsersExist(userIds: string[]): Promise<void> {
   if (userIds.length === 0) return;
-  const rows = db
+  const rows: Array<{ id: string }> = await db
     .select({ id: users.id })
     .from(users)
-    .where(inArray(users.id, userIds))
-    .all();
+    .where(inArray(users.id, userIds));
   if (rows.length !== userIds.length) {
     throw new ApiError(400, "One or more users are invalid");
   }
 }
 
-function getUserIdsForRoles(roleIds: string[]): string[] {
+async function getUserIdsForRoles(roleIds: string[]): Promise<string[]> {
   if (roleIds.length === 0) return [];
-  const rows = db
+  const rows: Array<{ userId: string }> = await db
     .select({ userId: userRoleAssignments.userId })
     .from(userRoleAssignments)
-    .where(inArray(userRoleAssignments.roleId, roleIds))
-    .all();
+    .where(inArray(userRoleAssignments.roleId, roleIds));
   return rows.map((row) => row.userId);
 }
 
-function resolveRecipients(audience: AnnouncementAudienceInput): string[] {
+async function resolveRecipients(audience: AnnouncementAudienceInput): Promise<string[]> {
   const sendToAll = Boolean(audience.sendToAll);
   const includeRoleIds = normalizeIds(audience.includeRoleIds ?? []);
   const excludeRoleIds = normalizeIds(audience.excludeRoleIds ?? []);
@@ -79,20 +76,20 @@ function resolveRecipients(audience: AnnouncementAudienceInput): string[] {
     throw new ApiError(400, "Select at least one audience option");
   }
 
-  ensureRolesExist([...includeRoleIds, ...excludeRoleIds]);
-  ensureUsersExist([...includeUserIds, ...excludeUserIds]);
+  await ensureRolesExist([...includeRoleIds, ...excludeRoleIds]);
+  await ensureUsersExist([...includeUserIds, ...excludeUserIds]);
 
   const recipients = new Set<string>();
 
   if (sendToAll) {
-    const allUsers = db.select({ id: users.id }).from(users).all();
+    const allUsers: Array<{ id: string }> = await db.select({ id: users.id }).from(users);
     allUsers.forEach((user) => recipients.add(user.id));
   } else {
-    getUserIdsForRoles(includeRoleIds).forEach((id) => recipients.add(id));
+    (await getUserIdsForRoles(includeRoleIds)).forEach((id) => recipients.add(id));
   }
 
   if (excludeRoleIds.length > 0) {
-    getUserIdsForRoles(excludeRoleIds).forEach((id) => recipients.delete(id));
+    (await getUserIdsForRoles(excludeRoleIds)).forEach((id) => recipients.delete(id));
   }
 
   includeUserIds.forEach((id) => recipients.add(id));
@@ -116,30 +113,28 @@ function serializeAudience(audience: AnnouncementAudienceInput): string {
   return JSON.stringify(normalized);
 }
 
-export function listAnnouncementAudienceOptions(actorId: string): AnnouncementAudienceOptions {
-  assertPermission(actorId, "send_announcements");
-  const rolesList = db
+export async function listAnnouncementAudienceOptions(actorId: string): Promise<AnnouncementAudienceOptions> {
+  await assertPermission(actorId, "send_announcements");
+  const rolesList = await db
     .select({ id: roles.id, name: roles.name, color: roles.color })
     .from(roles)
-    .orderBy(desc(roles.priority), roles.name)
-    .all();
-  const usersList = db
+    .orderBy(desc(roles.priority), roles.name);
+  const usersList = await db
     .select({ id: users.id, name: users.name, displayName: users.displayName, username: users.username, email: users.email, role: users.role })
     .from(users)
-    .orderBy(desc(users.createdAt))
-    .all();
+    .orderBy(desc(users.createdAt));
   return { roles: rolesList, users: usersList };
 }
 
-export function createAnnouncement(input: CreateAnnouncementInput, actorId: string): AnnouncementDetail {
-  assertPermission(actorId, "send_announcements");
+export async function createAnnouncement(input: CreateAnnouncementInput, actorId: string): Promise<AnnouncementDetail> {
+  await assertPermission(actorId, "send_announcements");
 
-  const recipients = resolveRecipients(input.audience);
+  const recipients = await resolveRecipients(input.audience);
   const announcementId = crypto.randomUUID();
   const now = new Date();
 
-  db.transaction((tx) => {
-    tx.insert(announcements)
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.insert(announcements)
       .values({
         id: announcementId,
         subject: input.subject.trim(),
@@ -148,18 +143,20 @@ export function createAnnouncement(input: CreateAnnouncementInput, actorId: stri
         createdBy: actorId,
         createdAt: now
       })
-      .run();
+      .execute();
 
-    tx.insert(announcementRecipients)
+    await tx.insert(announcementRecipients)
       .values(recipients.map((userId) => ({ announcementId, userId, createdAt: now })))
-      .run();
+      .execute();
   });
 
-  const author = db
+  const authorRows = await db
     .select({ id: users.id, name: users.name, displayName: users.displayName, email: users.email })
     .from(users)
     .where(eq(users.id, actorId))
-    .get();
+    .limit(1);
+
+  const author = authorRows[0];
 
   return {
     id: announcementId,
@@ -175,8 +172,17 @@ export function createAnnouncement(input: CreateAnnouncementInput, actorId: stri
   };
 }
 
-export function listUnreadAnnouncements(userId: string): AnnouncementDetail[] {
-  const rows = db
+export async function listUnreadAnnouncements(userId: string): Promise<AnnouncementDetail[]> {
+  const rows: Array<{
+      announcementId: string;
+      subject: string;
+      body: string;
+      createdAt: Date | number;
+      authorId: string;
+      authorName: string;
+      authorDisplayName: string | null;
+      authorEmail: string;
+    }> = await db
     .select({
       announcementId: announcements.id,
       subject: announcements.subject,
@@ -192,8 +198,7 @@ export function listUnreadAnnouncements(userId: string): AnnouncementDetail[] {
     .innerJoin(users, eq(announcements.createdBy, users.id))
     .where(and(eq(announcementRecipients.userId, userId), isNull(announcementRecipients.seenAt)))
     .orderBy(desc(announcements.createdAt))
-    .limit(30)
-    .all();
+    .limit(30);
 
   return rows.map((row) => ({
     id: row.announcementId,
@@ -209,11 +214,11 @@ export function listUnreadAnnouncements(userId: string): AnnouncementDetail[] {
   }));
 }
 
-export function markAnnouncementsSeen(userId: string, ids: string[]): void {
+export async function markAnnouncementsSeen(userId: string, ids: string[]): Promise<void> {
   const normalized = normalizeIds(ids);
   if (normalized.length === 0) return;
 
-  db.update(announcementRecipients)
+  await db.update(announcementRecipients)
     .set({ seenAt: new Date() })
     .where(
       and(
@@ -222,12 +227,12 @@ export function markAnnouncementsSeen(userId: string, ids: string[]): void {
         isNull(announcementRecipients.seenAt)
       )
     )
-    .run();
+    .execute();
 }
 
-export function canSendAnnouncements(userId: string): boolean {
+export async function canSendAnnouncements(userId: string): Promise<boolean> {
   try {
-    assertPermission(userId, "send_announcements");
+    await assertPermission(userId, "send_announcements");
     return true;
   } catch {
     return false;

@@ -10,19 +10,18 @@ import { userHasPermission } from "../../utils/permissions.js";
 import type { CreateCommentInput } from "./boards.schema.js";
 import type { BoardComment, BoardMember, CommentReaction, CommentRow } from "./boards.service.types.js";
 
-export function getCommentReactionsForComments(commentIds: string[]): Map<string, CommentReaction[]> {
+export async function getCommentReactionsForComments(commentIds: string[]): Promise<Map<string, CommentReaction[]>> {
   if (commentIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows = await db
     .select({
       commentId: commentReactions.commentId,
       emoji: commentReactions.emoji
     })
     .from(commentReactions)
-    .where(inArray(commentReactions.commentId, commentIds))
-    .all() as Array<{ commentId: string; emoji: string }>;
+    .where(inArray(commentReactions.commentId, commentIds));
 
   const countsByCommentId = new Map<string, Map<string, number>>();
   for (const row of rows) {
@@ -40,12 +39,12 @@ export function getCommentReactionsForComments(commentIds: string[]): Map<string
   return reactionsByCommentId;
 }
 
-export function getCommentMentionsForComments(commentIds: string[]): Map<string, BoardMember[]> {
+export async function getCommentMentionsForComments(commentIds: string[]): Promise<Map<string, BoardMember[]>> {
   if (commentIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows = await db
     .select({
       commentId: commentMentions.commentId,
       id: users.id,
@@ -58,8 +57,7 @@ export function getCommentMentionsForComments(commentIds: string[]): Map<string,
     })
     .from(commentMentions)
     .innerJoin(users, eq(commentMentions.userId, users.id))
-    .where(inArray(commentMentions.commentId, commentIds))
-    .all();
+    .where(inArray(commentMentions.commentId, commentIds));
 
   const mentionsByCommentId = new Map<string, BoardMember[]>();
   for (const row of rows) {
@@ -79,10 +77,10 @@ export function getCommentMentionsForComments(commentIds: string[]): Map<string,
   return mentionsByCommentId;
 }
 
-export function attachCommentRelations(rows: CommentRow[]): BoardComment[] {
+export async function attachCommentRelations(rows: CommentRow[]): Promise<BoardComment[]> {
   const commentIds = rows.map((row) => row.id);
-  const reactionsByCommentId = getCommentReactionsForComments(commentIds);
-  const mentionsByCommentId = getCommentMentionsForComments(commentIds);
+  const reactionsByCommentId = await getCommentReactionsForComments(commentIds);
+  const mentionsByCommentId = await getCommentMentionsForComments(commentIds);
 
   return rows.map((row) => ({
     id: row.id,
@@ -106,8 +104,8 @@ export function attachCommentRelations(rows: CommentRow[]): BoardComment[] {
   }));
 }
 
-export function getCommentsForBoard(boardId: string): BoardComment[] {
-  const rows = db
+export async function getCommentsForBoard(boardId: string): Promise<BoardComment[]> {
+  const rows = await db
     .select({
       id: comments.id,
       boardId: comments.boardId,
@@ -127,18 +125,17 @@ export function getCommentsForBoard(boardId: string): BoardComment[] {
     .from(comments)
     .innerJoin(users, eq(comments.authorId, users.id))
     .where(and(eq(comments.boardId, boardId), isNull(comments.listId), isNull(comments.cardId)))
-    .orderBy(asc(comments.createdAt))
-    .all() as CommentRow[];
+    .orderBy(asc(comments.createdAt));
 
-  return attachCommentRelations(rows);
+  return attachCommentRelations(rows as CommentRow[]);
 }
 
-export function getCommentsForLists(listIds: string[]): Map<string, BoardComment[]> {
+export async function getCommentsForLists(listIds: string[]): Promise<Map<string, BoardComment[]>> {
   if (listIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows = await db
     .select({
       id: comments.id,
       boardId: comments.boardId,
@@ -158,11 +155,10 @@ export function getCommentsForLists(listIds: string[]): Map<string, BoardComment
     .from(comments)
     .innerJoin(users, eq(comments.authorId, users.id))
     .where(and(inArray(comments.listId, listIds), isNull(comments.cardId)))
-    .orderBy(asc(comments.createdAt))
-    .all() as CommentRow[];
+    .orderBy(asc(comments.createdAt));
 
   const commentsByListId = new Map<string, BoardComment[]>();
-  for (const comment of attachCommentRelations(rows)) {
+  for (const comment of await attachCommentRelations(rows as CommentRow[])) {
     if (!comment.listId) continue;
     const list = commentsByListId.get(comment.listId) ?? [];
     list.push(comment);
@@ -172,12 +168,12 @@ export function getCommentsForLists(listIds: string[]): Map<string, BoardComment
   return commentsByListId;
 }
 
-export function getCommentsForCards(cardIds: string[]): Map<string, BoardComment[]> {
+export async function getCommentsForCards(cardIds: string[]): Promise<Map<string, BoardComment[]>> {
   if (cardIds.length === 0) {
     return new Map();
   }
 
-  const rows = db
+  const rows = await db
     .select({
       id: comments.id,
       boardId: comments.boardId,
@@ -197,11 +193,10 @@ export function getCommentsForCards(cardIds: string[]): Map<string, BoardComment
     .from(comments)
     .innerJoin(users, eq(comments.authorId, users.id))
     .where(inArray(comments.cardId, cardIds))
-    .orderBy(asc(comments.createdAt))
-    .all() as CommentRow[];
+    .orderBy(asc(comments.createdAt));
 
   const commentsByCardId = new Map<string, BoardComment[]>();
-  for (const comment of attachCommentRelations(rows)) {
+  for (const comment of await attachCommentRelations(rows as CommentRow[])) {
     if (!comment.cardId) continue;
     const list = commentsByCardId.get(comment.cardId) ?? [];
     list.push(comment);
@@ -211,8 +206,8 @@ export function getCommentsForCards(cardIds: string[]): Map<string, BoardComment
   return commentsByCardId;
 }
 
-export function getCommentById(commentId: string): BoardComment {
-  const rows = db
+export async function getCommentById(commentId: string): Promise<BoardComment> {
+  const rows = await db
     .select({
       id: comments.id,
       boardId: comments.boardId,
@@ -232,32 +227,30 @@ export function getCommentById(commentId: string): BoardComment {
     .from(comments)
     .innerJoin(users, eq(comments.authorId, users.id))
     .where(eq(comments.id, commentId))
-    .limit(1)
-    .all() as CommentRow[];
+    .limit(1);
 
   if (rows.length === 0) {
     throw new ApiError(404, "Comment not found");
   }
 
-  return attachCommentRelations(rows)[0];
+  return (await attachCommentRelations(rows as CommentRow[]))[0];
 }
 
-export function storeCommentMentions(
+export async function storeCommentMentions(
   commentId: string,
   mentions: string[] | undefined,
   authorId: string,
   boardId: string
-): string[] {
+): Promise<string[]> {
   if (!mentions || mentions.length === 0) {
     return [];
   }
 
   const uniqueMentions = Array.from(new Set(mentions)).filter((mentionId) => mentionId !== authorId);
-  const existingUsers = db
+  const existingUsers = await db
     .select({ id: users.id })
     .from(users)
-    .where(inArray(users.id, uniqueMentions))
-    .all();
+    .where(inArray(users.id, uniqueMentions));
 
   if (uniqueMentions.length === 0) {
     return [];
@@ -267,38 +260,40 @@ export function storeCommentMentions(
     return [];
   }
 
-  const allowedUsers = existingUsers
-    .map((user) => user.id)
-    .filter((userId) => userHasPermission(userId, "view_boards", { scopeType: "board", scopeId: boardId }));
+  const allowedUsers: string[] = [];
+  for (const user of existingUsers) {
+    if (await userHasPermission(user.id, "view_boards", { scopeType: "board", scopeId: boardId })) {
+      allowedUsers.push(user.id);
+    }
+  }
 
   if (allowedUsers.length === 0) {
     return [];
   }
 
-  db.insert(commentMentions)
+  await db.insert(commentMentions)
     .values(allowedUsers.map((userId) => ({
       commentId,
       userId,
       createdAt: new Date(),
       seenAt: null
     })))
-    .run();
+    .execute();
 
   return allowedUsers;
 }
 
-
-export function createCommentRecord(params: {
+export async function createCommentRecord(params: {
   boardId: string;
   listId: string | null;
   cardId: string | null;
   input: CreateCommentInput;
   authorId: string;
-}): BoardComment {
+}): Promise<BoardComment> {
   const now = new Date();
   const commentId = crypto.randomUUID();
 
-  db.insert(comments)
+  await db.insert(comments)
     .values({
       id: commentId,
       boardId: params.boardId,
@@ -309,12 +304,12 @@ export function createCommentRecord(params: {
       createdAt: now,
       updatedAt: now
     })
-    .run();
+    .execute();
 
-  const mentionIds = storeCommentMentions(commentId, params.input.mentions, params.authorId, params.boardId);
+  const mentionIds = await storeCommentMentions(commentId, params.input.mentions, params.authorId, params.boardId);
   const snippet = params.input.body.trim().slice(0, 140);
 
-  recordActivity({
+  await recordActivity({
     type: "comment.created",
     actorId: params.authorId,
     boardId: params.boardId,
@@ -326,8 +321,8 @@ export function createCommentRecord(params: {
     }
   });
 
-  mentionIds.forEach((mentionedUserId) => {
-    recordActivity({
+  for (const mentionedUserId of mentionIds) {
+    await recordActivity({
       type: "mention.board",
       actorId: params.authorId,
       boardId: params.boardId,
@@ -339,8 +334,7 @@ export function createCommentRecord(params: {
         snippet
       }
     });
-  });
+  }
 
   return getCommentById(commentId);
 }
-

@@ -17,77 +17,77 @@ export const mentionsRouter = Router();
 
 mentionsRouter.use(requireAuth);
 
-mentionsRouter.get("/unread", (req, res, next) => {
+mentionsRouter.get("/unread", async (req, res, next) => {
   try {
-    const data = getUnreadMentions(req.auth!.userId);
+    const data = await getUnreadMentions(req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-mentionsRouter.get("/comments/unread", (req, res, next) => {
+mentionsRouter.get("/comments/unread", async (req, res, next) => {
   try {
-    const data = listUnreadCommentMentions(req.auth!.userId);
+    const data = await listUnreadCommentMentions(req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-mentionsRouter.get("/threads/unread", (req, res, next) => {
+mentionsRouter.get("/threads/unread", async (req, res, next) => {
   try {
-    const data = listUnreadThreadMentions(req.auth!.userId);
+    const data = await listUnreadThreadMentions(req.auth!.userId);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
 });
 
-mentionsRouter.post("/comments/seen", (req, res, next) => {
+mentionsRouter.post("/comments/seen", async (req, res, next) => {
   try {
     const body = markCommentMentionsSchema.parse(req.body ?? {});
-    markCommentMentionsSeen(req.auth!.userId, body.commentIds);
+    await markCommentMentionsSeen(req.auth!.userId, body.commentIds);
     res.status(200).json({ success: true, data: { message: "Comment mentions marked as seen" } });
   } catch (error) {
     next(error);
   }
 });
 
-mentionsRouter.post("/threads/seen", (req, res, next) => {
+mentionsRouter.post("/threads/seen", async (req, res, next) => {
   try {
     const body = markThreadMentionsSchema.parse(req.body ?? {});
-    markThreadMentionsSeen(req.auth!.userId, body.conversationId);
+    await markThreadMentionsSeen(req.auth!.userId, body.conversationId);
     res.status(200).json({ success: true, data: { message: "Thread mentions marked as seen" } });
   } catch (error) {
     next(error);
   }
 });
 
-mentionsRouter.post("/threads/messages/seen", (req, res, next) => {
+mentionsRouter.post("/threads/messages/seen", async (req, res, next) => {
   try {
     const body = markThreadMessageMentionsSchema.parse(req.body ?? {});
-    markThreadMessageMentionsSeen(req.auth!.userId, body.messageIds);
+    await markThreadMessageMentionsSeen(req.auth!.userId, body.messageIds);
     res.status(200).json({ success: true, data: { message: "Thread message mentions marked as seen" } });
   } catch (error) {
     next(error);
   }
 });
 
-mentionsRouter.post("/threads/replies/seen", (req, res, next) => {
+mentionsRouter.post("/threads/replies/seen", async (req, res, next) => {
   try {
     const body = markThreadReplyMentionsSchema.parse(req.body ?? {});
-    markThreadReplyMentionsSeen(req.auth!.userId, body.messageId);
+    await markThreadReplyMentionsSeen(req.auth!.userId, body.messageId);
     res.status(200).json({ success: true, data: { message: "Thread reply mentions marked as seen" } });
   } catch (error) {
     next(error);
   }
 });
 
-mentionsRouter.post("/threads/replies/seen-by-id", (req, res, next) => {
+mentionsRouter.post("/threads/replies/seen-by-id", async (req, res, next) => {
   try {
     const body = markThreadReplyMentionIdsSchema.parse(req.body ?? {});
-    markThreadReplyMentionIdsSeen(req.auth!.userId, body.replyIds);
+    await markThreadReplyMentionIdsSeen(req.auth!.userId, body.replyIds);
     res.status(200).json({ success: true, data: { message: "Thread reply mentions marked as seen" } });
   } catch (error) {
     next(error);

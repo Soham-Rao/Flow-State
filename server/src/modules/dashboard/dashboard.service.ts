@@ -26,7 +26,6 @@ export interface DashboardCardSummary {
   createdAt: Date;
 }
 
-
 export interface DashboardActivityHighlight {
   boardId: string;
   boardName: string;
@@ -53,8 +52,8 @@ export interface DashboardMetricsSummary {
 export interface DashboardSummary {
   assignedCards: DashboardCardSummary[];
   createdCards: DashboardCardSummary[];
-  boardMentions: ReturnType<typeof listUnreadCommentMentions>;
-  threadMentions: ReturnType<typeof listUnreadThreadMentions>;
+  boardMentions: Awaited<ReturnType<typeof listUnreadCommentMentions>>;
+  threadMentions: Awaited<ReturnType<typeof listUnreadThreadMentions>>;
   announcements: AnnouncementDetail[];
   activityHighlights: DashboardActivityHighlight[];
   newJoiners: DashboardNewJoiner[];
@@ -64,11 +63,12 @@ export interface DashboardSummary {
   };
 }
 
-function getAccessibleBoardIds(userId: string, boardIds: string[]): string[] {
+async function getAccessibleBoardIds(userId: string, boardIds: string[]): Promise<string[]> {
   if (boardIds.length === 0) return [];
-  return boardIds.filter((boardId) =>
-    userHasPermission(userId, "view_boards", { scopeType: "board", scopeId: boardId })
-  );
+  const results = await Promise.all(boardIds.map(async (boardId) => (
+    await userHasPermission(userId, "view_boards", { scopeType: "board", scopeId: boardId })
+  )));
+  return boardIds.filter((_, index) => results[index]);
 }
 
 function mapCardRows(rows: Array<{
@@ -95,9 +95,9 @@ function mapCardRows(rows: Array<{
   }));
 }
 
-function listAssignedCards(userId: string, accessibleBoardIds: string[]): DashboardCardSummary[] {
+async function listAssignedCards(userId: string, accessibleBoardIds: string[]): Promise<DashboardCardSummary[]> {
   if (accessibleBoardIds.length === 0) return [];
-  const rows = db
+  const rows = await db
     .select({
       id: cards.id,
       title: cards.title,
@@ -120,15 +120,14 @@ function listAssignedCards(userId: string, accessibleBoardIds: string[]): Dashbo
         ne(lists.isDoneList, true)
       )
     )
-    .orderBy(desc(cards.createdAt))
-    .all();
+    .orderBy(desc(cards.createdAt));
 
   return mapCardRows(rows);
 }
 
-function listCreatedCards(userId: string, accessibleBoardIds: string[]): DashboardCardSummary[] {
+async function listCreatedCards(userId: string, accessibleBoardIds: string[]): Promise<DashboardCardSummary[]> {
   if (accessibleBoardIds.length === 0) return [];
-  const rows = db
+  const rows = await db
     .select({
       id: cards.id,
       title: cards.title,
@@ -151,13 +150,12 @@ function listCreatedCards(userId: string, accessibleBoardIds: string[]): Dashboa
         ne(lists.isDoneList, true)
       )
     )
-    .orderBy(desc(cards.createdAt))
-    .all();
+    .orderBy(desc(cards.createdAt));
 
   return mapCardRows(rows);
 }
 
-function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): DashboardMetricsSummary {
+async function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): Promise<DashboardMetricsSummary> {
   if (accessibleBoardIds.length === 0) {
     return {
       cardsCompleted: 0,
@@ -169,7 +167,7 @@ function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): Dash
     };
   }
 
-  const cardsCompleted = db
+  const cardsCompletedRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(cards)
     .innerJoin(lists, eq(cards.listId, lists.id))
@@ -179,10 +177,9 @@ function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): Dash
         inArray(boards.id, accessibleBoardIds),
         gte(cards.doneEnteredAt, startDate)
       )
-    )
-    .get();
+    );
 
-  const cardsArchived = db
+  const cardsArchivedRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(cards)
     .innerJoin(lists, eq(cards.listId, lists.id))
@@ -192,10 +189,9 @@ function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): Dash
         inArray(boards.id, accessibleBoardIds),
         gte(cards.archivedAt, startDate)
       )
-    )
-    .get();
+    );
 
-  const cardsDeleted = db
+  const cardsDeletedRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(activityLogs)
     .where(
@@ -204,10 +200,9 @@ function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): Dash
         eq(activityLogs.type, "card.deleted"),
         gte(activityLogs.createdAt, startDate)
       )
-    )
-    .get();
+    );
 
-  const newCards = db
+  const newCardsRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(cards)
     .innerJoin(lists, eq(cards.listId, lists.id))
@@ -217,10 +212,9 @@ function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): Dash
         inArray(boards.id, accessibleBoardIds),
         gte(cards.createdAt, startDate)
       )
-    )
-    .get();
+    );
 
-  const newLists = db
+  const newListsRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(lists)
     .innerJoin(boards, eq(lists.boardId, boards.id))
@@ -229,10 +223,9 @@ function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): Dash
         inArray(boards.id, accessibleBoardIds),
         gte(lists.createdAt, startDate)
       )
-    )
-    .get();
+    );
 
-  const newBoards = db
+  const newBoardsRows = await db
     .select({ count: sql<number>`count(*)` })
     .from(boards)
     .where(
@@ -240,28 +233,27 @@ function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): Dash
         inArray(boards.id, accessibleBoardIds),
         gte(boards.createdAt, startDate)
       )
-    )
-    .get();
+    );
 
   return {
-    cardsCompleted: cardsCompleted?.count ?? 0,
-    cardsArchived: cardsArchived?.count ?? 0,
-    cardsDeleted: cardsDeleted?.count ?? 0,
-    newCards: newCards?.count ?? 0,
-    newLists: newLists?.count ?? 0,
-    newBoards: newBoards?.count ?? 0
+    cardsCompleted: cardsCompletedRows[0]?.count ?? 0,
+    cardsArchived: cardsArchivedRows[0]?.count ?? 0,
+    cardsDeleted: cardsDeletedRows[0]?.count ?? 0,
+    newCards: newCardsRows[0]?.count ?? 0,
+    newLists: newListsRows[0]?.count ?? 0,
+    newBoards: newBoardsRows[0]?.count ?? 0
   };
 }
 
-export function getDashboardSummary(userId: string): DashboardSummary {
-  const boardsList = db.select({ id: boards.id }).from(boards).all();
-  const accessibleBoardIds = getAccessibleBoardIds(
+export async function getDashboardSummary(userId: string): Promise<DashboardSummary> {
+  const boardsList: Array<{ id: string }> = await db.select({ id: boards.id }).from(boards);
+  const accessibleBoardIds = await getAccessibleBoardIds(
     userId,
     boardsList.map((board) => board.id)
   );
 
-  const assignedCards = listAssignedCards(userId, accessibleBoardIds);
-  const createdCards = listCreatedCards(userId, accessibleBoardIds);
+  const assignedCards = await listAssignedCards(userId, accessibleBoardIds);
+  const createdCards = await listCreatedCards(userId, accessibleBoardIds);
 
   const now = new Date();
   const weeklyStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -269,7 +261,7 @@ export function getDashboardSummary(userId: string): DashboardSummary {
 
   const activityHighlights = accessibleBoardIds.length === 0
     ? []
-    : db
+    : await db
         .select({
           boardId: boards.id,
           boardName: boards.name,
@@ -285,10 +277,9 @@ export function getDashboardSummary(userId: string): DashboardSummary {
         )
         .groupBy(boards.id)
         .orderBy(desc(sql`count(*)`))
-        .limit(5)
-        .all();
+        .limit(5);
 
-  const newJoiners = db
+  const newJoiners = await db
     .select({
       id: users.id,
       name: users.name,
@@ -299,22 +290,19 @@ export function getDashboardSummary(userId: string): DashboardSummary {
     .from(users)
     .where(gte(users.createdAt, monthlyStart))
     .orderBy(desc(users.createdAt))
-    .limit(6)
-    .all();
+    .limit(6);
 
   return {
     assignedCards,
     createdCards,
-    boardMentions: listUnreadCommentMentions(userId),
-    threadMentions: listUnreadThreadMentions(userId),
+    boardMentions: await listUnreadCommentMentions(userId),
+    threadMentions: await listUnreadThreadMentions(userId),
     activityHighlights,
     newJoiners,
-    announcements: listUnreadAnnouncements(userId),
+    announcements: await listUnreadAnnouncements(userId),
     metrics: {
-      weekly: getMetricsForRange(accessibleBoardIds, weeklyStart),
-      monthly: getMetricsForRange(accessibleBoardIds, monthlyStart)
+      weekly: await getMetricsForRange(accessibleBoardIds, weeklyStart),
+      monthly: await getMetricsForRange(accessibleBoardIds, monthlyStart)
     }
   };
 }
-
-

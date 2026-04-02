@@ -1,15 +1,17 @@
 import request from "supertest";
+import type { Pool, RowDataPacket } from "mysql2/promise";
 
-const testDbRelative = "./data/flowstate.threads.test.db";
+const testDbUrl = "mysql://root:root@localhost:3306/flowstate_test";
 
 let app: import("express").Express;
-let initializeDatabase: () => void;
-let clearDatabaseForTests: () => void;
-let sqlite: typeof import("../src/db/connection.js").sqlite;
+let initializeDatabase: () => Promise<void>;
+let clearDatabaseForTests: () => Promise<void>;
+let closePool: () => Promise<void>;
+let pool: Pool;
 
 beforeAll(async () => {
   process.env.NODE_ENV = "test";
-  process.env.DATABASE_URL = testDbRelative;
+  process.env.MYSQL_URL = testDbUrl;
   process.env.JWT_SECRET = "test-secret-123456";
   process.env.JWT_EXPIRES_IN = "1h";
   process.env.CLIENT_ORIGIN = "http://localhost:5173";
@@ -22,13 +24,14 @@ beforeAll(async () => {
   app = appModule.app;
   initializeDatabase = dbInitModule.initializeDatabase;
   clearDatabaseForTests = dbInitModule.clearDatabaseForTests;
-  sqlite = dbModule.sqlite;
+  closePool = dbModule.closePool;
+  pool = dbModule.pool;
 
-  initializeDatabase();
+  await initializeDatabase();
 });
 
-beforeEach(() => {
-  clearDatabaseForTests();
+beforeEach(async () => {
+  await clearDatabaseForTests();
 });
 
 async function registerUser(name: string, email: string): Promise<{ token: string; id: string }> {
@@ -65,10 +68,11 @@ describe("Threads API", () => {
     expect(messageResponse.body.data.body).toBe("Hello there");
 
     const messageId = messageResponse.body.data.id as string;
-    const row = sqlite.prepare("SELECT body, body_encrypted FROM thread_messages WHERE id = ?").get(messageId) as {
-      body: string | null;
-      body_encrypted: string | null;
-    };
+    const [rows] = await pool.query<Array<RowDataPacket & { body: string | null; body_encrypted: string | null }>>(
+      "SELECT body, body_encrypted FROM thread_messages WHERE id = ?",
+      [messageId]
+    );
+    const row = rows[0];
 
     expect(row.body).toBeNull();
     expect(row.body_encrypted).toBeTruthy();
@@ -188,24 +192,27 @@ describe("Threads API", () => {
     expect(editResponse.status).toBe(200);
     expect(editResponse.body.data.body).toBe("Updated message");
 
-    const row = sqlite.prepare("SELECT body, body_encrypted FROM thread_messages WHERE id = ?").get(messageId) as {
-      body: string | null;
-      body_encrypted: string | null;
-    };
+    const [rows] = await pool.query<Array<RowDataPacket & { body: string | null; body_encrypted: string | null }>>(
+      "SELECT body, body_encrypted FROM thread_messages WHERE id = ?",
+      [messageId]
+    );
+    const row = rows[0];
 
     expect(row.body).toBeNull();
     expect(row.body_encrypted).toBeTruthy();
   });
 
-  
   it("allows channel overrides for users without global permission", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const guest = await registerUser("Guest", "guest@example.com");
 
-    const guestRole = sqlite.prepare("SELECT id FROM roles WHERE name = ?").get("Guest") as { id: string } | undefined;
+    const [guestRoles] = await pool.query<Array<RowDataPacket & { id: string }>>("SELECT id FROM roles WHERE name = ?", ["Guest"]);
+    const guestRole = guestRoles[0];
     if (guestRole) {
-      sqlite.prepare("DELETE FROM role_permissions WHERE role_id = ? AND permission IN (?, ?)")
-        .run(guestRole.id, "channel_read", "channel_write");
+      await pool.query(
+        "DELETE FROM role_permissions WHERE role_id = ? AND permission IN (?, ?)",
+        [guestRole.id, "channel_read", "channel_write"]
+      );
     }
 
     const createResponse = await request(app)
@@ -261,14 +268,19 @@ describe("Threads API", () => {
       });
 
     expect(blockedResponse.status).toBe(403);
-  });it("requires delete_threads permission for delete-for-all", async () => {
+  });
+
+  it("requires delete_threads permission for delete-for-all", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");
 
-    const memberRole = sqlite.prepare("SELECT id FROM roles WHERE name = ?").get("Member") as { id: string } | undefined;
+    const [memberRoles] = await pool.query<Array<RowDataPacket & { id: string }>>("SELECT id FROM roles WHERE name = ?", ["Member"]);
+    const memberRole = memberRoles[0];
     if (memberRole) {
-      sqlite.prepare("DELETE FROM role_permissions WHERE role_id = ? AND permission = ?")
-        .run(memberRole.id, "delete_threads");
+      await pool.query(
+        "DELETE FROM role_permissions WHERE role_id = ? AND permission = ?",
+        [memberRole.id, "delete_threads"]
+      );
     }
 
     const conversationResponse = await request(app)
@@ -317,8 +329,10 @@ describe("Threads API", () => {
 
     const messageId = messageResponse.body.data.id as string;
 
-    sqlite.prepare("UPDATE thread_members SET last_read_at = ? WHERE conversation_id = ? AND user_id = ?")
-      .run(Date.now(), conversationId, member.id);
+    await pool.query(
+      "UPDATE thread_members SET last_read_at = ? WHERE conversation_id = ? AND user_id = ?",
+      [new Date(), conversationId, member.id]
+    );
 
     const deleteResponse = await request(app)
       .delete(`/api/threads/messages/${messageId}`)
@@ -331,7 +345,7 @@ describe("Threads API", () => {
   });
 });
 
-afterAll(() => {
-  clearDatabaseForTests();
+afterAll(async () => {
+  await clearDatabaseForTests();
+  await closePool();
 });
-

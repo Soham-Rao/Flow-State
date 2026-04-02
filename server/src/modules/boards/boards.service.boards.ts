@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 
 import { and, asc, count, eq, isNotNull, isNull } from "drizzle-orm";
 
-import { db } from "../../db/connection.js";
+import { db, type DbTransaction } from "../../db/connection.js";
 import { recordActivity } from "../activity/activity.service.js";
 import { boards, cards, lists, type RetentionMode } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
@@ -10,6 +10,7 @@ import type {
   ArchivedListEntry,
   BoardCard,
   BoardDetail,
+  BoardList,
   BoardSummary,
   CardRecord
 } from "./boards.service.types.js";
@@ -22,8 +23,10 @@ import { getCommentsForBoard, getCommentsForLists } from "./boards.service.comme
 import { attachChecklistsToCards, getBoardSummaryById, getCardsForListIncludingArchived } from "./boards.service.cards-data.js";
 import type { CreateBoardInput, UpdateBoardInput } from "./boards.schema.js";
 
-export function getBoards(): BoardSummary[] {
-  const boardRows = db
+type ArchivedCardRow = CardRecord & { listName: string };
+
+export async function getBoards(): Promise<BoardSummary[]> {
+  const boardRows: Array<Omit<BoardSummary, "listCount">> = await db
     .select({
       id: boards.id,
       name: boards.name,
@@ -38,18 +41,16 @@ export function getBoards(): BoardSummary[] {
       updatedAt: boards.updatedAt
     })
     .from(boards)
-    .orderBy(asc(boards.name))
-    .all();
+    .orderBy(asc(boards.name));
 
-  const countRows = db
+  const countRows: Array<{ boardId: string; listCount: number }> = await db
     .select({
       boardId: lists.boardId,
       listCount: count(lists.id)
     })
     .from(lists)
     .where(isNull(lists.archivedAt))
-    .groupBy(lists.boardId)
-    .all();
+    .groupBy(lists.boardId);
 
   const countsByBoardId = new Map(countRows.map((row) => [row.boardId, row.listCount]));
 
@@ -59,8 +60,8 @@ export function getBoards(): BoardSummary[] {
   }));
 }
 
-export function getBoardById(boardId: string): BoardDetail {
-  const board = db
+export async function getBoardById(boardId: string): Promise<BoardDetail> {
+  const boardRows: Array<Omit<BoardSummary, "listCount">> = await db
     .select({
       id: boards.id,
       name: boards.name,
@@ -76,14 +77,15 @@ export function getBoardById(boardId: string): BoardDetail {
     })
     .from(boards)
     .where(eq(boards.id, boardId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const board = boardRows[0];
 
   if (!board) {
     throw new ApiError(404, "Board not found");
   }
 
-  const boardLists = db
+  const boardLists: Array<Omit<BoardList, "cards" | "comments">> = await db
     .select({
       id: lists.id,
       boardId: lists.boardId,
@@ -96,10 +98,9 @@ export function getBoardById(boardId: string): BoardDetail {
     })
     .from(lists)
     .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt)))
-    .orderBy(asc(lists.position), asc(lists.createdAt))
-    .all();
+    .orderBy(asc(lists.position), asc(lists.createdAt));
 
-  const boardCardRows = db
+  const boardCardRows: CardRecord[] = await db
     .select({
       id: cards.id,
       listId: cards.listId,
@@ -118,10 +119,9 @@ export function getBoardById(boardId: string): BoardDetail {
     .from(cards)
     .innerJoin(lists, eq(cards.listId, lists.id))
     .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt), isNull(cards.archivedAt)))
-    .orderBy(asc(cards.position), asc(cards.createdAt))
-    .all() as CardRecord[];
+    .orderBy(asc(cards.position), asc(cards.createdAt));
 
-  const boardCards = attachChecklistsToCards(boardCardRows);
+  const boardCards = await attachChecklistsToCards(boardCardRows as CardRecord[]);
 
   const cardsByListId = new Map<string, BoardCard[]>();
   for (const card of boardCards) {
@@ -130,8 +130,8 @@ export function getBoardById(boardId: string): BoardDetail {
     cardsByListId.set(card.listId, existing);
   }
 
-  const listCommentsByListId = getCommentsForLists(boardLists.map((list) => list.id));
-  const boardComments = getCommentsForBoard(boardId);
+  const listCommentsByListId = await getCommentsForLists(boardLists.map((list) => list.id));
+  const boardComments = await getCommentsForBoard(boardId);
 
   return {
     ...board,
@@ -140,16 +140,16 @@ export function getBoardById(boardId: string): BoardDetail {
       cards: cardsByListId.get(list.id) ?? [],
       comments: listCommentsByListId.get(list.id) ?? []
     })),
-    labels: getLabelsForBoard(boardId),
-    members: getBoardMembers(),
+    labels: await getLabelsForBoard(boardId),
+    members: await getBoardMembers(),
     comments: boardComments
   };
 }
 
-export function getArchivedLists(boardId: string): ArchivedListEntry[] {
-  assertBoardExists(boardId);
+export async function getArchivedLists(boardId: string): Promise<ArchivedListEntry[]> {
+  await assertBoardExists(boardId);
 
-  const archivedLists = db
+  const archivedLists: Array<{ id: string; boardId: string; name: string; archivedAt: Date | null }> = await db
     .select({
       id: lists.id,
       boardId: lists.boardId,
@@ -158,19 +158,21 @@ export function getArchivedLists(boardId: string): ArchivedListEntry[] {
     })
     .from(lists)
     .where(and(eq(lists.boardId, boardId), isNotNull(lists.archivedAt)))
-    .orderBy(asc(lists.archivedAt), asc(lists.createdAt))
-    .all();
+    .orderBy(asc(lists.archivedAt), asc(lists.createdAt));
 
-  const archivedListEntries: ArchivedListEntry[] = archivedLists.map((list) => ({
-    id: list.id,
-    sourceListId: list.id,
-    name: list.name,
-    archivedAt: list.archivedAt,
-    kind: "list",
-    cards: getCardsForListIncludingArchived(list.id)
-  }));
+  const archivedListEntries: ArchivedListEntry[] = [];
+  for (const list of archivedLists) {
+    archivedListEntries.push({
+      id: list.id,
+      sourceListId: list.id,
+      name: list.name,
+      archivedAt: list.archivedAt,
+      kind: "list",
+      cards: await getCardsForListIncludingArchived(list.id)
+    });
+  }
 
-  const archivedCardRows = db
+  const archivedCardRows: Array<ArchivedCardRow> = await db
     .select({
       id: cards.id,
       listId: cards.listId,
@@ -190,11 +192,12 @@ export function getArchivedLists(boardId: string): ArchivedListEntry[] {
     .from(cards)
     .innerJoin(lists, eq(cards.listId, lists.id))
     .where(and(eq(lists.boardId, boardId), isNull(lists.archivedAt), isNotNull(cards.archivedAt)))
-    .orderBy(asc(cards.archivedAt), asc(cards.createdAt))
-    .all() as Array<CardRecord & { listName: string }>;
+    .orderBy(asc(cards.archivedAt), asc(cards.createdAt));
 
   const listNameById = new Map(archivedCardRows.map((row) => [row.listId, row.listName]));
-  const archivedCards = attachChecklistsToCards(archivedCardRows.map(({ listName, ...card }) => card));
+  const archivedCards = await attachChecklistsToCards(
+    archivedCardRows.map(({ listName, ...card }) => card) as CardRecord[]
+  );
 
   const archivedCardsByListId = new Map<string, BoardCard[]>();
   for (const card of archivedCards) {
@@ -223,7 +226,7 @@ export function getArchivedLists(boardId: string): ArchivedListEntry[] {
   return [...archivedListEntries, ...archivedCardEntries];
 }
 
-export function createBoard(input: CreateBoardInput, userId: string): BoardDetail {
+export async function createBoard(input: CreateBoardInput, userId: string): Promise<BoardDetail> {
   const now = new Date();
   const boardId = crypto.randomUUID();
   const trimmedName = input.name.trim();
@@ -233,10 +236,10 @@ export function createBoard(input: CreateBoardInput, userId: string): BoardDetai
     input.archiveRetentionMinutes ?? DEFAULT_ARCHIVE_RETENTION_MINUTES
   );
 
-  assertBoardNameAvailable(trimmedName);
+  await assertBoardNameAvailable(trimmedName);
 
-  db.transaction((tx) => {
-    tx.insert(boards)
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.insert(boards)
       .values({
         id: boardId,
         name: trimmedName,
@@ -250,10 +253,10 @@ export function createBoard(input: CreateBoardInput, userId: string): BoardDetai
         createdAt: now,
         updatedAt: now
       })
-      .run();
+      .execute();
 
-    defaultLists.forEach((list, index) => {
-      tx.insert(lists)
+    for (const [index, list] of defaultLists.entries()) {
+      await tx.insert(lists)
         .values({
           id: crypto.randomUUID(),
           boardId,
@@ -264,11 +267,11 @@ export function createBoard(input: CreateBoardInput, userId: string): BoardDetai
           createdAt: now,
           updatedAt: now
         })
-        .run();
-    });
+        .execute();
+    }
   });
 
-  recordActivity({
+  await recordActivity({
     type: "board.created",
     actorId: userId,
     boardId,
@@ -278,9 +281,8 @@ export function createBoard(input: CreateBoardInput, userId: string): BoardDetai
   return getBoardById(boardId);
 }
 
-
-export function updateBoard(boardId: string, input: UpdateBoardInput, userId: string): BoardDetail {
-  assertBoardExists(boardId);
+export async function updateBoard(boardId: string, input: UpdateBoardInput, userId: string): Promise<BoardDetail> {
+  await assertBoardExists(boardId);
 
   const updatePayload: {
     name?: string;
@@ -296,7 +298,7 @@ export function updateBoard(boardId: string, input: UpdateBoardInput, userId: st
 
   if (input.name !== undefined) {
     const trimmed = input.name.trim();
-    assertBoardNameAvailable(trimmed, boardId);
+    await assertBoardNameAvailable(trimmed, boardId);
     updatePayload.name = trimmed;
   }
 
@@ -320,10 +322,10 @@ export function updateBoard(boardId: string, input: UpdateBoardInput, userId: st
     updatePayload.archiveRetentionMinutes = clampArchiveRetentionMinutes(input.archiveRetentionMinutes);
   }
 
-  db.update(boards).set(updatePayload).where(eq(boards.id, boardId)).run();
+  await db.update(boards).set(updatePayload).where(eq(boards.id, boardId)).execute();
 
-  const updated = getBoardById(boardId);
-  recordActivity({
+  const updated = await getBoardById(boardId);
+  await recordActivity({
     type: "board.updated",
     actorId: userId,
     boardId,
@@ -332,15 +334,15 @@ export function updateBoard(boardId: string, input: UpdateBoardInput, userId: st
   return updated;
 }
 
-export function deleteBoard(boardId: string, userId: string): void {
-  const board = getBoardRecord(boardId);
-  const result = db.delete(boards).where(eq(boards.id, boardId)).run();
+export async function deleteBoard(boardId: string, userId: string): Promise<void> {
+  const board = await getBoardRecord(boardId);
+  const [result] = await db.delete(boards).where(eq(boards.id, boardId)).execute();
 
-  if (result.changes === 0) {
+  if (result.affectedRows === 0) {
     throw new ApiError(404, "Board not found");
   }
 
-  recordActivity({
+  await recordActivity({
     type: "board.deleted",
     actorId: userId,
     boardId: null,
@@ -348,18 +350,18 @@ export function deleteBoard(boardId: string, userId: string): void {
   });
 }
 
-export function archiveBoard(boardId: string, userId: string): BoardSummary {
-  const board = getBoardRecord(boardId);
+export async function archiveBoard(boardId: string, userId: string): Promise<BoardSummary> {
+  const board = await getBoardRecord(boardId);
   if (board.archivedAt) {
     return getBoardSummaryById(boardId);
   }
 
-  db.update(boards)
+  await db.update(boards)
     .set({ archivedAt: new Date(), updatedAt: new Date() })
     .where(eq(boards.id, boardId))
-    .run();
+    .execute();
 
-  recordActivity({
+  await recordActivity({
     type: "board.archived",
     actorId: userId,
     boardId,
@@ -369,19 +371,18 @@ export function archiveBoard(boardId: string, userId: string): BoardSummary {
   return getBoardSummaryById(boardId);
 }
 
-
-export function restoreBoard(boardId: string, userId: string): BoardSummary {
-  const board = getBoardRecord(boardId);
+export async function restoreBoard(boardId: string, userId: string): Promise<BoardSummary> {
+  const board = await getBoardRecord(boardId);
   if (!board.archivedAt) {
     return getBoardSummaryById(boardId);
   }
 
-  db.update(boards)
+  await db.update(boards)
     .set({ archivedAt: null, updatedAt: new Date() })
     .where(eq(boards.id, boardId))
-    .run();
+    .execute();
 
-  recordActivity({
+  await recordActivity({
     type: "board.restored",
     actorId: userId,
     boardId,
@@ -390,6 +391,3 @@ export function restoreBoard(boardId: string, userId: string): BoardSummary {
 
   return getBoardSummaryById(boardId);
 }
-
-
-

@@ -4,6 +4,18 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["tests/**/*.test.ts"]
+    hookTimeout: 30000,
+    include: ["tests/**/*.test.ts"],
+    fileParallelism: false,
+    maxWorkers: 1,
+    minWorkers: 1,
+    poolOptions: {
+      threads: {
+        singleThread: true
+      }
+    }
   }
 });
+
+
+

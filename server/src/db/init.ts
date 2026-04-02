@@ -1,53 +1,83 @@
-import { sqlite } from "./connection.js";
-import { BASE_SCHEMA_SQL, CLEAR_TEST_DATA_SQL } from "./init-schema.js";
+import type { RowDataPacket } from "mysql2/promise";
+
+import { pool } from "./connection.js";
 import { ensureDefaultRoles, ensureInviteRoleAssignments, ensureUserRoleAssignments } from "./init-roles.js";
-import {
-  applySchemaMigrations,
-  ensureIndexes,
-  migrateInvitesForGuest,
-  migrateUsersForGuest,
-  repairLegacyForeignKeys,
-  tableAllowsGuest
-} from "./init-migrations.js";
+import { runMigrations } from "./migrate.js";
 
-export function initializeDatabase(): void {
-  sqlite.exec(BASE_SCHEMA_SQL);
+let migrationLock: Promise<void> = Promise.resolve();
 
-  if (!tableAllowsGuest("users")) {
-    migrateUsersForGuest();
-  }
-  if (!tableAllowsGuest("invites")) {
-    migrateInvitesForGuest();
-  }
-
-  applySchemaMigrations();
-
-  repairLegacyForeignKeys("users_old", "users");
-  repairLegacyForeignKeys("invites_old", "invites");
-  ensureIndexes();
-
-  const roleSeeds = ensureDefaultRoles();
-  ensureUserRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
-  ensureInviteRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
+async function withMigrationLock(task: () => Promise<void>): Promise<void> {
+  const run = migrationLock.then(task, task);
+  migrationLock = run.catch(() => {});
+  return run;
 }
 
-export function clearDatabaseForTests(): void {
-  sqlite.exec(CLEAR_TEST_DATA_SQL);
-
-  if (!tableAllowsGuest("users")) {
-    migrateUsersForGuest();
-  }
-  if (!tableAllowsGuest("invites")) {
-    migrateInvitesForGuest();
-  }
-
-  applySchemaMigrations();
-
-  repairLegacyForeignKeys("users_old", "users");
-  repairLegacyForeignKeys("invites_old", "invites");
-  ensureIndexes();
-
-  const roleSeeds = ensureDefaultRoles();
-  ensureUserRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
-  ensureInviteRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
+async function seedRoles(): Promise<void> {
+  const roleSeeds = await ensureDefaultRoles();
+  await ensureUserRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
+  await ensureInviteRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
 }
+
+async function dropAllTables(): Promise<void> {
+  const connection = await pool.getConnection();
+  try {
+    const [rows] = await connection.query<Array<RowDataPacket & { tableName: string }>>(
+      "SELECT table_name AS tableName FROM information_schema.tables WHERE table_schema = DATABASE()"
+    );
+    const tableNames = Array.isArray(rows) ? rows.map((row) => row.tableName) : [];
+    if (tableNames.length === 0) {
+      return;
+    }
+
+    await connection.query("SET FOREIGN_KEY_CHECKS = 0");
+    for (const tableName of tableNames) {
+      await connection.query(`DROP TABLE IF EXISTS \`${tableName}\``);
+    }
+    await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+  } finally {
+    connection.release();
+  }
+}
+
+export async function initializeDatabase(): Promise<void> {
+  if (process.env.NODE_ENV === "test") {
+    await clearDatabaseForTests();
+    return;
+  }
+
+  await withMigrationLock(async () => {
+    await runMigrations();
+    await seedRoles();
+  });
+}
+
+export async function clearDatabaseForTests(): Promise<void> {
+  await withMigrationLock(async () => {
+    const connection = await pool.getConnection();
+    try {
+      const [rows] = await connection.query<Array<RowDataPacket & { tableName: string }>>(
+        "SELECT table_name AS tableName FROM information_schema.tables WHERE table_schema = DATABASE()"
+      );
+      const tableNames = Array.isArray(rows) ? rows.map((row) => row.tableName) : [];
+      if (tableNames.length === 0) {
+        await runMigrations();
+        await seedRoles();
+        return;
+      }
+
+      await connection.query("SET FOREIGN_KEY_CHECKS = 0");
+      for (const tableName of tableNames) {
+        await connection.query(`TRUNCATE TABLE \`${tableName}\``);
+      }
+      await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+      await seedRoles();
+    } finally {
+      connection.release();
+    }
+  });
+}
+
+
+
+
+

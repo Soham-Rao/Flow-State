@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 
-import { db } from "../../db/connection.js";
+import { db, type DbTransaction } from "../../db/connection.js";
 import { emitBoardEvent } from "../../realtime/socket.js";
 import { commentMentions, commentReactions, comments } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
@@ -9,25 +9,25 @@ import type { BoardComment } from "./boards.service.types.js";
 import { assertBoardExists, assertCardExists, assertCommentExists, assertListExists, getCardBoardContext } from "./boards.service.lookups.js";
 import { createCommentRecord, getCommentById } from "./boards.service.comments-data.js";
 
-export function deleteComment(commentId: string, requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }): void {
-  const comment = assertCommentExists(commentId);
+export async function deleteComment(commentId: string, requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }): Promise<void> {
+  const comment = await assertCommentExists(commentId);
 
   const canDelete = requester.canDeleteAny || (requester.canDeleteOwn && comment.authorId === requester.userId);
   if (!canDelete) {
     throw new ApiError(403, "You can only delete comments you created");
   }
 
-  db.transaction((tx) => {
-    tx.delete(commentMentions).where(eq(commentMentions.commentId, commentId)).run();
-    tx.delete(commentReactions).where(eq(commentReactions.commentId, commentId)).run();
-    tx.delete(comments).where(eq(comments.id, commentId)).run();
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.delete(commentMentions).where(eq(commentMentions.commentId, commentId)).execute();
+    await tx.delete(commentReactions).where(eq(commentReactions.commentId, commentId)).execute();
+    await tx.delete(comments).where(eq(comments.id, commentId)).execute();
   });
 
   emitBoardEvent(comment.boardId, { boardId: comment.boardId, type: "comment.deleted", data: { commentId } });
 }
 
-export function createBoardComment(boardId: string, input: CreateCommentInput, authorId: string): BoardComment {
-  assertBoardExists(boardId);
+export async function createBoardComment(boardId: string, input: CreateCommentInput, authorId: string): Promise<BoardComment> {
+  await assertBoardExists(boardId);
 
   return createCommentRecord({
     boardId,
@@ -38,8 +38,8 @@ export function createBoardComment(boardId: string, input: CreateCommentInput, a
   });
 }
 
-export function createListComment(listId: string, input: CreateCommentInput, authorId: string): BoardComment {
-  const list = assertListExists(listId);
+export async function createListComment(listId: string, input: CreateCommentInput, authorId: string): Promise<BoardComment> {
+  const list = await assertListExists(listId);
 
   return createCommentRecord({
     boardId: list.boardId,
@@ -50,9 +50,9 @@ export function createListComment(listId: string, input: CreateCommentInput, aut
   });
 }
 
-export function createCardComment(cardId: string, input: CreateCommentInput, authorId: string): BoardComment {
-  assertCardExists(cardId);
-  const { boardId } = getCardBoardContext(cardId);
+export async function createCardComment(cardId: string, input: CreateCommentInput, authorId: string): Promise<BoardComment> {
+  await assertCardExists(cardId);
+  const { boardId } = await getCardBoardContext(cardId);
 
   return createCommentRecord({
     boardId,
@@ -63,10 +63,10 @@ export function createCardComment(cardId: string, input: CreateCommentInput, aut
   });
 }
 
-export function toggleCommentReaction(commentId: string, userId: string, input: CommentReactionInput): BoardComment {
-  assertCommentExists(commentId);
+export async function toggleCommentReaction(commentId: string, userId: string, input: CommentReactionInput): Promise<BoardComment> {
+  await assertCommentExists(commentId);
 
-  const existing = db
+  const existingRows = await db
     .select({ commentId: commentReactions.commentId })
     .from(commentReactions)
     .where(and(
@@ -74,29 +74,28 @@ export function toggleCommentReaction(commentId: string, userId: string, input: 
       eq(commentReactions.userId, userId),
       eq(commentReactions.emoji, input.emoji)
     ))
-    .limit(1)
-    .get();
+    .limit(1);
 
-  if (existing) {
-    db.delete(commentReactions)
+  if (existingRows[0]) {
+    await db.delete(commentReactions)
       .where(and(
         eq(commentReactions.commentId, commentId),
         eq(commentReactions.userId, userId),
         eq(commentReactions.emoji, input.emoji)
       ))
-      .run();
+      .execute();
   } else {
-    db.insert(commentReactions)
+    await db.insert(commentReactions)
       .values({
         commentId,
         userId,
         emoji: input.emoji,
         createdAt: new Date()
       })
-      .run();
+      .execute();
   }
 
-  const updated = getCommentById(commentId);
+  const updated = await getCommentById(commentId);
   emitBoardEvent(updated.boardId, { boardId: updated.boardId, type: "comment.reaction", data: { commentId } });
   return updated;
 }

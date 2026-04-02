@@ -12,7 +12,7 @@ import { clampArchiveRetentionMinutes, clampRetentionMinutes } from "./boards.se
 import { deleteAttachmentsForCard } from "./boards.service.cards-data.js";
 
 export async function cleanupExpiredCards(now: Date = new Date()): Promise<void> {
-  const rows = db
+  const rows = await db
     .select({
       cardId: cards.id,
       doneEnteredAt: cards.doneEnteredAt,
@@ -22,17 +22,16 @@ export async function cleanupExpiredCards(now: Date = new Date()): Promise<void>
     .from(cards)
     .innerJoin(lists, eq(cards.listId, lists.id))
     .innerJoin(boards, eq(lists.boardId, boards.id))
-    .where(and(isNull(cards.archivedAt), isNotNull(cards.doneEnteredAt)))
-    .all() as Array<{
-      cardId: string;
-      doneEnteredAt: Date | null;
-      retentionMode: RetentionMode | null;
-      retentionMinutes: number | null;
-    }>;
+    .where(and(isNull(cards.archivedAt), isNotNull(cards.doneEnteredAt)));
 
   const nowMs = now.getTime();
 
-  for (const row of rows) {
+  for (const row of rows as Array<{
+    cardId: string;
+    doneEnteredAt: Date | null;
+    retentionMode: RetentionMode | null;
+    retentionMinutes: number | null;
+  }>) {
     if (!row.doneEnteredAt) continue;
     const retentionMinutes = clampRetentionMinutes(row.retentionMinutes ?? DEFAULT_RETENTION_MINUTES);
     const expiresAt = row.doneEnteredAt.getTime() + retentionMinutes * 60 * 1000;
@@ -45,7 +44,7 @@ export async function cleanupExpiredCards(now: Date = new Date()): Promise<void>
     }
 
     await deleteAttachmentsForCard(row.cardId);
-    db.delete(cards).where(eq(cards.id, row.cardId)).run();
+    await db.delete(cards).where(eq(cards.id, row.cardId)).execute();
   }
 
   await cleanupArchivedCards(now);
@@ -54,7 +53,7 @@ export async function cleanupExpiredCards(now: Date = new Date()): Promise<void>
 }
 
 async function cleanupArchivedCards(now: Date): Promise<void> {
-  const rows = db
+  const rows = await db
     .select({
       cardId: cards.id,
       archivedAt: cards.archivedAt,
@@ -63,28 +62,27 @@ async function cleanupArchivedCards(now: Date): Promise<void> {
     .from(cards)
     .innerJoin(lists, eq(cards.listId, lists.id))
     .innerJoin(boards, eq(lists.boardId, boards.id))
-    .where(and(isNotNull(cards.archivedAt), isNull(lists.archivedAt), isNull(boards.archivedAt)))
-    .all() as Array<{
-      cardId: string;
-      archivedAt: Date | null;
-      boardArchiveRetention: number | null;
-    }>;
+    .where(and(isNotNull(cards.archivedAt), isNull(lists.archivedAt), isNull(boards.archivedAt)));
 
   const nowMs = now.getTime();
 
-  for (const row of rows) {
+  for (const row of rows as Array<{
+    cardId: string;
+    archivedAt: Date | null;
+    boardArchiveRetention: number | null;
+  }>) {
     if (!row.archivedAt) continue;
     const retentionMinutes = clampArchiveRetentionMinutes(row.boardArchiveRetention ?? DEFAULT_ARCHIVE_RETENTION_MINUTES);
     const expiresAt = row.archivedAt.getTime() + retentionMinutes * 60 * 1000;
     if (nowMs < expiresAt) continue;
 
     await deleteAttachmentsForCard(row.cardId);
-    db.delete(cards).where(eq(cards.id, row.cardId)).run();
+    await db.delete(cards).where(eq(cards.id, row.cardId)).execute();
   }
 }
 
 async function cleanupArchivedLists(now: Date): Promise<void> {
-  const rows = db
+  const rows = await db
     .select({
       listId: lists.id,
       archivedAt: lists.archivedAt,
@@ -92,63 +90,60 @@ async function cleanupArchivedLists(now: Date): Promise<void> {
     })
     .from(lists)
     .innerJoin(boards, eq(lists.boardId, boards.id))
-    .where(and(isNotNull(lists.archivedAt), isNull(boards.archivedAt)))
-    .all() as Array<{
-      listId: string;
-      archivedAt: Date | null;
-      boardArchiveRetention: number | null;
-    }>;
+    .where(and(isNotNull(lists.archivedAt), isNull(boards.archivedAt)));
 
   const nowMs = now.getTime();
 
-  for (const row of rows) {
+  for (const row of rows as Array<{
+    listId: string;
+    archivedAt: Date | null;
+    boardArchiveRetention: number | null;
+  }>) {
     if (!row.archivedAt) continue;
     const retentionMinutes = clampArchiveRetentionMinutes(row.boardArchiveRetention ?? DEFAULT_ARCHIVE_RETENTION_MINUTES);
     const expiresAt = row.archivedAt.getTime() + retentionMinutes * 60 * 1000;
     if (nowMs < expiresAt) continue;
 
-    const cardRows = db
+    const cardRows = await db
       .select({ id: cards.id })
       .from(cards)
-      .where(eq(cards.listId, row.listId))
-      .all() as Array<{ id: string }>;
+      .where(eq(cards.listId, row.listId));
 
-    for (const card of cardRows) {
+    for (const card of cardRows as Array<{ id: string }>) {
       await deleteAttachmentsForCard(card.id);
     }
 
-    db.delete(lists).where(eq(lists.id, row.listId)).run();
+    await db.delete(lists).where(eq(lists.id, row.listId)).execute();
   }
 }
 
 async function cleanupArchivedBoards(now: Date): Promise<void> {
-  const rows = db
+  const rows = await db
     .select({
       boardId: boards.id,
       archivedAt: boards.archivedAt
     })
     .from(boards)
-    .where(isNotNull(boards.archivedAt))
-    .all() as Array<{ boardId: string; archivedAt: Date | null }>;
+    .where(isNotNull(boards.archivedAt));
 
   const nowMs = now.getTime();
 
-  for (const row of rows) {
+  for (const row of rows as Array<{ boardId: string; archivedAt: Date | null }>) {
     if (!row.archivedAt) continue;
     const expiresAt = row.archivedAt.getTime() + BOARD_ARCHIVE_RETENTION_MINUTES * 60 * 1000;
     if (nowMs < expiresAt) continue;
 
-    const cardRows = db
+    const cardRows = await db
       .select({ id: cards.id })
       .from(cards)
       .innerJoin(lists, eq(cards.listId, lists.id))
-      .where(eq(lists.boardId, row.boardId))
-      .all() as Array<{ id: string }>;
+      .where(eq(lists.boardId, row.boardId));
 
-    for (const card of cardRows) {
+    for (const card of cardRows as Array<{ id: string }>) {
       await deleteAttachmentsForCard(card.id);
     }
 
-    db.delete(boards).where(eq(boards.id, row.boardId)).run();
+    await db.delete(boards).where(eq(boards.id, row.boardId)).execute();
   }
 }
+

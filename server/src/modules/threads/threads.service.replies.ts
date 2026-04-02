@@ -5,7 +5,7 @@ import { and, desc, eq, lt } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
 import { emitThreadEvent } from "../../realtime/socket.js";
-import { threadMessages, threadReplies, threadReplyAttachments, threadReplyDeletions, threadReplyMentions, threadReplyReactions, threadReplyVoiceNotes, users } from "../../db/schema.js";
+import { threadMessages, threadReplies, threadReplyAttachments, threadReplyDeletions, threadReplyMentions, threadReplyReactions, threadReplyVoiceNotes, users, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { decryptDmBody, encryptDmBody } from "../../utils/encryption.js";
 import { assertPermission } from "../../utils/permissions.js";
@@ -16,31 +16,60 @@ import { storeThreadReplyMentions } from "./threads.service.mentions.js";
 import { getThreadAttachmentsForReplies, getThreadReplyDeletionSet, getThreadReplyReactions, getThreadVoiceNotesForReplies } from "./threads.service.data.js";
 import { resolveThreadReplyAttachmentPath, resolveThreadReplyVoiceNotePath } from "./threads.service.storage.js";
 
-export function listThreadReplies(
+type ThreadReplyRow = {
+  id: string;
+  parentMessageId: string;
+  body: string | null;
+  bodyEncrypted: string | null;
+  encryptionVersion: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  authorId: string;
+  authorName: string;
+  authorDisplayName: string | null;
+  authorUsername: string | null;
+  authorEmail: string;
+  authorRole: UserRole;
+};
+
+type ThreadReplyReactionRow = {
+  emoji: string;
+  userId: string;
+  name: string;
+  displayName: string | null;
+  username: string | null;
+  email: string;
+  role: UserRole;
+};
+
+export async function listThreadReplies(
   userId: string,
   messageId: string,
   params: ThreadMessageListParams = {}
-): ThreadReplySummary[] {
-  const parent = db
+): Promise<ThreadReplySummary[]> {
+  const parentRows = await db
     .select({
       id: threadMessages.id,
       conversationId: threadMessages.conversationId
     })
     .from(threadMessages)
     .where(eq(threadMessages.id, messageId))
-    .get();
+    .limit(1);
+
+  const parent = parentRows[0];
 
   if (!parent) {
     throw new ApiError(404, "Message not found");
   }
 
-  const conversation = getConversation(parent.conversationId);
-  assertConversationMember(userId, parent.conversationId);
+  const conversation = await getConversation(parent.conversationId);
+  await assertConversationMember(userId, parent.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, parent.conversationId, "dm_read");
+    await assertConversationPermission(userId, parent.conversationId, "dm_read");
   } else {
-    assertConversationPermission(userId, parent.conversationId, "channel_read");
+    await assertConversationPermission(userId, parent.conversationId, "channel_read");
   }
 
   const limit = params.limit ?? 50;
@@ -49,7 +78,7 @@ export function listThreadReplies(
     conditions.push(lt(threadReplies.createdAt, new Date(params.cursor)));
   }
 
-  const rows = db
+  const rows: ThreadReplyRow[] = await db
     .select({
       id: threadReplies.id,
       parentMessageId: threadReplies.parentMessageId,
@@ -70,16 +99,17 @@ export function listThreadReplies(
     .innerJoin(users, eq(threadReplies.authorId, users.id))
     .where(and(...conditions))
     .orderBy(desc(threadReplies.createdAt))
-    .limit(limit)
-    .all();
+    .limit(limit);
 
   const replyIds = rows.map((row) => row.id);
-  const deletedForUser = getThreadReplyDeletionSet(userId, replyIds);
+  const deletedForUser = await getThreadReplyDeletionSet(userId, replyIds);
   const filteredRows = rows.filter((row) => !deletedForUser.has(row.id));
   const visibleReplyIds = filteredRows.map((row) => row.id);
-  const reactionsByReplyId = getThreadReplyReactions(visibleReplyIds);
-  const attachmentsByReplyId = getThreadAttachmentsForReplies(visibleReplyIds);
-  const voiceNotesByReplyId = getThreadVoiceNotesForReplies(visibleReplyIds);
+  const [reactionsByReplyId, attachmentsByReplyId, voiceNotesByReplyId] = await Promise.all([
+    getThreadReplyReactions(visibleReplyIds),
+    getThreadAttachmentsForReplies(visibleReplyIds),
+    getThreadVoiceNotesForReplies(visibleReplyIds)
+  ]);
 
   const summaries = filteredRows.map((row) => {
     const isDeleted = Boolean(row.deletedAt);
@@ -113,8 +143,8 @@ export function listThreadReplies(
   return summaries.reverse();
 }
 
-export function listThreadReplyReactionDetails(userId: string, replyId: string): ThreadReactionDetail[] {
-  const reply = db
+export async function listThreadReplyReactionDetails(userId: string, replyId: string): Promise<ThreadReactionDetail[]> {
+  const replyRows = await db
     .select({
       id: threadReplies.id,
       parentMessageId: threadReplies.parentMessageId,
@@ -124,7 +154,9 @@ export function listThreadReplyReactionDetails(userId: string, replyId: string):
     .from(threadReplies)
     .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
     .where(eq(threadReplies.id, replyId))
-    .get();
+    .limit(1);
+
+  const reply = replyRows[0];
 
   if (!reply) {
     throw new ApiError(404, "Reply not found");
@@ -134,16 +166,16 @@ export function listThreadReplyReactionDetails(userId: string, replyId: string):
     return [];
   }
 
-  const conversation = getConversation(reply.conversationId);
-  assertConversationMember(userId, reply.conversationId);
+  const conversation = await getConversation(reply.conversationId);
+  await assertConversationMember(userId, reply.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, reply.conversationId, "dm_read");
+    await assertConversationPermission(userId, reply.conversationId, "dm_read");
   } else {
-    assertConversationPermission(userId, reply.conversationId, "channel_read");
+    await assertConversationPermission(userId, reply.conversationId, "channel_read");
   }
 
-  const rows = db
+  const rows: ThreadReplyReactionRow[] = await db
     .select({
       emoji: threadReplyReactions.emoji,
       userId: users.id,
@@ -155,8 +187,7 @@ export function listThreadReplyReactionDetails(userId: string, replyId: string):
     })
     .from(threadReplyReactions)
     .innerJoin(users, eq(threadReplyReactions.userId, users.id))
-    .where(eq(threadReplyReactions.replyId, replyId))
-    .all();
+    .where(eq(threadReplyReactions.replyId, replyId));
 
   const map = new Map<string, ThreadUserSummary[]>();
   for (const row of rows) {
@@ -175,27 +206,29 @@ export function listThreadReplyReactionDetails(userId: string, replyId: string):
   return Array.from(map.entries()).map(([emoji, users]) => ({ emoji, users }));
 }
 
-export function createThreadReply(userId: string, messageId: string, input: CreateThreadReplyInput): ThreadReplySummary {
-  const parent = db
+export async function createThreadReply(userId: string, messageId: string, input: CreateThreadReplyInput): Promise<ThreadReplySummary> {
+  const parentRows = await db
     .select({
       id: threadMessages.id,
       conversationId: threadMessages.conversationId
     })
     .from(threadMessages)
     .where(eq(threadMessages.id, messageId))
-    .get();
+    .limit(1);
+
+  const parent = parentRows[0];
 
   if (!parent) {
     throw new ApiError(404, "Message not found");
   }
 
-  const conversation = getConversation(parent.conversationId);
-  assertConversationMember(userId, parent.conversationId);
+  const conversation = await getConversation(parent.conversationId);
+  await assertConversationMember(userId, parent.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, parent.conversationId, "dm_write");
+    await assertConversationPermission(userId, parent.conversationId, "dm_write");
   } else {
-    assertConversationPermission(userId, parent.conversationId, "channel_write");
+    await assertConversationPermission(userId, parent.conversationId, "channel_write");
   }
 
   const trimmed = input.body.trim();
@@ -218,7 +251,7 @@ export function createThreadReply(userId: string, messageId: string, input: Crea
 
   const now = new Date();
   const replyId = crypto.randomUUID();
-  db.insert(threadReplies)
+  await db.insert(threadReplies)
     .values({
       id: replyId,
       parentMessageId: messageId,
@@ -231,11 +264,11 @@ export function createThreadReply(userId: string, messageId: string, input: Crea
       updatedAt: now,
       deletedAt: null
     })
-    .run();
+    .execute();
 
-  storeThreadReplyMentions(conversation.id, replyId, input.mentions, userId);
+  await storeThreadReplyMentions(conversation.id, replyId, input.mentions, userId);
 
-  const author = ensureUserExists(userId);
+  const author = await ensureUserExists(userId);
   const summary = {
     id: replyId,
     parentMessageId: messageId,
@@ -253,8 +286,8 @@ export function createThreadReply(userId: string, messageId: string, input: Crea
 }
 
 
-export function updateThreadReply(userId: string, replyId: string, input: UpdateThreadReplyInput): ThreadReplySummary {
-  const reply = db
+export async function updateThreadReply(userId: string, replyId: string, input: UpdateThreadReplyInput): Promise<ThreadReplySummary> {
+  const replyRows = await db
     .select({
       id: threadReplies.id,
       parentMessageId: threadReplies.parentMessageId,
@@ -270,19 +303,21 @@ export function updateThreadReply(userId: string, replyId: string, input: Update
     .from(threadReplies)
     .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
     .where(eq(threadReplies.id, replyId))
-    .get();
+    .limit(1);
+
+  const reply = replyRows[0];
 
   if (!reply) {
     throw new ApiError(404, "Reply not found");
   }
 
-  const conversation = getConversation(reply.conversationId);
-  assertConversationMember(userId, reply.conversationId);
+  const conversation = await getConversation(reply.conversationId);
+  await assertConversationMember(userId, reply.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, reply.conversationId, "dm_write");
+    await assertConversationPermission(userId, reply.conversationId, "dm_write");
   } else {
-    assertConversationPermission(userId, reply.conversationId, "channel_write");
+    await assertConversationPermission(userId, reply.conversationId, "channel_write");
   }
 
   if (reply.authorId !== userId) {
@@ -301,18 +336,18 @@ export function updateThreadReply(userId: string, replyId: string, input: Update
 
   const trimmed = input.body.trim();
   if (!trimmed) {
-    const hasAttachment = db
+    const attachmentRows = await db
       .select({ id: threadReplyAttachments.id })
       .from(threadReplyAttachments)
       .where(eq(threadReplyAttachments.replyId, replyId))
-      .limit(1)
-      .get();
-    const hasVoice = db
+      .limit(1);
+    const voiceRows = await db
       .select({ id: threadReplyVoiceNotes.id })
       .from(threadReplyVoiceNotes)
       .where(eq(threadReplyVoiceNotes.replyId, replyId))
-      .limit(1)
-      .get();
+      .limit(1);
+    const hasAttachment = attachmentRows[0];
+    const hasVoice = voiceRows[0];
     if (!hasAttachment && !hasVoice) {
       throw new ApiError(400, "Reply body cannot be empty");
     }
@@ -334,15 +369,17 @@ export function updateThreadReply(userId: string, replyId: string, input: Update
     bodyEncrypted = null;
   }
 
-  db.update(threadReplies)
+  await db.update(threadReplies)
     .set({ body, bodyEncrypted, encryptionVersion, updatedAt: now })
     .where(eq(threadReplies.id, replyId))
-    .run();
+    .execute();
 
-  const author = ensureUserExists(userId);
-  const reactions = getThreadReplyReactions([replyId]).get(replyId) ?? [];
-  const attachments = getThreadAttachmentsForReplies([replyId]).get(replyId) ?? [];
-  const voiceNote = getThreadVoiceNotesForReplies([replyId]).get(replyId) ?? null;
+  const author = await ensureUserExists(userId);
+  const [reactionsByReplyId, attachmentsByReplyId, voiceNotesByReplyId] = await Promise.all([
+    getThreadReplyReactions([replyId]),
+    getThreadAttachmentsForReplies([replyId]),
+    getThreadVoiceNotesForReplies([replyId])
+  ]);
 
   const summary = {
     id: replyId,
@@ -352,20 +389,20 @@ export function updateThreadReply(userId: string, replyId: string, input: Update
     createdAt: reply.createdAt,
     updatedAt: now,
     deletedAt: null,
-    reactions,
-    attachments,
-    voiceNote
+    reactions: reactionsByReplyId.get(replyId) ?? [],
+    attachments: attachmentsByReplyId.get(replyId) ?? [],
+    voiceNote: voiceNotesByReplyId.get(replyId) ?? null
   };
   emitThreadEvent(reply.conversationId, "threads:reply:edit", { conversationId: reply.conversationId });
   return summary;
 }
 
-export function deleteThreadReply(
+export async function deleteThreadReply(
   userId: string,
   replyId: string,
   scope: DeleteThreadReplyInput["scope"]
-): { id: string; scope: "me" | "all" } {
-  const reply = db
+): Promise<{ id: string; scope: "me" | "all" }> {
+  const replyRows = await db
     .select({
       id: threadReplies.id,
       parentMessageId: threadReplies.parentMessageId,
@@ -378,34 +415,36 @@ export function deleteThreadReply(
     .from(threadReplies)
     .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
     .where(eq(threadReplies.id, replyId))
-    .get();
+    .limit(1);
+
+  const reply = replyRows[0];
 
   if (!reply) {
     throw new ApiError(404, "Reply not found");
   }
 
-  const conversation = getConversation(reply.conversationId);
-  assertConversationMember(userId, reply.conversationId);
+  const conversation = await getConversation(reply.conversationId);
+  await assertConversationMember(userId, reply.conversationId);
 
   if (conversation.type === "dm") {
-    assertConversationPermission(userId, reply.conversationId, "dm_write");
+    await assertConversationPermission(userId, reply.conversationId, "dm_write");
   } else {
-    assertConversationPermission(userId, reply.conversationId, "channel_write");
+    await assertConversationPermission(userId, reply.conversationId, "channel_write");
   }
 
   if (scope === "all") {
-    assertPermission(userId, "delete_threads");
+    await assertPermission(userId, "delete_threads");
   }
 
   if (scope === "me") {
     try {
-      db.insert(threadReplyDeletions)
+      await db.insert(threadReplyDeletions)
         .values({
           replyId,
           userId,
           deletedAt: new Date()
         })
-        .run();
+        .execute();
     } catch {
       // ignore duplicates
     }
@@ -421,33 +460,31 @@ export function deleteThreadReply(
   }
 
   const now = new Date();
-  const attachments = db
+  const attachments: Array<{ id: string; storagePath: string }> = await db
     .select({ id: threadReplyAttachments.id, storagePath: threadReplyAttachments.storagePath })
     .from(threadReplyAttachments)
-    .where(eq(threadReplyAttachments.replyId, replyId))
-    .all();
+    .where(eq(threadReplyAttachments.replyId, replyId));
 
-  const voiceNotes = db
+  const voiceNotes: Array<{ id: string; storagePath: string }> = await db
     .select({ id: threadReplyVoiceNotes.id, storagePath: threadReplyVoiceNotes.storagePath })
     .from(threadReplyVoiceNotes)
-    .where(eq(threadReplyVoiceNotes.replyId, replyId))
-    .all();
+    .where(eq(threadReplyVoiceNotes.replyId, replyId));
 
-  db.delete(threadReplyReactions)
+  await db.delete(threadReplyReactions)
     .where(eq(threadReplyReactions.replyId, replyId))
-    .run();
-  db.delete(threadReplyMentions)
+    .execute();
+  await db.delete(threadReplyMentions)
     .where(eq(threadReplyMentions.replyId, replyId))
-    .run();
-  db.delete(threadReplyDeletions)
+    .execute();
+  await db.delete(threadReplyDeletions)
     .where(eq(threadReplyDeletions.replyId, replyId))
-    .run();
-  db.delete(threadReplyAttachments)
+    .execute();
+  await db.delete(threadReplyAttachments)
     .where(eq(threadReplyAttachments.replyId, replyId))
-    .run();
-  db.delete(threadReplyVoiceNotes)
+    .execute();
+  await db.delete(threadReplyVoiceNotes)
     .where(eq(threadReplyVoiceNotes.replyId, replyId))
-    .run();
+    .execute();
 
   for (const attachment of attachments) {
     const filePath = resolveThreadReplyAttachmentPath(attachment.storagePath);
@@ -458,7 +495,7 @@ export function deleteThreadReply(
     void fs.rm(filePath, { force: true }).catch(() => {});
   }
 
-  db.update(threadReplies)
+  await db.update(threadReplies)
     .set({
       body: null,
       bodyEncrypted: null,
@@ -466,9 +503,8 @@ export function deleteThreadReply(
       deletedAt: now
     })
     .where(eq(threadReplies.id, replyId))
-    .run();
+    .execute();
 
   emitThreadEvent(reply.conversationId, "threads:reply:delete", { conversationId: reply.conversationId });
   return { id: replyId, scope: "all" };
 }
-

@@ -6,10 +6,10 @@ import { commentReactionSchema } from "./boards.schema.js";
 
 export const boardsCommentsRouter = Router();
 
-boardsCommentsRouter.delete("/comments/:commentId", (req, res, next) => {
+boardsCommentsRouter.delete("/comments/:commentId", async (req, res, next) => {
   try {
-    const permissions = getUserPermissions(req.auth!.userId);
-    deleteComment(req.params.commentId, {
+    const permissions = await getUserPermissions(req.auth!.userId);
+    await deleteComment(req.params.commentId, {
       userId: req.auth!.userId,
       canDeleteAny: permissions.has("delete_comments"),
       canDeleteOwn: permissions.has("comment") || permissions.has("edit_comments")
@@ -26,11 +26,11 @@ boardsCommentsRouter.delete("/comments/:commentId", (req, res, next) => {
   }
 });
 
-boardsCommentsRouter.post("/comments/:commentId/reactions", (req, res, next) => {
+boardsCommentsRouter.post("/comments/:commentId/reactions", async (req, res, next) => {
   try {
-    assertPermission(req.auth!.userId, "react");
+    await assertPermission(req.auth!.userId, "react");
     const body = commentReactionSchema.parse(req.body);
-    const data = toggleCommentReaction(req.params.commentId, req.auth!.userId, body);
+    const data = await toggleCommentReaction(req.params.commentId, req.auth!.userId, body);
 
     res.status(200).json({
       success: true,

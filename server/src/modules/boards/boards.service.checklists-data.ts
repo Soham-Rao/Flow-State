@@ -5,12 +5,12 @@ import { checklistItems, checklists } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { BoardChecklist, BoardChecklistItem } from "./boards.service.types.js";
 
-export function getChecklistItemsForChecklists(checklistIds: string[]): Map<string, BoardChecklistItem[]> {
+export async function getChecklistItemsForChecklists(checklistIds: string[]): Promise<Map<string, BoardChecklistItem[]>> {
   if (checklistIds.length === 0) {
     return new Map();
   }
 
-  const items = db
+  const items = await db
     .select({
       id: checklistItems.id,
       checklistId: checklistItems.checklistId,
@@ -22,8 +22,7 @@ export function getChecklistItemsForChecklists(checklistIds: string[]): Map<stri
     })
     .from(checklistItems)
     .where(inArray(checklistItems.checklistId, checklistIds))
-    .orderBy(asc(checklistItems.position))
-    .all();
+    .orderBy(asc(checklistItems.position));
 
   const map = new Map<string, BoardChecklistItem[]>();
   for (const item of items) {
@@ -35,8 +34,8 @@ export function getChecklistItemsForChecklists(checklistIds: string[]): Map<stri
   return map;
 }
 
-export function getChecklistById(checklistId: string): BoardChecklist {
-  const checklist = db
+export async function getChecklistById(checklistId: string): Promise<BoardChecklist> {
+  const rows = await db
     .select({
       id: checklists.id,
       cardId: checklists.cardId,
@@ -47,22 +46,23 @@ export function getChecklistById(checklistId: string): BoardChecklist {
     })
     .from(checklists)
     .where(eq(checklists.id, checklistId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const checklist = rows[0];
 
   if (!checklist) {
     throw new ApiError(404, "Checklist not found");
   }
 
-  const itemsMap = getChecklistItemsForChecklists([checklistId]);
+  const itemsMap = await getChecklistItemsForChecklists([checklistId]);
   return {
     ...checklist,
     items: itemsMap.get(checklistId) ?? []
   };
 }
 
-export function getChecklistItemById(itemId: string): BoardChecklistItem {
-  const item = db
+export async function getChecklistItemById(itemId: string): Promise<BoardChecklistItem> {
+  const rows = await db
     .select({
       id: checklistItems.id,
       checklistId: checklistItems.checklistId,
@@ -74,8 +74,9 @@ export function getChecklistItemById(itemId: string): BoardChecklistItem {
     })
     .from(checklistItems)
     .where(eq(checklistItems.id, itemId))
-    .limit(1)
-    .get();
+    .limit(1);
+
+  const item = rows[0];
 
   if (!item) {
     throw new ApiError(404, "Checklist item not found");

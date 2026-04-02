@@ -4,7 +4,7 @@ import { db } from "../../db/connection.js";
 import { users } from "../../db/schema.js";
 import type { BoardMember } from "./boards.service.types.js";
 
-export function getBoardMembers(): BoardMember[] {
+export async function getBoardMembers(): Promise<BoardMember[]> {
   return db
     .select({
       id: users.id,
@@ -16,6 +16,5 @@ export function getBoardMembers(): BoardMember[] {
       createdAt: users.createdAt
     })
     .from(users)
-    .orderBy(asc(users.createdAt))
-    .all();
+    .orderBy(asc(users.createdAt));
 }
