@@ -18,6 +18,11 @@ export const markAnnouncementsSeenSchema = z.object({
   ids: z.array(z.string().min(1)).min(1)
 });
 
+export const deleteAnnouncementsSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1)
+});
+
 export type AnnouncementAudienceInput = z.infer<typeof audienceSchema>;
 export type CreateAnnouncementInput = z.infer<typeof createAnnouncementSchema>;
 export type MarkAnnouncementsSeenInput = z.infer<typeof markAnnouncementsSeenSchema>;
+export type DeleteAnnouncementsInput = z.infer<typeof deleteAnnouncementsSchema>;

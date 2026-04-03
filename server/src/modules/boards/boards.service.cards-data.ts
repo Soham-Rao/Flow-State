@@ -100,6 +100,7 @@ export async function getAssigneesForCards(cardIds: string[]): Promise<Map<strin
       displayName: users.displayName,
       username: users.username,
       email: users.email,
+      bio: users.bio,
       role: users.role,
       createdAt: users.createdAt
     })
@@ -117,6 +118,7 @@ export async function getAssigneesForCards(cardIds: string[]): Promise<Map<strin
       displayName: row.displayName,
       username: row.username,
       email: row.email,
+      bio: row.bio,
       role: row.role,
       createdAt: row.createdAt
     });
@@ -316,3 +318,4 @@ export async function getBoardSummaryById(boardId: string): Promise<BoardSummary
     listCount: listCountRows[0]?.listCount ?? 0
   };
 }
+

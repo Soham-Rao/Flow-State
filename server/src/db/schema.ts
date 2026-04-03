@@ -460,6 +460,8 @@ export const threadMessages = mysqlTable("thread_messages", {
   authorId: char("author_id", { length: 36 })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  replyToMessageId: char("reply_to_message_id", { length: 36 }),
+  replyToReplyId: char("reply_to_reply_id", { length: 36 }),
   body: text("body"),
   bodyEncrypted: text("body_encrypted"),
   bodyFormat: varchar("body_format", { length: 32 }).notNull().default("plain"),
@@ -471,7 +473,14 @@ export const threadMessages = mysqlTable("thread_messages", {
 }, (table: TableColumns) => ({
   conversationIdx: index("idx_thread_messages_conversation_id").on(table.conversationId),
   authorIdx: index("idx_thread_messages_author_id").on(table.authorId),
-  createdAtIdx: index("idx_thread_messages_created_at").on(table.createdAt)
+  createdAtIdx: index("idx_thread_messages_created_at").on(table.createdAt),
+  replyToMessageIdx: index("idx_thread_messages_reply_to_message").on(table.replyToMessageId),
+  replyToReplyIdx: index("idx_thread_messages_reply_to_reply").on(table.replyToReplyId),
+  replyToMessageFk: foreignKey({
+    name: "fk_thread_messages_reply_to_message",
+    columns: [table.replyToMessageId],
+    foreignColumns: [table.id]
+  }).onDelete("set null"),
 }));
 
 export const threadReplies = mysqlTable("thread_replies", {
@@ -708,6 +717,14 @@ export type ThreadMemberRole = (typeof threadMemberRoles)[number];
 export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
+
+
+
+
+
+
+
+
 
 
 

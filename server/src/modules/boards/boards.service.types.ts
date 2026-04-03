@@ -57,6 +57,7 @@ export interface BoardMember {
   displayName: string | null;
   username: string | null;
   email: string;
+  bio: string | null;
   role: UserRole;
   createdAt: Date;
 }
@@ -92,6 +93,7 @@ export type CommentRow = {
   authorDisplayName: string | null;
   authorUsername: string | null;
   authorEmail: string;
+  authorBio: string | null;
   authorRole: UserRole;
   authorCreatedAt: Date;
 };
@@ -196,3 +198,4 @@ export const DEFAULT_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
 export const MAX_ARCHIVE_RETENTION_MINUTES = 365 * 24 * 60;
 export const BOARD_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
 export const UPLOADS_ROOT = path.resolve(process.cwd(), "uploads");
+

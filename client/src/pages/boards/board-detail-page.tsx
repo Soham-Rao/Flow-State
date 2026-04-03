@@ -40,6 +40,8 @@ import { useBoardCommentMentions } from "@/pages/boards/board-detail-page.mentio
 import { useActivityStore } from "@/stores/activity-store";
 import { useSocketStore } from "@/stores/socket-store";
 import { usePresenceStore } from "@/stores/presence-store";
+import { useMentionStore } from "@/stores/mentions-store";
+import { useAuthStore } from "@/stores/auth-store";
 
 export function BoardDetailPage(): JSX.Element {
   const { boardId } = useParams<{ boardId: string }>();
@@ -106,6 +108,8 @@ export function BoardDetailPage(): JSX.Element {
   const subscribeBoardEvents = useSocketStore((state) => state.subscribeBoardEvents);
   const boardPresenceRaw = usePresenceStore((state) => (boardId ? state.board[boardId] : undefined));
   const boardPresence = boardPresenceRaw ?? [];
+  const currentUserId = useAuthStore((state) => state.user?.id);
+  const assignmentBadgeCount = useMentionStore((state) => state.counts?.assignments ?? 0);
 
   const [scrollToChecklistId, setScrollToChecklistId] = useState<string | null>(null);
   const [isAutosavingBoard, setIsAutosavingBoard] = useState(false);
@@ -124,6 +128,7 @@ export function BoardDetailPage(): JSX.Element {
   const listSyncedNamesRef = useRef<Record<string, string>>({});
   const initializedBoardRef = useRef(false);
   const boardRefreshTimerRef = useRef<number | null>(null);
+  const lastAssignmentCountRef = useRef<number | null>(null);
 
   const orderedLists = useMemo(() => (board ? sortBoardListsWithCards(board.lists ?? []) : []), [board]);
   const hasDoneCards = useMemo(
@@ -155,6 +160,14 @@ export function BoardDetailPage(): JSX.Element {
   const selectedCardAttachments = useMemo(() => selectedCardWithList?.card.attachments ?? [], [selectedCardWithList]);
   const boardLabels = useMemo(() => board?.labels ?? [], [board]);
   const boardMembers = useMemo<BoardMember[]>(() => board?.members ?? [], [board]);
+  const boardAssignedCount = useMemo(() => {
+    if (!board || !currentUserId) return 0;
+    return board.lists.reduce((total, list) => {
+      if (list.isDoneList || list.archivedAt) return total;
+      const listCount = list.cards.filter((card) => !card.archivedAt && card.assignees?.some((assignee) => assignee.id === currentUserId)).length;
+      return total + listCount;
+    }, 0);
+  }, [board, currentUserId]);
 
   const resolvedBoardBackground = board?.background ?? boardBackground;
   const activeBannerClass = useMemo(() => getBoardBackgroundClass(resolvedBoardBackground), [resolvedBoardBackground]);
@@ -347,6 +360,13 @@ export function BoardDetailPage(): JSX.Element {
     await loadBoard(false);
   }, [loadBoard]);
 
+  useEffect(() => {
+    if (!boardId) return;
+    if (lastAssignmentCountRef.current === assignmentBadgeCount) return;
+    lastAssignmentCountRef.current = assignmentBadgeCount;
+    void refreshBoardSilently();
+  }, [assignmentBadgeCount, boardId, refreshBoardSilently]);
+
   const scheduleBoardRefresh = useCallback((): void => {
     if (boardRefreshTimerRef.current !== null) return;
     boardRefreshTimerRef.current = window.setTimeout(() => {
@@ -536,6 +556,7 @@ export function BoardDetailPage(): JSX.Element {
     activeSurfaceClass,
     activeBannerClass,
     boardName,
+    boardAssignedCount,
     boardDescription,
     boardBackground,
     retentionMode,
@@ -712,6 +733,14 @@ export function BoardDetailPage(): JSX.Element {
     />
   );
 }
+
+
+
+
+
+
+
+
 
 
 

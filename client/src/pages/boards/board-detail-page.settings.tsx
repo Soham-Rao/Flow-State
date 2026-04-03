@@ -173,7 +173,7 @@ export function BoardSettingsSection({
                 type="button"
                 variant={retentionMode === "card_and_attachments" ? "default" : "secondary"}
                 onClick={() => onRetentionModeChange("card_and_attachments")}
-                className={boardGlassPill}
+                className={`${boardGlassPill} ${retentionMode === "card_and_attachments" ? "ring-2 ring-primary/60 border-primary/60 bg-white/80 dark:bg-black/70" : "opacity-85 hover:opacity-100 hover:border-primary/40"}`}
               >
                 Delete card + attachments
               </Button>
@@ -181,7 +181,7 @@ export function BoardSettingsSection({
                 type="button"
                 variant={retentionMode === "attachments_only" ? "default" : "secondary"}
                 onClick={() => onRetentionModeChange("attachments_only")}
-                className={boardGlassPill}
+                className={`${boardGlassPill} ${retentionMode === "attachments_only" ? "ring-2 ring-primary/60 border-primary/60 bg-white/80 dark:bg-black/70" : "opacity-85 hover:opacity-100 hover:border-primary/40"}`}
               >
                 Delete attachments only
               </Button>
@@ -335,6 +335,9 @@ export function BoardSettingsSection({
     </Card>
   );
 }
+
+
+
 
 
 

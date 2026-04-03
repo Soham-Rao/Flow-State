@@ -18,6 +18,7 @@ function getPresenceInitials(user: PresenceUser): string {
 export function BoardHeaderSection({
   activeBannerClass,
   boardName,
+  assignedCount,
   boardComments,
   expandedCommentIds,
   onToggleCommentExpanded,
@@ -33,6 +34,7 @@ export function BoardHeaderSection({
 }: {
   activeBannerClass: string;
   boardName: string;
+  assignedCount: number;
   boardComments: BoardComment[];
   expandedCommentIds: Set<string>;
   onToggleCommentExpanded: (commentId: string) => void;
@@ -51,7 +53,14 @@ export function BoardHeaderSection({
       <div className={`h-28 rounded-xl ${activeBannerClass}`} />
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-3">
-          <h2 className="text-2xl font-semibold tracking-tight">{boardName}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-semibold tracking-tight">{boardName}</h2>
+            {assignedCount > 0 && (
+              <span className="rounded-full bg-sky-500/90 px-2 py-0.5 text-[11px] font-semibold text-white">
+                {assignedCount}
+              </span>
+            )}
+          </div>
           <div className="space-y-2">
             {boardComments.length === 0 ? (
               <p className="text-sm text-muted-foreground">No board notes yet.</p>
@@ -129,6 +138,8 @@ export function BoardHeaderSection({
     </>
   );
 }
+
+
 
 
 

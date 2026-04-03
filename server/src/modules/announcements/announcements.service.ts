@@ -24,6 +24,7 @@ export interface AnnouncementDetail {
   subject: string;
   body: string;
   createdAt: number;
+  seenAt: number | null;
   author: {
     id: string;
     name: string;
@@ -163,6 +164,7 @@ export async function createAnnouncement(input: CreateAnnouncementInput, actorId
     subject: input.subject.trim(),
     body: input.body.trim(),
     createdAt: now.getTime(),
+    seenAt: null,
     author: {
       id: author?.id ?? actorId,
       name: author?.name ?? "Unknown",
@@ -172,6 +174,50 @@ export async function createAnnouncement(input: CreateAnnouncementInput, actorId
   };
 }
 
+export async function listAnnouncements(userId: string): Promise<AnnouncementDetail[]> {
+  const rows: Array<{
+      announcementId: string;
+      subject: string;
+      body: string;
+      createdAt: Date | number;
+      seenAt: Date | null;
+      authorId: string;
+      authorName: string;
+      authorDisplayName: string | null;
+      authorEmail: string;
+    }> = await db
+    .select({
+      announcementId: announcements.id,
+      subject: announcements.subject,
+      body: announcements.body,
+      createdAt: announcements.createdAt,
+      seenAt: announcementRecipients.seenAt,
+      authorId: users.id,
+      authorName: users.name,
+      authorDisplayName: users.displayName,
+      authorEmail: users.email
+    })
+    .from(announcementRecipients)
+    .innerJoin(announcements, eq(announcementRecipients.announcementId, announcements.id))
+    .innerJoin(users, eq(announcements.createdBy, users.id))
+    .where(eq(announcementRecipients.userId, userId))
+    .orderBy(desc(announcements.createdAt))
+    .limit(50);
+
+  return rows.map((row) => ({
+    id: row.announcementId,
+    subject: row.subject,
+    body: row.body,
+    createdAt: typeof row.createdAt === "number" ? row.createdAt : new Date(row.createdAt).getTime(),
+    seenAt: row.seenAt ? new Date(row.seenAt).getTime() : null,
+    author: {
+      id: row.authorId,
+      name: row.authorName,
+      displayName: row.authorDisplayName ?? null,
+      email: row.authorEmail
+    }
+  }));
+}
 export async function listUnreadAnnouncements(userId: string): Promise<AnnouncementDetail[]> {
   const rows: Array<{
       announcementId: string;
@@ -205,6 +251,7 @@ export async function listUnreadAnnouncements(userId: string): Promise<Announcem
     subject: row.subject,
     body: row.body,
     createdAt: typeof row.createdAt === "number" ? row.createdAt : new Date(row.createdAt).getTime(),
+    seenAt: null,
     author: {
       id: row.authorId,
       name: row.authorName,
@@ -230,6 +277,22 @@ export async function markAnnouncementsSeen(userId: string, ids: string[]): Prom
     .execute();
 }
 
+export async function deleteAnnouncementsForUser(userId: string, ids: string[]): Promise<string[]> {
+  const normalized = normalizeIds(ids);
+  if (normalized.length === 0) return [];
+
+  await db.delete(announcementRecipients)
+    .where(
+      and(
+        eq(announcementRecipients.userId, userId),
+        inArray(announcementRecipients.announcementId, normalized)
+      )
+    )
+    .execute();
+
+  return normalized;
+}
+
 export async function canSendAnnouncements(userId: string): Promise<boolean> {
   try {
     await assertPermission(userId, "send_announcements");
@@ -238,3 +301,7 @@ export async function canSendAnnouncements(userId: string): Promise<boolean> {
     return false;
   }
 }
+
+
+
+

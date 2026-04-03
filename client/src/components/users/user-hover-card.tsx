@@ -8,6 +8,7 @@ export interface HoverCardUser {
   displayName?: string | null;
   username?: string | null;
   email?: string | null;
+  bio?: string | null;
 }
 
 interface UserHoverCardProps {
@@ -72,6 +73,7 @@ export function UserHoverCard({
             <span className="flex flex-col">
               <span className="text-sm font-semibold text-foreground">{displayName}</span>
               {handle && <span className="text-[11px] text-muted-foreground">{handle}</span>}
+              {user.bio && <span className="mt-2 block text-[11px] text-muted-foreground">{user.bio}</span>}
             </span>
           </span>
         </span>
@@ -79,3 +81,6 @@ export function UserHoverCard({
     </span>
   );
 }
+
+
+

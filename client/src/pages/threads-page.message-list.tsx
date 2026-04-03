@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronsLeft, CornerUpLeft, Paperclip, Pencil, Trash2 } from "lucide-react";
+import { ArrowRight, Check, ChevronsLeft, CornerUpLeft, Paperclip, Pencil, Trash2 } from "lucide-react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,9 @@ type ThreadMessageListProps = {
   currentUserId: string | null | undefined;
   messageListRef: RefObject<HTMLDivElement>;
   threadBadgeMode: ThreadBadgeMode;
+  selectionMode: boolean;
+  selectedMessageIds: Set<string>;
+  onToggleSelection: (messageId: string) => void;
   replySeenCounts: Record<string, number>;
   onScroll: () => void;
   hoveredMessageId: string | null;
@@ -63,6 +66,9 @@ export function ThreadMessageList({
   currentUserId,
   messageListRef,
   threadBadgeMode,
+  selectionMode,
+  selectedMessageIds,
+  onToggleSelection,
   replySeenCounts,
   onScroll,
   hoveredMessageId,
@@ -131,17 +137,19 @@ export function ThreadMessageList({
           const avatarSlot = showAvatar ? avatar : <div className="h-9 w-9" />;
           const isHovered = hoveredMessageId === message.id;
           const isDeleted = Boolean(message.deletedAt);
+          const isSelected = selectedMessageIds.has(message.id);
+          const canSelectMessage = !isDeleted;
           const isEditing = editingMessageId === message.id;
           const isEdited = !isDeleted && new Date(message.updatedAt).getTime() > new Date(message.createdAt).getTime();
           const canEdit = isMine && !message.isForwarded && !isDeleted && Date.now() - new Date(message.createdAt).getTime() <= 15 * 60 * 1000;
           const canDeleteForAll = isMine && !isDeleted;
-          const deleteMenuOpen = deleteMenuMessageId === message.id;
+          const deleteMenuOpen = !selectionMode && deleteMenuMessageId === message.id;
           const messageBodyText = isDeleted
             ? message.body && message.body.trim().length > 0
               ? message.body
               : "This message was deleted."
             : message.body;
-          const showActionRail = isHovered && !isDeleted;
+          const showActionRail = isHovered && !isDeleted && !selectionMode;
           const showReactionPicker = showActionRail && reactionPickerMessageId === message.id;
           const hasReactions = message.reactions.length > 0;
           const hasUnreadReplyMentions = (message.unreadReplyMentions ?? 0) > 0;
@@ -171,13 +179,13 @@ export function ThreadMessageList({
           ) : null;
           const attachments = message.attachments ?? [];
           const attachmentList = attachments.length > 0 ? (
-            <div className={`mt-2 flex w-full flex-col gap-2 ${isMine ? "items-end" : "items-start"}`}>
+            <div className={`mt-2 flex w-full flex-col gap-2 ${isMine ? "items-end" : "items-start"} ${isSelected ? "ring-2 ring-primary/40" : ""}`}>
               {attachments.map((attachment) => {
                 const kind = getAttachmentKind(attachment.mimeType, attachment.originalName);
                 const previewUrl = attachmentPreviewUrls[attachment.id];
                 if (kind === "image") {
                   return previewUrl ? (
-                    <div key={attachment.id} className={`w-fit max-w-full rounded-lg border border-border/60 bg-background/70 p-2 ${isMine ? "ml-auto" : ""}`}>
+                    <div key={attachment.id} className={`w-fit max-w-full rounded-lg border border-border/60 bg-background/70 p-2 ${isMine ? "ml-auto" : ""} ${isSelected ? "ring-2 ring-primary/40" : ""}`}>
                       <img
                         src={previewUrl}
                         alt={attachment.originalName}
@@ -186,14 +194,14 @@ export function ThreadMessageList({
                       />
                     </div>
                   ) : (
-                    <div key={attachment.id} className={`w-fit max-w-full rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground ${isMine ? "ml-auto text-right" : ""}`}>
+                    <div key={attachment.id} className={`w-fit max-w-full rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground ${isMine ? "ml-auto text-right" : ""} ${isSelected ? "ring-2 ring-primary/40" : ""}`}>
                       Loading image preview...
                     </div>
                   );
                 }
                 if (kind === "video") {
                   return previewUrl ? (
-                    <div key={attachment.id} className={`rounded-lg border border-border/60 bg-background/70 p-2 w-full max-w-full ${isMine ? "" : ""}`}>
+                    <div key={attachment.id} className={`rounded-lg border border-border/60 bg-background/70 p-2 w-full max-w-full ${isMine ? "" : ""} ${isSelected ? "ring-2 ring-primary/40" : ""}`}>
                       <video
                         src={previewUrl}
                         className="h-48 w-full rounded-md object-cover"
@@ -204,13 +212,13 @@ export function ThreadMessageList({
                           } else {
                             video.pause();
                           }
-                        }}
+                        } }
                         onDoubleClick={() => onSetVideoPreview({ url: previewUrl, name: attachment.originalName })}
                       />
                       <p className="mt-1 text-[11px] text-muted-foreground">Click to play, double click to expand</p>
                     </div>
                   ) : (
-                    <div key={attachment.id} className={`rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground w-full max-w-full ${isMine ? "" : ""}`}>
+                    <div key={attachment.id} className={`rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground w-full max-w-full ${isMine ? "" : ""} ${isSelected ? "ring-2 ring-primary/40" : ""}`}>
                       Loading video...
                     </div>
                   );
@@ -240,14 +248,50 @@ export function ThreadMessageList({
               })}
             </div>
           ) : null;
+          const replyContext = message.replyContext;
+          const replyAuthorLabel = replyContext
+            ? replyContext.author.displayName ?? replyContext.author.username ?? replyContext.author.name
+            : "";
+          const replyPreview = replyContext?.body?.trim()
+            ? replyContext.body
+            : replyContext
+              ? "Attachment"
+              : "";
+          const replyBlock = replyContext ? (
+            <div
+              className={`mb-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground ${isMine ? "text-right" : "text-left"} ${isSelected ? "ring-2 ring-primary/40" : ""}`}
+            >
+              <div className={`flex items-center gap-1 ${isMine ? "justify-end" : "justify-start"}`}>
+                <CornerUpLeft className="h-3 w-3" />
+                <span>Replying to {replyAuthorLabel}</span>
+              </div>
+              <p className="mt-1 text-[12px] text-foreground/80">{replyPreview}</p>
+            </div>
+          ) : null;
+          const selectionControl = selectionMode ? (
+            <button
+              type="button"
+              aria-pressed={isSelected}
+              disabled={!canSelectMessage}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (!canSelectMessage) return;
+                onToggleSelection(message.id);
+              }}
+              className={`flex h-5 w-5 items-center justify-center rounded-full border text-[10px] transition ${isSelected ? "border-primary/60 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground"} ${canSelectMessage ? "hover:border-primary/40" : "cursor-not-allowed opacity-50"} ${isSelected ? "ring-2 ring-primary/40" : ""}`}
+            >
+              {isSelected && <Check className="h-3 w-3" />}
+            </button>
+          ) : null;
           const bubble = (
             <div
               className={`w-fit max-w-[75%] rounded-2xl border px-4 py-3 ${
                 isMine
                   ? "border-sky-400/40 bg-sky-500/15"
                   : "border-emerald-400/40 bg-emerald-500/15"
-              }`}
+              } ${isSelected ? "ring-2 ring-primary/40" : ""}`}
             >
+              {replyBlock}
               {message.isForwarded && (
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Forwarded
@@ -271,7 +315,7 @@ export function ThreadMessageList({
                         event.preventDefault();
                         void onSaveEdit(message);
                       }
-                    }}
+                    } }
                   />
                   {editingError && (
                     <p className="text-[11px] text-rose-500">{editingError}</p>
@@ -293,7 +337,7 @@ export function ThreadMessageList({
               {attachmentList}
               <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                 <span className="mr-auto">{formatTime(message.createdAt)}</span>
-                {!isEditing && (
+                {!isEditing && !selectionMode && (
                   <div className="flex flex-wrap items-center gap-2">
                     {!isDeleted && (
                       <>
@@ -313,7 +357,7 @@ export function ThreadMessageList({
                         >
                           <ChevronsLeft className="h-4 w-4" />
                           {message.replyCount > 0 && (
-                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${showReplyMentionBadge ? "bg-rose-500/20 text-rose-600" : "bg-sky-500/20 text-sky-500"}`}>
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${showReplyMentionBadge ? "bg-rose-500/20 text-rose-600" : "bg-sky-500/20 text-sky-500"} ${isSelected ? "ring-2 ring-primary/40" : ""}`}>
                               +{message.replyCount}
                             </span>
                           )}
@@ -331,12 +375,12 @@ export function ThreadMessageList({
                     {isMine && !message.isForwarded && !isDeleted && (
                       <button
                         type="button"
-                        className={`rounded-full border border-border/60 px-2 py-0.5 text-xs ${canEdit ? "text-muted-foreground hover:text-primary" : "cursor-not-allowed text-muted-foreground/50"}`}
+                        className={`rounded-full border border-border/60 px-2 py-0.5 text-xs ${canEdit ? "text-muted-foreground hover:text-primary" : "cursor-not-allowed text-muted-foreground/50"} ${isSelected ? "ring-2 ring-primary/40" : ""}`}
                         onClick={() => {
                           if (canEdit) {
                             onStartEditingMessage(message);
                           }
-                        }}
+                        } }
                         aria-label="Edit message"
                         title={canEdit ? "Edit message" : "Editing is available for 15 minutes"}
                         disabled={!canEdit}
@@ -363,7 +407,7 @@ export function ThreadMessageList({
                     onClick={() => {
                       setDeleteConfirm({ message, scope: "me" });
                       setDeleteMenuMessageId(null);
-                    }}
+                    } }
                   >
                     Delete for me
                   </button>
@@ -374,7 +418,7 @@ export function ThreadMessageList({
                       onClick={() => {
                         setDeleteConfirm({ message, scope: "all" });
                         setDeleteMenuMessageId(null);
-                      }}
+                      } }
                     >
                       Delete for all
                     </button>
@@ -385,7 +429,7 @@ export function ThreadMessageList({
           );
 
           const reactionStrip = hasReactions ? (
-            <div className={`mt-0.5 flex flex-wrap gap-1 ${isMine ? "justify-end self-end" : "justify-start self-start"}`}>
+            <div className={`mt-0.5 flex flex-wrap gap-1 ${isMine ? "justify-end self-end" : "justify-start self-start"} ${isSelected ? "ring-2 ring-primary/40" : ""}`}>
               {message.reactions.map((reaction) => {
                 const label = `${reaction.emoji} ${reaction.count}`;
                 return (
@@ -396,7 +440,7 @@ export function ThreadMessageList({
                     onClick={(event) => {
                       event.stopPropagation();
                       void onToggleMessageReaction(message.id, reaction.emoji);
-                    }}
+                    } }
                   >
                     {label}
                   </button>
@@ -424,7 +468,7 @@ export function ThreadMessageList({
               <button
                 key={`${message.id}-${detail.emoji}-tab`}
                 type="button"
-                className={`rounded-full border px-2 py-0.5 text-[10px] ${isActive ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:text-primary"}`}
+                className={`rounded-full border px-2 py-0.5 text-[10px] ${isActive ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:text-primary"} ${isSelected ? "ring-2 ring-primary/40" : ""}`}
                 onClick={() => setReactionDetailsTabByMessageId((prev) => ({ ...prev, [message.id]: detail.emoji }))}
               >
                 {detail.emoji} {detail.users.length}
@@ -458,7 +502,7 @@ export function ThreadMessageList({
             </div>
           ) : null;
           const actionRail = (
-            <div className={`relative flex h-6 w-6 items-center justify-center transition ${showActionRail ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+            <div className={`relative flex h-6 w-6 items-center justify-center transition ${showActionRail ? "opacity-100" : "opacity-0 pointer-events-none"} ${isSelected ? "ring-2 ring-primary/40" : ""}`}>
               <button
                 type="button"
                 className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground hover:text-primary"
@@ -466,12 +510,12 @@ export function ThreadMessageList({
                   event.stopPropagation();
                   if (!showActionRail) return;
                   setReactionPickerMessageId((current) => (current === message.id ? null : message.id));
-                }}
+                } }
               >
                 <span aria-hidden="true">🙂</span>
               </button>
               {showReactionPicker && (
-                <div className={`absolute top-full mt-1 flex items-center gap-1 rounded-lg border border-border/60 bg-background/90 p-1 shadow-sm ${isMine ? "right-0" : "left-0"}`}>
+                <div className={`absolute top-full mt-1 flex items-center gap-1 rounded-lg border border-border/60 bg-background/90 p-1 shadow-sm ${isMine ? "right-0" : "left-0"} ${isSelected ? "ring-2 ring-primary/40" : ""}`}>
                   {THREAD_REACTION_CHOICES.map((emoji) => (
                     <button
                       key={`${message.id}-${emoji}-pick`}
@@ -481,7 +525,7 @@ export function ThreadMessageList({
                         event.stopPropagation();
                         void onToggleMessageReaction(message.id, emoji);
                         setReactionPickerMessageId(null);
-                      }}
+                      } }
                     >
                       {emoji}
                     </button>
@@ -493,10 +537,13 @@ export function ThreadMessageList({
 
           const messageBody = (
             <div className={`flex w-fit flex-col ${isMine ? "items-end self-end" : "items-start self-start"}`}>
-              <div className="inline-flex items-center gap-2">
-                {isMine && actionRail}
-                {bubble}
-                {!isMine && actionRail}
+              <div className={`inline-flex items-center gap-2 ${isMine ? "flex-row-reverse" : ""}`}>
+                {selectionControl}
+                <div className="inline-flex items-center gap-2">
+                  {isMine && actionRail}
+                  {bubble}
+                  {!isMine && actionRail}
+                </div>
               </div>
               {reactionStrip || reactionDetailsToggle || reactionDetailsPanel ? (
                 <div className={`mt-1 flex w-fit flex-col ${isMine ? "items-end" : "items-start"}`}>
@@ -521,7 +568,7 @@ export function ThreadMessageList({
                 onMouseLeave={() => {
                   setHoveredMessageId((current) => (current === message.id ? null : current));
                   setReactionPickerMessageId((current) => (current === message.id ? null : current));
-                }}
+                } }
               >
                 <div className="flex items-start gap-4">
                   {!isMine && avatarSlot}
@@ -535,6 +582,21 @@ export function ThreadMessageList({
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

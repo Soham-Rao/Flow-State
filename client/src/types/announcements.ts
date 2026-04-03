@@ -16,6 +16,7 @@ export interface AnnouncementDetail {
   subject: string;
   body: string;
   createdAt: number;
+  seenAt: number | null;
   author: {
     id: string;
     name: string;
@@ -23,3 +24,4 @@ export interface AnnouncementDetail {
     email: string;
   };
 }
+

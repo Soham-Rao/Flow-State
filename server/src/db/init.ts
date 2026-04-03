@@ -65,19 +65,40 @@ export async function clearDatabaseForTests(): Promise<void> {
         return;
       }
 
+      const migrationTable = "__drizzle_migrations";
+      const hasMigrationTable = tableNames.includes(migrationTable);
+      if (!hasMigrationTable) {
+        await dropAllTables();
+        await runMigrations();
+        await seedRoles();
+        return;
+      }
+
+      const [migrationRows] = await connection.query<Array<RowDataPacket & { count: number }>>(
+        `SELECT COUNT(*) as count FROM ${migrationTable}`
+      );
+      const migrationCount = Number(migrationRows[0]?.count ?? 0);
+      const hasOtherTables = tableNames.some((name) => name !== migrationTable);
+      if (hasOtherTables && migrationCount === 0) {
+        await dropAllTables();
+        await runMigrations();
+        await seedRoles();
+        return;
+      }
+
       await connection.query("SET FOREIGN_KEY_CHECKS = 0");
       for (const tableName of tableNames) {
+        if (tableName === migrationTable) {
+          continue;
+        }
         await connection.query(`TRUNCATE TABLE \`${tableName}\``);
       }
       await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+      await runMigrations();
       await seedRoles();
     } finally {
       connection.release();
     }
   });
 }
-
-
-
-
 

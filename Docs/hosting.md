@@ -177,3 +177,67 @@ TODO: Create user-facing docs/tutorials (assume first-time computer users).
 
 
 
+
+## Server Setup & Maintenance (Ubuntu 22.04 VPS)
+> Production VPS, Docker-based deployment, MySQL + Node, Nginx reverse proxy.
+
+### 1) Base Access + SSH Hardening
+1. **Create a non-root user** (e.g. `flowstate`) and add to sudo.
+2. **SSH keys only**: disable password login.
+3. **Change SSH port** (optional) and allow only from your IP range if possible.
+4. **Install fail2ban** to block brute-force attempts.
+
+### 2) Firewall + Network
+1. Enable UFW:
+   - Allow `22` (SSH), `80` (HTTP), `443` (HTTPS).
+   - Deny all other inbound ports.
+2. Verify SSH access before locking down.
+
+### 3) Docker + Docker Compose
+1. Install Docker Engine + Docker Compose plugin.
+2. Add your user to the `docker` group.
+3. Create a dedicated docker network: `flowstate-net`.
+
+### 4) MySQL (Docker, prod only)
+1. Run MySQL 8.0 container with:
+   - volume: `mysql_prod_data:/var/lib/mysql`
+   - DB: `flowstate_prod`
+   - strong root password + app user
+2. Bind MySQL to **localhost** only (no public exposure).
+3. Backups: nightly `mysqldump` + volume snapshot.
+
+### 5) App Container (Node)
+1. Build + run the Node server container.
+2. Set env vars:
+   - `MYSQL_URL` (prod DB)
+   - `JWT_SECRET`
+   - `JWT_EXPIRES_IN`
+   - `CLIENT_ORIGIN=https://flo-state.in`
+   - `NODE_ENV=production`
+3. Run `db:migrate` on deploys when schema changes.
+
+### 6) Reverse Proxy + SSL (Nginx)
+1. Install Nginx on the host.
+2. Configure:
+   - `flo-state.in` -> app container
+   - `www` -> redirect to apex
+3. TLS:
+   - Use Certbot (Let’s Encrypt) for HTTPS
+   - Auto-renew certificates
+
+### 7) Email (Postfix / Brevo)
+1. Prefer **Brevo SMTP** (easier + deliverability).
+2. If Postfix is required:
+   - Configure SPF/DKIM/DMARC DNS
+   - Lock relaying to app only
+
+### 8) Monitoring + Updates
+1. Enable automatic security updates.
+2. Set up basic uptime monitoring.
+3. Log rotation + disk usage alerts.
+
+### 9) Maintenance Checklist
+- Verify backups + restore monthly
+- Patch OS + Docker monthly
+- Rotate secrets every 90 days
+- Review access logs weekly

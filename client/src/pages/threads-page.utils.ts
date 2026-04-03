@@ -1,12 +1,13 @@
-import { AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from "./threads-page.constants";
+import { AUDIO_EXTENSIONS, FORCE_FILE_EXTENSIONS, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from "./threads-page.constants";
 
 export function getAttachmentKind(mimeType: string | null, filename: string): "image" | "video" | "audio" | "file" {
-  if (mimeType?.startsWith("image/")) return "image";
-  if (mimeType?.startsWith("video/")) return "video";
-  if (mimeType?.startsWith("audio/")) return "audio";
   const lower = filename.toLowerCase();
   const dotIndex = lower.lastIndexOf(".");
   const ext = dotIndex >= 0 ? lower.slice(dotIndex) : "";
+  if (FORCE_FILE_EXTENSIONS.has(ext)) return "file";
+  if (mimeType?.startsWith("image/")) return "image";
+  if (mimeType?.startsWith("video/")) return "video";
+  if (mimeType?.startsWith("audio/")) return "audio";
   if (IMAGE_EXTENSIONS.has(ext)) return "image";
   if (VIDEO_EXTENSIONS.has(ext)) return "video";
   if (AUDIO_EXTENSIONS.has(ext)) return "audio";
@@ -79,3 +80,5 @@ export function getInitial(value: string | null | undefined): string {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed[0].toUpperCase() : "U";
 }
+
+

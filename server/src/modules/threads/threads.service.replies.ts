@@ -30,6 +30,7 @@ type ThreadReplyRow = {
   authorDisplayName: string | null;
   authorUsername: string | null;
   authorEmail: string;
+  authorBio: string | null;
   authorRole: UserRole;
 };
 
@@ -40,6 +41,7 @@ type ThreadReplyReactionRow = {
   displayName: string | null;
   username: string | null;
   email: string;
+  bio: string | null;
   role: UserRole;
 };
 
@@ -93,6 +95,7 @@ export async function listThreadReplies(
       authorDisplayName: users.displayName,
       authorUsername: users.username,
       authorEmail: users.email,
+      authorBio: users.bio,
       authorRole: users.role
     })
     .from(threadReplies)
@@ -128,6 +131,7 @@ export async function listThreadReplies(
         displayName: row.authorDisplayName,
         username: row.authorUsername,
         email: row.authorEmail,
+        bio: row.authorBio,
         role: row.authorRole
       },
       body,
@@ -183,6 +187,7 @@ export async function listThreadReplyReactionDetails(userId: string, replyId: st
       displayName: users.displayName,
       username: users.username,
       email: users.email,
+      bio: users.bio,
       role: users.role
     })
     .from(threadReplyReactions)
@@ -198,6 +203,7 @@ export async function listThreadReplyReactionDetails(userId: string, replyId: st
       displayName: row.displayName,
       username: row.username,
       email: row.email,
+      bio: row.bio,
       role: row.role
     });
     map.set(row.emoji, existing);
@@ -508,3 +514,5 @@ export async function deleteThreadReply(
   emitThreadEvent(reply.conversationId, "threads:reply:delete", { conversationId: reply.conversationId });
   return { id: replyId, scope: "all" };
 }
+
+

@@ -24,3 +24,10 @@ export function markAnnouncementsSeen(ids: string[]): Promise<{ ids: string[] }>
     body: JSON.stringify({ ids })
   });
 }
+export function deleteAnnouncements(ids: string[]): Promise<{ ids: string[] }> {
+  return apiRequest<{ ids: string[] }>("/announcements/delete", {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ ids })
+  });
+}

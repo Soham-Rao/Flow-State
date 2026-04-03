@@ -5,11 +5,17 @@ export const createThreadMessageSchema = z.object({
   mentions: z.array(z.string().uuid()).optional(),
   forwarded: z.boolean().optional(),
   hasAttachments: z.boolean().optional(),
-  hasVoiceNote: z.boolean().optional()
+  hasVoiceNote: z.boolean().optional(),
+  replyToMessageId: z.string().uuid().optional(),
+  replyToReplyId: z.string().uuid().optional()
 }).refine((data) => data.body.length > 0 || data.hasAttachments || data.hasVoiceNote, {
   message: "Message body cannot be empty",
   path: ["body"]
+}).refine((data) => !(data.replyToMessageId && data.replyToReplyId), {
+  message: "Only one reply target is allowed",
+  path: ["replyToMessageId"]
 });
+
 export const createThreadReplySchema = z.object({
   body: z.string().trim().max(5000),
   mentions: z.array(z.string().uuid()).optional(),
@@ -97,6 +103,7 @@ export type CreateChannelInput = z.infer<typeof createChannelSchema>;
 export type AddChannelMembersInput = z.infer<typeof addChannelMembersSchema>;
 export type UpdateChannelMemberOverridesInput = z.infer<typeof updateChannelMemberOverridesSchema>;
 export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;
+
 
 
 

@@ -555,21 +555,36 @@ export function AnnouncementsCard({
   announcements,
   isLoading,
   canSend,
-  seenAnnouncementIds,
+  selectionMode,
+  selectedAnnouncementIds,
+  listError,
+  onToggleSelectionMode,
+  onToggleSelection,
+  onDeleteSelected,
+  onDeleteAnnouncement,
   onOpenCompose,
   onOpenView
 }: {
   announcements: AnnouncementDetail[];
   isLoading: boolean;
   canSend: boolean;
-  seenAnnouncementIds: Set<string>;
+  selectionMode: boolean;
+  selectedAnnouncementIds: Set<string>;
+  listError: string | null;
+  onToggleSelectionMode: (next: boolean) => void;
+  onToggleSelection: (id: string) => void;
+  onDeleteSelected: () => void;
+  onDeleteAnnouncement: (id: string) => void;
   onOpenCompose: () => void;
   onOpenView: (announcement: AnnouncementDetail) => void;
 }): JSX.Element {
+  const selectedCount = selectedAnnouncementIds.size;
+  const canSelect = announcements.length > 0;
+
   return (
     <Card className={glassCardClass}>
       <CardHeader className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Bell className={headerIconClass} />
@@ -577,11 +592,42 @@ export function AnnouncementsCard({
             </CardTitle>
             <CardDescription>Updates from workspace leaders.</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {announcements.length > 0 && (
               <span className="rounded-full border border-black/10 bg-black/5 px-2 py-0.5 text-[11px] font-semibold uppercase text-slate-600 dark:border-white/20 dark:bg-white/10 dark:text-white/70">
                 {announcements.length}
               </span>
+            )}
+            {selectionMode ? (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onToggleSelectionMode(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-rose-500/90 text-white hover:bg-rose-500 disabled:opacity-60"
+                  disabled={selectedCount === 0}
+                  onClick={onDeleteSelected}
+                >
+                  Delete {selectedCount > 0 ? `(${selectedCount})` : ""}
+                </Button>
+              </>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!canSelect}
+                onClick={() => onToggleSelectionMode(true)}
+              >
+                Select
+              </Button>
             )}
             {canSend && (
               <Button type="button" size="sm" variant="secondary" className={glassPillClass} onClick={onOpenCompose}>
@@ -592,6 +638,11 @@ export function AnnouncementsCard({
         </div>
       </CardHeader>
       <CardContent>
+        {listError && (
+          <p className="mb-3 rounded-md border border-rose-200/60 bg-rose-50/70 px-3 py-2 text-xs text-rose-700">
+            {listError}
+          </p>
+        )}
         {isLoading && announcements.length === 0 ? (
           <p className="text-xs text-muted-foreground">Loading announcements...</p>
         ) : announcements.length === 0 ? (
@@ -599,41 +650,74 @@ export function AnnouncementsCard({
         ) : (
           <div className={`space-y-2 max-h-72 overflow-y-auto pr-1 rounded-lg p-2 ${glassSubtleClass} dark:bg-black/22 dark:border-white/12`}>
             {announcements.map((announcement) => {
-            const isUnread = !seenAnnouncementIds.has(announcement.id);
-            return (
-              <button
-                key={announcement.id}
-                type="button"
-                onClick={() => onOpenView(announcement)}
-                className={`w-full rounded-md px-3 py-2 text-left text-xs transition ${glassSubtleClass} dark:bg-black/24 dark:border-white/12 hover:border-white/20 hover:bg-black/20 dark:hover:bg-black/40 ${isUnread ? "border-l-4 border-emerald-400/70 bg-white/20 dark:bg-black/35" : "opacity-80"}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{announcement.subject}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      By {getAnnouncementAuthorLabel(announcement)}
-                    </p>
+              const isUnread = !announcement.seenAt;
+              const isSelected = selectedAnnouncementIds.has(announcement.id);
+              const itemGlow = isUnread
+                ? "border-l-4 border-emerald-400/70 bg-white/20 dark:bg-black/35"
+                : "opacity-80";
+
+              return (
+                <button
+                  key={announcement.id}
+                  type="button"
+                  onClick={() => {
+                    if (selectionMode) {
+                      onToggleSelection(announcement.id);
+                      return;
+                    }
+                    onOpenView(announcement);
+                  }}
+                  className={`w-full rounded-md px-3 py-2 text-left text-xs transition ${glassSubtleClass} dark:bg-black/24 dark:border-white/12 hover:border-white/20 hover:bg-black/20 dark:hover:bg-black/40 ${itemGlow} ${isSelected ? "ring-2 ring-emerald-400/60" : ""}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2">
+                      {selectionMode && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => onToggleSelection(announcement.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          className="mt-1 h-4 w-4 accent-emerald-500"
+                        />
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{announcement.subject}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          By {getAnnouncementAuthorLabel(announcement)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isUnread && (
+                        <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700 dark:border-emerald-400/60 dark:bg-emerald-400/15 dark:text-emerald-200">New</span>
+                      )}
+                      {!isUnread && !selectionMode && (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDeleteAnnouncement(announcement.id);
+                          }}
+                          className="rounded-full border border-rose-400/50 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-600 hover:text-rose-700"
+                        >
+                          Delete
+                        </button>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatAnnouncementTime(announcement.createdAt)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {isUnread && (
-                      <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-700 dark:border-emerald-400/60 dark:bg-emerald-400/15 dark:text-emerald-200">New</span>
-                    )}
-                    <span className="text-[10px] text-muted-foreground">
-                      {formatAnnouncementTime(announcement.createdAt)}
-                    </span>
-                  </div>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{getAnnouncementSnippet(announcement.body)}</p>
-              </button>
-            );
-          })}
+                  <p className="mt-1 text-xs text-muted-foreground">{getAnnouncementSnippet(announcement.body)}</p>
+                </button>
+              );
+            })}
           </div>
         )}
       </CardContent>
     </Card>
   );
 }
-
 export function NewJoinersCard({
   joiners,
   isLoading
@@ -678,6 +762,7 @@ export function NewJoinersCard({
     </Card>
   );
 }
+
 
 
 

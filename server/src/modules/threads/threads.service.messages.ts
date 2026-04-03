@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 
-import { and, desc, eq, isNull, lt, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, ne } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
 import { emitThreadEvent } from "../../realtime/socket.js";
@@ -12,6 +12,7 @@ import {
   threadMessageDeletions,
   threadMessageReactions,
   threadMessages,
+  threadReplies,
   threadMentions,
   threadVoiceNotes,
   users,
@@ -26,7 +27,7 @@ import type {
   ThreadMessageListParams,
   UpdateThreadMessageInput
 } from "./threads.schema.js";
-import type { ThreadMessageSummary, ThreadReactionDetail, ThreadUserSummary } from "./threads.service.types.js";
+import type { ThreadMessageSummary, ThreadReactionDetail, ThreadReplyContext, ThreadUserSummary } from "./threads.service.types.js";
 import { assertConversationMember, assertConversationPermission, ensureUserExists, getConversation } from "./threads.service.access.js";
 import { storeThreadMentions } from "./threads.service.mentions.js";
 import {
@@ -42,6 +43,8 @@ import { resolveThreadAttachmentPath, resolveThreadVoiceNotePath } from "./threa
 type ThreadMessageRow = {
   id: string;
   conversationId: string;
+  replyToMessageId: string | null;
+  replyToReplyId: string | null;
   body: string | null;
   bodyEncrypted: string | null;
   encryptionVersion: number;
@@ -54,6 +57,7 @@ type ThreadMessageRow = {
   authorDisplayName: string | null;
   authorUsername: string | null;
   authorEmail: string;
+  authorBio: string | null;
   authorRole: UserRole;
 };
 
@@ -64,7 +68,117 @@ type ThreadReactionRow = {
   displayName: string | null;
   username: string | null;
   email: string;
+  bio: string | null;
   role: UserRole;
+};
+type ReplyContextRow = {
+  id: string;
+  body: string | null;
+  bodyEncrypted: string | null;
+  encryptionVersion: number;
+  createdAt: Date;
+  deletedAt: Date | null;
+  authorId: string;
+  authorName: string;
+  authorDisplayName: string | null;
+  authorUsername: string | null;
+  authorEmail: string;
+  authorBio: string | null;
+  authorRole: UserRole;
+};
+
+const mapReplyContextRow = (
+  row: ReplyContextRow,
+  conversationType: "dm" | "channel",
+  kind: "message" | "reply"
+): ThreadReplyContext => {
+  let body = row.body;
+  if (row.deletedAt) {
+    body = "This message was deleted.";
+  } else if (conversationType === "dm" && row.bodyEncrypted) {
+    body = decryptDmBody(row.bodyEncrypted, row.encryptionVersion);
+  }
+  return {
+    id: row.id,
+    kind,
+    author: {
+      id: row.authorId,
+      name: row.authorName,
+      displayName: row.authorDisplayName,
+      username: row.authorUsername,
+      email: row.authorEmail,
+      bio: row.authorBio,
+      role: row.authorRole
+    },
+    body,
+    createdAt: row.createdAt,
+    deletedAt: row.deletedAt
+  };
+};
+
+const loadReplyContextMaps = async (
+  conversationType: "dm" | "channel",
+  conversationId: string,
+  replyToMessageIds: string[],
+  replyToReplyIds: string[]
+): Promise<{ messageMap: Map<string, ThreadReplyContext>; replyMap: Map<string, ThreadReplyContext> }> => {
+  const messageMap = new Map<string, ThreadReplyContext>();
+  const replyMap = new Map<string, ThreadReplyContext>();
+
+  if (replyToMessageIds.length > 0) {
+    const rows: ReplyContextRow[] = await db
+      .select({
+        id: threadMessages.id,
+        body: threadMessages.body,
+        bodyEncrypted: threadMessages.bodyEncrypted,
+        encryptionVersion: threadMessages.encryptionVersion,
+        createdAt: threadMessages.createdAt,
+        deletedAt: threadMessages.deletedAt,
+        authorId: users.id,
+        authorName: users.name,
+        authorDisplayName: users.displayName,
+        authorUsername: users.username,
+        authorEmail: users.email,
+        authorBio: users.bio,
+        authorRole: users.role
+      })
+      .from(threadMessages)
+      .innerJoin(users, eq(threadMessages.authorId, users.id))
+      .where(and(inArray(threadMessages.id, replyToMessageIds), eq(threadMessages.conversationId, conversationId)));
+
+    rows.forEach((row) => {
+      messageMap.set(row.id, mapReplyContextRow(row, conversationType, "message"));
+    });
+  }
+
+  if (replyToReplyIds.length > 0) {
+    const rows: ReplyContextRow[] = await db
+      .select({
+        id: threadReplies.id,
+        body: threadReplies.body,
+        bodyEncrypted: threadReplies.bodyEncrypted,
+        encryptionVersion: threadReplies.encryptionVersion,
+        createdAt: threadReplies.createdAt,
+        deletedAt: threadReplies.deletedAt,
+        authorId: users.id,
+        authorName: users.name,
+        authorDisplayName: users.displayName,
+        authorUsername: users.username,
+        authorEmail: users.email,
+        authorBio: users.bio,
+        authorRole: users.role
+      })
+      .from(threadReplies)
+      .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
+      .innerJoin(users, eq(threadReplies.authorId, users.id))
+      .where(and(inArray(threadReplies.id, replyToReplyIds), eq(threadMessages.conversationId, conversationId)));
+
+    rows.forEach((row) => {
+      replyMap.set(row.id, mapReplyContextRow(row, conversationType, "reply"));
+    });
+  }
+
+  return { messageMap, replyMap };
 };
 
 export async function listThreadMessages(
@@ -91,6 +205,8 @@ export async function listThreadMessages(
     .select({
       id: threadMessages.id,
       conversationId: threadMessages.conversationId,
+      replyToMessageId: threadMessages.replyToMessageId,
+      replyToReplyId: threadMessages.replyToReplyId,
       body: threadMessages.body,
       bodyEncrypted: threadMessages.bodyEncrypted,
       encryptionVersion: threadMessages.encryptionVersion,
@@ -103,6 +219,7 @@ export async function listThreadMessages(
       authorDisplayName: users.displayName,
       authorUsername: users.username,
       authorEmail: users.email,
+      authorBio: users.bio,
       authorRole: users.role
     })
     .from(threadMessages)
@@ -121,6 +238,19 @@ export async function listThreadMessages(
   const deletedForUser = await getThreadMessageDeletionSet(userId, messageIds);
   const filteredRows = rows.filter((row) => !deletedForUser.has(row.id));
   const visibleIds = filteredRows.map((row) => row.id);
+  const replyToMessageIds = Array.from(
+    new Set(filteredRows.map((row) => row.replyToMessageId).filter((value): value is string => Boolean(value)))
+  );
+  const replyToReplyIds = Array.from(
+    new Set(filteredRows.map((row) => row.replyToReplyId).filter((value): value is string => Boolean(value)))
+  );
+
+  const { messageMap: replyMessageMap, replyMap: replyReplyMap } = await loadReplyContextMaps(
+    conversation.type,
+    conversationId,
+    replyToMessageIds,
+    replyToReplyIds
+  );
 
   const [reactionsByMessageId, replyCounts, replyMentionCounts, attachmentsByMessageId, voiceNotesByMessageId] = await Promise.all([
     getThreadMessageReactions(visibleIds),
@@ -141,12 +271,20 @@ export async function listThreadMessages(
     return {
       id: row.id,
       conversationId: row.conversationId,
+      replyToMessageId: row.replyToMessageId ?? null,
+      replyToReplyId: row.replyToReplyId ?? null,
+      replyContext: row.replyToMessageId
+        ? replyMessageMap.get(row.replyToMessageId) ?? null
+        : row.replyToReplyId
+          ? replyReplyMap.get(row.replyToReplyId) ?? null
+          : null,
       author: {
         id: row.authorId,
         name: row.authorName,
         displayName: row.authorDisplayName,
         username: row.authorUsername,
         email: row.authorEmail,
+        bio: row.authorBio,
         role: row.authorRole
       },
       body,
@@ -167,7 +305,17 @@ export async function listThreadMessages(
 
 export async function listThreadMessageReactionDetails(userId: string, messageId: string): Promise<ThreadReactionDetail[]> {
   const messageRows = await db
-    .select({ id: threadMessages.id, conversationId: threadMessages.conversationId, deletedAt: threadMessages.deletedAt })
+    .select({
+      id: threadMessages.id,
+      conversationId: threadMessages.conversationId,
+      deletedAt: threadMessages.deletedAt,
+      authorId: threadMessages.authorId,
+      createdAt: threadMessages.createdAt,
+      isForwarded: threadMessages.isForwarded,
+      encryptionVersion: threadMessages.encryptionVersion,
+      replyToMessageId: threadMessages.replyToMessageId,
+      replyToReplyId: threadMessages.replyToReplyId
+    })
     .from(threadMessages)
     .where(eq(threadMessages.id, messageId))
     .limit(1);
@@ -199,6 +347,7 @@ export async function listThreadMessageReactionDetails(userId: string, messageId
       displayName: users.displayName,
       username: users.username,
       email: users.email,
+      bio: users.bio,
       role: users.role
     })
     .from(threadMessageReactions)
@@ -214,6 +363,7 @@ export async function listThreadMessageReactionDetails(userId: string, messageId
       displayName: row.displayName,
       username: row.username,
       email: row.email,
+      bio: row.bio,
       role: row.role
     });
     map.set(row.emoji, existing);
@@ -230,6 +380,32 @@ export async function createThreadMessage(userId: string, conversationId: string
     await assertConversationPermission(userId, conversationId, "dm_write");
   } else {
     await assertConversationPermission(userId, conversationId, "channel_write");
+  }
+
+  const replyToMessageId = input.replyToMessageId ?? null;
+  const replyToReplyId = input.replyToReplyId ?? null;
+
+  if (replyToMessageId) {
+    const rows = await db
+      .select({ id: threadMessages.id })
+      .from(threadMessages)
+      .where(and(eq(threadMessages.id, replyToMessageId), eq(threadMessages.conversationId, conversationId)))
+      .limit(1);
+    if (!rows[0]) {
+      throw new ApiError(400, "Reply target not found");
+    }
+  }
+
+  if (replyToReplyId) {
+    const rows = await db
+      .select({ id: threadReplies.id })
+      .from(threadReplies)
+      .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
+      .where(and(eq(threadReplies.id, replyToReplyId), eq(threadMessages.conversationId, conversationId)))
+      .limit(1);
+    if (!rows[0]) {
+      throw new ApiError(400, "Reply target not found");
+    }
   }
 
   const trimmed = input.body.trim();
@@ -257,6 +433,8 @@ export async function createThreadMessage(userId: string, conversationId: string
       id: messageId,
       conversationId,
       authorId: userId,
+      replyToMessageId,
+      replyToReplyId,
       body,
       bodyEncrypted,
       bodyFormat: "plain",
@@ -274,11 +452,25 @@ export async function createThreadMessage(userId: string, conversationId: string
     .execute();
 
   await storeThreadMentions(conversationId, messageId, input.mentions, userId);
+  const { messageMap: createdReplyMessageMap, replyMap: createdReplyMap } = await loadReplyContextMaps(
+    conversation.type,
+    conversationId,
+    replyToMessageId ? [replyToMessageId] : [],
+    replyToReplyId ? [replyToReplyId] : []
+  );
+  const replyContext = replyToMessageId
+    ? createdReplyMessageMap.get(replyToMessageId) ?? null
+    : replyToReplyId
+      ? createdReplyMap.get(replyToReplyId) ?? null
+      : null;
 
   const author = await ensureUserExists(userId);
   const summary = {
     id: messageId,
     conversationId,
+    replyToMessageId,
+    replyToReplyId,
+    replyContext,
     author,
     body: conversation.type === "dm" ? (trimmed || null) : body,
     isForwarded: Boolean(input.forwarded),
@@ -300,14 +492,13 @@ export async function updateThreadMessage(userId: string, messageId: string, inp
     .select({
       id: threadMessages.id,
       conversationId: threadMessages.conversationId,
-      authorId: threadMessages.authorId,
-      body: threadMessages.body,
-      bodyEncrypted: threadMessages.bodyEncrypted,
-      encryptionVersion: threadMessages.encryptionVersion,
-      createdAt: threadMessages.createdAt,
-      updatedAt: threadMessages.updatedAt,
       deletedAt: threadMessages.deletedAt,
-      isForwarded: threadMessages.isForwarded
+      authorId: threadMessages.authorId,
+      createdAt: threadMessages.createdAt,
+      isForwarded: threadMessages.isForwarded,
+      encryptionVersion: threadMessages.encryptionVersion,
+      replyToMessageId: threadMessages.replyToMessageId,
+      replyToReplyId: threadMessages.replyToReplyId
     })
     .from(threadMessages)
     .where(eq(threadMessages.id, messageId))
@@ -386,6 +577,18 @@ export async function updateThreadMessage(userId: string, messageId: string, inp
     .where(eq(threadMessages.id, messageId))
     .execute();
 
+  const { messageMap: updatedReplyMessageMap, replyMap: updatedReplyMap } = await loadReplyContextMaps(
+    conversation.type,
+    message.conversationId,
+    message.replyToMessageId ? [message.replyToMessageId] : [],
+    message.replyToReplyId ? [message.replyToReplyId] : []
+  );
+  const replyContext = message.replyToMessageId
+    ? updatedReplyMessageMap.get(message.replyToMessageId) ?? null
+    : message.replyToReplyId
+      ? updatedReplyMap.get(message.replyToReplyId) ?? null
+      : null;
+
   const author = await ensureUserExists(userId);
   const [reactionsByMessageId, replyCounts, attachmentsByMessageId, voiceNotesByMessageId] = await Promise.all([
     getThreadMessageReactions([messageId]),
@@ -397,6 +600,9 @@ export async function updateThreadMessage(userId: string, messageId: string, inp
   const summary = {
     id: messageId,
     conversationId: message.conversationId,
+    replyToMessageId: message.replyToMessageId ?? null,
+    replyToReplyId: message.replyToReplyId ?? null,
+    replyContext,
     author,
     body: conversation.type === "dm" ? (trimmed || null) : body,
     isForwarded: Boolean(message.isForwarded),
@@ -422,11 +628,13 @@ export async function deleteThreadMessage(
     .select({
       id: threadMessages.id,
       conversationId: threadMessages.conversationId,
+      deletedAt: threadMessages.deletedAt,
       authorId: threadMessages.authorId,
       createdAt: threadMessages.createdAt,
-      deletedAt: threadMessages.deletedAt,
       isForwarded: threadMessages.isForwarded,
-      encryptionVersion: threadMessages.encryptionVersion
+      encryptionVersion: threadMessages.encryptionVersion,
+      replyToMessageId: threadMessages.replyToMessageId,
+      replyToReplyId: threadMessages.replyToReplyId
     })
     .from(threadMessages)
     .where(eq(threadMessages.id, messageId))
@@ -535,10 +743,25 @@ export async function deleteThreadMessage(
     .where(eq(threadMessages.id, messageId))
     .execute();
 
+  const { messageMap: updatedReplyMessageMap, replyMap: updatedReplyMap } = await loadReplyContextMaps(
+    conversation.type,
+    message.conversationId,
+    message.replyToMessageId ? [message.replyToMessageId] : [],
+    message.replyToReplyId ? [message.replyToReplyId] : []
+  );
+  const replyContext = message.replyToMessageId
+    ? updatedReplyMessageMap.get(message.replyToMessageId) ?? null
+    : message.replyToReplyId
+      ? updatedReplyMap.get(message.replyToReplyId) ?? null
+      : null;
+
   const author = await ensureUserExists(userId);
   const summary = {
     id: messageId,
     conversationId: message.conversationId,
+    replyToMessageId: message.replyToMessageId ?? null,
+    replyToReplyId: message.replyToReplyId ?? null,
+    replyContext,
     author,
     body: "This message was deleted.",
     isForwarded: Boolean(message.isForwarded),
@@ -558,3 +781,40 @@ export async function deleteThreadMessage(
     message: summary
   };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

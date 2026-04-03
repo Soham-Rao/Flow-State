@@ -7,9 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { boardBackgroundPresets, getBoardBackgroundClass, type BoardBackgroundPreset } from "@/lib/board-backgrounds";
 import { archiveBoard, createBoard, deleteBoard, getBoards, restoreBoard } from "@/lib/boards-api";
+import { getDashboardSummary } from "@/lib/dashboard-api";
 import { listUnreadCommentMentions } from "@/lib/mentions-api";
 import { useMentionStore } from "@/stores/mentions-store";
 import type { BoardBackground, BoardSummary } from "@/types/board";
+import type { DashboardCardSummary } from "@/types/dashboard";
 import type { CommentMentionDetail } from "@/types/mentions";
 import { boardGlassCard, boardGlassModal, boardGlassModalInput, boardGlassOverlay, boardGlassOverlayDark, boardGlassPill, boardGlassStrong, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 const BOARD_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
@@ -46,6 +48,8 @@ export function BoardsPage(): JSX.Element {
 
   const [commentMentions, setCommentMentions] = useState<CommentMentionDetail[]>([]);
   const refreshMentions = useMentionStore((state) => state.refresh);
+  const assignmentBadgeCount = useMentionStore((state) => state.counts?.assignments ?? 0);
+  const [assignedCards, setAssignedCards] = useState<DashboardCardSummary[]>([]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState<BoardSummary | null>(null);
@@ -56,9 +60,18 @@ export function BoardsPage(): JSX.Element {
   const [background, setBackground] = useState<BoardBackground>("teal-gradient");
 
   const navigate = useNavigate();
+  const lastAssignmentCountRef = useRef<number | null>(null);
 
   const activeBoards = boards.filter((board) => !board.archivedAt);
   const archivedBoards = boards.filter((board) => Boolean(board.archivedAt));
+
+  const assignmentsByBoard = useMemo(() => {
+    const map = new Map<string, number>();
+    assignedCards.forEach((card) => {
+      map.set(card.boardId, (map.get(card.boardId) ?? 0) + 1);
+    });
+    return map;
+  }, [assignedCards]);
 
   const mentionsByBoard = useMemo(() => {
     const map = new Map<string, CommentMentionDetail[]>();
@@ -72,6 +85,15 @@ export function BoardsPage(): JSX.Element {
     }
     return map;
   }, [commentMentions]);
+
+  const loadAssignedCards = async (): Promise<void> => {
+    try {
+      const summary = await getDashboardSummary();
+      setAssignedCards(summary.assignedCards ?? []);
+    } catch {
+      // ignore
+    }
+  };
 
   const loadCommentMentions = async (): Promise<void> => {
     try {
@@ -127,6 +149,20 @@ export function BoardsPage(): JSX.Element {
     }, 3000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    void loadAssignedCards();
+    const interval = window.setInterval(() => {
+      void loadAssignedCards();
+    }, 10000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (lastAssignmentCountRef.current === assignmentBadgeCount) return;
+    lastAssignmentCountRef.current = assignmentBadgeCount;
+    void loadAssignedCards();
+  }, [assignmentBadgeCount]);
 
   useEffect(() => {
     if (!isCreateOpen) return;
@@ -249,7 +285,9 @@ export function BoardsPage(): JSX.Element {
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {activeBoards.map((board) => (
+            {activeBoards.map((board) => {
+              const assignedCount = assignmentsByBoard.get(board.id) ?? 0;
+              return (
               <Card key={board.id} className={`overflow-hidden ${boardGlassCard}`}>
                 <Link to={`/boards/${board.id}`}>
                   <div className={`h-24 w-full ${getBoardBackgroundClass(board.background)}`} />
@@ -257,33 +295,40 @@ export function BoardsPage(): JSX.Element {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="line-clamp-1 text-lg">{board.name}</CardTitle>
-                    {(() => {
-                      const boardMentions = mentionsByBoard.get(board.id) ?? [];
-                      const badgeMentions = boardMentions;
-                      if (badgeMentions.length === 0) return null;
-                      return (
-                        <div className="relative group/mentions">
-                          <button
-                            type="button"
-                            className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm"
-                          >
-                            {badgeMentions.length}
-                          </button>
-                          <div className={`pointer-events-none absolute right-0 top-7 z-10 w-72 translate-y-1 rounded-lg p-3 text-left opacity-0 shadow-lg transition ${boardGlassStrong} group-hover/mentions:pointer-events-auto group-hover/mentions:opacity-100`}>
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Mentions</p>
-                            <div className="mt-2 space-y-2">
-                              {badgeMentions.map((mention) => (
-                                <div key={mention.commentId} className={`rounded-md px-2 py-2 ${boardGlassSubtle}`}>
-                                  <p className="text-xs font-semibold">{getMentionLocation(mention)}</p>
-                                  <p className="mt-1 text-[10px] text-muted-foreground">{getMentionSnippet(mention.body)}</p>
-                                </div>
-                              ))}
+                    <div className="flex items-center gap-1">
+                      {assignedCount > 0 && (
+                        <span className="rounded-full bg-sky-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          {assignedCount}
+                        </span>
+                      )}
+                      {(() => {
+                        const boardMentions = mentionsByBoard.get(board.id) ?? [];
+                        const badgeMentions = boardMentions;
+                        if (badgeMentions.length === 0) return null;
+                        return (
+                          <div className="relative group/mentions">
+                            <button
+                              type="button"
+                              className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm"
+                            >
+                              {badgeMentions.length}
+                            </button>
+                            <div className={`pointer-events-none absolute right-0 top-7 z-10 w-72 translate-y-1 rounded-lg p-3 text-left opacity-0 shadow-lg transition ${boardGlassStrong} group-hover/mentions:pointer-events-auto group-hover/mentions:opacity-100`}>
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Mentions</p>
+                              <div className="mt-2 space-y-2">
+                                {badgeMentions.map((mention) => (
+                                  <div key={mention.commentId} className={`rounded-md px-2 py-2 ${boardGlassSubtle}`}>
+                                    <p className="text-xs font-semibold">{getMentionLocation(mention)}</p>
+                                    <p className="mt-1 text-[10px] text-muted-foreground">{getMentionSnippet(mention.body)}</p>
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="mt-2 text-[10px] text-muted-foreground">Open the board to review mentions.</p>
                             </div>
-                            <p className="mt-2 text-[10px] text-muted-foreground">Open the board to review mentions.</p>
                           </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()}
+                    </div>
                   </div>
                   <CardDescription className="line-clamp-2">{board.description ?? "No description"}</CardDescription>
                 </CardHeader>
@@ -310,7 +355,8 @@ export function BoardsPage(): JSX.Element {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -453,6 +499,38 @@ export function BoardsPage(): JSX.Element {
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

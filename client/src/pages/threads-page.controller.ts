@@ -194,6 +194,7 @@ export function useThreadsController() {
       displayName: userEntry.displayName,
       username: userEntry.username,
       email: userEntry.email,
+      bio: userEntry.bio ?? null,
       role: userEntry.role === "admin" ? "admin" : "member",
       createdAt: new Date().toISOString()
     }));
@@ -670,6 +671,15 @@ export function useThreadsController() {
     });
   }, [dmUsers, actions.forwardSearch]);
 
+  const filteredForwardChannels = useMemo(() => {
+    const query = actions.forwardSearch.trim().toLowerCase();
+    if (!query) return channelConversations;
+    return channelConversations.filter((channel) => {
+      const name = channel.name.toLowerCase();
+      const description = channel.description?.toLowerCase() ?? "";
+      return name.includes(query) || description.includes(query);
+    });
+  }, [channelConversations, actions.forwardSearch]);
   const media = useThreadMedia({
     activeConversationId: activeConversation?.id ?? null,
     messages,
@@ -1652,10 +1662,12 @@ export function useThreadsController() {
     forwardSearch: actions.forwardSearch,
     setForwardSearch: actions.setForwardSearch,
     filteredForwardUsers,
+    filteredForwardChannels,
     forwarding: actions.forwarding,
     forwardError: actions.forwardError,
     closeForwardPicker: actions.closeForwardPicker,
     handleForwardToUser: actions.handleForwardToUser,
+    handleForwardToChannel: actions.handleForwardToChannel,
     showReplyPanel,
     replyOpen: actions.replyOpen,
     replyTarget: actions.replyTarget,
@@ -1704,6 +1716,9 @@ export function useThreadsController() {
     closeReplyThread: actions.closeReplyThread
   };
 }
+
+
+
 
 
 

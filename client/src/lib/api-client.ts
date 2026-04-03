@@ -1,4 +1,5 @@
 import { getSessionToken } from "@/lib/session";
+import { usePermissionErrorStore } from "@/stores/permission-error-store";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -65,9 +66,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     | null;
 
   if (!response.ok || !payload?.success) {
-    throw new Error(getBestErrorMessage(payload?.error));
+    const message = getBestErrorMessage(payload?.error);
+    if (response.status === 403 || /permission/i.test(message)) {
+      usePermissionErrorStore.getState().setError(message);
+    }
+    throw new Error(message);
   }
 
   return payload.data as T;
 }
+
 

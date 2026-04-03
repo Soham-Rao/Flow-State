@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, MessageSquareText, Users } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PresenceIndicator } from "@/components/users/presence-indicator";
 import { ThreadComposer } from "./threads-page.composer";
@@ -149,10 +150,12 @@ export function ThreadsPage(): JSX.Element {
     forwardSearch,
     setForwardSearch,
     filteredForwardUsers,
+    filteredForwardChannels,
     forwarding,
     forwardError,
     closeForwardPicker,
     handleForwardToUser,
+    handleForwardToChannel,
     showReplyPanel,
     replyOpen,
     replyTarget,
@@ -208,6 +211,9 @@ export function ThreadsPage(): JSX.Element {
   const [permissionsOpenFor, setPermissionsOpenFor] = useState<string | null>(null);
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
   const [deleteChannelConfirmOpen, setDeleteChannelConfirmOpen] = useState(false);
+  const [messageSelectionMode, setMessageSelectionMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const listToggleRef = useRef<HTMLButtonElement | null>(null);
   const listPanelRef = useRef<HTMLDivElement | null>(null);
@@ -215,6 +221,10 @@ export function ThreadsPage(): JSX.Element {
   const isDm = activeConversation?.type === "dm";
   const isChannel = activeConversation?.type === "channel";
   const tabBadgeCount = activeTab === "channels" ? channelBadgeCount : dmBadgeCount;
+  const selectedMessageSet = useMemo(() => new Set(selectedMessageIds), [selectedMessageIds]);
+  const selectedMessageCount = selectedMessageIds.length;
+  const selectableMessageCount = messages.filter((message) => !message.deletedAt).length;
+  const canSelectMessages = selectableMessageCount > 0;
   const channelSaveStatus =
     !canEditChannel
       ? "Read-only"
@@ -236,6 +246,28 @@ export function ThreadsPage(): JSX.Element {
 
   const channelMemberIds = new Set(channelMembers.map((member) => member.user.id));
   const availableChannelUsers = dmUsers.filter((member) => !channelMemberIds.has(member.id));
+  const toggleMessageSelection = (messageId: string) => {
+    setSelectedMessageIds((prev) => (
+      prev.includes(messageId) ? prev.filter((id) => id !== messageId) : [...prev, messageId]
+    ));
+  };
+
+  const clearMessageSelection = () => {
+    setSelectedMessageIds([]);
+    setMessageSelectionMode(false);
+    setBulkDeleteOpen(false);
+  };
+
+  const handleBulkDeleteMessages = async () => {
+    if (selectedMessageCount === 0) return;
+    const targets = messages.filter((message) => selectedMessageSet.has(message.id) && !message.deletedAt);
+    for (const message of targets) {
+      await handleDeleteMessage(message, "me");
+    }
+    setSelectedMessageIds([]);
+    setMessageSelectionMode(false);
+    setBulkDeleteOpen(false);
+  };
 
   const handleTabChange = (tab: "dms" | "channels") => {
     setSearchParams((prev) => {
@@ -250,6 +282,10 @@ export function ThreadsPage(): JSX.Element {
       return next;
     });
   };
+
+  useEffect(() => {
+    clearMessageSelection();
+  }, [activeConversation?.id, activeTab]);
 
   useEffect(() => {
     if (!isChannel || activeTab !== "channels") {
@@ -386,11 +422,41 @@ export function ThreadsPage(): JSX.Element {
                   @{activeConversation.otherUser.username ?? "username"}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <MessageSquareText className="h-4 w-4" />
-                {activeConversation.lastMessageAt
-                  ? `Last message ${formatTimestamp(activeConversation.lastMessageAt)}`
-                  : "No activity yet"}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MessageSquareText className="h-4 w-4" />
+                  {activeConversation.lastMessageAt
+                    ? `Last message ${formatTimestamp(activeConversation.lastMessageAt)}`
+                    : "No activity yet"}
+                </div>
+                <div className="flex items-center gap-2">
+                  {messageSelectionMode ? (
+                    <>
+                      <Button type="button" size="sm" variant="ghost" onClick={clearMessageSelection}>
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="bg-amber-500/90 text-white hover:bg-amber-500 disabled:opacity-60"
+                        disabled={selectedMessageCount === 0}
+                        onClick={() => setBulkDeleteOpen(true)}
+                      >
+                        Delete {selectedMessageCount > 0 ? `(${selectedMessageCount})` : ""}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={!canSelectMessages}
+                      onClick={() => setMessageSelectionMode(true)}
+                    >
+                      Select
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -402,6 +468,9 @@ export function ThreadsPage(): JSX.Element {
                 currentUserId={user?.id}
                 messageListRef={messageListRef}
                 threadBadgeMode={threadBadgeMode}
+                selectionMode={messageSelectionMode}
+                selectedMessageIds={selectedMessageSet}
+                onToggleSelection={toggleMessageSelection}
                 replySeenCounts={replySeenCounts}
                 onScroll={handleMessageScroll}
                 hoveredMessageId={hoveredMessageId}
@@ -512,11 +581,41 @@ export function ThreadsPage(): JSX.Element {
                   #{activeConversation.name}
                 </button>
               </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <MessageSquareText className="h-4 w-4" />
-                {activeConversation.lastMessageAt
-                  ? `Last message ${formatTimestamp(activeConversation.lastMessageAt)}`
-                  : "No activity yet"}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MessageSquareText className="h-4 w-4" />
+                  {activeConversation.lastMessageAt
+                    ? `Last message ${formatTimestamp(activeConversation.lastMessageAt)}`
+                    : "No activity yet"}
+                </div>
+                <div className="flex items-center gap-2">
+                  {messageSelectionMode ? (
+                    <>
+                      <Button type="button" size="sm" variant="ghost" onClick={clearMessageSelection}>
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="bg-amber-500/90 text-white hover:bg-amber-500 disabled:opacity-60"
+                        disabled={selectedMessageCount === 0}
+                        onClick={() => setBulkDeleteOpen(true)}
+                      >
+                        Delete {selectedMessageCount > 0 ? `(${selectedMessageCount})` : ""}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      disabled={!canSelectMessages}
+                      onClick={() => setMessageSelectionMode(true)}
+                    >
+                      Select
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -819,6 +918,9 @@ export function ThreadsPage(): JSX.Element {
                   currentUserId={user?.id}
                   messageListRef={messageListRef}
                   threadBadgeMode={threadBadgeMode}
+                  selectionMode={messageSelectionMode}
+                  selectedMessageIds={selectedMessageSet}
+                  onToggleSelection={toggleMessageSelection}
                   replySeenCounts={replySeenCounts}
                   onScroll={handleMessageScroll}
                   hoveredMessageId={hoveredMessageId}
@@ -918,6 +1020,15 @@ export function ThreadsPage(): JSX.Element {
         )}
 
         <ConfirmDialog
+          open={bulkDeleteOpen}
+          title="Delete selected messages?"
+          description="This will hide the selected messages only for you."
+          confirmLabel={selectedMessageCount > 0 ? `Delete (${selectedMessageCount})` : "Delete"}
+          confirmClassName="bg-amber-500/90 text-white hover:bg-amber-500"
+          onConfirm={() => void handleBulkDeleteMessages()}
+          onCancel={() => setBulkDeleteOpen(false)}
+        />
+        <ConfirmDialog
           open={Boolean(deleteConfirm)}
           title={deleteConfirm?.scope === "all" ? "Delete for everyone?" : "Delete for you?"}
           description={
@@ -1002,10 +1113,12 @@ export function ThreadsPage(): JSX.Element {
           forwardSearch={forwardSearch}
           onForwardSearchChange={setForwardSearch}
           filteredForwardUsers={filteredForwardUsers}
+          filteredForwardChannels={filteredForwardChannels}
           forwarding={forwarding}
           forwardError={forwardError}
           onClose={closeForwardPicker}
           onSelectUser={handleForwardToUser}
+          onSelectChannel={handleForwardToChannel}
         />
 
         <ThreadsReplyDrawer
@@ -1075,6 +1188,20 @@ export function ThreadsPage(): JSX.Element {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

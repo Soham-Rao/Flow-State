@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { CheckCircle2, ListTodo } from "lucide-react";
 
-import { createAnnouncement, getAnnouncementCapabilities, listAnnouncementAudienceOptions, markAnnouncementsSeen } from "@/lib/announcements-api";
+import { createAnnouncement, deleteAnnouncements, getAnnouncementCapabilities, listAnnouncementAudienceOptions, markAnnouncementsSeen } from "@/lib/announcements-api";
 import { createInvite, listInvites, revokeInvite } from "@/lib/invites-api";
 import { getDashboardSummary } from "@/lib/dashboard-api";
 import { useActivityStore } from "@/stores/activity-store";
@@ -115,7 +115,8 @@ export function HomePage(): JSX.Element {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [seenAnnouncementIds, setSeenAnnouncementIds] = useState<string[]>([]);
+  const [announcementSelectionMode, setAnnouncementSelectionMode] = useState(false);
+  const [selectedAnnouncementIds, setSelectedAnnouncementIds] = useState<string[]>([]);
   const [announcementCapabilities, setAnnouncementCapabilities] = useState<{ canSend: boolean } | null>(null);
   const [announcementOptions, setAnnouncementOptions] = useState<AnnouncementAudienceOptions | null>(null);
   const [announcementOptionsStatus, setAnnouncementOptionsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -132,6 +133,7 @@ export function HomePage(): JSX.Element {
   });
   const [announcementError, setAnnouncementError] = useState<string | null>(null);
   const [announcementSending, setAnnouncementSending] = useState(false);
+  const [announcementListError, setAnnouncementListError] = useState<string | null>(null);
   const [summaryStatus, setSummaryStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
@@ -142,7 +144,6 @@ export function HomePage(): JSX.Element {
 
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
   const storageKey = user?.id ? `flowstate:focus:${user.id}` : "flowstate:focus:guest";
-  const announcementSeenKey = user?.id ? `flowstate:announcements:seen:${user.id}` : null;
   const pendingInvites = invites.filter((invite) => invite.status === "pending");
   const acceptedInvites = invites.filter((invite) => invite.status === "accepted");
   const revokedInvites = invites.filter((invite) => invite.status === "revoked");
@@ -158,7 +159,7 @@ export function HomePage(): JSX.Element {
   const threadMentions = summary?.threadMentions ?? [];
   const announcements = summary?.announcements ?? [];
 
-  const seenAnnouncementSet = useMemo(() => new Set(seenAnnouncementIds), [seenAnnouncementIds]);
+  const selectedAnnouncementSet = useMemo(() => new Set(selectedAnnouncementIds), [selectedAnnouncementIds]);
   const activityHighlights = summary?.activityHighlights ?? [];
   const newJoiners = summary?.newJoiners ?? [];
 
@@ -262,16 +263,7 @@ export function HomePage(): JSX.Element {
         const mergedBoardMentions = mergeBoardMentions(prev?.boardMentions ?? [], data.boardMentions);
         const dismissed = dismissedBoardMentionsRef.current;
         const filteredBoardMentions = mergedBoardMentions.filter((mention) => !dismissed.has(getBoardMentionKey(mention)));
-        const prevAnnouncements = prev?.announcements ?? [];
-        const mergedAnnouncements = new Map<string, AnnouncementDetail>();
-        data.announcements.forEach((announcement) => mergedAnnouncements.set(announcement.id, announcement));
-        prevAnnouncements.forEach((announcement) => {
-          if (!mergedAnnouncements.has(announcement.id)) {
-            mergedAnnouncements.set(announcement.id, announcement);
-          }
-        });
-        const announcementList = Array.from(mergedAnnouncements.values()).sort((a, b) => b.createdAt - a.createdAt);
-        return { ...data, boardMentions: filteredBoardMentions, announcements: announcementList };
+        return { ...data, boardMentions: filteredBoardMentions };
       });
       setSummaryStatus("ready");
     } catch (error) {
@@ -387,22 +379,54 @@ export function HomePage(): JSX.Element {
       setAnnouncementSending(false);
     }
   };
+  const toggleAnnouncementSelection = (id: string): void => {
+    setSelectedAnnouncementIds((prev) => (
+      prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+    ));
+  };
 
+  const setAnnouncementSelection = (next: boolean): void => {
+    setAnnouncementSelectionMode(next);
+    if (!next) {
+      setSelectedAnnouncementIds([]);
+    }
+  };
+
+  const handleDeleteAnnouncements = async (ids: string[]): Promise<void> => {
+    const normalized = Array.from(new Set(ids.filter(Boolean)));
+    if (normalized.length === 0) return;
+    setAnnouncementListError(null);
+    try {
+      await deleteAnnouncements(normalized);
+      setSummary((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          announcements: prev.announcements.filter((entry) => !normalized.includes(entry.id))
+        };
+      });
+      setSelectedAnnouncementIds((prev) => prev.filter((entry) => !normalized.includes(entry)));
+      setAnnouncementSelectionMode(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete announcements.";
+      setAnnouncementListError(message);
+    }
+  };
   const openAnnouncementView = (announcement: AnnouncementDetail): void => {
     setAnnouncementView(announcement);
-    setSeenAnnouncementIds((prev) => {
-      if (prev.includes(announcement.id)) return prev;
-      const next = [...prev, announcement.id];
-      if (announcementSeenKey && typeof window !== "undefined") {
-        try {
-          window.localStorage.setItem(announcementSeenKey, JSON.stringify(next));
-        } catch {
-          // ignore
-        }
-      }
-      return next;
-    });
-    void markAnnouncementsSeen([announcement.id]);
+    if (!announcement.seenAt) {
+      const now = Date.now();
+      setSummary((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          announcements: prev.announcements.map((entry) => (
+            entry.id === announcement.id ? { ...entry, seenAt: now } : entry
+          ))
+        };
+      });
+      void markAnnouncementsSeen([announcement.id]);
+    }
   };
 
   const closeAnnouncementView = (): void => {
@@ -415,56 +439,6 @@ export function HomePage(): JSX.Element {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!announcementSeenKey) {
-      setSeenAnnouncementIds([]);
-      return;
-    }
-    try {
-      const raw = window.localStorage.getItem(announcementSeenKey);
-      if (!raw) {
-        setSeenAnnouncementIds([]);
-        return;
-      }
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        setSeenAnnouncementIds(parsed.filter((id) => typeof id === 'string'));
-      } else {
-        setSeenAnnouncementIds([]);
-      }
-    } catch {
-      setSeenAnnouncementIds([]);
-    }
-  }, [announcementSeenKey]);
-
-  useEffect(() => {
-    if (!announcementComposeOpen) return;
-    if (!announcementCapabilities?.canSend) return;
-    if (announcementOptionsStatus === "idle" || announcementOptionsStatus === "error") {
-      void loadAnnouncementOptions();
-    }
-  }, [announcementComposeOpen, announcementCapabilities?.canSend, announcementOptionsStatus]);
-
-  useEffect(() => {
-    if (!announcementComposeOpen) return;
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeAnnouncementCompose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [announcementComposeOpen]);
-
-  useEffect(() => {
-    if (!isAdmin) {
-      setInvites([]);
-      return;
-    }
-    void loadInvites();
-  }, [isAdmin]);
-
-  useEffect(() => {
     if (!user) return;
     void loadSummary();
     const interval = window.setInterval(() => {
@@ -473,6 +447,10 @@ export function HomePage(): JSX.Element {
     return () => window.clearInterval(interval);
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!announcementComposeOpen) return;
+    void loadAnnouncementOptions();
+  }, [announcementComposeOpen, announcementCapabilities?.canSend]);
   useEffect(() => {
     if (typeof window === "undefined") return;
     dismissedBoardMentionsRef.current = readDismissedBoardMentions();
@@ -489,6 +467,7 @@ export function HomePage(): JSX.Element {
         };
       });
     };
+
     window.addEventListener("board-mention-dismissed", handleDismiss as EventListener);
     return () => window.removeEventListener("board-mention-dismissed", handleDismiss as EventListener);
   }, []);
@@ -600,11 +579,21 @@ export function HomePage(): JSX.Element {
           <SummaryCard weekly={weeklyMetrics} monthly={monthlyMetrics} />
           <ActivityHighlightsCard items={activityHighlights} isLoading={summaryStatus === "loading"} />
           <TeamPulseCard activity={activity} status={activityStatus} currentUserId={user?.id ?? null} />
-          <AnnouncementsCard
+                    <AnnouncementsCard
             announcements={announcements}
             isLoading={summaryStatus === "loading"}
             canSend={Boolean(announcementCapabilities?.canSend)}
-            seenAnnouncementIds={seenAnnouncementSet}
+            selectionMode={announcementSelectionMode}
+            selectedAnnouncementIds={selectedAnnouncementSet}
+            listError={announcementListError}
+            onToggleSelectionMode={setAnnouncementSelection}
+            onToggleSelection={toggleAnnouncementSelection}
+            onDeleteSelected={() => {
+              void handleDeleteAnnouncements(selectedAnnouncementIds);
+            }}
+            onDeleteAnnouncement={(id) => {
+              void handleDeleteAnnouncements([id]);
+            }}
             onOpenCompose={openAnnouncementCompose}
             onOpenView={openAnnouncementView}
           />
@@ -659,4 +648,22 @@ export function HomePage(): JSX.Element {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

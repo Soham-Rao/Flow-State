@@ -4,6 +4,7 @@ export interface ThreadUserSummary {
   displayName: string | null;
   username: string | null;
   email: string;
+  bio: string | null;
   role: "admin" | "member" | "guest";
 }
 
@@ -92,10 +93,21 @@ export interface ThreadReactionDetail {
   emoji: string;
   users: ThreadUserSummary[];
 }
+export interface ThreadReplyContext {
+  id: string;
+  kind: "message" | "reply";
+  author: ThreadUserSummary;
+  body: string | null;
+  createdAt: Date;
+  deletedAt: Date | null;
+}
 
 export interface ThreadMessageSummary {
   id: string;
   conversationId: string;
+  replyToMessageId: string | null;
+  replyToReplyId: string | null;
+  replyContext: ThreadReplyContext | null;
   author: ThreadUserSummary;
   body: string | null;
   isForwarded: boolean;
@@ -121,6 +133,9 @@ export interface ThreadReplySummary {
   attachments: ThreadReplyAttachment[];
   voiceNote: ThreadReplyVoiceNote | null;
 }
+
+
+
 
 
 

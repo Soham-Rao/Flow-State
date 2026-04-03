@@ -178,17 +178,27 @@ export function BoardListsSection({
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {orderedLists.map((list) => {
                 const listTint = listTintById[list.id] ?? "default";
+                const assignedCount = currentUserId && !list.isDoneList
+                  ? list.cards.filter((card) => !card.archivedAt && card.assignees?.some((assignee) => assignee.id === currentUserId)).length
+                  : 0;
                 const listTintClass = LIST_TINT_OPTIONS.find((option) => option.id === listTint)?.className ?? "";
                 return (
                   <SortableListContainer key={list.id} listId={list.id}>
                     {({ dragHandleProps }) => (
                       <Card className={`${boardGlassCard} ${listTintClass}`}>
                         <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between gap-2">
-                          <CardTitle className="text-base font-semibold">
-                            {listNameDrafts[list.id] ?? list.name}
-                          </CardTitle>
-                          <div className="flex items-center gap-1">
+  <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center gap-2">
+      <CardTitle className="text-base font-semibold">
+        {listNameDrafts[list.id] ?? list.name}
+      </CardTitle>
+      {assignedCount > 0 && (
+        <span className="rounded-full bg-sky-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+          {assignedCount}
+        </span>
+      )}
+    </div>
+    <div className="flex items-center gap-1">
                             <Button
                               type="button" variant="ghost" size="sm" className="h-8 w-8 p-0"
                               onClick={() => { void onToggleListEdit(list); }}
@@ -421,6 +431,10 @@ export function BoardListsSection({
     </>
   );
 }
+
+
+
+
 
 
 

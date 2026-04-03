@@ -166,6 +166,7 @@ type ThreadActionsState = {
   openForwardPickerForReply: (reply: ThreadReplySummary) => void;
   closeForwardPicker: () => void;
   handleForwardToUser: (targetUser: ThreadUserSummary) => Promise<void>;
+  handleForwardToChannel: (targetChannel: ChannelConversationSummary) => Promise<void>;
   startEditingMessage: (message: ThreadMessageSummary) => void;
   cancelEditingMessage: () => void;
   handleSaveEdit: (message: ThreadMessageSummary) => Promise<void>;
@@ -759,7 +760,8 @@ export function useThreadActions({
         body: trimmed,
         mentions: Array.from(mentionSet),
         hasAttachments,
-        hasVoiceNote: false
+        hasVoiceNote: false,
+        replyToMessageId: inlineReplyTarget?.id ?? undefined
       });
 
       let attachments = created.attachments ?? [];
@@ -858,7 +860,25 @@ export function useThreadActions({
       setForwarding(false);
     }
   };
-
+  const handleForwardToChannel = async (targetChannel: ChannelConversationSummary) => {
+    if (!forwardTarget || forwarding) return;
+    const body = forwardTarget.body ?? "";
+    if (!body) return;
+    setForwarding(true);
+    setForwardError(null);
+    try {
+      const created = await createThreadMessage(targetChannel.id, { body, forwarded: true });
+      if (activeConversation?.id === targetChannel.id) {
+        setMessages((prev) => [...prev, created]);
+      }
+      await refreshConversations();
+      closeForwardPicker();
+    } catch (error) {
+      setForwardError(error instanceof Error ? error.message : "Unable to forward message right now.");
+    } finally {
+      setForwarding(false);
+    }
+  };
   const startEditingMessage = (message: ThreadMessageSummary) => {
     setEditingMessageId(message.id);
     setEditingDraft(message.body ?? "");
@@ -1275,6 +1295,7 @@ export function useThreadActions({
     openForwardPickerForReply,
     closeForwardPicker,
     handleForwardToUser,
+    handleForwardToChannel,
     startEditingMessage,
     cancelEditingMessage,
     handleSaveEdit,
@@ -1289,5 +1310,9 @@ export function useThreadActions({
     handleReplyKeyDown
   };
 }
+
+
+
+
 
 

@@ -12,7 +12,7 @@ import {
 } from "../../db/schema.js";
 import { userHasPermission } from "../../utils/permissions.js";
 import { listUnreadCommentMentions, listUnreadThreadMentions } from "../mentions/mentions.service.js";
-import { listUnreadAnnouncements, type AnnouncementDetail } from "../announcements/announcements.service.js";
+import { listAnnouncements, type AnnouncementDetail } from "../announcements/announcements.service.js";
 
 export interface DashboardCardSummary {
   id: string;
@@ -299,7 +299,7 @@ export async function getDashboardSummary(userId: string): Promise<DashboardSumm
     threadMentions: await listUnreadThreadMentions(userId),
     activityHighlights,
     newJoiners,
-    announcements: await listUnreadAnnouncements(userId),
+    announcements: await listAnnouncements(userId),
     metrics: {
       weekly: await getMetricsForRange(accessibleBoardIds, weeklyStart),
       monthly: await getMetricsForRange(accessibleBoardIds, monthlyStart)

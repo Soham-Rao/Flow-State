@@ -20,6 +20,7 @@ export async function getUserSummary(userId: string): Promise<ThreadUserSummary 
       displayName: users.displayName,
       username: users.username,
       email: users.email,
+      bio: users.bio,
       role: users.role
     })
     .from(users)
@@ -107,3 +108,4 @@ export async function assertConversationPermission(
     throw new ApiError(403, "You do not have permission to perform this action");
   }
 }
+

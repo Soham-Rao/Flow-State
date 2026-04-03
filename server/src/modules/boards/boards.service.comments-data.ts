@@ -52,6 +52,7 @@ export async function getCommentMentionsForComments(commentIds: string[]): Promi
       displayName: users.displayName,
       username: users.username,
       email: users.email,
+      bio: users.bio,
       role: users.role,
       createdAt: users.createdAt
     })
@@ -68,6 +69,7 @@ export async function getCommentMentionsForComments(commentIds: string[]): Promi
       displayName: row.displayName,
       username: row.username,
       email: row.email,
+      bio: row.bio,
       role: row.role,
       createdAt: row.createdAt
     });
@@ -93,6 +95,7 @@ export async function attachCommentRelations(rows: CommentRow[]): Promise<BoardC
       displayName: row.authorDisplayName,
       username: row.authorUsername,
       email: row.authorEmail,
+      bio: row.authorBio,
       role: row.authorRole,
       createdAt: row.authorCreatedAt
     },
@@ -119,6 +122,7 @@ export async function getCommentsForBoard(boardId: string): Promise<BoardComment
       authorDisplayName: users.displayName,
       authorUsername: users.username,
       authorEmail: users.email,
+      authorBio: users.bio,
       authorRole: users.role,
       authorCreatedAt: users.createdAt
     })
@@ -149,6 +153,7 @@ export async function getCommentsForLists(listIds: string[]): Promise<Map<string
       authorDisplayName: users.displayName,
       authorUsername: users.username,
       authorEmail: users.email,
+      authorBio: users.bio,
       authorRole: users.role,
       authorCreatedAt: users.createdAt
     })
@@ -187,6 +192,7 @@ export async function getCommentsForCards(cardIds: string[]): Promise<Map<string
       authorDisplayName: users.displayName,
       authorUsername: users.username,
       authorEmail: users.email,
+      authorBio: users.bio,
       authorRole: users.role,
       authorCreatedAt: users.createdAt
     })
@@ -221,6 +227,7 @@ export async function getCommentById(commentId: string): Promise<BoardComment> {
       authorDisplayName: users.displayName,
       authorUsername: users.username,
       authorEmail: users.email,
+      authorBio: users.bio,
       authorRole: users.role,
       authorCreatedAt: users.createdAt
     })
@@ -338,3 +345,4 @@ export async function createCommentRecord(params: {
 
   return getCommentById(commentId);
 }
+

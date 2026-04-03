@@ -73,6 +73,7 @@ export async function listDmUsers(userId: string): Promise<ThreadUserSummary[]> 
       displayName: users.displayName,
       username: users.username,
       email: users.email,
+      bio: users.bio,
       role: users.role
     })
     .from(users)
@@ -100,6 +101,7 @@ export async function listDmConversations(userId: string): Promise<DmConversatio
         displayName: users.displayName,
         username: users.username,
         email: users.email,
+        bio: users.bio,
         role: users.role
       })
       .from(threadMembers)
@@ -538,6 +540,7 @@ export async function listChannelMembers(userId: string, conversationId: string)
       displayName: string | null;
       username: string | null;
       email: string;
+      bio: string | null;
       role: UserRole;
       memberRole: ThreadMemberRole;
     }> = await db
@@ -547,6 +550,7 @@ export async function listChannelMembers(userId: string, conversationId: string)
       displayName: users.displayName,
       username: users.username,
       email: users.email,
+      bio: users.bio,
       role: users.role,
       memberRole: threadMembers.role
     })
@@ -597,6 +601,7 @@ export async function listChannelMembers(userId: string, conversationId: string)
         displayName: member.displayName,
         username: member.username,
         email: member.email,
+        bio: member.bio,
         role: member.role
       },
       role: member.memberRole,
@@ -709,4 +714,7 @@ export async function removeChannelMember(userId: string, conversationId: string
 
   return { id: memberId };
 }
+
+
+
 

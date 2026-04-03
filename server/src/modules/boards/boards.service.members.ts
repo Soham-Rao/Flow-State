@@ -12,9 +12,11 @@ export async function getBoardMembers(): Promise<BoardMember[]> {
       displayName: users.displayName,
       username: users.username,
       email: users.email,
+      bio: users.bio,
       role: users.role,
       createdAt: users.createdAt
     })
     .from(users)
     .orderBy(asc(users.createdAt));
 }
+

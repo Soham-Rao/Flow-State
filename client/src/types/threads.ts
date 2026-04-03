@@ -4,6 +4,7 @@ export interface ThreadUserSummary {
   displayName: string | null;
   username: string | null;
   email: string;
+  bio: string | null;
   role: "admin" | "member" | "guest";
 }
 
@@ -93,10 +94,21 @@ export interface ThreadVoiceNote {
   durationSec: number;
   createdAt: string;
 }
+export interface ThreadReplyContext {
+  id: string;
+  kind: "message" | "reply";
+  author: ThreadUserSummary;
+  body: string | null;
+  createdAt: string;
+  deletedAt: string | null;
+}
 
 export interface ThreadMessageSummary {
   id: string;
   conversationId: string;
+  replyToMessageId: string | null;
+  replyToReplyId: string | null;
+  replyContext: ThreadReplyContext | null;
   author: ThreadUserSummary;
   body: string | null;
   isForwarded?: boolean;
@@ -128,3 +140,6 @@ export interface ThreadDeleteResult {
   scope: "me" | "all";
   message?: ThreadMessageSummary;
 }
+
+
+

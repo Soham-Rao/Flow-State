@@ -13,6 +13,7 @@ interface ConfirmDialogProps {
   confirmVariant?: "default" | "secondary" | "ghost";
   showCancel?: boolean;
   showConfirm?: boolean;
+  overlayClassName?: string;
   initialFocus?: "cancel" | "confirm";
   onConfirm: () => void;
   onCancel: () => void;
@@ -28,6 +29,7 @@ export function ConfirmDialog({
   confirmVariant = "default",
   showCancel = true,
   showConfirm = true,
+  overlayClassName = "z-50",
   initialFocus = "confirm",
   onConfirm,
   onCancel
@@ -99,7 +101,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+      className={`fixed inset-0 ${overlayClassName} flex items-center justify-center bg-black/45 p-4`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onCancel();
@@ -143,3 +145,6 @@ export function ConfirmDialog({
     </div>
   );
 }
+
+
+

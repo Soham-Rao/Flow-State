@@ -95,6 +95,7 @@ export interface BoardMember {
   displayName: string | null;
   username: string | null;
   email: string;
+  bio: string | null;
   role: "admin" | "member";
   createdAt: string;
 }
@@ -184,3 +185,4 @@ export interface ArchivedListEntry {
   kind: "list" | "cards";
   cards: BoardCard[];
 }
+

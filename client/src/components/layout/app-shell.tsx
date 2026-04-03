@@ -3,11 +3,13 @@ import { Bell, ChevronDown, Command, LayoutDashboard, ListTodo, LogOut, MessageC
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useAuthStore } from "@/stores/auth-store";
 import { useThreadSettingsStore } from "@/stores/thread-settings-store";
 import { useMentionStore } from "@/stores/mentions-store";
 import { usePresenceStore } from "@/stores/presence-store";
 import { useSocketStore } from "@/stores/socket-store";
+import { usePermissionErrorStore } from "@/stores/permission-error-store";
 import { listChannelConversations, listDmConversations } from "@/lib/threads-api";
 import type { PresenceUser } from "@/types/presence";
 
@@ -41,12 +43,16 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const status = useAuthStore((state) => state.status);
   const refreshMentions = useMentionStore((state) => state.refresh);
   const mentionCounts = useMentionStore((state) => state.counts);
+  const boardMentionCount = mentionCounts?.comments ?? 0;
+  const assignmentBadgeCount = mentionCounts?.assignments ?? 0;
   const threadBadgeMode = useThreadSettingsStore((state) => state.threadBadgeMode);
   const [threadCounts, setThreadCounts] = useState({ dms: 0, channels: 0 });
   const workspacePresence = usePresenceStore((state) => state.workspace);
   const connectSocket = useSocketStore((state) => state.connect);
   const disconnectSocket = useSocketStore((state) => state.disconnect);
   const subscribeThreadEvents = useSocketStore((state) => state.subscribeThreadEvents);
+  const permissionErrorMessage = usePermissionErrorStore((state) => state.message);
+  const clearPermissionError = usePermissionErrorStore((state) => state.clear);
 
 
   const refreshThreadCounts = useCallback(async (): Promise<void> => {
@@ -172,6 +178,17 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   };
 
   return (
+    <>
+      <ConfirmDialog
+      open={permissionErrorMessage !== null}
+      title="Permission denied"
+      description={permissionErrorMessage ?? "You do not have permission to perform this action."}
+      confirmLabel="OK"
+      overlayClassName="z-[200]"
+      showCancel={false}
+      onCancel={clearPermissionError}
+      onConfirm={clearPermissionError}
+    />
     <div className="min-h-screen bg-[radial-gradient(900px_circle_at_top_left,rgba(45,212,191,0.55),transparent_60%),radial-gradient(800px_circle_at_bottom_right,rgba(99,102,241,0.5),transparent_60%),radial-gradient(700px_circle_at_top_right,rgba(251,191,36,0.35),transparent_65%),linear-gradient(135deg,#f8fafc,#eef2ff)] dark:bg-[radial-gradient(900px_circle_at_top_left,rgba(99,102,241,0.32),transparent_58%),radial-gradient(800px_circle_at_bottom_right,rgba(16,185,129,0.28),transparent_60%),radial-gradient(700px_circle_at_top_right,rgba(236,72,153,0.25),transparent_62%),linear-gradient(135deg,#0a0f1f,#030712)]">
       <div className="group/sidebar">
         <div className="hidden lg:block fixed inset-y-0 left-0 z-40 w-3" />
@@ -203,12 +220,20 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                 <Icon className="h-4 w-4" />
                 {label}
               </span>
-              {label === "Boards" && mentionCounts && mentionCounts.comments > 0 && (
-                <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  {mentionCounts.comments}
+                            {label === "Boards" && (boardMentionCount > 0 || assignmentBadgeCount > 0) && (
+                <span className="flex items-center gap-1">
+                  {boardMentionCount > 0 && (
+                    <span className="rounded-full bg-rose-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      {boardMentionCount}
+                    </span>
+                  )}
+                  {assignmentBadgeCount > 0 && (
+                    <span className="rounded-full bg-sky-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      {assignmentBadgeCount}
+                    </span>
+                  )}
                 </span>
-              )}
-            </NavLink>
+              )}            </NavLink>
           ))}
         </nav>
 
@@ -395,8 +420,18 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
         <section className="flex-1 px-4 pb-1 pt-1.5 lg:px-6 lg:pb-2 lg:pt-2">{children}</section>
       </main>
     </div>
+    </>
   );
 }
+
+
+
+
+
+
+
+
+
 
 
 

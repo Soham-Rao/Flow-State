@@ -145,6 +145,8 @@ export async function createThreadMessage(
     forwarded?: boolean;
     hasAttachments?: boolean;
     hasVoiceNote?: boolean;
+    replyToMessageId?: string;
+    replyToReplyId?: string;
   }
 ): Promise<ThreadMessageSummary> {
   return apiRequest<ThreadMessageSummary>(`/threads/conversations/${conversationId}/messages`, {

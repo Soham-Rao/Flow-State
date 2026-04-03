@@ -39,6 +39,7 @@ export interface BoardDetailPageViewProps {
     activeSurfaceClass: string;
     activeBannerClass: string;
     boardName: string;
+    boardAssignedCount: number;
     boardDescription: string;
     boardBackground: BoardBackground;
     retentionMode: RetentionMode;
@@ -414,6 +415,9 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
     </>
   );
 }
+
+
+
 
 
 

@@ -2,6 +2,7 @@ export interface MentionUnreadCounts {
   total: number;
   threads: number;
   comments: number;
+  assignments: number;
 }
 
 export interface CommentMentionDetail {
@@ -15,3 +16,4 @@ export interface CommentMentionDetail {
   body: string;
   createdAt: number;
 }
+

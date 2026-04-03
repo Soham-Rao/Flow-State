@@ -1,18 +1,18 @@
 ---
-sohamsrao ✔️ 0 ✔️ 
+sohamsrao ✔️ 
 computerproject ✔️ 0 ✔️ 
 abman ✔️ 0 ✔️ 
 shadow supreme 
 storage 1 ✔️ 0 ✔️ 
 storage 2 ✔️ 0 ✔️ 
 storage 3 ✔️ 0 ✔️ 
-storage p ✔️0 ✔️0
+storage p ✔️0 ✔️ 0
 clash 4 free ✔️ 0 ✔️ 0
-burner finger ✔️ 0
-burner finger +1 ✔️ 0
-burner finger +2 ✔️ 0
-burner finger +3 ✔️ 0
-burner finger +4 ✔️ 0
+burner finger ✔️ 0  ✔️ 0
+burner finger +1 ✔️ 0  ✔️ 0
+burner finger +2 ✔️ 0  ✔️ 0
+burner finger +3 ✔️ 0  ✔️ 0
+burner finger +4 ✔️ 0  ✔️ 0
 ---
 
 burner finger +101 ✔️ 0
@@ -20,12 +20,12 @@ burner finger +102 ❌ no longer working
 
 ---
 
-m9jahbyp@anonaddy.me ✔️ 0
-o12jhz59@anonaddy.me ✔️ 0
-pukwl6ut@anonaddy.me ✔️ 0
-q2kuq7y6@anonaddy.me ✔️ 0
-dzoobc9a@anonaddy.me
-x9it9zwx@anonaddy.me
+m9jahbyp@anonaddy.me ✔️ 0  ✔️ 0
+o12jhz59@anonaddy.me ✔️ 0  ✔️ 0 
+pukwl6ut@anonaddy.me ✔️ 0  ✔️ 0
+q2kuq7y6@anonaddy.me ✔️ 0  ✔️ 0
+dzoobc9a@anonaddy.me ✔️ 0  ✔️ 0
+x9it9zwx@anonaddy.me ✔️ 0  ✔️ 0
 ---
 
 after phase 7, for 8 do team collab version of timer - seeing stats and other stuff
@@ -87,3 +87,4 @@ server optimizations for 4gb ram, like db stuff
 - Uploads + queries + sockets - total optimization
 
 delete announcements, resume focus/break, better alarm, dont stop alarm 
+dashboard left bottom whitespace

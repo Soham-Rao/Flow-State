@@ -148,6 +148,7 @@ export async function assertUserExists(userId: string): Promise<BoardMember> {
       displayName: users.displayName,
       username: users.username,
       email: users.email,
+      bio: users.bio,
       role: users.role,
       createdAt: users.createdAt
     })
@@ -259,3 +260,4 @@ export async function getCardBoardContext(cardId: string): Promise<{ cardId: str
 
   return row;
 }
+

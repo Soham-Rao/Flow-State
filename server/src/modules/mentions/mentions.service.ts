@@ -4,6 +4,7 @@ import { db } from "../../db/connection.js";
 import {
   boards,
   cards,
+  cardAssignees,
   commentMentions,
   comments,
   lists,
@@ -25,6 +26,7 @@ export interface MentionUnreadCounts {
   total: number;
   threads: number;
   comments: number;
+  assignments: number;
 }
 
 export interface CommentMentionDetail {
@@ -207,10 +209,44 @@ export async function getUnreadMentions(userId: string): Promise<MentionUnreadCo
   const threads = (threadMessageCountRows[0]?.count ?? 0) + (threadReplyCountRows[0]?.count ?? 0);
   const commentTotal = commentCountRows[0]?.count ?? 0;
 
+  const assignedBoardRows = await db
+    .select({ boardId: boards.id })
+    .from(cardAssignees)
+    .innerJoin(cards, eq(cardAssignees.cardId, cards.id))
+    .innerJoin(lists, eq(cards.listId, lists.id))
+    .innerJoin(boards, eq(lists.boardId, boards.id))
+    .where(eq(cardAssignees.userId, userId));
+
+  const assignedBoardIds = Array.from(new Set(assignedBoardRows.map((row) => row.boardId)));
+  const accessibleAssignedBoards = await getAccessibleBoardIds(userId, assignedBoardIds);
+  const accessibleBoardIds = Array.from(accessibleAssignedBoards);
+
+  let assignmentCount = 0;
+  if (accessibleBoardIds.length > 0) {
+    const assignmentCountRows = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(cardAssignees)
+      .innerJoin(cards, eq(cardAssignees.cardId, cards.id))
+      .innerJoin(lists, eq(cards.listId, lists.id))
+      .innerJoin(boards, eq(lists.boardId, boards.id))
+      .where(
+        and(
+          eq(cardAssignees.userId, userId),
+          inArray(boards.id, accessibleBoardIds),
+          isNull(boards.archivedAt),
+          isNull(lists.archivedAt),
+          ne(lists.isDoneList, true),
+          isNull(cards.archivedAt)
+        )
+      );
+    assignmentCount = assignmentCountRows[0]?.count ?? 0;
+  }
+
   return {
     total: threads + commentTotal,
     threads,
-    comments: commentTotal
+    comments: commentTotal,
+    assignments: assignmentCount
   };
 }
 
@@ -558,3 +594,9 @@ export async function listCommentMentions(userId: string): Promise<Array<{ comme
     .from(commentMentions)
     .where(and(eq(commentMentions.userId, userId), isNull(commentMentions.seenAt)));
 }
+
+
+
+
+
+
