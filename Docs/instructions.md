@@ -258,3 +258,32 @@ Scope: Deliver the Threads foundation with **DMs only**, channel groundwork (no 
 - [ ] Server tests for mention counters (increment + decrement).
 - [ ] Client tests for Threads UI render + reply panel + badge decrement.
 
+
+---
+
+## Phase 12.1 Checklist - Hosting + Deployment Setup
+
+### Repo-owned groundwork
+
+- [x] Align server env examples with production needs (`PUBLIC_APP_URL`, uploads dir, DM key).
+- [x] Make uploads path configurable for persistent host storage.
+- [x] Serve the built React app from Express in production.
+- [x] Add a repo-root production start command.
+- [x] Update invite links to use the public app URL instead of the dev client origin.
+- [x] Add production env example files and tighten the hosting runbook.
+- [x] Add VPS deployment-specific host config (`deploy/vps/` for Docker MySQL, systemd, Nginx, and redeploy flow).
+
+### Host-owned setup
+
+Reference: `Docs/vps-setup.md` + `deploy/vps/`
+
+- [x] Confirm final hosting path (BigRock Ubuntu 22.04 VPS with Nginx + systemd app + Docker MySQL).
+- [ ] Point `flo-state.in` and SSL to the production app.
+- [ ] Provision production MySQL and set `MYSQL_URL`.
+- [ ] Provision persistent uploads directory and set `FLOWSTATE_UPLOADS_DIR`.
+- [ ] Run `bun run build` and `node server/dist/db/migrate.js` with production env loaded on deploy.
+- [ ] Smoke test auth, boards, threads, uploads, and `/api/health` after first deploy.
+
+
+
+

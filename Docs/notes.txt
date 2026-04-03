@@ -88,3 +88,14 @@ server optimizations for 4gb ram, like db stuff
 
 delete announcements, resume focus/break, better alarm, dont stop alarm 
 dashboard left bottom whitespace
+esc button exit for create or delete announcements, glowing border for new one 
+
+---
+make it team wise - multiple teams on flo-state.in
+deletion / encryption / compression of all general content to preserve disk space
+
+---
+3 docs subdirs 
+1. user facing - multiple tutorials
+2. dev facing - all functions, files, classes, apis, db, etc
+3. understanding web dev - server, typescript, client, build, ssh, bun, runtime, nginx, etc, etc, sectioned by topic, webassembly, building, typescript compilation, etc, ik c, py, not this

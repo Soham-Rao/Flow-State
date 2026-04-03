@@ -4,8 +4,8 @@ import { extractMentionIds, filterMentionCandidates, findMentionQuery, insertMen
 import type { BoardMember } from "@/types/board";
 
 const members: BoardMember[] = [
-  { id: "user-1", name: "John Doe", displayName: "John Doe", username: "johnd", email: "john@example.com", role: "member", createdAt: "" },
-  { id: "user-2", name: "Jane Smith", displayName: "Jane Smith", username: "jane", email: "jane@example.com", role: "admin", createdAt: "" }
+  { id: "user-1", name: "John Doe", displayName: "John Doe", username: "johnd", email: "john@example.com", role: "member", bio: null, createdAt: "" },
+  { id: "user-2", name: "Jane Smith", displayName: "Jane Smith", username: "jane", email: "jane@example.com", role: "admin", bio: null, createdAt: "" }
 ];
 
 describe("mentions helpers", () => {

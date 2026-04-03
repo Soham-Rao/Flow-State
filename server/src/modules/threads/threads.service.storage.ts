@@ -1,7 +1,9 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 
-const THREAD_UPLOADS_ROOT = path.resolve(process.cwd(), "uploads");
+import { env } from "../../config/env.js";
+
+const THREAD_UPLOADS_ROOT = env.FLOWSTATE_UPLOADS_DIR;
 
 export function buildThreadAttachmentStoragePath(conversationId: string, messageId: string, storedName: string): string {
   return path.join("threads", conversationId, messageId, storedName);
@@ -31,7 +33,6 @@ export function resolveThreadVoiceNotePath(storagePath: string): string {
 export async function ensureThreadVoiceNoteDirectory(filePath: string): Promise<void> {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 }
-
 
 export function buildThreadReplyAttachmentStoragePath(conversationId: string, replyId: string, storedName: string): string {
   return path.join("threads", conversationId, "replies", replyId, storedName);

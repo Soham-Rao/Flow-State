@@ -1,9 +1,23 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-03-31 15:28:54 +05:30
+Last checkpoint update: 2026-04-03 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
+- Recent changes since last checkpoint (last 5–10 changes):
+  - Phase 12.1 repo groundwork started: Express serves `client/dist` in production, root `bun run start` added, and env/docs updated for deployment.
+  - Invite links now use `PUBLIC_APP_URL` instead of the dev client origin.
+  - Upload storage root is configurable via `FLOWSTATE_UPLOADS_DIR` for persistent host storage.
+  - Thread cleanup paths now honor `FLOWSTATE_UPLOADS_DIR`, so deployments can move uploads outside the repo safely.
+  - Production env example files were added for server and client deployment setup.
+  - VPS deployment assets were added under `deploy/vps/` for MySQL Docker, systemd, Nginx, and redeploy flow.
+  - `Docs/vps-setup.md` now contains the one-time Ubuntu 22.04 server bootstrap and deploy checklist.
+  - MySQL is the primary DB (Drizzle + mysql2); migrations live under `server/drizzle` and must run via `MYSQL_URL` per env (dev/test/prod isolated).
+  - Card permissions are board-scoped for edit/assign/comment/move/create/archive/delete (board overrides now allow non-admin edits/assignments).
+  - Assigned-task blue badges appear on board cards, board header, list headers, and sidebar; counts exclude done lists (dismissible on completion/unassign).
+  - Assigned badges refresh when assignment count changes (mentions refresh triggers immediate updates).
+  - Global permission error modal added (ConfirmDialog) with highest z-index; API client routes 403/permission errors into it.
+  - ConfirmDialog supports `overlayClassName` for explicit layering control.
 
 - Phase status:
   - Phase 1.1, 1.2, 1.3: complete
@@ -31,9 +45,9 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 10.3 (Team insights + summaries): complete
   - Phase 10.4 (Dashboard UI overhaul): complete
   - Phase 10.5 (Templates + settings polish): deferred by request (templates/polish + pins/templates gallery later)
-  - Phase 12 (Hosting & production readiness): in progress (planning + checklist drafted)
+  - Phase 12 (Hosting & production readiness): in progress (repo groundwork + env examples + hosting runbook)
   - Phase 12.0 (DB platform switch): complete (MySQL, DDL-only)
-  - Phase 12.1 (Hosting + deployment setup): not started
+  - Phase 12.1 (Hosting + deployment setup): in progress
   - Phase 12.2 (Security hardening): not started
   - Phase 12.3 (Reliability + observability): not started
   - Phase 12.4 (Data durability + performance): not started
@@ -88,7 +102,7 @@ Purpose: Resume from this exact project state, not from zero.
 
 - Phase 10.5 deferred; revisit templates/polish + pins/templates gallery later.
 - Phase 12.1–12.5: hosting/security/observability/durability/docs implementation (rate limiting, reset flows, alerts, CSP/CSRF, backups).
-- Phase 12 planning ongoing; implementation deferred until plan signoff.
+- Phase 12.1 execution is underway on the chosen VPS path; next step is running the one-time server bootstrap and first production deploy.
 - Phase 7: calendar + multi-view.
 
 ## 3) User Preferences to Preserve on Resume
@@ -138,68 +152,8 @@ Communication rules:
 
 ## 6) Current Git Working Tree Snapshot (for Resume Awareness)
 
-Tracked modified files at checkpoint:
-- Docs/context.md
-- Docs/resume.txt
-- Docs/notes.txt
-- bun.lock
-- client/package.json
-- client/src/components/layout/app-shell.tsx
-- client/src/components/ui/card.tsx
-- client/src/components/ui/confirm-dialog.tsx
-- client/src/lib/api-client.ts
-- client/src/lib/mentions-api.ts
-- client/src/pages/boards/board-detail-page.board-handlers.ts
-- client/src/pages/boards/board-detail-page.dialogs.tsx
-- client/src/pages/boards/board-detail-page.header.tsx
-- client/src/pages/boards/board-detail-page.tsx
-- client/src/pages/boards/board-detail-page.view.tsx
-- client/src/pages/boards/boards-page.tsx
-- client/src/pages/home-page.tsx
-- client/src/pages/threads-page.constants.ts
-- client/src/pages/threads-page.controller.ts
-- client/src/pages/threads-page.controller.actions.ts
-- client/src/pages/threads-page.sidebar.tsx
-- client/src/pages/threads-page.tsx
-- client/src/types/mentions.ts
-- client/vite.config.ts
-- server/package.json
-- server/src/app.ts
-- server/src/index.ts
-- server/src/db/init-migrations.ts
-- server/src/db/init-roles.ts
-- server/src/db/init-schema.ts
-- server/src/db/schema.ts
-- server/src/modules/boards/boards.routes.base.ts
-- server/src/modules/boards/boards.routes.cards.ts
-- server/src/modules/boards/boards.routes.checklists.ts
-- server/src/modules/boards/boards.routes.lists.ts
-- server/src/modules/boards/boards.service.boards.ts
-- server/src/modules/boards/boards.service.cards.ts
-- server/src/modules/boards/boards.service.checklists.ts
-- server/src/modules/boards/boards.service.comments-data.ts
-- server/src/modules/boards/boards.service.lists.ts
-- server/src/modules/mentions/mentions.route.ts
-- server/src/modules/mentions/mentions.service.ts
-- server/src/modules/threads/threads.service.mentions.ts
-- server/src/modules/threads/threads.service.messages.ts
-- server/src/modules/threads/threads.service.replies.ts
-- server/data/*.db, *.db-shm, *.db-wal (runtime artifacts)
-
-Untracked files at checkpoint:
-- client/src/components/users/presence-indicator.tsx
-- client/src/lib/activity-api.ts
-- client/src/lib/activity-utils.ts
-- client/src/pages/boards/board-detail-page.activity.tsx
-- client/src/stores/activity-store.ts
-- client/src/stores/presence-store.ts
-- client/src/stores/socket-store.ts
-- client/src/types/activity.ts
-- client/src/types/presence.ts
-- server/src/modules/activity/
-- server/src/realtime/
-
-Note: db -shm and -wal files are runtime artifacts; do not delete without user intent.
+- Not refreshed in this checkpoint to avoid running git commands without permission.
+- If needed, run `git status -sb` to refresh this section.
 
 ## 7) Known Resume Risks / Attention Points
 
@@ -209,7 +163,7 @@ Note: db -shm and -wal files are runtime artifacts; do not delete without user i
 
 ## 8) Immediate User-Facing Follow-up Item
 
-- Start Phase 7: calendar + multi-view.
+- Continue Phase 12.1: run the Ubuntu VPS bootstrap, first production deploy, and smoke-test checklist.
 
 ## 9) Resume Command Pack
 
@@ -222,6 +176,12 @@ Note: db -shm and -wal files are runtime artifacts; do not delete without user i
   - bun run --cwd server test
 
 This file is the resume checkpoint contract for continuing FlowState safely and quickly.
+
+
+
+
+
+
 
 
 

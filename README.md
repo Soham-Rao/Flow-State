@@ -12,7 +12,7 @@ FlowState is a collaborative workspace for boards, realtime discussions, and foc
 ## Tech Stack
 
 - **Client:** React + Vite + TypeScript + Tailwind + Zustand + Socket.IO client
-- **Server:** Express + Socket.IO + Drizzle ORM + SQLite (better-sqlite3) + Zod
+- **Server:** Express + Socket.IO + Drizzle ORM + MySQL 8.0 (`mysql2`) + Zod
 - **Tooling:** Bun, ESLint, Vitest
 
 ## Quickstart
@@ -48,6 +48,17 @@ bun run dev
 | `bun run lint` | Run client + server lint |
 | `bun run format` | Prettier format |
 
+## Production Notes
+
+- Build both apps with `bun run build`
+- Start the built server from the repo root with `bun run start`
+- In production, the Express server serves the built React app from `client/dist`
+- Leave `VITE_API_BASE_URL` unset in production so the client uses same-origin `/api`
+- Set `PUBLIC_APP_URL` to the canonical frontend URL used in invite links
+- Set `FLOWSTATE_UPLOADS_DIR` to a persistent directory on the host
+- Use `server/.env.production.example` and `client/.env.production.example` as the production env starting point
+- VPS deployment templates live under `deploy/vps/`, with the one-time setup guide in `Docs/vps-setup.md`
+
 ## Repo Layout
 
 ```text
@@ -55,3 +66,6 @@ client/   Frontend (Vite + React)
 server/   API + realtime services
 Docs/     Project docs
 ```
+
+
+

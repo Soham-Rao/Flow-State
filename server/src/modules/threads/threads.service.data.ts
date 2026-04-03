@@ -407,7 +407,8 @@ export async function getThreadUsersByIds(userIds: string[]): Promise<ThreadUser
       displayName: users.displayName,
       username: users.username,
       email: users.email,
-      role: users.role
+      role: users.role,
+      bio: users.bio
     })
     .from(users)
     .where(inArray(users.id, userIds));

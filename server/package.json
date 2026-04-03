@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:migrate:prod": "node dist/db/migrate.js",
     "db:generate": "drizzle-kit generate",
     "db:reset": "tsx src/db/reset.ts",
     "db:seed:test": "tsx src/db/seed-test.ts"

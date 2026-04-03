@@ -1,3 +1,5 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
 import dotenv from "dotenv";
@@ -8,6 +10,10 @@ const DEFAULT_JWT_SECRET = "dev-only-secret-change-this";
 const DEFAULT_MYSQL_URL = "mysql://root:root@localhost:3306/flowstate_dev";
 const DEFAULT_CLIENT_ORIGIN = "http://localhost:5173";
 const DEFAULT_DM_KEY = "e9974d0faff86d131135ba429165c29227fc81753b56c3d2a9cccffff353235a";
+const DEFAULT_UPLOADS_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../uploads"
+);
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -23,6 +29,7 @@ const envSchema = z.object({
     { message: "Must be a 32-byte key as 64 hex or 44 base64" }
   ).default(DEFAULT_DM_KEY),
   PUBLIC_APP_URL: z.string().url().default(DEFAULT_CLIENT_ORIGIN),
+  FLOWSTATE_UPLOADS_DIR: z.string().min(1).default(DEFAULT_UPLOADS_DIR),
   SMTP_HOST: z.string().trim().min(1).optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().trim().min(1).optional(),

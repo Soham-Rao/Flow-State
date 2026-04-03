@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { and, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 
+import { env } from "../../config/env.js";
 import { db } from "../../db/connection.js";
 import {
   threadConversations,
@@ -516,7 +517,7 @@ export async function deleteChannelConversation(userId: string, conversationId: 
     await assertConversationMember(userId, conversationId);
   }
 
-  const uploadsRoot = path.resolve(process.cwd(), "uploads", "threads", conversationId);
+  const uploadsRoot = path.join(env.FLOWSTATE_UPLOADS_DIR, "threads", conversationId);
   void fs.rm(uploadsRoot, { recursive: true, force: true }).catch(() => {});
 
   await db.delete(threadConversations)
@@ -714,6 +715,8 @@ export async function removeChannelMember(userId: string, conversationId: string
 
   return { id: memberId };
 }
+
+
 
 
 

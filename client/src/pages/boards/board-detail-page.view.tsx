@@ -218,6 +218,7 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
         <BoardHeaderSection
           activeBannerClass={state.activeBannerClass}
           boardName={state.boardName}
+          assignedCount={state.boardAssignedCount}
           boardPresence={state.boardPresence}
           boardComments={boardComments}
           expandedCommentIds={state.expandedCommentIds}

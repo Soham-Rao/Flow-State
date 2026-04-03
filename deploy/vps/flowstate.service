@@ -1,0 +1,19 @@
+[Unit]
+Description=FlowState application service
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=flowstate
+Group=flowstate
+WorkingDirectory=/opt/flowstate/app
+EnvironmentFile=/etc/flowstate/flowstate.env
+ExecStart=/usr/bin/node /opt/flowstate/app/server/dist/index.js
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target

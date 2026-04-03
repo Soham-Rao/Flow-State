@@ -1,5 +1,4 @@
-import path from "node:path";
-
+import { env } from "../../config/env.js";
 import type { CardCoverColor, LabelColor, RetentionMode, UserRole } from "../../db/schema.js";
 
 export interface BoardSummary {
@@ -197,5 +196,4 @@ export const DEFAULT_RETENTION_MODE: RetentionMode = "card_and_attachments";
 export const DEFAULT_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
 export const MAX_ARCHIVE_RETENTION_MINUTES = 365 * 24 * 60;
 export const BOARD_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
-export const UPLOADS_ROOT = path.resolve(process.cwd(), "uploads");
-
+export const UPLOADS_ROOT = env.FLOWSTATE_UPLOADS_DIR;

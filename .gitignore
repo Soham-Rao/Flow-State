@@ -9,5 +9,9 @@ coverage
 .env
 .env.*
 !.env.example
+!client/.env.production.example
+!server/.env.production.example
 
 uploads
+
+

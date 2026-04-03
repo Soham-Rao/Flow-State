@@ -51,7 +51,7 @@ export interface InviteLookup {
 }
 
 function buildInviteUrl(token: string): string {
-  const base = env.CLIENT_ORIGIN.replace(/\/$/, "");
+  const base = env.PUBLIC_APP_URL.replace(/\/$/, "");
   return `${base}/register?invite=${token}`;
 }
 
@@ -397,3 +397,4 @@ export async function updateInviteRoles(inviteId: string, roleIds: string[], act
   const refreshed = await getInviteById(inviteId);
   return toInviteSummary(refreshed, uniqueRoleIds);
 }
+

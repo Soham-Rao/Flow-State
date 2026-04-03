@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-03-31
+> Last updated: 2026-04-03
 
 ---
 
@@ -161,7 +161,8 @@ Think → Plan phase (use instructions.md for notes if needed)
 | Rich Text | TipTap (ProseMirror) | Slash command support, extensible |
 | Calendar | Custom built on `date-fns` | Full UI control for modern styling |
 | Email | Nodemailer (deferred) | No SMTP setup yet; in-app notifications first, email later |
-| Full-text Search | MySQL FULLTEXT (planned) | To be wired when search is implemented |`r`n| Testing | Vitest (unit) + Supertest (API) + Playwright (E2E) | Industry standard for Vite projects |
+| Full-text Search | MySQL FULLTEXT (planned) | To be wired when search is implemented |
+| Testing | Vitest (unit) + Supertest (API) + Playwright (E2E) | Industry standard for Vite projects |
 
 ---
 
@@ -288,9 +289,9 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 10.4: Dashboard UI overhaul | ✅ Completed | 2026-03-27 | 2026-03-27 | Glassmorphism redesign, two-column layout, priority/alert styling, visual polish only |
 | Phase 10.5: Templates + pins + settings polish | 🟡 Deferred | 2026-03-30 | — | Deferred by request; revisit later (templates/polish + pins/templates gallery) |
 | Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
-| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Hosting checklist + hosting.md drafted; implementation pending |
+| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Hosting runbook drafted; repo groundwork for Phase 12.1 is underway, host-specific deploy artifacts still pending |
 | Phase 12.0: Database Platform Switch | ✅ Completed | 2026-03-31 | 2026-03-31 | MySQL switch + Drizzle migrations + test infra |
-| Phase 12.1: Hosting + Deployment Setup | ⬜ Not Started | — | — | cPanel/Git/DNS/SSL/env + backups |
+| Phase 12.1: Hosting + Deployment Setup | 🟡 In Progress | 2026-04-03 | — | Repo groundwork plus VPS deployment assets are ready: production serving, env examples, MySQL Docker, systemd, Nginx, and setup runbook |
 | Phase 12.2: Security Hardening | ⬜ Not Started | — | — | sanitization, CORS, rate limits, reset, CSRF/CSP, audit logging |
 | Phase 12.3: Reliability + Observability | ⬜ Not Started | — | — | error boundaries, prod logging, alerts, rollback |
 | Phase 12.4: Data Durability + Performance | ⬜ Not Started | — | — | encryption, compression, atomic migrations, caching |
@@ -299,6 +300,10 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 ---
 
 ## 11. Notes
+
+- **Permission resolution is additive** across roles; scoped overrides can explicitly allow/deny per board (deny wins for that scope).
+- **Assigned-task badges are blue** and exclude done lists; counts update from mentions refresh.
+- **Permission errors now surface in a modal** (topmost z-index) instead of inline text only.
 
 - `instructions.md` can be used for phase-specific notes, checklists, and implementation details when planning a phase. It serves as a scratchpad for detailed specifications.
 - **Test policy**: Write tests during implementation; user runs them on full-phase cadence (or every 2 full phases) and reports output.
@@ -340,6 +345,12 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 ## 13. Updates
 
 | Date | Update |
+|------|--------|
+| 2026-04-03 | Phase 12.1 advanced for the BigRock Ubuntu VPS path: Express now serves client/dist in production, invite links use PUBLIC_APP_URL, uploads storage is fully configurable via FLOWSTATE_UPLOADS_DIR (including thread cleanup paths), production env examples were added, VPS deploy assets were created for MySQL Docker, systemd, Nginx, redeploy flow, one-time server setup, and Docs/hosting.md was narrowed to the single VPS production plan. |
+| 2026-04-03 | Permission checks for card actions are now board-scoped (edit/assign/comment/move/create/archive/delete), so board-level overrides allow non-admin edits/assignments as intended. |
+| 2026-04-03 | Assigned-task badges added to board cards, board header, and list headers; assignment counts exclude done lists; badges refresh when assignment counts change. |
+| 2026-04-03 | Global permission error modal added (ConfirmDialog) with topmost z-index; API client routes 403/permission errors into the modal. |
+| 2026-04-03 | ConfirmDialog now accepts `overlayClassName` for z-index control. |
 | 2026-03-31 | Phase 12.0 completed: MySQL switch (mysql2 + Drizzle migrations), test DB reset speedups (truncate + single-worker Vitest), and user-run server tests passing. |
 | 2026-03-31 | Phase 12 planning updated: canonical domain flo-state.in (www redirect), added Phase 12.0 DB switch (MySQL, DDL-only), and expanded hosting plan sections in Docs/hosting.md. |
 | 2026-03-31 | Phase 12 planning: moved hosting plan to Docs/hosting.md, set domain to flo-state.in, and split Phase 12 into subphases (12.1–12.5). |
@@ -352,7 +363,6 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-25 | Phase 10 split into subphases; 10.1 completed (dashboard foundation: Team Pulse + admin invites + stat card shell). Phase 10 marked in progress; remaining dashboard overhaul + analytics + templates planned. |
 | 2026-03-25 | Phase 6.4 + 6.5 completed: board realtime refresh on socket events, thread rooms for messages/replies/reactions/media, and polling fallback when sockets are disconnected. |
 | 2026-03-25 | Phase 6.3 completed: workspace/board presence, AFK status, last-seen tracking, and presence indicators wired into threads + channel member lists; threads selection + manage view now persist in URL; channel permission overrides use dropdown with clear-override controls. |
-|------|--------|
 | 2026-03-24 | Phase 6.1 + 6.2 completed: Socket.IO infra (auth + rooms + client store) plus activity logs + API + Team Pulse + board activity panel, with mentions logged to activity. |
 | 2026-03-24 | Phase 5.5 completed: channels + overrides, manage/view panel, per-channel permission overrides. |
 | 2026-03-16 | Phase 5.4 completed: DM threads with reactions, reply threads, mention counters, encryption, attachments, voice notes, and UI polish; Phase 5.5 created for channels + overrides. |
@@ -389,6 +399,13 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |
 | 2026-03-12 | Phase 4.1 delivered: checklists data model + API, board card collapsible checklist previews with progress bars, card modal checklist CRUD, and new client/server checklist tests (user-run pending). |
 | 2026-03-13 | Phase 4.2 delivered: attachments (upload/download/delete), board-level retention settings (day/hour/min + mode toggle), retention-aware time-left labels, attachment cleanup on card deletion, and new attachments API test. User to run tests. |
+
+
+
+
+
+
+
 
 
 

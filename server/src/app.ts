@@ -1,3 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -18,6 +22,12 @@ import { dashboardRouter } from "./modules/dashboard/dashboard.route.js";
 import { healthRouter } from "./routes/health.route.js";
 
 export const app = express();
+
+const clientDistDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../client/dist"
+);
+const hasClientBuild = fs.existsSync(clientDistDir);
 
 app.use(helmet());
 app.use(
@@ -40,9 +50,17 @@ app.use("/api/announcements", announcementsRouter);
 app.use("/api/activity", activityRouter);
 app.use("/api/dashboard", dashboardRouter);
 
+if (env.NODE_ENV === "production" && hasClientBuild) {
+  app.use(express.static(clientDistDir));
+  app.get("*", (req, res, next) => {
+    if (req.path === "/api" || req.path.startsWith("/api/") || req.path.startsWith("/socket.io")) {
+      next();
+      return;
+    }
+
+    res.sendFile(path.join(clientDistDir, "index.html"));
+  });
+}
+
 app.use(notFoundMiddleware);
 app.use(errorHandler);
-
-
-
-
