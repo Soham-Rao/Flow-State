@@ -22,6 +22,7 @@ beforeAll(async () => {
   process.env.MYSQL_URL = testDbUrl;
   process.env.JWT_SECRET = "test-secret-123456";
   process.env.JWT_EXPIRES_IN = "1h";
+  process.env.CLIENT_ORIGIN = "http://localhost:5173";
 
   const appModule = await import("../src/app.js");
   const dbInitModule = await import("../src/db/init.js");
@@ -62,6 +63,32 @@ describe("Boards API", () => {
     expect(response.body.success).toBe(true);
     expect(response.body.data.name).toBe("Engineering");
     expect(response.body.data.lists).toHaveLength(3);
+  });
+
+  it("sanitizes board comments without stripping inert command text", async () => {
+    const token = await registerAndGetToken();
+
+    const boardResponse = await request(app)
+      .post("/api/boards")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        name: "Product",
+        background: "ocean-glow"
+      });
+
+    const boardId = boardResponse.body.data.id as string;
+
+    const commentResponse = await request(app)
+      .post(`/api/boards/${boardId}/comments`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        body: "Hello <script>alert(1)</script> rm -rf /",
+        mentions: []
+      });
+
+    expect(commentResponse.status).toBe(201);
+    expect(commentResponse.body.data.body).toContain("rm -rf /");
+    expect(commentResponse.body.data.body).not.toContain("<script>");
   });
 
   it("creates and reorders lists", async () => {

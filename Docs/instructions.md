@@ -3,7 +3,7 @@
 > Working checklist for active implementation.
 > Update this file during a phase.
 > Update `Docs/context.md` at the end of each implementation cycle.
-> Last updated: 2026-03-14
+> Last updated: 2026-04-04
 
 ---
 
@@ -275,14 +275,15 @@ Scope: Deliver the Threads foundation with **DMs only**, channel groundwork (no 
 
 ### Host-owned setup
 
-Reference: `Docs/vps-setup.md` + `deploy/vps/`
+Reference: `Docs/vps-setup.md` + `Docs/vps-operations.md` + `deploy/vps/`
 
 - [x] Confirm final hosting path (BigRock Ubuntu 22.04 VPS with Nginx + systemd app + Docker MySQL).
-- [ ] Point `flo-state.in` and SSL to the production app.
-- [ ] Provision production MySQL and set `MYSQL_URL`.
-- [ ] Provision persistent uploads directory and set `FLOWSTATE_UPLOADS_DIR`.
-- [ ] Run `bun run build` and `node server/dist/db/migrate.js` with production env loaded on deploy.
-- [ ] Smoke test auth, boards, threads, uploads, and `/api/health` after first deploy.
+- [x] Point `flo-state.in`, `www.flo-state.in`, and SSL to the production app.
+- [x] Provision production MySQL and set `MYSQL_URL`.
+- [x] Provision persistent uploads directory and set `FLOWSTATE_UPLOADS_DIR`.
+- [x] Run `bun run build` and `node server/dist/db/migrate.js` with production env loaded on deploy.
+- [x] Verify `/api/health` locally, through Nginx, and through HTTPS.
+- [ ] Browser smoke test auth, boards, threads, and uploads after the intended first admin signs up.
 
 
 

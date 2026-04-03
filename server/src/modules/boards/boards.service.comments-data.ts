@@ -7,6 +7,7 @@ import { recordActivity } from "../activity/activity.service.js";
 import { commentMentions, commentReactions, comments, users } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { userHasPermission } from "../../utils/permissions.js";
+import { clipAuditText, sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import type { CreateCommentInput } from "./boards.schema.js";
 import type { BoardComment, BoardMember, CommentReaction, CommentRow } from "./boards.service.types.js";
 
@@ -299,6 +300,7 @@ export async function createCommentRecord(params: {
 }): Promise<BoardComment> {
   const now = new Date();
   const commentId = crypto.randomUUID();
+  const safeBody = sanitizeRequiredPlainText(params.input.body, { field: "Comment body", min: 1, max: 2000 });
 
   await db.insert(comments)
     .values({
@@ -307,14 +309,14 @@ export async function createCommentRecord(params: {
       listId: params.listId,
       cardId: params.cardId,
       authorId: params.authorId,
-      body: params.input.body.trim(),
+      body: safeBody,
       createdAt: now,
       updatedAt: now
     })
     .execute();
 
   const mentionIds = await storeCommentMentions(commentId, params.input.mentions, params.authorId, params.boardId);
-  const snippet = params.input.body.trim().slice(0, 140);
+  const snippet = clipAuditText(safeBody, 140) ?? "Comment";
 
   await recordActivity({
     type: "comment.created",

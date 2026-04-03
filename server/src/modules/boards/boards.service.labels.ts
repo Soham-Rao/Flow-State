@@ -10,6 +10,7 @@ import type { AssignLabelInput, CreateLabelInput, UpdateLabelInput } from "./boa
 import type { BoardCard, BoardLabel } from "./boards.service.types.js";
 import { assertBoardExists, assertCardExists, assertLabelExists, getCardBoardContext } from "./boards.service.lookups.js";
 import { getCardById } from "./boards.service.cards-data.js";
+import { normalizeRequiredName } from "./boards.service.utils.js";
 
 export async function createLabel(boardId: string, input: CreateLabelInput): Promise<BoardLabel> {
   await assertBoardExists(boardId);
@@ -21,7 +22,7 @@ export async function createLabel(boardId: string, input: CreateLabelInput): Pro
     .values({
       id: labelId,
       boardId,
-      name: input.name.trim(),
+      name: normalizeRequiredName(input.name, "Label name", 1, 40),
       color: input.color,
       createdAt: now,
       updatedAt: now
@@ -41,7 +42,7 @@ export async function updateLabel(labelId: string, input: UpdateLabelInput): Pro
   };
 
   if (input.name !== undefined) {
-    updatePayload.name = input.name.trim();
+    updatePayload.name = normalizeRequiredName(input.name, "Label name", 1, 40);
   }
 
   if (input.color !== undefined) {

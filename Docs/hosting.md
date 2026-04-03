@@ -19,6 +19,7 @@ This file now tracks the single production path we are actually using for FlowSt
 - Production env examples exist for both server and client.
 - VPS deployment assets live under `deploy/vps/`.
 - One-time Ubuntu setup and deploy steps live in `Docs/vps-setup.md`.
+- Ongoing pull/build/migrate/restart operations now live in `Docs/vps-operations.md`.
 
 ## Environment Split
 
@@ -45,6 +46,10 @@ This file now tracks the single production path we are actually using for FlowSt
 - Purpose: real user data only
 
 Rule: dev, test, and prod must never share a database.
+
+## Phase 12.1 Status
+- Completed on the BigRock VPS path on 2026-04-04.
+- Remaining deployment work now moves into Phase 12.2-12.5 plus future browser smoke testing with the intended first admin account.
 
 ## Phase 12.1 Scope
 
@@ -96,6 +101,7 @@ Rule: dev, test, and prod must never share a database.
 
 ## References
 - One-time server bootstrap: `Docs/vps-setup.md`
+- Ongoing deploy/update operations: `Docs/vps-operations.md`
 - Production env template: `server/.env.production.example`
 - MySQL Docker template: `deploy/vps/docker-compose.prod.yml`
 - systemd service: `deploy/vps/flowstate.service`

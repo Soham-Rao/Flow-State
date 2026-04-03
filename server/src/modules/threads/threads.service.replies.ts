@@ -7,6 +7,7 @@ import { db } from "../../db/connection.js";
 import { emitThreadEvent } from "../../realtime/socket.js";
 import { threadMessages, threadReplies, threadReplyAttachments, threadReplyDeletions, threadReplyMentions, threadReplyReactions, threadReplyVoiceNotes, users, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { sanitizePlainText } from "../../utils/sanitize.js";
 import { decryptDmBody, encryptDmBody } from "../../utils/encryption.js";
 import { assertPermission } from "../../utils/permissions.js";
 import type { CreateThreadReplyInput, DeleteThreadReplyInput, ThreadMessageListParams, UpdateThreadReplyInput } from "./threads.schema.js";
@@ -237,9 +238,9 @@ export async function createThreadReply(userId: string, messageId: string, input
     await assertConversationPermission(userId, parent.conversationId, "channel_write");
   }
 
-  const trimmed = input.body.trim();
-  const hasAttachments = Boolean((input as any).hasAttachments);
-  const hasVoiceNote = Boolean((input as any).hasVoiceNote);
+  const trimmed = sanitizePlainText(input.body);
+  const hasAttachments = Boolean(input.hasAttachments);
+  const hasVoiceNote = Boolean(input.hasVoiceNote);
   if (!trimmed && !hasAttachments && !hasVoiceNote) {
     throw new ApiError(400, "Reply body cannot be empty");
   }
@@ -340,7 +341,7 @@ export async function updateThreadReply(userId: string, replyId: string, input: 
     throw new ApiError(400, "You can only edit a reply within 15 minutes");
   }
 
-  const trimmed = input.body.trim();
+  const trimmed = sanitizePlainText(input.body);
   if (!trimmed) {
     const attachmentRows = await db
       .select({ id: threadReplyAttachments.id })

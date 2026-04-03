@@ -12,6 +12,15 @@ export const loginBodySchema = z.object({
   password: z.string().min(8).max(128)
 });
 
+export const forgotPasswordBodySchema = z.object({
+  email: z.string().trim().email().max(255)
+});
+
+export const resetPasswordBodySchema = z.object({
+  token: z.string().trim().min(32).max(255),
+  password: z.string().min(8).max(128)
+});
+
 const usernameSchema = z
   .string()
   .trim()
@@ -52,4 +61,6 @@ export const updateProfileSchema = z
 
 export type RegisterBody = z.infer<typeof registerBodySchema>;
 export type LoginBody = z.infer<typeof loginBodySchema>;
+export type ForgotPasswordBody = z.infer<typeof forgotPasswordBodySchema>;
+export type ResetPasswordBody = z.infer<typeof resetPasswordBodySchema>;
 export type UpdateProfileBody = z.infer<typeof updateProfileSchema>;

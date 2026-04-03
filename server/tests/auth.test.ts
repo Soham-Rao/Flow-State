@@ -1,3 +1,6 @@
+import crypto from "node:crypto";
+
+import { desc } from "drizzle-orm";
 import request from "supertest";
 
 const testDbUrl = "mysql://root:root@localhost:3306/flowstate_test";
@@ -6,21 +9,29 @@ let app: import("express").Express;
 let initializeDatabase: () => Promise<void>;
 let clearDatabaseForTests: () => Promise<void>;
 let closePool: () => Promise<void>;
+let db: typeof import("../src/db/connection.js").db;
+let auditLogs: typeof import("../src/db/schema.js").auditLogs;
+let passwordResetTokens: typeof import("../src/db/schema.js").passwordResetTokens;
 
 beforeAll(async () => {
   process.env.NODE_ENV = "test";
   process.env.MYSQL_URL = testDbUrl;
   process.env.JWT_SECRET = "test-secret-123456";
   process.env.JWT_EXPIRES_IN = "1h";
+  process.env.CLIENT_ORIGIN = "http://localhost:5173";
 
   const appModule = await import("../src/app.js");
   const dbInitModule = await import("../src/db/init.js");
   const dbModule = await import("../src/db/connection.js");
+  const schemaModule = await import("../src/db/schema.js");
 
   app = appModule.app;
   initializeDatabase = dbInitModule.initializeDatabase;
   clearDatabaseForTests = dbInitModule.clearDatabaseForTests;
   closePool = dbModule.closePool;
+  db = dbModule.db;
+  auditLogs = schemaModule.auditLogs;
+  passwordResetTokens = schemaModule.passwordResetTokens;
 
   await initializeDatabase();
 });
@@ -41,6 +52,30 @@ describe("Auth API", () => {
     expect(response.body.success).toBe(true);
     expect(response.body.data.user.role).toBe("admin");
     expect(response.body.data.token).toEqual(expect.any(String));
+  });
+
+  it("sanitizes profile text fields during registration and profile updates", async () => {
+    const registerResponse = await request(app).post("/api/auth/register").send({
+      name: "<b>Soham</b>",
+      email: "soham@example.com",
+      password: "password123"
+    });
+
+    const token = registerResponse.body.data.token as string;
+    expect(registerResponse.body.data.user.name).toBe("Soham");
+
+    const updateResponse = await request(app)
+      .patch("/api/auth/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        displayName: "<img src=x onerror=alert(1)>Builder",
+        bio: "<script>alert(1)</script>rm -rf /"
+      });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.data.displayName).toBe("Builder");
+    expect(updateResponse.body.data.bio).toContain("rm -rf /");
+    expect(updateResponse.body.data.bio).not.toContain("<script>");
   });
 
   it("registers second user as guest", async () => {
@@ -93,7 +128,7 @@ describe("Auth API", () => {
     expect(meResponse.body.data.email).toBe("soham@example.com");
   });
 
-  it("returns 401 for invalid login", async () => {
+  it("returns 401 for invalid login and records an audit log", async () => {
     await request(app).post("/api/auth/register").send({
       name: "Soham",
       email: "soham@example.com",
@@ -107,6 +142,70 @@ describe("Auth API", () => {
 
     expect(response.status).toBe(401);
     expect(response.body.success).toBe(false);
+
+    const rows = await db
+      .select({ action: auditLogs.action })
+      .from(auditLogs)
+      .orderBy(desc(auditLogs.createdAt));
+
+    expect(rows.some((row) => row.action === "auth.login.failure")).toBe(true);
+  });
+
+  it("returns a generic forgot-password response for existing and missing users", async () => {
+    await request(app).post("/api/auth/register").send({
+      name: "Soham",
+      email: "soham@example.com",
+      password: "password123"
+    });
+
+    const existingResponse = await request(app).post("/api/auth/forgot-password").send({
+      email: "soham@example.com"
+    });
+    const missingResponse = await request(app).post("/api/auth/forgot-password").send({
+      email: "missing@example.com"
+    });
+
+    expect(existingResponse.status).toBe(200);
+    expect(missingResponse.status).toBe(200);
+    expect(existingResponse.body.data.message).toBe(missingResponse.body.data.message);
+  });
+
+  it("resets the password with a valid reset token", async () => {
+    const registerResponse = await request(app).post("/api/auth/register").send({
+      name: "Soham",
+      email: "soham@example.com",
+      password: "password123"
+    });
+
+    const userId = registerResponse.body.data.user.id as string;
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const now = new Date();
+
+    await db.insert(passwordResetTokens)
+      .values({
+        id: crypto.randomUUID(),
+        userId,
+        tokenHash,
+        expiresAt: new Date(now.getTime() + 60 * 60 * 1000),
+        consumedAt: null,
+        createdAt: now
+      })
+      .execute();
+
+    const resetResponse = await request(app).post("/api/auth/reset-password").send({
+      token: rawToken,
+      password: "new-password-123"
+    });
+
+    expect(resetResponse.status).toBe(200);
+
+    const loginResponse = await request(app).post("/api/auth/login").send({
+      email: "soham@example.com",
+      password: "new-password-123"
+    });
+
+    expect(loginResponse.status).toBe(200);
   });
 });
 

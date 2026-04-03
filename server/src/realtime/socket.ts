@@ -3,7 +3,7 @@ import type { Server as HttpServer } from "node:http";
 import { inArray } from "drizzle-orm";
 import { Server, type Socket } from "socket.io";
 
-import { env } from "../config/env.js";
+import { isAllowedOrigin } from "../config/env.js";
 import { db } from "../db/connection.js";
 import { users } from "../db/schema.js";
 import { verifyAccessToken } from "../utils/jwt.js";
@@ -141,8 +141,15 @@ function decrementBoardPresence(boardId: string, userId: string): void {
 export function initSocket(server: HttpServer): Server {
   io = new Server(server, {
     cors: {
-      origin: env.CLIENT_ORIGIN,
-      credentials: true
+      origin(origin, callback) {
+        if (isAllowedOrigin(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error("Not allowed by CORS"));
+      },
+      credentials: false
     }
   });
 

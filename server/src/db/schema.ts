@@ -129,6 +129,37 @@ export const invites = mysqlTable("invites", {
   expiresAtIdx: index("idx_invites_expires_at").on(table.expiresAt)
 }));
 
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: char("id", { length: 36 }).primaryKey(),
+  userId: char("user_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 255 }).notNull().unique(),
+  expiresAt: createdAt("expires_at").notNull(),
+  consumedAt: createdAt("consumed_at"),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
+}, (table: TableColumns) => ({
+  userIdIdx: index("idx_password_reset_tokens_user_id").on(table.userId),
+  expiresAtIdx: index("idx_password_reset_tokens_expires_at").on(table.expiresAt)
+}));
+
+export const auditLogs = mysqlTable("audit_logs", {
+  id: char("id", { length: 36 }).primaryKey(),
+  actorId: char("actor_id", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 255 }).notNull(),
+  targetType: varchar("target_type", { length: 64 }),
+  targetId: varchar("target_id", { length: 255 }),
+  ip: varchar("ip", { length: 128 }),
+  userAgent: varchar("user_agent", { length: 512 }),
+  requestId: varchar("request_id", { length: 255 }),
+  metadata: text("metadata"),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
+}, (table: TableColumns) => ({
+  actorIdx: index("idx_audit_logs_actor_id").on(table.actorId),
+  actionIdx: index("idx_audit_logs_action").on(table.action),
+  createdAtIdx: index("idx_audit_logs_created_at").on(table.createdAt)
+}));
+
 export const roles = mysqlTable("roles", {
   id: char("id", { length: 36 }).primaryKey(),
   name: varchar("name", { length: 255 }).notNull().unique(),

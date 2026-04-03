@@ -17,6 +17,7 @@ import {
   type ThreadMemberRole
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { sanitizeOptionalPlainText, sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import { assertPermission } from "../../utils/permissions.js";
 import type {
   ChannelConversationSummary,
@@ -380,9 +381,8 @@ export async function createChannelConversation(userId: string, input: CreateCha
 
   const now = new Date();
   const conversationId = crypto.randomUUID();
-  const name = input.name.trim();
-  const description = input.description?.trim();
-  const normalizedDescription = description && description.length > 0 ? description : null;
+  const name = sanitizeRequiredPlainText(input.name, { field: "Channel name", min: 1, max: 80 });
+  const normalizedDescription = sanitizeOptionalPlainText(input.description, { field: "Channel description", max: 500 }) ?? null;
 
   await db.insert(threadConversations)
     .values({
@@ -462,11 +462,10 @@ export async function updateChannelConversation(
 
   const updates: Record<string, unknown> = {};
   if (input.name !== undefined) {
-    updates.name = input.name.trim();
+    updates.name = sanitizeRequiredPlainText(input.name, { field: "Channel name", min: 1, max: 80 });
   }
   if (input.description !== undefined) {
-    const trimmed = input.description?.trim() ?? "";
-    updates.description = trimmed.length > 0 ? trimmed : null;
+    updates.description = sanitizeOptionalPlainText(input.description, { field: "Channel description", max: 500 }) ?? null;
   }
 
   if (Object.keys(updates).length > 0) {

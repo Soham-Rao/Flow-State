@@ -12,6 +12,7 @@ import {
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { assertPermission } from "../../utils/permissions.js";
+import { sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import type { AnnouncementAudienceInput, CreateAnnouncementInput } from "./announcements.schema.js";
 
 export interface AnnouncementAudienceOptions {
@@ -130,6 +131,8 @@ export async function listAnnouncementAudienceOptions(actorId: string): Promise<
 export async function createAnnouncement(input: CreateAnnouncementInput, actorId: string): Promise<AnnouncementDetail> {
   await assertPermission(actorId, "send_announcements");
 
+  const subject = sanitizeRequiredPlainText(input.subject, { field: "Announcement subject", min: 1, max: 120 });
+  const body = sanitizeRequiredPlainText(input.body, { field: "Announcement body", min: 1, max: 5000 });
   const recipients = await resolveRecipients(input.audience);
   const announcementId = crypto.randomUUID();
   const now = new Date();
@@ -138,8 +141,8 @@ export async function createAnnouncement(input: CreateAnnouncementInput, actorId
     await tx.insert(announcements)
       .values({
         id: announcementId,
-        subject: input.subject.trim(),
-        body: input.body.trim(),
+        subject,
+        body,
         audience: serializeAudience(input.audience),
         createdBy: actorId,
         createdAt: now
@@ -161,8 +164,8 @@ export async function createAnnouncement(input: CreateAnnouncementInput, actorId
 
   return {
     id: announcementId,
-    subject: input.subject.trim(),
-    body: input.body.trim(),
+    subject,
+    body,
     createdAt: now.getTime(),
     seenAt: null,
     author: {

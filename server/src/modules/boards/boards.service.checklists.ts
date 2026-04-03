@@ -16,6 +16,7 @@ import type { BoardChecklist, BoardChecklistItem } from "./boards.service.types.
 import { assertCardExists, assertChecklistExists, assertChecklistItemExists, getListRecord } from "./boards.service.lookups.js";
 import { getChecklistById, getChecklistItemById } from "./boards.service.checklists-data.js";
 import { getCardById } from "./boards.service.cards-data.js";
+import { normalizeRequiredName } from "./boards.service.utils.js";
 
 async function getCardListContext(cardId: string): Promise<{ card: Awaited<ReturnType<typeof getCardById>>; list: Awaited<ReturnType<typeof getListRecord>> }> {
   const card = await getCardById(cardId);
@@ -39,7 +40,7 @@ export async function createChecklist(cardId: string, input: CreateChecklistInpu
     .values({
       id: checklistId,
       cardId,
-      title: input.title.trim(),
+      title: normalizeRequiredName(input.title, "Checklist title", 1, 120),
       position: (maxPositionRows[0]?.maxPosition ?? -1) + 1,
       createdAt: now,
       updatedAt: now
@@ -77,7 +78,7 @@ export async function updateChecklist(checklistId: string, input: UpdateChecklis
   };
 
   if (input.title !== undefined) {
-    updatePayload.title = input.title.trim();
+    updatePayload.title = normalizeRequiredName(input.title, "Checklist title", 1, 120);
   }
 
   await db.update(checklists).set(updatePayload).where(eq(checklists.id, checklistId)).execute();
@@ -85,7 +86,7 @@ export async function updateChecklist(checklistId: string, input: UpdateChecklis
   const updated = await getChecklistById(checklistId);
   const { card, list } = await getCardListContext(updated.cardId);
 
-  if (input.title !== undefined && input.title.trim() !== existing.title) {
+  if (input.title !== undefined && normalizeRequiredName(input.title, "Checklist title", 1, 120) !== existing.title) {
     await recordActivity({
       type: "checklist.updated",
       actorId: userId,
@@ -147,7 +148,7 @@ export async function createChecklistItem(
     .values({
       id: itemId,
       checklistId,
-      title: input.title.trim(),
+      title: normalizeRequiredName(input.title, "Checklist item title", 1, 200),
       isDone: false,
       position: (maxPositionRows[0]?.maxPosition ?? -1) + 1,
       createdAt: now,
@@ -189,7 +190,7 @@ export async function updateChecklistItem(itemId: string, input: UpdateChecklist
   };
 
   if (input.title !== undefined) {
-    updatePayload.title = input.title.trim();
+    updatePayload.title = normalizeRequiredName(input.title, "Checklist item title", 1, 200);
   }
 
   if (input.isDone !== undefined) {
@@ -215,7 +216,7 @@ export async function updateChecklistItem(itemId: string, input: UpdateChecklist
         listName: list.name
       }
     });
-  } else if (input.title !== undefined && input.title.trim() !== existing.title) {
+  } else if (input.title !== undefined && normalizeRequiredName(input.title, "Checklist item title", 1, 200) !== existing.title) {
     await recordActivity({
       type: "checklist.item.updated",
       actorId: userId,

@@ -2,15 +2,35 @@ import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
 import { env } from "../config/env.js";
+import { recordAuditLog } from "../modules/security/audit.service.js";
+import { buildSecurityRequestContext } from "../utils/request-context.js";
 import { ApiError } from "../utils/api-error.js";
 
 export function errorHandler(
   error: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void {
+  const context = buildSecurityRequestContext(req);
+
   if (error instanceof ApiError) {
+    if (error.statusCode === 403) {
+      void recordAuditLog({
+        actorId: context.actorId,
+        action: "security.permission_denied",
+        targetType: "route",
+        targetId: context.path,
+        ip: context.ip,
+        userAgent: context.userAgent,
+        requestId: context.requestId,
+        metadata: {
+          method: context.method,
+          path: context.path
+        }
+      });
+    }
+
     res.status(error.statusCode).json({
       success: false,
       error: {
@@ -38,6 +58,15 @@ export function errorHandler(
     });
     return;
   }
+
+  console.error("Unhandled request error", {
+    requestId: context.requestId,
+    method: context.method,
+    path: context.path,
+    actorId: context.actorId,
+    error: error.message,
+    stack: env.NODE_ENV === "production" ? undefined : error.stack
+  });
 
   const message = env.NODE_ENV === "production" ? "Internal server error" : error.message;
 

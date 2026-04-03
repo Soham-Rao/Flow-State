@@ -8,7 +8,7 @@ import { cards, lists } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { CreateListInput, ReorderListsInput, UpdateListInput } from "./boards.schema.js";
 import type { BoardDetail, BoardList } from "./boards.service.types.js";
-import { resolveRestoredName } from "./boards.service.utils.js";
+import { normalizeRequiredName, resolveRestoredName } from "./boards.service.utils.js";
 import { assertBoardExists, assertListExists, assertListNameAvailable, getListRecord } from "./boards.service.lookups.js";
 import { getCommentsForLists } from "./boards.service.comments-data.js";
 import { getCardsForList, getCardsForListIncludingArchived } from "./boards.service.cards-data.js";
@@ -25,7 +25,7 @@ export async function createList(boardId: string, input: CreateListInput, userId
 
   const now = new Date();
   const listId = crypto.randomUUID();
-  const trimmedName = input.name.trim();
+  const trimmedName = normalizeRequiredName(input.name, "List name", 1, 80);
 
   await assertListNameAvailable(boardId, trimmedName);
 
@@ -90,7 +90,7 @@ export async function updateList(listId: string, input: UpdateListInput, userId:
   };
 
   if (input.name !== undefined) {
-    updatePayload.name = input.name.trim();
+    updatePayload.name = normalizeRequiredName(input.name, "List name", 1, 80);
   }
 
   if (input.isDoneList !== undefined) {

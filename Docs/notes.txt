@@ -93,9 +93,17 @@ esc button exit for create or delete announcements, glowing border for new one
 ---
 make it team wise - multiple teams on flo-state.in
 deletion / encryption / compression of all general content to preserve disk space
-
+alerts for downtime during updates/migrations in frontend - warning 
 ---
 3 docs subdirs 
 1. user facing - multiple tutorials
 2. dev facing - all functions, files, classes, apis, db, etc
-3. understanding web dev - server, typescript, client, build, ssh, bun, runtime, nginx, etc, etc, sectioned by topic, webassembly, building, typescript compilation, etc, ik c, py, not this
+3. understanding web dev - server, typescript, client, build, ssh, bun, runtime, nginx, etc, etc, sectioned by topic, webassembly, building, typescript compilation, etc, ik c, py, not this, installing app, what the end user sees, 
+
+---
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+

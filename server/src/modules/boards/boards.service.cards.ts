@@ -8,7 +8,7 @@ import { cards, type CardCoverColor } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { CreateCardInput, MoveCardInput, UpdateCardInput } from "./boards.schema.js";
 import type { BoardCard, MoveCardResult } from "./boards.service.types.js";
-import { clampIndex, normalizeCoverColor, normalizeDueDate, normalizeOptionalDescription, resolveRestoredName } from "./boards.service.utils.js";
+import { clampIndex, normalizeCoverColor, normalizeDueDate, normalizeOptionalDescription, normalizeRequiredName, resolveRestoredName } from "./boards.service.utils.js";
 import { assertCardExists, assertListExists, getListRecord } from "./boards.service.lookups.js";
 import { deleteAttachmentsForCard, getCardById, getCardByIdIncludingArchived, getCardsForList } from "./boards.service.cards-data.js";
 
@@ -28,7 +28,7 @@ export async function createCard(listId: string, input: CreateCardInput, userId:
     .values({
       id: cardId,
       listId: list.id,
-      title: input.title.trim(),
+      title: normalizeRequiredName(input.title, "Card title", 1, 160),
       description: normalizeOptionalDescription(input.description),
       priority: input.priority,
       coverColor: normalizeCoverColor(input.coverColor) ?? null,
@@ -47,7 +47,7 @@ export async function createCard(listId: string, input: CreateCardInput, userId:
     boardId: list.boardId,
     listId: list.id,
     cardId,
-    metadata: { cardTitle: input.title.trim(), listName: list.name }
+    metadata: { cardTitle: normalizeRequiredName(input.title, "Card title", 1, 160), listName: list.name }
   });
 
   return getCardById(cardId);
@@ -68,7 +68,7 @@ export async function updateCard(cardId: string, input: UpdateCardInput, userId:
   };
 
   if (input.title !== undefined) {
-    updatePayload.title = input.title.trim();
+    updatePayload.title = normalizeRequiredName(input.title, "Card title", 1, 160);
   }
 
   if (input.description !== undefined) {

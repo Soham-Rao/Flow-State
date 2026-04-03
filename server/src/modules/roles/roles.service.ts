@@ -12,6 +12,7 @@ import {
   type UserRole
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import { assertRoleHierarchy } from "../../utils/permissions.js";
 import type { CreateRoleInput, UpdateRoleInput } from "./roles.schema.js";
 
@@ -139,7 +140,7 @@ export async function listRoles(): Promise<RoleSummary[]> {
 }
 
 export async function createRole(input: CreateRoleInput, actorId: string): Promise<RoleSummary> {
-  const name = input.name.trim();
+  const name = sanitizeRequiredPlainText(input.name, { field: "Role name", min: 2, max: 50 });
   if (isReservedRoleName(name)) {
     throw new ApiError(409, "That role name is reserved");
   }
@@ -216,7 +217,9 @@ export async function updateRole(roleId: string, input: UpdateRoleInput, actorId
     }
   }
 
-  const nextName = input.name?.trim() ?? role.name;
+  const nextName = input.name !== undefined
+    ? sanitizeRequiredPlainText(input.name, { field: "Role name", min: 2, max: 50 })
+    : role.name;
   if (input.name && isReservedRoleName(nextName)) {
     throw new ApiError(409, "That role name is reserved");
   }

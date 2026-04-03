@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 
-import { and, desc, eq, inArray, isNull, lt, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, ne } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
 import { emitThreadEvent } from "../../realtime/socket.js";
@@ -19,6 +19,7 @@ import {
   type UserRole
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { sanitizePlainText } from "../../utils/sanitize.js";
 import { decryptDmBody, encryptDmBody } from "../../utils/encryption.js";
 import { assertPermission } from "../../utils/permissions.js";
 import type {
@@ -408,7 +409,7 @@ export async function createThreadMessage(userId: string, conversationId: string
     }
   }
 
-  const trimmed = input.body.trim();
+  const trimmed = sanitizePlainText(input.body);
   const hasAttachments = Boolean(input.hasAttachments);
   const hasVoiceNote = Boolean(input.hasVoiceNote);
   if (!trimmed && !hasAttachments && !hasVoiceNote) {
@@ -537,7 +538,7 @@ export async function updateThreadMessage(userId: string, messageId: string, inp
     throw new ApiError(400, "You can only edit a message within 15 minutes");
   }
 
-  const trimmed = input.body.trim();
+  const trimmed = sanitizePlainText(input.body);
   if (!trimmed) {
     const attachmentRows = await db
       .select({ id: threadAttachments.id })

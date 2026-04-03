@@ -278,3 +278,192 @@ bash deploy/vps/redeploy.sh
 
 
 
+
+
+## Cheat Sheet
+
+This is the short replayable version of what we actually did on the BigRock VPS, including the fixes for the issues we hit.
+
+### Setup order we actually followed
+
+1. DNS and hosting assumptions
+- BigRock VPS hosts the app.
+- BigRock DNS currently serves `flo-state.in`.
+- Canonical domain is `flo-state.in`.
+- `www.flo-state.in` redirects to apex.
+
+2. SSH key and first access
+- Create a dedicated local SSH key for the VPS.
+- Add the `flowstate` user.
+- Put the public key into `/home/flowstate/.ssh/authorized_keys` manually if the provider SSH-key UI fails.
+- Add a local SSH config alias such as:
+
+```sshconfig
+Host flowstate-vps
+    HostName 66.116.233.148
+    User flowstate
+    IdentityFile ~/.ssh/id_ed25519_flowstate
+    IdentitiesOnly yes
+```
+
+- After that, normal login becomes:
+
+```bash
+ssh flowstate-vps
+```
+
+3. SSH hardening
+- Keep direct `root` SSH disabled.
+- Use `flowstate` plus `sudo` for admin work.
+- If you need root later:
+
+```bash
+sudo -i
+```
+
+4. Base server setup
+- Install system packages.
+- Enable `nginx`, `docker`, and `fail2ban`.
+- Enable UFW with `OpenSSH`, `80`, and `443` only.
+- Reboot once after kernel updates.
+
+5. Runtime install
+- Install Node 22.
+- Install Bun as `flowstate`.
+- Confirm `node`, `npm`, and `bun` all work.
+
+6. App layout
+- Repo at `/opt/flowstate/app`
+- Infra files at `/opt/flowstate/infra`
+- Env file at `/etc/flowstate/flowstate.env`
+- Uploads at `/var/lib/flowstate/uploads`
+
+7. Database
+- MySQL runs in Docker only.
+- App runs on the host under `systemd`.
+- DB is bound to `127.0.0.1:3306` only.
+
+8. App deploy
+- `bun install --frozen-lockfile`
+- `bun run build`
+- source `/etc/flowstate/flowstate.env`
+- run `node server/dist/db/migrate.js`
+- install and start `flowstate.service`
+
+9. Reverse proxy and HTTPS
+- Nginx proxies `80/443` to `127.0.0.1:4000`
+- Certbot issues the Let's Encrypt certificate
+- Certbot timer handles auto-renewal
+
+### Problems we hit and how we fixed them
+
+1. SSH host key negotiation failed
+- Error looked like: `no matching host key type found. Their offer: ssh-rsa`
+- Cause: server `sshd_config` had a bad `HostKeyAlgorithms=ssh-rsa,...` restriction.
+- Fix: comment that line out, keep modern host keys enabled, restart SSH.
+
+2. Public-key login still failed
+- Cause: wrong local private key path was being used.
+- Fix: use the actual dedicated key file and add a local SSH alias.
+
+3. Password auth still worked even after hardening
+- Cause: `/etc/ssh/sshd_config.d/50-cloud-init.conf` still had `PasswordAuthentication yes` and was taking precedence.
+- Fix: create `/etc/ssh/sshd_config.d/00-flowstate-hardening.conf` with:
+
+```conf
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+ChallengeResponseAuthentication no
+X11Forwarding no
+```
+
+4. Bun install failed
+- Error: `unzip is required to install bun`
+- Fix: `sudo apt install -y unzip`
+
+5. `docker-compose-plugin` package was not available
+- Fix: install `docker.io` and `docker-compose` first, then later install `docker-compose-v2` explicitly.
+
+6. Old `docker-compose` crashed with `KeyError: 'ContainerConfig'`
+- Cause: Compose v1 bug against newer Docker/container metadata.
+- Fix: install Compose v2 and use `docker compose`, not `docker-compose`.
+
+7. Server clone was missing deploy files and prod env examples
+- Cause: the public GitHub repo had not yet been updated with the local deployment work.
+- Fix at the time: create missing files manually on the VPS.
+- Better long-term fix: keep deploy files committed and pull before setup.
+
+8. Client build failed on `ignoreDeprecations` / `baseUrl`
+- Cause: stale TypeScript config drift.
+- Fix: remove `ignoreDeprecations: "6.0"` and later remove deprecated `baseUrl` entirely.
+
+9. App build failed because some types changed
+- Fixes applied:
+- pass `assignedCount` to the board header
+- add `bio: null` to `BoardMember` test mocks
+- include `bio` in thread user summary mapping on the server
+
+10. `MYSQL_URL` failed Zod validation
+- Cause: base64 password characters do not fit raw URL format safely.
+- Better fix: use hex passwords for DB credentials that go into URLs.
+
+11. MySQL auth failed even after fixing the URL
+- Cause: container volume had already been initialized with older credentials; changing `mysql.env` alone does not update an existing MySQL volume.
+- Fix: because prod DB was still empty, reset MySQL cleanly with:
+
+```bash
+docker compose -f docker-compose.prod.yml down -v
+```
+
+- Then recreate with fresh known hex passwords and start again.
+
+12. `certbot` command was missing
+- Fix: install with:
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+### Points to remember
+
+- Use `ssh flowstate-vps`, not direct `root` SSH.
+- Use `sudo -i` if you need a root shell.
+- Prefer hex passwords for values that end up inside URLs.
+- Changing MySQL env values does not retroactively change credentials in an already-initialized MySQL volume.
+- `docker compose` is the correct command on this VPS.
+- Keep `/etc/flowstate/flowstate.env` owned by `root:flowstate` with `640` permissions.
+- Keep MySQL bound to `127.0.0.1` only.
+- Certbot renewal is automatic through `certbot.timer`.
+- The first production signup becomes admin, so do the first signup intentionally.
+- For future pulls, it is fine to keep `Docs/` on the VPS for reference for now, even though it may later be excluded from production-only deploys.
+
+### Minimal command checklist
+
+```bash
+ssh flowstate-vps
+cd /opt/flowstate/app
+git pull origin master
+bun install --frozen-lockfile
+bun run build
+set -a
+source /etc/flowstate/flowstate.env
+set +a
+node server/dist/db/migrate.js
+sudo systemctl restart flowstate
+sudo systemctl status flowstate --no-pager
+curl https://flo-state.in/api/health
+```
+
+### Useful checks
+
+```bash
+systemctl status flowstate --no-pager
+journalctl -u flowstate -n 100 --no-pager
+docker compose -f /opt/flowstate/infra/docker-compose.prod.yml ps
+systemctl status certbot.timer --no-pager
+curl http://127.0.0.1:4000/api/health
+curl https://flo-state.in/api/health
+sudo certbot renew --dry-run
+```

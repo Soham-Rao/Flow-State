@@ -2,15 +2,15 @@ import path from "node:path";
 import fs from "node:fs/promises";
 
 import type { CardCoverColor } from "../../db/schema.js";
+import { sanitizeOptionalPlainText, sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import { UPLOADS_ROOT } from "./boards.service.types.js";
 
-export function normalizeOptionalDescription(value: string | undefined): string | null {
-  if (value === undefined) {
-    return null;
-  }
+export function normalizeRequiredName(value: string, field: string, min: number, max: number): string {
+  return sanitizeRequiredPlainText(value, { field, min, max });
+}
 
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
+export function normalizeOptionalDescription(value: string | undefined): string | null {
+  return sanitizeOptionalPlainText(value, { field: "Description", max: 5000 }) ?? null;
 }
 
 export function clampIndex(value: number, min: number, max: number): number {

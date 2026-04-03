@@ -15,7 +15,7 @@ import type {
   CardRecord
 } from "./boards.service.types.js";
 import { DEFAULT_ARCHIVE_RETENTION_MINUTES, DEFAULT_RETENTION_MINUTES, DEFAULT_RETENTION_MODE, defaultLists } from "./boards.service.types.js";
-import { clampArchiveRetentionMinutes, clampRetentionMinutes, normalizeOptionalDescription } from "./boards.service.utils.js";
+import { clampArchiveRetentionMinutes, clampRetentionMinutes, normalizeOptionalDescription, normalizeRequiredName } from "./boards.service.utils.js";
 import { assertBoardExists, assertBoardNameAvailable, getBoardRecord } from "./boards.service.lookups.js";
 import { getBoardMembers } from "./boards.service.members.js";
 import { getLabelsForBoard } from "./boards.service.labels-data.js";
@@ -196,7 +196,7 @@ export async function getArchivedLists(boardId: string): Promise<ArchivedListEnt
 
   const listNameById = new Map(archivedCardRows.map((row) => [row.listId, row.listName]));
   const archivedCards = await attachChecklistsToCards(
-    archivedCardRows.map(({ listName, ...card }) => card) as CardRecord[]
+    archivedCardRows.map(({ listName: _listName, ...card }) => card) as CardRecord[]
   );
 
   const archivedCardsByListId = new Map<string, BoardCard[]>();
@@ -229,7 +229,7 @@ export async function getArchivedLists(boardId: string): Promise<ArchivedListEnt
 export async function createBoard(input: CreateBoardInput, userId: string): Promise<BoardDetail> {
   const now = new Date();
   const boardId = crypto.randomUUID();
-  const trimmedName = input.name.trim();
+  const trimmedName = normalizeRequiredName(input.name, "Board name", 2, 120);
   const retentionMinutes = clampRetentionMinutes(input.retentionMinutes ?? DEFAULT_RETENTION_MINUTES);
   const retentionMode = input.retentionMode ?? DEFAULT_RETENTION_MODE;
   const archiveRetentionMinutes = clampArchiveRetentionMinutes(
@@ -297,7 +297,7 @@ export async function updateBoard(boardId: string, input: UpdateBoardInput, user
   };
 
   if (input.name !== undefined) {
-    const trimmed = input.name.trim();
+    const trimmed = normalizeRequiredName(input.name, "Board name", 2, 120);
     await assertBoardNameAvailable(trimmed, boardId);
     updatePayload.name = trimmed;
   }

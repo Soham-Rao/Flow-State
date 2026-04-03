@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-04-03
+> Last updated: 2026-04-04
 
 ---
 
@@ -233,6 +233,12 @@ Home dashboard ("My Tasks", recent activity, completed items feed), weekly team 
 ### Phase 11: Polish, Advanced Features & Final Testing
 Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron, email notifications for critical deadlines, responsive design pass, full regression + E2E test suite, performance optimization.
 
+### Phase 12: Hosting & Production Readiness
+Production hosting, deployment setup, hardening, observability, durability, and user-facing deployment documentation.
+
+### Phase 13: Polish and CI/CD Pipeline
+Future deployment automation and repo polish: build pipeline triggered on push, deploy automation, quality gates, branch protections, staging strategy, and long-term maintenance ergonomics.
+
 ---
 
 ## 9. Deployment Considerations
@@ -289,13 +295,14 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 | Phase 10.4: Dashboard UI overhaul | ✅ Completed | 2026-03-27 | 2026-03-27 | Glassmorphism redesign, two-column layout, priority/alert styling, visual polish only |
 | Phase 10.5: Templates + pins + settings polish | 🟡 Deferred | 2026-03-30 | — | Deferred by request; revisit later (templates/polish + pins/templates gallery) |
 | Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
-| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Hosting runbook drafted; repo groundwork for Phase 12.1 is underway, host-specific deploy artifacts still pending |
+| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Phase 12.1 and 12.2 are complete locally; next work is 12.3-12.5 reliability, durability, and user-facing docs |
 | Phase 12.0: Database Platform Switch | ✅ Completed | 2026-03-31 | 2026-03-31 | MySQL switch + Drizzle migrations + test infra |
-| Phase 12.1: Hosting + Deployment Setup | 🟡 In Progress | 2026-04-03 | — | Repo groundwork plus VPS deployment assets are ready: production serving, env examples, MySQL Docker, systemd, Nginx, and setup runbook |
-| Phase 12.2: Security Hardening | ⬜ Not Started | — | — | sanitization, CORS, rate limits, reset, CSRF/CSP, audit logging |
+| Phase 12.1: Hosting + Deployment Setup | ✅ Completed | 2026-04-03 | 2026-04-04 | BigRock VPS bootstrap completed: SSH hardening, UFW/fail2ban, Node+Bun, MySQL Docker, production env, systemd app, Nginx, DNS, HTTPS, and auto-renewing Certbot setup |
+| Phase 12.2: Security Hardening | ✅ Completed | 2026-04-04 | 2026-04-04 | Input sanitization, explicit CORS/CSP/trust-proxy hardening, rate limits, password-reset scaffolding, audit logs, and bounded log retention policies |
 | Phase 12.3: Reliability + Observability | ⬜ Not Started | — | — | error boundaries, prod logging, alerts, rollback |
 | Phase 12.4: Data Durability + Performance | ⬜ Not Started | — | — | encryption, compression, atomic migrations, caching |
 | Phase 12.5: User-Facing Docs | ⬜ Not Started | — | — | onboarding/tutorials |
+| Phase 13: Polish and CI/CD Pipeline | ⬜ Not Started | — | — | build/deploy automation on push, pipeline quality gates, staging strategy, repo polish, and maintenance ergonomics |
 
 ---
 
@@ -304,6 +311,8 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 - **Permission resolution is additive** across roles; scoped overrides can explicitly allow/deny per board (deny wins for that scope).
 - **Assigned-task badges are blue** and exclude done lists; counts update from mentions refresh.
 - **Permission errors now surface in a modal** (topmost z-index) instead of inline text only.
+- **Password reset is scaffold-only in Phase 12.2**: `forgot-password` always returns a generic success response and must be completed later when SMTP-backed delivery is available.
+- **Logging is intentionally bounded**: security audit rows use compact metadata with retention cleanup, while host logs remain journald/logrotate-managed and should stay compressed/size-limited at the VPS level.
 
 - `instructions.md` can be used for phase-specific notes, checklists, and implementation details when planning a phase. It serves as a scratchpad for detailed specifications.
 - **Test policy**: Write tests during implementation; user runs them on full-phase cadence (or every 2 full phases) and reports output.
@@ -346,6 +355,8 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 
 | Date | Update |
 |------|--------|
+| 2026-04-04 | Phase 12.2 completed locally: added strict server-side plain-text sanitization for user-authored content, explicit production CORS allowlisting + CSP + trust-proxy handling, route-scoped rate limits for auth/invite/health endpoints, password-reset scaffolding with generic `forgot-password` responses, MySQL-backed `audit_logs` and `password_reset_tokens`, request-id based security logging, and bounded retention rules so audit/system logs do not grow without limit. Password reset remains scaffold-only until SMTP delivery is implemented. |
+| 2026-04-04 | Phase 12.1 completed on the BigRock VPS path: SSH was hardened with key-only access, UFW/fail2ban/nginx/docker were enabled, Node 22 and Bun were installed, MySQL 8.0 was provisioned in Docker, production env and uploads paths were configured, the app now runs under systemd behind Nginx, DNS points to the VPS, HTTPS is live via Let's Encrypt with certbot auto-renewal, and `Docs/vps-setup.md` now includes a practical cheat sheet. First-user browser smoke testing is intentionally deferred so the intended first admin can sign up. |
 | 2026-04-03 | Phase 12.1 advanced for the BigRock Ubuntu VPS path: Express now serves client/dist in production, invite links use PUBLIC_APP_URL, uploads storage is fully configurable via FLOWSTATE_UPLOADS_DIR (including thread cleanup paths), production env examples were added, VPS deploy assets were created for MySQL Docker, systemd, Nginx, redeploy flow, one-time server setup, and Docs/hosting.md was narrowed to the single VPS production plan. |
 | 2026-04-03 | Permission checks for card actions are now board-scoped (edit/assign/comment/move/create/archive/delete), so board-level overrides allow non-admin edits/assignments as intended. |
 | 2026-04-03 | Assigned-task badges added to board cards, board header, and list headers; assignment counts exclude done lists; badges refresh when assignment counts change. |
