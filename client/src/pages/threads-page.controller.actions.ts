@@ -29,6 +29,11 @@ const REPLY_PAGE_SIZE = 30;
 const MAX_REPLIES_IN_MEMORY = 200;
 const REPLY_TOP_FETCH_THRESHOLD = 140;
 const REPLY_BOTTOM_SCROLL_THRESHOLD = 140;
+const THREAD_MESSAGE_CHARACTER_LIMIT = 5000;
+
+function getThreadLengthError(length: number): string {
+  return `Messages can be up to 5,000 characters. This draft is ${length - THREAD_MESSAGE_CHARACTER_LIMIT} characters over the limit.`;
+}
 
 const CompressionStreamImpl = (globalThis as any).CompressionStream as any;
 const DecompressionStreamImpl = (globalThis as any).DecompressionStream as any;
@@ -752,6 +757,10 @@ export function useThreadActions({
     const trimmed = messageDraft.trim();
     const hasAttachments = pendingAttachments.length > 0;
     if (!trimmed && !hasAttachments) return;
+    if (trimmed.length > THREAD_MESSAGE_CHARACTER_LIMIT) {
+      setSendError(getThreadLengthError(trimmed.length));
+      return;
+    }
     setSending(true);
     setSendError(null);
     try {
@@ -906,6 +915,11 @@ export function useThreadActions({
   };
 
   const handleSaveEdit = async (message: ThreadMessageSummary) => {
+    const trimmed = editingDraft.trim();
+    if (trimmed.length > THREAD_MESSAGE_CHARACTER_LIMIT) {
+      setEditingError(getThreadLengthError(trimmed.length));
+      return;
+    }
     setEditingError(null);
     try {
       const updated = await updateThreadMessage(message.id, { body: editingDraft });
@@ -936,6 +950,10 @@ export function useThreadActions({
     const hasMedia = (reply.attachments?.length ?? 0) > 0 || Boolean(reply.voiceNote);
     if (!trimmed && !hasMedia) {
       setEditingReplyError("Message cannot be empty.");
+      return;
+    }
+    if (trimmed.length > THREAD_MESSAGE_CHARACTER_LIMIT) {
+      setEditingReplyError(getThreadLengthError(trimmed.length));
       return;
     }
     setEditingReplyError(null);
@@ -1022,6 +1040,10 @@ export function useThreadActions({
     const trimmed = replyDraft.trim();
     const hasAttachments = replyPendingAttachments.length > 0;
     if (!trimmed && !hasAttachments) return;
+    if (trimmed.length > THREAD_MESSAGE_CHARACTER_LIMIT) {
+      setReplyError(getThreadLengthError(trimmed.length));
+      return;
+    }
     setReplyError(null);
     try {
       const baseMentions = extractMentionIds(replyDraft, mentionMembers);
@@ -1056,7 +1078,7 @@ export function useThreadActions({
         ? { ...prev, replyCount: (prev.replyCount ?? 0) + 1 }
         : prev));
       setReplyDraft("");
-    setReplyInlineTarget(null);
+      setReplyInlineTarget(null);
       setReplyPendingAttachments([]);
     } catch (error) {
       setReplyError(error instanceof Error ? error.message : "Unable to send reply right now.");
@@ -1318,6 +1340,11 @@ export function useThreadActions({
     handleReplyKeyDown
   };
 }
+
+
+
+
+
 
 
 

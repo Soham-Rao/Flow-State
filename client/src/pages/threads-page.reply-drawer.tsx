@@ -8,6 +8,7 @@ import { UserHoverCard } from "@/components/users/user-hover-card";
 import type { BoardMember } from "@/types/board";
 import type { ThreadMessageSummary, ThreadReactionDetail, ThreadReplySummary } from "@/types/threads";
 import { THREAD_REACTION_CHOICES } from "./threads-page.constants";
+import { ThreadExpandableText } from "./threads-page.long-text";
 import { formatDateHeading, formatDuration, formatTime, formatTimestamp, getAttachmentKind, getInitial } from "./threads-page.utils";
 
 type ThreadsReplyDrawerProps = {
@@ -286,7 +287,7 @@ export function ThreadsReplyDrawer({
                 </div>
               </UserHoverCard>
             );
-            const avatarSlot = showAvatar ? avatar : <div className="h-9 w-9" />;
+            const leadingAvatar = !isMine ? (showAvatar ? avatar : <div className="h-9 w-9" />) : null;
             const isHovered = hoveredReplyId === reply.id;
             const showActionRail = isHovered && !isDeleted;
             const showReactionPicker = showActionRail && reactionPickerReplyId === reply.id;
@@ -387,7 +388,7 @@ export function ThreadsReplyDrawer({
 
             const bubble = (
               <div
-                className={`max-w-[75%] min-w-[260px] rounded-2xl border px-4 py-3 ${
+                className={`min-w-0 flex-1 rounded-2xl border px-4 py-3 ${
                   isMine
                     ? "border-sky-400/40 bg-sky-500/15"
                     : "border-emerald-400/40 bg-emerald-500/15"
@@ -426,7 +427,7 @@ export function ThreadsReplyDrawer({
                     </div>
                   </div>
                 ) : replyBodyText ? (
-                  <p className="whitespace-pre-line text-[15px] text-foreground">{replyBodyText}</p>
+                  <ThreadExpandableText text={replyBodyText} className="whitespace-pre-line text-[15px] text-foreground" />
                 ) : null}
                 {attachmentList}
                 <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -617,14 +618,14 @@ export function ThreadsReplyDrawer({
             );
 
             const replyBody = (
-              <div className={`flex w-fit flex-col ${isMine ? "items-end self-end" : "items-start self-start"}`}>
+              <div className={`flex min-w-[260px] max-w-[75%] flex-col ${isMine ? "items-end self-end" : "items-start self-start"}`}>
                 <div className="inline-flex items-center gap-2">
                   {isMine && actionRail}
                   {bubble}
                   {!isMine && actionRail}
                 </div>
                 {reactionStrip || replyReactionDetailsToggle || replyReactionDetailsPanel ? (
-                  <div className={`mt-1 flex w-fit flex-col ${isMine ? "items-end" : "items-start"}`}>
+                  <div className={`mt-1 flex w-full flex-col ${isMine ? "items-end" : "items-start"}`}>
                     {reactionStrip}
                     {replyReactionDetailsToggle}
                     {replyReactionDetailsPanel}
@@ -651,10 +652,9 @@ export function ThreadsReplyDrawer({
                   setDeleteMenuReplyId((current) => (current === reply.id ? null : current));
                 }}
               >
-                <div className="flex items-start gap-4">
-                  {!isMine && avatarSlot}
+                <div className={`flex items-start gap-4 ${isMine ? "justify-end" : ""}`}>
+                  {leadingAvatar}
                   {replyBody}
-                  {isMine && avatarSlot}
                 </div>
               </div>
             </div>
@@ -713,5 +713,12 @@ export function ThreadsReplyDrawer({
     </div>
   );
 }
+
+
+
+
+
+
+
 
 

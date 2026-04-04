@@ -6,6 +6,7 @@ import { UserHoverCard } from "@/components/users/user-hover-card";
 import type { ThreadMessageSummary, ThreadReactionDetail } from "@/types/threads";
 import type { ThreadBadgeMode } from "@/stores/thread-settings-store";
 import { THREAD_REACTION_CHOICES } from "./threads-page.constants";
+import { ThreadExpandableText } from "./threads-page.long-text";
 import {
   formatDateHeading,
   formatDuration,
@@ -134,7 +135,7 @@ export function ThreadMessageList({
               </div>
             </UserHoverCard>
           );
-          const avatarSlot = showAvatar ? avatar : <div className="h-9 w-9" />;
+          const leadingAvatar = !isMine ? (showAvatar ? avatar : <div className="h-9 w-9" />) : null;
           const isHovered = hoveredMessageId === message.id;
           const isDeleted = Boolean(message.deletedAt);
           const isSelected = selectedMessageIds.has(message.id);
@@ -285,7 +286,7 @@ export function ThreadMessageList({
           ) : null;
           const bubble = (
             <div
-              className={`w-fit max-w-[75%] rounded-2xl border px-4 py-3 ${
+              className={`min-w-0 flex-1 rounded-2xl border px-4 py-3 ${
                 isMine
                   ? "border-sky-400/40 bg-sky-500/15"
                   : "border-emerald-400/40 bg-emerald-500/15"
@@ -331,7 +332,7 @@ export function ThreadMessageList({
                 </div>
               ) : (
                 messageBodyText ? (
-                  <p className="whitespace-pre-line text-[15px] text-foreground">{messageBodyText}</p>
+                  <ThreadExpandableText text={messageBodyText} className="whitespace-pre-line text-[15px] text-foreground" />
                 ) : null
               )}
               {attachmentList}
@@ -536,7 +537,7 @@ export function ThreadMessageList({
           );
 
           const messageBody = (
-            <div className={`flex w-fit flex-col ${isMine ? "items-end self-end" : "items-start self-start"}`}>
+            <div className={`flex min-w-[260px] max-w-[75%] flex-col ${isMine ? "items-end self-end" : "items-start self-start"}`}>
               <div className={`inline-flex items-center gap-2 ${isMine ? "flex-row-reverse" : ""}`}>
                 {selectionControl}
                 <div className="inline-flex items-center gap-2">
@@ -546,7 +547,7 @@ export function ThreadMessageList({
                 </div>
               </div>
               {reactionStrip || reactionDetailsToggle || reactionDetailsPanel ? (
-                <div className={`mt-1 flex w-fit flex-col ${isMine ? "items-end" : "items-start"}`}>
+                <div className={`mt-1 flex w-full flex-col ${isMine ? "items-end" : "items-start"}`}>
                   {reactionStrip}
                   {reactionDetailsToggle}
                   {reactionDetailsPanel}
@@ -570,10 +571,9 @@ export function ThreadMessageList({
                   setReactionPickerMessageId((current) => (current === message.id ? null : current));
                 } }
               >
-                <div className="flex items-start gap-4">
-                  {!isMine && avatarSlot}
+                <div className={`flex items-start gap-4 ${isMine ? "justify-end" : ""}`}>
+                  {leadingAvatar}
                   {messageBody}
-                  {isMine && avatarSlot}
                 </div>
               </div>
             </div>
@@ -582,6 +582,14 @@ export function ThreadMessageList({
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
 
 
