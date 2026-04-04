@@ -119,3 +119,6 @@ pagination -> infinite scroll
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
 
+
+---
+refreshing while updating deployment shows `403 Forbidden  nginx/1.18.0 (Ubuntu)` instead, i would like the user to see a clean `under maintainence, itll be up and running soon`, kinda reassuring nice frontend page. also is it possible to make it auto refresh? rather than seeing the repeated permission denied?

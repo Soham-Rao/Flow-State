@@ -47,8 +47,10 @@ docker exec "$MYSQL_CONTAINER_NAME" sh -lc 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mys
   | zstd -T0 -19 -q -o "$ARCHIVE_PATH"
 
 ARCHIVE_SHA256="$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')"
+ensure_server_dist_entries "ops/backup-manifest-cli.js"
 
 if r2_is_configured && backup_encryption_enabled; then
+  ensure_server_dist_entries "ops/backup-encrypt-cli.js"
   ENCRYPTED_ARCHIVE_LOCAL_PATH="$(mktemp "/tmp/${BACKUP_ID}.XXXXXX.sql.zst.enc")"
   ENCRYPT_RESULT="$("$NODE_BIN" server/dist/ops/backup-encrypt-cli.js --input "$ARCHIVE_PATH" --output "$ENCRYPTED_ARCHIVE_LOCAL_PATH")"
   ENCRYPTED_ARCHIVE_SHA256="$("$NODE_BIN" -e 'const data = JSON.parse(process.argv[1]); process.stdout.write(String(data.sha256 ?? ""));' "$ENCRYPT_RESULT")"

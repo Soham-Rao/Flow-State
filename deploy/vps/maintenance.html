@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="15" />
   <title>FlowState Maintenance</title>
   <style>
     :root {
@@ -45,14 +46,39 @@
       font-weight: 600;
       margin-top: 8px;
     }
+    .countdown {
+      margin-top: 18px;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .subtle {
+      font-size: 14px;
+      color: #64748b;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
   <main class="card">
-    <h1>FlowState is in maintenance mode</h1>
-    <p>We are deploying or recovering the application safely. This short window prevents half-finished deploys, broken pages, and risky database state.</p>
-    <p>Please try again in a few minutes.</p>
+    <h1>FlowState is getting a quick tune-up</h1>
+    <p>We are safely deploying or recovering the app right now so you do not get half-finished updates, broken pages, or risky database state.</p>
+    <p>Everything should be back up very shortly.</p>
     <div class="chip">Safe deploy / rollback window active</div>
+    <div class="countdown">Trying again in <span id="countdown">15</span> seconds</div>
+    <p class="subtle">You can leave this tab open. We will keep checking automatically.</p>
   </main>
+  <script>
+    const countdownNode = document.getElementById("countdown");
+    let secondsRemaining = 15;
+    window.setInterval(() => {
+      secondsRemaining = Math.max(secondsRemaining - 1, 0);
+      if (countdownNode) {
+        countdownNode.textContent = String(secondsRemaining);
+      }
+      if (secondsRemaining === 0) {
+        window.location.reload();
+      }
+    }, 1000);
+  </script>
 </body>
 </html>

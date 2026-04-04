@@ -123,3 +123,30 @@ send_ops_alert() {
     "$NODE_BIN" "$APP_DIR/server/dist/ops/alert-cli.js" --subject "$subject" --message "$message" || true
   fi
 }
+
+ensure_server_dist_entries() {
+  local relative_path
+  local missing=0
+
+  for relative_path in "$@"; do
+    if [[ ! -f "$APP_DIR/server/dist/$relative_path" ]]; then
+      missing=1
+      break
+    fi
+  done
+
+  if (( missing == 0 )); then
+    return 0
+  fi
+
+  if [[ ! -x "$BUN_BIN" ]]; then
+    flowstate_log "Bun binary not executable: $BUN_BIN"
+    exit 1
+  fi
+
+  flowstate_log "Building server dist helpers before continuing"
+  (
+    cd "$APP_DIR"
+    "$BUN_BIN" run --cwd server build
+  )
+}

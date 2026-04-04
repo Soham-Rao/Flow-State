@@ -1,12 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { apiRequest, clearApiCache, invalidateApiCacheByTag } from "@/lib/api-client";
+import {
+  __setMaintenanceRedirectHandlerForTests,
+  apiRequest,
+  clearApiCache,
+  invalidateApiCacheByTag
+} from "@/lib/api-client";
 import { clearSessionToken, setSessionToken } from "@/lib/session";
+import { usePermissionErrorStore } from "@/stores/permission-error-store";
 
 describe("api client cache", () => {
   beforeEach(() => {
     clearApiCache();
     clearSessionToken();
+    usePermissionErrorStore.getState().clear();
+    __setMaintenanceRedirectHandlerForTests(null);
     vi.restoreAllMocks();
   });
 
@@ -132,5 +140,22 @@ describe("api client cache", () => {
 
     expect(result.value).toBe("second");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("redirects once when maintenance mode returns 503 without opening the permission modal", async () => {
+    const redirectSpy = vi.fn();
+    __setMaintenanceRedirectHandlerForTests(redirectSpy);
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => null
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(apiRequest("/activity", { auth: true })).rejects.toThrow(/maintenance/i);
+    await expect(apiRequest("/mentions/unread", { auth: true })).rejects.toThrow(/maintenance/i);
+
+    expect(redirectSpy).toHaveBeenCalledTimes(1);
+    expect(usePermissionErrorStore.getState().message).toBeNull();
   });
 });

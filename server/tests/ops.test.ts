@@ -13,6 +13,7 @@ import {
   shouldRestoreDatabase
 } from "../src/ops/backup-manifest.js";
 import { computeFileSha256, getBackupArchiveExtension, parseBackupEncryptionKey } from "../src/ops/backup-crypto.js";
+import { verifyBackupArtifacts } from "../src/ops/backup-verify.js";
 
 const tempDirs: string[] = [];
 
@@ -84,6 +85,50 @@ describe("backup manifest helpers", () => {
     expect(manifest.verification.archive).toBe("verified");
     expect(manifest.verification.encryptedArchive).toBe("verified");
   });
+
+  it("allows manifest verification when encrypted archive metadata points to remote storage", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "flowstate-remote-manifest-"));
+    tempDirs.push(dir);
+    const archivePath = path.join(dir, "backup.sql.zst");
+    fs.writeFileSync(archivePath, "plain backup");
+    const archiveSha = await computeFileSha256(archivePath);
+
+    const manifest = buildBackupManifest({
+      backupId: "20260405T120000Z-daily-abcdef1",
+      kind: "daily",
+      archivePath,
+      archiveSha256: archiveSha,
+      encryptedArchivePath: "s3://flowstate-backups/flowstate/daily/backup.sql.zst.enc",
+      encryptedArchiveSha256: "remote-sha",
+      encryptionEnabled: true,
+      encryptionKeyId: "primary-key",
+      currentSha: "abcdef1234567"
+    });
+
+    await expect(verifyBackupArtifacts({ manifest })).resolves.toBe(archivePath);
+  });
+
+  it("fails verification when a local encrypted archive path is missing", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "flowstate-local-manifest-"));
+    tempDirs.push(dir);
+    const archivePath = path.join(dir, "backup.sql.zst");
+    fs.writeFileSync(archivePath, "plain backup");
+    const archiveSha = await computeFileSha256(archivePath);
+
+    const manifest = buildBackupManifest({
+      backupId: "20260405T120000Z-daily-abcdef1",
+      kind: "daily",
+      archivePath,
+      archiveSha256: archiveSha,
+      encryptedArchivePath: path.join(dir, "missing.sql.zst.enc"),
+      encryptedArchiveSha256: "missing-sha",
+      encryptionEnabled: true,
+      encryptionKeyId: "primary-key",
+      currentSha: "abcdef1234567"
+    });
+
+    await expect(verifyBackupArtifacts({ manifest })).rejects.toThrow(/Encrypted archive not found/i);
+  });
 });
 
 describe("backup crypto helpers", () => {
@@ -110,4 +155,3 @@ describe("backup crypto helpers", () => {
     expect(getBackupArchiveExtension(false)).toBe(".sql.zst");
   });
 });
-

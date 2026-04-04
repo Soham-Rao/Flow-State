@@ -15,6 +15,7 @@ source_env
 load_mysql_env
 require_command docker
 require_command zstd
+ensure_server_dist_entries "ops/backup-verify-cli.js"
 
 ARCHIVE_PATH="$INPUT_PATH"
 if [[ "$INPUT_PATH" == *.json ]]; then

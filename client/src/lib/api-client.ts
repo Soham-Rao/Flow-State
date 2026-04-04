@@ -29,6 +29,22 @@ type CacheEntry = {
 const responseCache = new Map<string, CacheEntry>();
 const inFlightRequests = new Map<string, Promise<unknown>>();
 const tagToCacheKeys = new Map<string, Set<string>>();
+let maintenanceRedirectPending = false;
+let maintenanceRedirectHandler: (() => void) | null = null;
+
+function triggerMaintenanceRedirect(): void {
+  if (typeof window === "undefined" || maintenanceRedirectPending) {
+    return;
+  }
+
+  maintenanceRedirectPending = true;
+  const redirect = maintenanceRedirectHandler ?? (() => {
+    window.setTimeout(() => {
+      window.location.reload();
+    }, 150);
+  });
+  redirect();
+}
 
 function getBestErrorMessage(error: ApiErrorPayload | undefined): string {
   const message = error?.message;
@@ -128,6 +144,12 @@ export function clearApiCache(): void {
   responseCache.clear();
   inFlightRequests.clear();
   tagToCacheKeys.clear();
+  maintenanceRedirectPending = false;
+}
+
+export function __setMaintenanceRedirectHandlerForTests(handler: (() => void) | null): void {
+  maintenanceRedirectHandler = handler;
+  maintenanceRedirectPending = false;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -172,6 +194,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       | null;
 
     if (!response.ok || !payload?.success) {
+      if (response.status === 503) {
+        triggerMaintenanceRedirect();
+        throw new Error("FlowState is temporarily under maintenance. It should be back in a moment.");
+      }
+
       const message = getBestErrorMessage(payload?.error);
       if (response.status === 403 || /permission/i.test(message)) {
         usePermissionErrorStore.getState().setError(message);
