@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FlowState Maintenance</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background: #f0fdfa;
+      color: #0f172a;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 10% 12%, rgba(14, 116, 144, 0.15), transparent 42%),
+        radial-gradient(circle at 88% 18%, rgba(245, 158, 11, 0.18), transparent 38%),
+        linear-gradient(180deg, rgba(240, 253, 250, 0.8) 0%, rgba(240, 249, 255, 1) 100%);
+    }
+    .card {
+      max-width: 680px;
+      width: 100%;
+      border-radius: 24px;
+      padding: 32px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(203, 213, 225, 0.8);
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+      backdrop-filter: blur(12px);
+    }
+    h1 { margin: 0 0 12px; font-size: 32px; }
+    p { margin: 0 0 12px; line-height: 1.7; color: #475569; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(8, 145, 178, 0.12);
+      color: #0f766e;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>FlowState is in maintenance mode</h1>
+    <p>We are deploying or recovering the application safely. This short window prevents half-finished deploys, broken pages, and risky database state.</p>
+    <p>Please try again in a few minutes.</p>
+    <div class="chip">Safe deploy / rollback window active</div>
+  </main>
+</body>
+</html>

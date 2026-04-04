@@ -1,0 +1,10 @@
+[Unit]
+Description=Run FlowState weekly backup
+
+[Timer]
+OnCalendar=Sun *-*-* 03:15:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

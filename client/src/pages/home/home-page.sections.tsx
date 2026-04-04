@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import type { FormEvent, KeyboardEvent } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -657,9 +657,10 @@ export function AnnouncementsCard({
                 : "opacity-80";
 
               return (
-                <button
+                <div
                   key={announcement.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     if (selectionMode) {
                       onToggleSelection(announcement.id);
@@ -667,6 +668,16 @@ export function AnnouncementsCard({
                     }
                     onOpenView(announcement);
                   }}
+                  onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    if (selectionMode) {
+                      onToggleSelection(announcement.id);
+                      return;
+                    }
+                    onOpenView(announcement);
+                  }}
+                  aria-pressed={selectionMode ? isSelected : undefined}
                   className={`w-full rounded-md px-3 py-2 text-left text-xs transition ${glassSubtleClass} dark:bg-black/24 dark:border-white/12 hover:border-white/20 hover:bg-black/20 dark:hover:bg-black/40 ${itemGlow} ${isSelected ? "ring-2 ring-emerald-400/60" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -709,7 +720,7 @@ export function AnnouncementsCard({
                     </div>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">{getAnnouncementSnippet(announcement.body)}</p>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -762,6 +773,9 @@ export function NewJoinersCard({
     </Card>
   );
 }
+
+
+
 
 
 

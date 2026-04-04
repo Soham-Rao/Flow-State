@@ -5,16 +5,14 @@ Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
 - Recent changes since last checkpoint:
-  - Phase 12.1 is now complete on the BigRock Ubuntu VPS path.
-  - Production app is live at `https://flo-state.in` behind Nginx with Let's Encrypt HTTPS.
-  - The VPS uses key-only SSH for `flowstate`, with `sudo` for admin work and direct root SSH disabled.
-  - UFW, fail2ban, nginx, docker, Node 22, and Bun are installed and working.
-  - MySQL 8.0 runs in Docker on the VPS and is bound to `127.0.0.1` only.
-  - The app runs under `flowstate.service` via systemd.
-  - Certbot auto-renewal is active through `certbot.timer`.
-  - `Docs/vps-setup.md` now includes a cheat sheet for the exact first-time VPS setup and bug fixes.
-  - `Docs/vps-operations.md` now documents the normal update/deploy workflow after local changes are pushed.
-  - Build issues found during deploy were fixed locally and pushed: board header `assignedCount`, `BoardMember.bio` test mocks, thread user summary `bio`, and stale TypeScript config drift (`ignoreDeprecations` / deprecated `baseUrl`).
+  - Phase 12.3 local implementation is now complete.
+  - The client now has a global error boundary plus chunk-load recovery UI for bad post-deploy asset states.
+  - The server now exposes `/api/health/live` and `/api/health/ready`, uses structured JSON logging, and shuts down gracefully on signals/fatal process events.
+  - A new safe deploy path now exists under `deploy/vps/deploy-safe.sh` with maintenance mode, predeploy backup creation, readiness checks, rollback hooks, and alert hooks.
+  - New ops scripts were added for maintenance toggling, compressed MySQL backups, local DB restore, and rollback.
+  - `deploy/vps/redeploy.sh` remains the fast path, but now also verifies localhost readiness before finishing.
+  - Cloudflare R2 upload support is coded but not configured yet; real offsite backup validation still needs the Cloudflare account, bucket, and keys.
+  - `Docs/vps-operations.md` is now the canonical guide for the 12.3 rollout and future safe deploy/backup operations.
 
 - Phase status:
   - Phase 1.1, 1.2, 1.3: complete
@@ -30,63 +28,57 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 10.5: deferred
   - Phase 11: not started
   - Phase 12.0: complete
-  - Phase 12.1: complete
-  - Phase 12.2: complete locally (security hardening)
-  - Phase 12.3, 12.4, 12.5: not started
+  - Phase 12.1: complete and live
+  - Phase 12.2: complete and live
+  - Phase 12.3: local implementation complete; Cloudflare R2 + VPS rollout pending
+  - Phase 12.4, 12.5: not started
   - Phase 13: not started (future polish + CI/CD pipeline)
 
 - Deployment state:
   - URL: `https://flo-state.in`
-  - Health endpoint works over localhost, HTTP, and HTTPS.
-  - The first browser/user smoke test is intentionally deferred so the intended real first user can become admin.
+  - Health endpoint works over localhost and HTTPS.
+  - First browser/user smoke test is still intentionally deferred so the intended real first user can become admin.
   - Because first signup becomes admin, do not let the wrong user register first.
 
 ## 2) Resume-Next Priority
 
 Recommended next order:
-1. Let the intended first user perform the first signup/admin bootstrap in production.
-2. Run the browser smoke test after that first signup.
-3. Deploy Phase 12.2 to production when you are ready.
-4. Then continue with product work in the planned order:
-   - Phase 7
-   - Phase 10.5
-   - Phase 11
-
-Phase 13 is future work only; do not start it now unless the user explicitly reprioritizes toward automation.
+1. Create the Cloudflare account + R2 bucket + R2 access keys for backup storage.
+2. Add the new 12.3 backup/alert env values on the VPS.
+3. Install the remaining VPS-side 12.3 prerequisites (`awscli`, `zstd`, maintenance/backup timer assets).
+4. Roll out the new Nginx maintenance config, backup timers, and safe deploy scripts on the VPS.
+5. Validate one manual local backup, one R2 upload, one safe deploy, and one rollback scenario on the VPS.
+6. After the deployment path is proven, let the intended first user perform the first signup/admin bootstrap and then run the browser smoke test.
 
 ## 3) Production Update Workflow
 
-Current deployment model is manual and straightforward:
-- make changes locally
-- build/check locally as needed
-- push to GitHub
-- on VPS: pull, build, source env, run migrations, restart `flowstate`, verify health
+There are now two production deploy paths.
 
-Primary reference:
-- `Docs/vps-operations.md`
-
-Minimal VPS command pack:
-
+Preferred Phase 12.3 path:
 ```bash
 ssh flowstate-vps
 cd /opt/flowstate/app
 git pull origin master
-bun install --frozen-lockfile
-bun run build
-set -a
-source /etc/flowstate/flowstate.env
-set +a
-node server/dist/db/migrate.js
-sudo systemctl restart flowstate
-curl https://flo-state.in/api/health
+bash deploy/vps/deploy-safe.sh
 ```
+
+Fast path for low-risk updates when you intentionally do not want maintenance mode + predeploy backup:
+```bash
+ssh flowstate-vps
+cd /opt/flowstate/app
+git pull origin master
+bash deploy/vps/redeploy.sh
+```
+
+Primary reference:
+- `Docs/vps-operations.md`
 
 ## 4) User Preferences to Preserve on Resume
 
 - Package manager: Bun
 - Language: TypeScript for client and server
 - Monorepo style: plain workspaces (`client/`, `server/`)
-- Assistant writes tests but user runs tests unless user explicitly asks otherwise
+- Assistant may run local tests when the user explicitly allows it; otherwise default to providing commands
 - Progress updates must be recorded in `Docs/context.md`
 - Keep in-app confirmations; avoid browser-native confirm flows
 - Preserve autosave UX where already established
@@ -98,14 +90,16 @@ curl https://flo-state.in/api/health
 - Use `sudo -i` if root shell is needed.
 - App env file: `/etc/flowstate/flowstate.env`
 - Uploads dir: `/var/lib/flowstate/uploads`
+- Backups dir (planned/default): `/var/lib/flowstate/backups`
 - MySQL compose dir: `/opt/flowstate/infra`
 - Service name: `flowstate`
 - MySQL must remain bound to `127.0.0.1` only.
 - Certbot renewal is automatic; `certbot.timer` should stay enabled.
 - Password reset is only backend scaffolding right now: `forgot-password` always returns a generic success response and real delivery must wait for SMTP/provider setup.
 - Security audit logs are stored compactly in MySQL with retention cleanup; host request/service logs should remain bounded via journald/logrotate compression and size limits.
-- For passwords used inside URLs, prefer hex values over base64.
-- Changing MySQL env values does not retroactively update credentials inside an already-initialized MySQL volume.
+- Phase 12.3 offsite backups depend on Cloudflare R2 env values and are not active until those values exist on the VPS.
+- Phase 12.3 alert emails depend on SMTP settings plus `OPS_ALERT_EMAIL_TO`; until those are configured, alert hooks will safely no-op.
+- Upload files are still local-only in 12.3; database backups and release manifests are the primary rollback assets.
 
 ## 6) Working Rules I Must Remember on Resume
 
@@ -117,29 +111,40 @@ curl https://flo-state.in/api/health
 
 ## 7) Immediate Follow-up Item
 
-Wait for the intended first production user/admin signup, then run the browser smoke test. Separately, deploy the completed Phase 12.2 security hardening work to production before opening broader usage:
-- login/register
-- board create
-- list create
-- card create/edit
-- threads route load
-- focus route load
-- optional upload check
+Move Phase 12.3 from local-only to real production ops:
+- create the Cloudflare/R2 side
+- add the new env block on the VPS
+- install `awscli` + `zstd`
+- wire maintenance mode + backup timers + safe deploy assets
+- verify backup, safe deploy, and rollback on the VPS
+
+After that, resume the first-user production signup + smoke test.
 
 ## 8) Resume Command Pack
 
-Local build:
+Local verification:
 ```bash
-bun run build
+bun run --cwd server build
+bun run --cwd client build
+bun run --cwd server test
+bun run --cwd client test
 ```
 
-Production app checks:
+Preferred production deploy path:
+```bash
+ssh flowstate-vps
+cd /opt/flowstate/app
+git pull origin master
+bash deploy/vps/deploy-safe.sh
+```
+
+Production checks:
 ```bash
 systemctl status flowstate --no-pager
 journalctl -u flowstate -n 100 --no-pager
 docker compose -f /opt/flowstate/infra/docker-compose.prod.yml ps
-systemctl status certbot.timer --no-pager
-curl https://flo-state.in/api/health
+curl http://127.0.0.1:4000/api/health/ready
+curl https://flo-state.in/api/health/ready
 ```
 
 This file is the resume checkpoint contract for continuing FlowState safely and quickly.

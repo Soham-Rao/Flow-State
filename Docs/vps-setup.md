@@ -213,10 +213,39 @@ systemctl status flowstate --no-pager
 journalctl -u flowstate -n 100 --no-pager
 ```
 
-## 12. Install the Nginx site config
+## 12. Install a temporary HTTP-only Nginx site config
+
+For first-time bootstrap, use a temporary HTTP-only config before Certbot runs.
+The repo file `deploy/vps/nginx.flowstate.conf` is the post-Certbot production config and expects the certificate files to already exist.
 
 ```bash
-cp /opt/flowstate/app/deploy/vps/nginx.flowstate.conf /etc/nginx/sites-available/flowstate
+cat > /etc/nginx/sites-available/flowstate <<'EOF'
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  '' close;
+}
+
+server {
+  listen 80;
+  listen [::]:80;
+  server_name flo-state.in www.flo-state.in;
+
+  client_max_body_size 25m;
+
+  location / {
+    proxy_pass http://127.0.0.1:4000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_read_timeout 60s;
+    proxy_send_timeout 60s;
+  }
+}
+EOF
 ln -s /etc/nginx/sites-available/flowstate /etc/nginx/sites-enabled/flowstate
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
@@ -233,6 +262,8 @@ After DNS is live:
 
 ```bash
 certbot --nginx -d flo-state.in -d www.flo-state.in
+cp /opt/flowstate/app/deploy/vps/nginx.flowstate.conf /etc/nginx/sites-available/flowstate
+nginx -t
 systemctl reload nginx
 ```
 
@@ -467,3 +498,5 @@ curl http://127.0.0.1:4000/api/health
 curl https://flo-state.in/api/health
 sudo certbot renew --dry-run
 ```
+
+

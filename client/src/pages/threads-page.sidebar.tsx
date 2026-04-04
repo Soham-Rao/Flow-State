@@ -203,10 +203,16 @@ export function ThreadsSidebar({
                 const isActive = activeConversation?.type === "dm" && activeConversation.otherUser.id === user.id;
                 const isPinned = pinnedUserIds.includes(user.id);
                 return (
-                  <button
+                  <div
                     key={user.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => onSelectUser(user)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      onSelectUser(user);
+                    }}
                     className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition ${
                       isActive
                         ? "border-primary/60 bg-primary/10"
@@ -260,7 +266,7 @@ export function ThreadsSidebar({
                         )
                       )
                     )}
-                  </button>
+                  </div>
                 );
               })}
           </>
@@ -269,3 +275,6 @@ export function ThreadsSidebar({
     </aside>
   );
 }
+
+
+

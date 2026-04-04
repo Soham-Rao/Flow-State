@@ -295,11 +295,11 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 | Phase 10.4: Dashboard UI overhaul | ✅ Completed | 2026-03-27 | 2026-03-27 | Glassmorphism redesign, two-column layout, priority/alert styling, visual polish only |
 | Phase 10.5: Templates + pins + settings polish | 🟡 Deferred | 2026-03-30 | — | Deferred by request; revisit later (templates/polish + pins/templates gallery) |
 | Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
-| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Phase 12.1 and 12.2 are complete locally; next work is 12.3-12.5 reliability, durability, and user-facing docs |
+| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Phase 12.1 and 12.2 are live on prod; Phase 12.3 local implementation is complete and awaiting Cloudflare R2 + VPS rollout for backup/rollback validation |
 | Phase 12.0: Database Platform Switch | ✅ Completed | 2026-03-31 | 2026-03-31 | MySQL switch + Drizzle migrations + test infra |
 | Phase 12.1: Hosting + Deployment Setup | ✅ Completed | 2026-04-03 | 2026-04-04 | BigRock VPS bootstrap completed: SSH hardening, UFW/fail2ban, Node+Bun, MySQL Docker, production env, systemd app, Nginx, DNS, HTTPS, and auto-renewing Certbot setup |
 | Phase 12.2: Security Hardening | ✅ Completed | 2026-04-04 | 2026-04-04 | Input sanitization, explicit CORS/CSP/trust-proxy hardening, rate limits, password-reset scaffolding, audit logs, and bounded log retention policies |
-| Phase 12.3: Reliability + Observability | ⬜ Not Started | — | — | error boundaries, prod logging, alerts, rollback |
+| Phase 12.3: Reliability + Observability | 🟡 In Progress | 2026-04-04 | — | Local implementation complete: error boundaries, structured prod logging, maintenance mode, health splits, safe deploy/rollback scripts, and compressed backup manifests; Cloudflare R2 + VPS rollout still pending |
 | Phase 12.4: Data Durability + Performance | ⬜ Not Started | — | — | encryption, compression, atomic migrations, caching |
 | Phase 12.5: User-Facing Docs | ⬜ Not Started | — | — | onboarding/tutorials |
 | Phase 13: Polish and CI/CD Pipeline | ⬜ Not Started | — | — | build/deploy automation on push, pipeline quality gates, staging strategy, repo polish, and maintenance ergonomics |
@@ -313,6 +313,7 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 - **Permission errors now surface in a modal** (topmost z-index) instead of inline text only.
 - **Password reset is scaffold-only in Phase 12.2**: `forgot-password` always returns a generic success response and must be completed later when SMTP-backed delivery is available.
 - **Logging is intentionally bounded**: security audit rows use compact metadata with retention cleanup, while host logs remain journald/logrotate-managed and should stay compressed/size-limited at the VPS level.
+- **Phase 12.3 local rollout adds a safe-deploy path** with maintenance mode, readiness checks, compressed MySQL dump backups, alert hooks, and rollback scripts; offsite R2 upload and real VPS validation still require Cloudflare + production env setup.
 
 - `instructions.md` can be used for phase-specific notes, checklists, and implementation details when planning a phase. It serves as a scratchpad for detailed specifications.
 - **Test policy**: Write tests during implementation; user runs them on full-phase cadence (or every 2 full phases) and reports output.
@@ -355,6 +356,7 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 
 | Date | Update |
 |------|--------|
+| 2026-04-04 | Phase 12.3 local implementation completed: added a global React error boundary + chunk-load recovery UI, structured JSON request/app logs, graceful shutdown and process guards, /api/health/live + /api/health/ready, Nginx maintenance-mode support, deploy-safe.sh with predeploy backup/readiness/rollback flow, compressed MySQL backup + restore scripts, backup manifest helpers, SMTP-backed ops alert plumbing, and new local tests for health/logging/ops behavior. Cloudflare R2 wiring and VPS rollout are the next step. |
 | 2026-04-04 | Phase 12.2 completed locally: added strict server-side plain-text sanitization for user-authored content, explicit production CORS allowlisting + CSP + trust-proxy handling, route-scoped rate limits for auth/invite/health endpoints, password-reset scaffolding with generic `forgot-password` responses, MySQL-backed `audit_logs` and `password_reset_tokens`, request-id based security logging, and bounded retention rules so audit/system logs do not grow without limit. Password reset remains scaffold-only until SMTP delivery is implemented. |
 | 2026-04-04 | Phase 12.1 completed on the BigRock VPS path: SSH was hardened with key-only access, UFW/fail2ban/nginx/docker were enabled, Node 22 and Bun were installed, MySQL 8.0 was provisioned in Docker, production env and uploads paths were configured, the app now runs under systemd behind Nginx, DNS points to the VPS, HTTPS is live via Let's Encrypt with certbot auto-renewal, and `Docs/vps-setup.md` now includes a practical cheat sheet. First-user browser smoke testing is intentionally deferred so the intended first admin can sign up. |
 | 2026-04-03 | Phase 12.1 advanced for the BigRock Ubuntu VPS path: Express now serves client/dist in production, invite links use PUBLIC_APP_URL, uploads storage is fully configurable via FLOWSTATE_UPLOADS_DIR (including thread cleanup paths), production env examples were added, VPS deploy assets were created for MySQL Docker, systemd, Nginx, redeploy flow, one-time server setup, and Docs/hosting.md was narrowed to the single VPS production plan. |
@@ -410,6 +412,9 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 | 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |
 | 2026-03-12 | Phase 4.1 delivered: checklists data model + API, board card collapsible checklist previews with progress bars, card modal checklist CRUD, and new client/server checklist tests (user-run pending). |
 | 2026-03-13 | Phase 4.2 delivered: attachments (upload/download/delete), board-level retention settings (day/hour/min + mode toggle), retention-aware time-left labels, attachment cleanup on card deletion, and new attachments API test. User to run tests. |
+
+
+
 
 
 

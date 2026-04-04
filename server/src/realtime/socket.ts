@@ -244,6 +244,27 @@ export function initSocket(server: HttpServer): Server {
   return io;
 }
 
+export async function closeSocketServer(): Promise<void> {
+  if (!io) return;
+
+  await new Promise<void>((resolve, reject) => {
+    io?.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+
+  io = null;
+  userSockets.clear();
+  socketUsers.clear();
+  boardPresence.clear();
+  userStatus.clear();
+  userLastSeen.clear();
+}
+
 export function getSocketServer(): Server | null {
   return io;
 }

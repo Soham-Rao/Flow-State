@@ -31,4 +31,5 @@ source "$ENV_FILE"
 set +a
 "$NODE_BIN" server/dist/db/migrate.js
 sudo systemctl restart "$SERVICE_NAME"
+curl -fsS http://127.0.0.1:4000/api/health/ready >/dev/null
 sudo systemctl status "$SERVICE_NAME" --no-pager

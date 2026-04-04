@@ -14,6 +14,10 @@ const DEFAULT_UPLOADS_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../../uploads"
 );
+const DEFAULT_BACKUP_LOCAL_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../backups"
+);
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -45,7 +49,24 @@ const envSchema = z.object({
   SMTP_USER: z.string().trim().min(1).optional(),
   SMTP_PASS: z.string().trim().min(1).optional(),
   SMTP_FROM: z.string().trim().min(3).default("FlowState <no-reply@flo-state.in>"),
-  SMTP_SECURE: z.coerce.boolean().default(false)
+  SMTP_SECURE: z.coerce.boolean().default(false),
+  OPS_ALERT_EMAIL_TO: z.string().trim().optional(),
+  OPS_ALERT_EMAIL_FROM: z.string().trim().optional(),
+  BACKUP_LOCAL_DIR: z.string().trim().min(1).default(DEFAULT_BACKUP_LOCAL_DIR),
+  BACKUP_R2_BUCKET: z.string().trim().optional(),
+  BACKUP_R2_PREFIX: z.string().trim().default("flowstate"),
+  BACKUP_R2_ACCOUNT_ID: z.string().trim().optional(),
+  BACKUP_R2_ACCESS_KEY_ID: z.string().trim().optional(),
+  BACKUP_R2_SECRET_ACCESS_KEY: z.string().trim().optional(),
+  BACKUP_R2_ENDPOINT: z.string().trim().optional(),
+  BACKUP_RETENTION_LOCAL_PREDEPLOY: z.coerce.number().int().min(1).default(5),
+  BACKUP_RETENTION_LOCAL_DAILY: z.coerce.number().int().min(1).default(7),
+  BACKUP_RETENTION_LOCAL_WEEKLY: z.coerce.number().int().min(1).default(4),
+  BACKUP_RETENTION_REMOTE_PREDEPLOY: z.coerce.number().int().min(1).default(10),
+  BACKUP_RETENTION_REMOTE_DAILY: z.coerce.number().int().min(1).default(14),
+  BACKUP_RETENTION_REMOTE_WEEKLY: z.coerce.number().int().min(1).default(8),
+  MYSQL_CONTAINER_NAME: z.string().trim().default("flowstate-mysql"),
+  MYSQL_ENV_FILE: z.string().trim().default("/opt/flowstate/infra/mysql.env")
 });
 
 function normalizeOrigin(value: string): string {

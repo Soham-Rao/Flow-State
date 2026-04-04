@@ -335,10 +335,10 @@ export function ThreadMessageList({
                 ) : null
               )}
               {attachmentList}
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                <span className="mr-auto">{formatTime(message.createdAt)}</span>
+              <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="mr-auto whitespace-nowrap">{formatTime(message.createdAt)}</span>
                 {!isEditing && !selectionMode && (
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     {!isDeleted && (
                       <>
                         <button

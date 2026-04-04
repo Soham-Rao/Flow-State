@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { env } from "../config/env.js";
 import { recordAuditLog } from "../modules/security/audit.service.js";
 import { buildSecurityRequestContext } from "../utils/request-context.js";
+import { logger } from "../utils/logger.js";
 import { ApiError } from "../utils/api-error.js";
 
 export function errorHandler(
@@ -59,12 +60,12 @@ export function errorHandler(
     return;
   }
 
-  console.error("Unhandled request error", {
+  logger.error("http.unhandled_error", {
     requestId: context.requestId,
     method: context.method,
     path: context.path,
     actorId: context.actorId,
-    error: error.message,
+    error,
     stack: env.NODE_ENV === "production" ? undefined : error.stack
   });
 

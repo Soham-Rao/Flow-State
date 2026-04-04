@@ -68,6 +68,14 @@ async function decompressReplies(page: CompressedReplyPage): Promise<ThreadReply
   return JSON.parse(textDecoder.decode(buffer)) as ThreadReplySummary[];
 }
 
+
+function getReplyReactionSignature(reactions: ThreadReplySummary["reactions"] | undefined): string {
+  return (reactions ?? [])
+    .slice()
+    .sort((a, b) => a.emoji.localeCompare(b.emoji))
+    .map((reaction) => `${reaction.emoji}:${reaction.count}`)
+    .join("|");
+}
 type ForwardTarget = { body: string | null };
 
 type ThreadActionsParams = {
@@ -459,7 +467,7 @@ export function useThreadActions({
           incoming.body !== reply.body ||
           incoming.deletedAt !== reply.deletedAt ||
           (incoming.attachments?.length ?? 0) !== (reply.attachments?.length ?? 0) ||
-          (incoming.reactions?.length ?? 0) !== (reply.reactions?.length ?? 0) ||
+          getReplyReactionSignature(incoming.reactions) !== getReplyReactionSignature(reply.reactions) ||
           (incoming.voiceNote?.id ?? null) !== (reply.voiceNote?.id ?? null);
         if (updatedChanged) {
           changed = true;

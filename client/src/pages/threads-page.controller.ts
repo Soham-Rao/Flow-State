@@ -75,6 +75,14 @@ async function decompressMessages(page: CompressedMessagePage): Promise<ThreadMe
   return JSON.parse(textDecoder.decode(buffer)) as ThreadMessageSummary[];
 }
 
+
+function getReactionSignature(reactions: ThreadMessageSummary["reactions"] | undefined): string {
+  return (reactions ?? [])
+    .slice()
+    .sort((a, b) => a.emoji.localeCompare(b.emoji))
+    .map((reaction) => `${reaction.emoji}:${reaction.count}`)
+    .join("|");
+}
 export function useThreadsController() {
   const PIN_STORAGE_KEY = "flowstate:threads:pinned";
   const REPLY_SEEN_STORAGE_KEY = "flowstate:threads:replySeenCounts";
@@ -299,7 +307,7 @@ export function useThreadsController() {
           incoming.body !== message.body ||
           incoming.deletedAt !== message.deletedAt ||
           (incoming.attachments?.length ?? 0) !== (message.attachments?.length ?? 0) ||
-          (incoming.reactions?.length ?? 0) !== (message.reactions?.length ?? 0) ||
+          getReactionSignature(incoming.reactions) !== getReactionSignature(message.reactions) ||
           (incoming.voiceNote?.id ?? null) !== (message.voiceNote?.id ?? null);
         if (updatedChanged) {
           changed = true;

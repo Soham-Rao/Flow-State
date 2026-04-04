@@ -94,6 +94,9 @@ esc button exit for create or delete announcements, glowing border for new one
 make it team wise - multiple teams on flo-state.in
 deletion / encryption / compression of all general content to preserve disk space
 alerts for downtime during updates/migrations in frontend - warning 
+skeleton loading, fast loading bars, splash screens
+separate teams at signin screen
+smtp/brevo
 ---
 3 docs subdirs 
 1. user facing - multiple tutorials

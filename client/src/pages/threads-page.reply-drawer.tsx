@@ -429,10 +429,10 @@ export function ThreadsReplyDrawer({
                   <p className="whitespace-pre-line text-[15px] text-foreground">{replyBodyText}</p>
                 ) : null}
                 {attachmentList}
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                  <span className="mr-auto">{formatTime(reply.createdAt)}</span>
+                <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="mr-auto whitespace-nowrap">{formatTime(reply.createdAt)}</span>
                   {!isEditing && (
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2">
                       {!isDeleted && (
                         <>
                           <button
@@ -662,7 +662,7 @@ export function ThreadsReplyDrawer({
           })}
         </div>
 
-        {mentionNewCount && mentionNewCount > 0 && onJumpToNextMention && (
+        {Boolean(onJumpToNextMention) && (mentionNewCount ?? 0) > 0 && (
           <div className="flex justify-center px-4">
             <button
               type="button"

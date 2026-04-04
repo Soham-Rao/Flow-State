@@ -1,0 +1,11 @@
+[Unit]
+Description=FlowState weekly backup
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+User=flowstate
+Group=flowstate
+WorkingDirectory=/opt/flowstate/app
+ExecStart=/bin/bash /opt/flowstate/app/deploy/vps/backup-now.sh weekly
