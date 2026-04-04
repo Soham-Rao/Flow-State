@@ -3,6 +3,7 @@ import { Router } from "express";
 import { requireAuth } from "../../middleware/require-auth.js";
 import { assertBoardExists } from "../boards/boards.service.lookups.js";
 import { assertPermission, userHasPermission } from "../../utils/permissions.js";
+import { setPrivateShortCache } from "../../utils/http-cache.js";
 import { listActivityLogs } from "./activity.service.js";
 
 export const activityRouter = Router();
@@ -26,6 +27,7 @@ activityRouter.get("/", async (req, res, next) => {
     }
 
     const data = await listActivityLogs({ boardId });
+    setPrivateShortCache(res, boardId ? 6 : 5, 15);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);

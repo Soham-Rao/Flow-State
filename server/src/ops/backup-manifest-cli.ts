@@ -19,6 +19,11 @@ const packageVersion = getArg("--package-version");
 const bunLockHash = getArg("--bun-lock-hash");
 const migrationJournalHash = getArg("--migration-journal-hash");
 const mysqlDatabase = getArg("--mysql-database");
+const archiveSha256 = getArg("--archive-sha256");
+const encryptedArchivePath = getArg("--encrypted-archive-path");
+const encryptedArchiveSha256 = getArg("--encrypted-archive-sha256");
+const backupEncryptionEnabled = getArg("--backup-encryption-enabled");
+const backupEncryptionKeyId = getArg("--backup-encryption-key-id");
 
 if (!kind || !archivePath || !currentSha || !backupId || !manifestPath) {
   console.error("Missing required args for backup manifest creation");
@@ -29,6 +34,11 @@ const manifest = buildBackupManifest({
   backupId,
   kind,
   archivePath,
+  archiveSha256,
+  encryptedArchivePath,
+  encryptedArchiveSha256,
+  encryptionEnabled: backupEncryptionEnabled === "true",
+  encryptionKeyId: backupEncryptionKeyId,
   currentSha,
   targetSha,
   packageVersion,
@@ -39,5 +49,4 @@ const manifest = buildBackupManifest({
 
 fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-process.stdout.write(`${path.resolve(manifestPath)}
-`);
+process.stdout.write(`${path.resolve(manifestPath)}\n`);

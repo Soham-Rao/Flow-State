@@ -42,10 +42,7 @@ if (( should_restore == 1 )); then
     exit 1
   fi
 
-  KIND="$(basename "$(dirname "$MANIFEST_PATH")")"
-  BACKUP_ID="$(basename "$MANIFEST_PATH" .json)"
-  ARCHIVE_PATH="$BACKUP_LOCAL_DIR/$KIND/$BACKUP_ID.sql.zst"
-  bash "$SCRIPT_DIR/restore-db.sh" "$ARCHIVE_PATH"
+  bash "$SCRIPT_DIR/restore-db.sh" "$MANIFEST_PATH"
 fi
 
 set -a
@@ -54,5 +51,5 @@ source "$ENV_FILE"
 set +a
 "$NODE_BIN" server/dist/db/migrate.js
 sudo systemctl restart "$SERVICE_NAME"
-curl -fsS http://127.0.0.1:4000/api/health/ready >/dev/null
+wait_for_local_health "http://127.0.0.1:4000/api/health/ready" 20 1
 flowstate_log "Rollback complete"

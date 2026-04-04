@@ -1,8 +1,8 @@
-# FlowState — Project Context & Progress
+﻿# FlowState â€” Project Context & Progress
 
 > Full project context, decisions, progress, and phase tracking.
 > `instructions.md` is used for phase-specific notes and checklists.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-05
 
 ---
 
@@ -10,28 +10,28 @@
 
 I am the AI agent building this project. I plan, code, audit, and test directly. My responsibilities:
 
-1. **Think and plan** — Understand requirements, design architecture, break down work.
-2. **Write code phase-by-phase** — Implement **one phase at a time only**, using `instructions.md` for phase-specific notes and checklists when useful.
-3. **Audit after every phase** — After completing a phase, review every file created/modified for: logical errors, missing error handling, security issues, bad practices, UI/UX issues, missing edge cases, and undesired/unexpected behavior.
-4. **Fix issues** — If the audit finds issues, fix them directly.
-5. **Run/write tests** — After audit and corrections, ensure automated tests exist for the completed phase (unit + integration). I will write the tests but the user will run them and provide the feedback.
-6. **Advance to next phase** — Only after a phase is fully audited, corrected, and tested do I move to the next phase.
+1. **Think and plan** â€” Understand requirements, design architecture, break down work.
+2. **Write code phase-by-phase** â€” Implement **one phase at a time only**, using `instructions.md` for phase-specific notes and checklists when useful.
+3. **Audit after every phase** â€” After completing a phase, review every file created/modified for: logical errors, missing error handling, security issues, bad practices, UI/UX issues, missing edge cases, and undesired/unexpected behavior.
+4. **Fix issues** â€” If the audit finds issues, fix them directly.
+5. **Run/write tests** â€” After audit and corrections, ensure automated tests exist for the completed phase (unit + integration). I will write the tests but the user will run them and provide the feedback.
+6. **Advance to next phase** â€” Only after a phase is fully audited, corrected, and tested do I move to the next phase.
 
 ### Sub-Phase Splitting
 If a phase contains too many features or is too large for a single pass, I **may split it into sub-phases**: Phase N.1, N.2, N.3, etc. Audit happens per sub-phase, while tests are run on full-phase cadence (end of each full phase, or every 2 full phases when explicitly chosen).
 
 ### The Cycle (Strictly Enforced)
 ```
-Think → Plan phase (use instructions.md for notes if needed)
-  → Implement code
-  → Audit code
-  → Fix issues (if any)
-  → Verify fixes
-  → Write tests during sub-phases as needed
-  → Run tests on full-phase cadence
-  → Tests pass → Phase N approved
-  → Git commit (end of every completed phase/sub-phase cycle)
-  → Move to Phase N+1 → Repeat
+Think â†’ Plan phase (use instructions.md for notes if needed)
+  â†’ Implement code
+  â†’ Audit code
+  â†’ Fix issues (if any)
+  â†’ Verify fixes
+  â†’ Write tests during sub-phases as needed
+  â†’ Run tests on full-phase cadence
+  â†’ Tests pass â†’ Phase N approved
+  â†’ Git commit (end of every completed phase/sub-phase cycle)
+  â†’ Move to Phase N+1 â†’ Repeat
 ```
 
 ### Critical Rules
@@ -43,7 +43,7 @@ Think → Plan phase (use instructions.md for notes if needed)
 
 ## 2. Project Overview
 
-**FlowState** is an internal team collaboration web application for 5–20 users that combines the best features of **Trello** (boards, lists, cards, drag-and-drop), **Slack** (threads, presence, reactions, real-time feed), and **Notion** (rich text, slash commands, multi-view, templates) into a single productivity hub with a beautiful modern ui similar to that of trello.
+**FlowState** is an internal team collaboration web application for 5â€“20 users that combines the best features of **Trello** (boards, lists, cards, drag-and-drop), **Slack** (threads, presence, reactions, real-time feed), and **Notion** (rich text, slash commands, multi-view, templates) into a single productivity hub with a beautiful modern ui similar to that of trello.
 
 ### Core Principles
 - **Real-time-ish**: Updates on meaningful actions (card moved, comment posted), not every keystroke. Socket.IO with event-based broadcasting.
@@ -68,7 +68,7 @@ Think → Plan phase (use instructions.md for notes if needed)
 | T8 | Labels | Color-coded labels on cards. CRUD per board |
 | T9 | Card cover colors | Color band on card for visual distinction at a glance |
 | T10 | Board backgrounds | Predetermined backgrounds (CSS gradients/patterns, not uploaded images) |
-| T11 | Priority levels | Low, Medium, High, Urgent — on each card |
+| T11 | Priority levels | Low, Medium, High, Urgent â€” on each card |
 | T12 | Archive system | Soft-delete cards. Auto-hard-delete after configurable retention (default 7 days) |
 | T13 | Card detail modal | Full card view with all fields, checklists, comments, attachments |
 
@@ -95,23 +95,23 @@ Think → Plan phase (use instructions.md for notes if needed)
 ### FlowState Originals & Other
 | # | Feature | Details |
 |---|---------|---------|
-| O1 | Command palette | Cmd+K / Ctrl+K — search boards, cards, members, jump anywhere instantly |
+| O1 | Command palette | Cmd+K / Ctrl+K â€” search boards, cards, members, jump anywhere instantly |
 | O2 | Keyboard shortcuts | System-wide shortcuts for common actions (new card, search, navigate, etc.) |
 | O3 | Pomodoro timer | Configurable intervals (25/5, 90/10). Integrated per-card. Broadcasts "Focused" state |
 | O4 | Task time tracking | Log time spent on tasks. Timer history and stats |
 | O5 | Full-text search | Search across all cards, boards, descriptions. Powered by MySQL FULLTEXT (planned) |
 | O6 | Recurring tasks | Option to set tasks to auto-recreate on a schedule |
-| O7 | Task dependencies | Checkbox "Has prerequisites" → dropdown to select prerequisite cards (1 or more) |
+| O7 | Task dependencies | Checkbox "Has prerequisites" â†’ dropdown to select prerequisite cards (1 or more) |
 | O8 | Pin/Star | Pin boards & cards. Personal pins per user + admin global pins |
 | O9 | "My Tasks" view | Personal dashboard: all cards assigned to you across ALL boards, sorted by due date |
-| O10 | Quick Add | Global shortcut → select board from dropdown → create card without navigating away |
+| O10 | Quick Add | Global shortcut â†’ select board from dropdown â†’ create card without navigating away |
 | O11 | Weekly team pulse | In-app auto-generated summary: what was completed, pending, who was most active |
 | O12 | Home dashboard | Landing page with My Tasks, recent activity, completed items feed |
 | O13 | Profile / Settings | User profile editing, app-wide settings, retention period config |
 | O14 | Team invitations | Admin-only invite system for adding team members |
 | O15 | Role-based access | Admin (full control, invite, assign) vs Normal (view, create, comment) |
 | O16 | Auto-cleanup | Cards + files in done/completed lists auto-deleted after 7 days (configurable) |
-| O17 | Real-time updates | Socket.IO — updates on meaningful actions (card moved, comment posted, etc.) |
+| O17 | Real-time updates | Socket.IO â€” updates on meaningful actions (card moved, comment posted, etc.) |
 | O18 | Email notifications | Critical deadline alerts via email (deferred until SMTP/provider is set up) |
 
 ---
@@ -121,12 +121,12 @@ Think → Plan phase (use instructions.md for notes if needed)
 - Completed/done cards: auto-delete card + files after 7 days (configurable in settings)
 - Checklists visible on board view as collapsible sections with progress bar
 - Drag targets must be large and intuitive
-- Calendar events clickable → navigate directly to the card
+- Calendar events clickable â†’ navigate directly to the card
 - Done lists update a "completed" section on the dashboard/activity feed
-- Calendar must have excellent navigability (month ↔ week ↔ day)
-- UI must be responsive with good feedback — no loading spinners, no lag
+- Calendar must have excellent navigability (month â†” week â†” day)
+- UI must be responsive with good feedback â€” no loading spinners, no lag
 - Storage-conscious: predetermined board backgrounds, no user-uploaded backgrounds
-- Archive with timer — auto-hard-delete, don't let users archive forever
+- Archive with timer â€” auto-hard-delete, don't let users archive forever
 
 ---
 
@@ -170,30 +170,30 @@ Think → Plan phase (use instructions.md for notes if needed)
 
 ```
 Workspace/Team (single instance per deployment)
-├── Users (admin or normal role)
-├── Boards (e.g., "Marketing", "Engineering", "Product")
-│   ├── background (predetermined selection)
-│   ├── Lists/Columns (e.g., "To Do", "In Progress", "Done", custom)
-│   │   └── Cards/Tasks
-│   │       ├── Title, Description (TipTap rich text)
-│   │       ├── Priority (Low, Medium, High, Urgent)
-│   │       ├── Due Date
-│   │       ├── Cover Color
-│   │       ├── Assigned Members []
-│   │       ├── Labels []
-│   │       ├── Checklists []
-│   │       │   └── Checklist Items []
-│   │       ├── Comments/Thread []
-│   │       │   └── Emoji Reactions []
-│   │       ├── File Attachments []
-│   │       ├── Dependencies (prerequisite cards) []
-│   │       ├── Time Logs []
-│   │       ├── Recurring config (optional)
-│   │       └── Activity Log []
-│   └── Board Members / Viewers (presence tracking)
-├── Notifications (per user)
-├── Pins/Stars (per user + admin global)
-└── Templates (shared)
+â”œâ”€â”€ Users (admin or normal role)
+â”œâ”€â”€ Boards (e.g., "Marketing", "Engineering", "Product")
+â”‚   â”œâ”€â”€ background (predetermined selection)
+â”‚   â”œâ”€â”€ Lists/Columns (e.g., "To Do", "In Progress", "Done", custom)
+â”‚   â”‚   â””â”€â”€ Cards/Tasks
+â”‚   â”‚       â”œâ”€â”€ Title, Description (TipTap rich text)
+â”‚   â”‚       â”œâ”€â”€ Priority (Low, Medium, High, Urgent)
+â”‚   â”‚       â”œâ”€â”€ Due Date
+â”‚   â”‚       â”œâ”€â”€ Cover Color
+â”‚   â”‚       â”œâ”€â”€ Assigned Members []
+â”‚   â”‚       â”œâ”€â”€ Labels []
+â”‚   â”‚       â”œâ”€â”€ Checklists []
+â”‚   â”‚       â”‚   â””â”€â”€ Checklist Items []
+â”‚   â”‚       â”œâ”€â”€ Comments/Thread []
+â”‚   â”‚       â”‚   â””â”€â”€ Emoji Reactions []
+â”‚   â”‚       â”œâ”€â”€ File Attachments []
+â”‚   â”‚       â”œâ”€â”€ Dependencies (prerequisite cards) []
+â”‚   â”‚       â”œâ”€â”€ Time Logs []
+â”‚   â”‚       â”œâ”€â”€ Recurring config (optional)
+â”‚   â”‚       â””â”€â”€ Activity Log []
+â”‚   â””â”€â”€ Board Members / Viewers (presence tracking)
+â”œâ”€â”€ Notifications (per user)
+â”œâ”€â”€ Pins/Stars (per user + admin global)
+â””â”€â”€ Templates (shared)
 ```
 
 ---
@@ -215,11 +215,11 @@ Checklists inside cards (collapsible on board view), color labels CRUD, member a
 ### Phase 5: Team & Collaboration
 Comments/threads on cards, @mentions with autocomplete, emoji reactions, team invitation system (admin only), user roles enforcement, notification center (in-app bell + toasts).
 
-### Phase 6: Real-Time & Activity Feed (split into 6.1–6.5)
+### Phase 6: Real-Time & Activity Feed (split into 6.1â€“6.5)
 Socket.IO integration (rooms per board), presence indicators, Pulse sidebar (live activity feed), real-time board/card updates on meaningful actions.
 
 ### Phase 7: Calendar & Multi-View
-Calendar view (month/week navigation, tasks by due date, clickable → card), multi-view toggle (Kanban / List / Table), responsive calendar with good navigability.
+Calendar view (month/week navigation, tasks by due date, clickable â†’ card), multi-view toggle (Kanban / List / Table), responsive calendar with good navigability.
 
 ### Phase 8: Time Tracking & Focus Mode
 Pomodoro timer (configurable intervals), task-level time logging, "Focused" state visible to team, timer history/stats.
@@ -227,7 +227,7 @@ Pomodoro timer (configurable intervals), task-level time logging, "Focused" stat
 ### Phase 9: Rich Text, Search & Keyboard Shortcuts
 TipTap editor with slash commands (/todo, /h1, /code), full-text search (FTS5), command palette (Cmd+K), keyboard shortcuts system.
 
-### Phase 10: Dashboard, Analytics & Templates (split into 10.1–10.x)
+### Phase 10: Dashboard, Analytics & Templates (split into 10.1â€“10.x)
 Home dashboard ("My Tasks", recent activity, completed items feed), weekly team pulse summary, template gallery, profile/settings page, pin/star system.
 
 ### Phase 11: Polish, Advanced Features & Final Testing
@@ -249,7 +249,7 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 
 ### Deployment Architecture
 - **Single-service deployment**: Express serves both the API (`/api/*`) and the built React frontend (`/*` as static files).
-- Build step: `cd client && bun run build` → output to `client/dist/` → Express serves this as static.
+- Build step: `cd client && bun run build` â†’ output to `client/dist/` â†’ Express serves this as static.
 - This keeps it to one process, one port, one service.
 
 ---
@@ -258,51 +258,51 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 
 | Phase | Status | Date Started | Date Completed | Notes |
 |-------|--------|--------------|----------------|-------|
-| Phase 1.1: Scaffolding & Design System | ✅ Completed | 2026-03-12 | 2026-03-12 | Workspace + client/server scaffolding completed, lint/type/build checks done (runtime verification occurs in user environment) |
-| Phase 1.2: Database Schema & JWT Auth | ✅ Completed | 2026-03-12 | 2026-03-12 | Drizzle+SQLite core schema and JWT auth routes implemented; user-run runtime/tests verified |
-| Phase 1.3: Auth UI & Layout Shell | ✅ Completed | 2026-03-12 | 2026-03-12 | Auth flow wired to backend with Zustand store/guards; login/register payload validation UX fixed and user-verified |
-| Phase 2.1: Board & List Backend APIs | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards/lists CRUD + reorder APIs, default lists on board creation, boards module integration tests added |
-| Phase 2.2: Board & List Frontend UI | ✅ Completed | 2026-03-12 | 2026-03-12 | Boards UI complete with custom in-app confirmations, drag-and-drop list reorder, collapsible bottom settings, live background preview, board-scoped content gradients, and user-run tests passed |
-| Phase 2.3: Board UX & Autosave Polish | ✅ Completed | 2026-03-12 | 2026-03-12 | In-app confirmations, drag-drop list reorder, board-scoped gradients with new smooth presets, darker tuning, board settings debounced autosave, list-name debounced autosave with pencil edit mode, and delayed Saved feedback |
-| Phase 3: Card Management & DnD | ✅ Completed | 2026-03-12 | 2026-03-12 | User-run tests passed; card drag-and-drop finalized with dnd-kit and phase verified |
-| Phase 3.1: Card Backend APIs & Rules | ✅ Completed | 2026-03-12 | 2026-03-12 | Card CRUD + move endpoints/services, done-list countdown transitions, and server integration tests (`server/tests/cards.test.ts`) |
-| Phase 3.2: Card Frontend UI & Drag-and-Drop | ✅ Completed | 2026-03-12 | 2026-03-12 | Board detail now renders cards, supports quick add, card modal edit/delete, and card DnD within and across lists with optimistic updates |
-| Phase 3.3: Card Tests & Docs | ✅ Completed | 2026-03-12 | 2026-03-12 | Added client card workflow tests and updated implementation checklists/progress docs; pending user-run test execution |
-| Phase 4: Task Features | ✅ Completed | 2026-03-12 | 2026-03-13 | Checklists, attachments, labels, assignments, cover colors, comments, archive/restore, and retention UI completed |
-| Phase 4.1: Checklists | ✅ Completed | 2026-03-12 | 2026-03-12 | Checklist data model + API, board card preview with collapsible progress, and card modal CRUD + progress |
-| Phase 4.2: Attachments | ✅ Completed | 2026-03-13 | 2026-03-13 | Added attachments API + UI, retention settings, and cleanup support |
-| Phase 4.3: Labels + Assignments + Cover Colors | ✅ Completed | 2026-03-13 | 2026-03-13 | Labels/assignees/cover colors wired end-to-end with schema + API + UI and polish fixes |
-| Phase 4.4: Comments + Due Dates + Archive/Restore | ✅ Completed | 2026-03-13 | 2026-03-13 | Comments with mentions/reactions, archive/restore flows, and retention countdown badges |
-| Phase 5: Team & Collaboration | ✅ Completed | 2026-03-13 | 2026-03-24 | Phase 5.5 completed: channels + overrides |
-| Phase 5.1: @ Mentions Autocomplete (App-wide) | ✅ Completed | 2026-03-13 | 2026-03-13 | Autocomplete on `@` anywhere + mention notifications |
-| Phase 5.2: Invitation System | ✅ Completed | 2026-03-13 | 2026-03-14 | Admin invite flow + shareable links |
-| Phase 5.3: Roles & Permissions | ✅ Completed | 2026-03-14 | 2026-03-14 | Roles/permissions system, management UI, and permission gating |
-| Phase 5.4: Threads Section | ✅ Completed | 2026-03-14 | 2026-03-16 | DMs implemented with reply threads, reactions, mentions, encryption, and UX polish |
-| Phase 5.5: Channels & Overrides | ✅ Completed | 2026-03-24 | 2026-03-24 | Channel chat + permission overrides, manage/view gating |
-| Phase 6: Real-Time & Activity | ✅ Completed | 2026-03-24 | 2026-03-25 | Socket infra + activity + presence + realtime boards/threads |
-| Phase 6.1: Socket.IO Infrastructure | ✅ Completed | 2026-03-24 | 2026-03-24 | Socket server + auth, workspace/board rooms, client socket store |
-| Phase 6.2: Activity Log + Pulse UI | ✅ Completed | 2026-03-24 | 2026-03-24 | Activity logs + API, Team Pulse card, board activity panel, mention logging |
-| Phase 6.3: Presence (Workspace + Board) | ✅ Completed | 2026-03-25 | 2026-03-25 | Presence tracking (online/AFK/offline), last-seen tracking, and UI indicators in boards/threads |
-| Phase 6.4: Board Realtime Updates | ✅ Completed | 2026-03-25 | 2026-03-25 | Board updates via socket events + batched refresh |
-| Phase 6.5: Threads Realtime | ✅ Completed | 2026-03-25 | 2026-03-25 | Thread rooms + message/reply/reaction realtime with polling fallback |
-| Phase 7: Calendar & Multi-View | ⬜ Not Started | — | — | — |
-| Phase 8: Time Tracking & Focus | ✅ Completed | 2026-03-14 | 2026-03-14 | Focus mode Pomodoro UI with personal history/stats (local only) |
-| Phase 9: Rich Text, Search, Shortcuts | ⬜ Not Started | — | — | — |
-| Phase 10: Dashboard & Templates | 🟡 In Progress | 2026-03-25 | — | Split into 10.1–10.x; dashboard overhaul planned |
-| Phase 10.1: Dashboard foundation (Team Pulse + invites + stat shell) | ✅ Completed | 2026-03-24 | 2026-03-25 | Team Pulse feed + admin invites panel + dashboard stat cards shell |
-| Phase 10.2: Personal workspace summary | ✅ Completed | 2026-03-27 | 2026-03-27 | My tasks, mentions, timers, assignments, unread summaries |
-| Phase 10.3: Team insights + summaries | ✅ Completed | 2026-03-27 | 2026-03-27 | Weekly/monthly summaries, activity highlights, new joiners, announcements |
-| Phase 10.4: Dashboard UI overhaul | ✅ Completed | 2026-03-27 | 2026-03-27 | Glassmorphism redesign, two-column layout, priority/alert styling, visual polish only |
-| Phase 10.5: Templates + pins + settings polish | 🟡 Deferred | 2026-03-30 | — | Deferred by request; revisit later (templates/polish + pins/templates gallery) |
-| Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
-| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Phase 12.1 and 12.2 are live on prod; Phase 12.3 local implementation is complete and awaiting Cloudflare R2 + VPS rollout for backup/rollback validation |
-| Phase 12.0: Database Platform Switch | ✅ Completed | 2026-03-31 | 2026-03-31 | MySQL switch + Drizzle migrations + test infra |
-| Phase 12.1: Hosting + Deployment Setup | ✅ Completed | 2026-04-03 | 2026-04-04 | BigRock VPS bootstrap completed: SSH hardening, UFW/fail2ban, Node+Bun, MySQL Docker, production env, systemd app, Nginx, DNS, HTTPS, and auto-renewing Certbot setup |
-| Phase 12.2: Security Hardening | ✅ Completed | 2026-04-04 | 2026-04-04 | Input sanitization, explicit CORS/CSP/trust-proxy hardening, rate limits, password-reset scaffolding, audit logs, and bounded log retention policies |
-| Phase 12.3: Reliability + Observability | 🟡 In Progress | 2026-04-04 | — | Local implementation complete: error boundaries, structured prod logging, maintenance mode, health splits, safe deploy/rollback scripts, and compressed backup manifests; Cloudflare R2 + VPS rollout still pending |
-| Phase 12.4: Data Durability + Performance | ⬜ Not Started | — | — | encryption, compression, atomic migrations, caching |
-| Phase 12.5: User-Facing Docs | ⬜ Not Started | — | — | onboarding/tutorials |
-| Phase 13: Polish and CI/CD Pipeline | ⬜ Not Started | — | — | build/deploy automation on push, pipeline quality gates, staging strategy, repo polish, and maintenance ergonomics |
+| Phase 1.1: Scaffolding & Design System | âœ… Completed | 2026-03-12 | 2026-03-12 | Workspace + client/server scaffolding completed, lint/type/build checks done (runtime verification occurs in user environment) |
+| Phase 1.2: Database Schema & JWT Auth | âœ… Completed | 2026-03-12 | 2026-03-12 | Drizzle+SQLite core schema and JWT auth routes implemented; user-run runtime/tests verified |
+| Phase 1.3: Auth UI & Layout Shell | âœ… Completed | 2026-03-12 | 2026-03-12 | Auth flow wired to backend with Zustand store/guards; login/register payload validation UX fixed and user-verified |
+| Phase 2.1: Board & List Backend APIs | âœ… Completed | 2026-03-12 | 2026-03-12 | Boards/lists CRUD + reorder APIs, default lists on board creation, boards module integration tests added |
+| Phase 2.2: Board & List Frontend UI | âœ… Completed | 2026-03-12 | 2026-03-12 | Boards UI complete with custom in-app confirmations, drag-and-drop list reorder, collapsible bottom settings, live background preview, board-scoped content gradients, and user-run tests passed |
+| Phase 2.3: Board UX & Autosave Polish | âœ… Completed | 2026-03-12 | 2026-03-12 | In-app confirmations, drag-drop list reorder, board-scoped gradients with new smooth presets, darker tuning, board settings debounced autosave, list-name debounced autosave with pencil edit mode, and delayed Saved feedback |
+| Phase 3: Card Management & DnD | âœ… Completed | 2026-03-12 | 2026-03-12 | User-run tests passed; card drag-and-drop finalized with dnd-kit and phase verified |
+| Phase 3.1: Card Backend APIs & Rules | âœ… Completed | 2026-03-12 | 2026-03-12 | Card CRUD + move endpoints/services, done-list countdown transitions, and server integration tests (`server/tests/cards.test.ts`) |
+| Phase 3.2: Card Frontend UI & Drag-and-Drop | âœ… Completed | 2026-03-12 | 2026-03-12 | Board detail now renders cards, supports quick add, card modal edit/delete, and card DnD within and across lists with optimistic updates |
+| Phase 3.3: Card Tests & Docs | âœ… Completed | 2026-03-12 | 2026-03-12 | Added client card workflow tests and updated implementation checklists/progress docs; pending user-run test execution |
+| Phase 4: Task Features | âœ… Completed | 2026-03-12 | 2026-03-13 | Checklists, attachments, labels, assignments, cover colors, comments, archive/restore, and retention UI completed |
+| Phase 4.1: Checklists | âœ… Completed | 2026-03-12 | 2026-03-12 | Checklist data model + API, board card preview with collapsible progress, and card modal CRUD + progress |
+| Phase 4.2: Attachments | âœ… Completed | 2026-03-13 | 2026-03-13 | Added attachments API + UI, retention settings, and cleanup support |
+| Phase 4.3: Labels + Assignments + Cover Colors | âœ… Completed | 2026-03-13 | 2026-03-13 | Labels/assignees/cover colors wired end-to-end with schema + API + UI and polish fixes |
+| Phase 4.4: Comments + Due Dates + Archive/Restore | âœ… Completed | 2026-03-13 | 2026-03-13 | Comments with mentions/reactions, archive/restore flows, and retention countdown badges |
+| Phase 5: Team & Collaboration | âœ… Completed | 2026-03-13 | 2026-03-24 | Phase 5.5 completed: channels + overrides |
+| Phase 5.1: @ Mentions Autocomplete (App-wide) | âœ… Completed | 2026-03-13 | 2026-03-13 | Autocomplete on `@` anywhere + mention notifications |
+| Phase 5.2: Invitation System | âœ… Completed | 2026-03-13 | 2026-03-14 | Admin invite flow + shareable links |
+| Phase 5.3: Roles & Permissions | âœ… Completed | 2026-03-14 | 2026-03-14 | Roles/permissions system, management UI, and permission gating |
+| Phase 5.4: Threads Section | âœ… Completed | 2026-03-14 | 2026-03-16 | DMs implemented with reply threads, reactions, mentions, encryption, and UX polish |
+| Phase 5.5: Channels & Overrides | âœ… Completed | 2026-03-24 | 2026-03-24 | Channel chat + permission overrides, manage/view gating |
+| Phase 6: Real-Time & Activity | âœ… Completed | 2026-03-24 | 2026-03-25 | Socket infra + activity + presence + realtime boards/threads |
+| Phase 6.1: Socket.IO Infrastructure | âœ… Completed | 2026-03-24 | 2026-03-24 | Socket server + auth, workspace/board rooms, client socket store |
+| Phase 6.2: Activity Log + Pulse UI | âœ… Completed | 2026-03-24 | 2026-03-24 | Activity logs + API, Team Pulse card, board activity panel, mention logging |
+| Phase 6.3: Presence (Workspace + Board) | âœ… Completed | 2026-03-25 | 2026-03-25 | Presence tracking (online/AFK/offline), last-seen tracking, and UI indicators in boards/threads |
+| Phase 6.4: Board Realtime Updates | âœ… Completed | 2026-03-25 | 2026-03-25 | Board updates via socket events + batched refresh |
+| Phase 6.5: Threads Realtime | âœ… Completed | 2026-03-25 | 2026-03-25 | Thread rooms + message/reply/reaction realtime with polling fallback |
+| Phase 7: Calendar & Multi-View | â¬œ Not Started | â€” | â€” | â€” |
+| Phase 8: Time Tracking & Focus | âœ… Completed | 2026-03-14 | 2026-03-14 | Focus mode Pomodoro UI with personal history/stats (local only) |
+| Phase 9: Rich Text, Search, Shortcuts | â¬œ Not Started | â€” | â€” | â€” |
+| Phase 10: Dashboard & Templates | ðŸŸ¡ In Progress | 2026-03-25 | â€” | Split into 10.1â€“10.x; dashboard overhaul planned |
+| Phase 10.1: Dashboard foundation (Team Pulse + invites + stat shell) | âœ… Completed | 2026-03-24 | 2026-03-25 | Team Pulse feed + admin invites panel + dashboard stat cards shell |
+| Phase 10.2: Personal workspace summary | âœ… Completed | 2026-03-27 | 2026-03-27 | My tasks, mentions, timers, assignments, unread summaries |
+| Phase 10.3: Team insights + summaries | âœ… Completed | 2026-03-27 | 2026-03-27 | Weekly/monthly summaries, activity highlights, new joiners, announcements |
+| Phase 10.4: Dashboard UI overhaul | âœ… Completed | 2026-03-27 | 2026-03-27 | Glassmorphism redesign, two-column layout, priority/alert styling, visual polish only |
+| Phase 10.5: Templates + pins + settings polish | ðŸŸ¡ Deferred | 2026-03-30 | â€” | Deferred by request; revisit later (templates/polish + pins/templates gallery) |
+| Phase 11: Polish & Advanced | â¬œ Not Started | â€” | â€” | â€” |
+| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Phases 12.1 and 12.2 are live on prod; 12.3 is production-wired and 12.4 is implemented locally, but both remain open until the next VPS rollout includes a real safe deploy, encrypted backup validation, restore-verify, and a rollback drill |
+| Phase 12.0: Database Platform Switch | âœ… Completed | 2026-03-31 | 2026-03-31 | MySQL switch + Drizzle migrations + test infra |
+| Phase 12.1: Hosting + Deployment Setup | âœ… Completed | 2026-04-03 | 2026-04-04 | BigRock VPS bootstrap completed: SSH hardening, UFW/fail2ban, Node+Bun, MySQL Docker, production env, systemd app, Nginx, DNS, HTTPS, and auto-renewing Certbot setup |
+| Phase 12.2: Security Hardening | âœ… Completed | 2026-04-04 | 2026-04-04 | Input sanitization, explicit CORS/CSP/trust-proxy hardening, rate limits, password-reset scaffolding, audit logs, and bounded log retention policies |
+| Phase 12.3: Reliability + Observability | 🟡 In Progress | 2026-04-04 | — | Live on prod: error boundaries, structured prod logging, health splits, maintenance mode, compressed MySQL backups, R2 upload, backup timers, and update-safe tooling; still pending one real safe-deploy run and one rollback drill for full completion |
+| Phase 12.4: Data Durability + Performance | 🟡 In Progress | 2026-04-05 | — | Local implementation complete: encrypted offsite backup flow, checksum/restore verification, migration advisory locking and risky-migration gating, slow-query timing, hot-path indexes, bounded pagination, short-lived client caching, route lazy-loading, and bundle splitting; production rollout + drills pending |
+| Phase 12.5: User-Facing Docs | â¬œ Not Started | â€” | â€” | onboarding/tutorials |
+| Phase 13: Polish and CI/CD Pipeline | â¬œ Not Started | â€” | â€” | build/deploy automation on push, pipeline quality gates, staging strategy, repo polish, and maintenance ergonomics |
 
 ---
 
@@ -313,7 +313,8 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 - **Permission errors now surface in a modal** (topmost z-index) instead of inline text only.
 - **Password reset is scaffold-only in Phase 12.2**: `forgot-password` always returns a generic success response and must be completed later when SMTP-backed delivery is available.
 - **Logging is intentionally bounded**: security audit rows use compact metadata with retention cleanup, while host logs remain journald/logrotate-managed and should stay compressed/size-limited at the VPS level.
-- **Phase 12.3 local rollout adds a safe-deploy path** with maintenance mode, readiness checks, compressed MySQL dump backups, alert hooks, and rollback scripts; offsite R2 upload and real VPS validation still require Cloudflare + production env setup.
+- **Phase 12.3 is now production-wired**: maintenance mode, readiness checks, compressed MySQL dump backups, R2 upload, backup timers, alert hooks, rollback scripts, and a one-command `update-safe.sh` wrapper exist on the VPS. Remaining sign-off work is operational: one full safe-deploy run and one rollback drill.
+- **Phase 12.4 is implemented locally but not signed off yet**: backup archive encryption, manifest checksums, restore-verify tooling, migration advisory locking, risky-migration backup gating, slow-query timing, hot-path indexes, bounded pagination, short-lived client caching/invalidation, and route/code splitting are in the repo; the next VPS rollout must validate encrypted backup upload, scratch restore verification, a real safe deploy, and a rollback drill before 12.3/12.4 can both be marked complete.
 
 - `instructions.md` can be used for phase-specific notes, checklists, and implementation details when planning a phase. It serves as a scratchpad for detailed specifications.
 - **Test policy**: Write tests during implementation; user runs them on full-phase cadence (or every 2 full phases) and reports output.
@@ -356,6 +357,8 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 
 | Date | Update |
 |------|--------|
+| 2026-04-05 | Phase 12.4 local implementation completed: backup encryption env validation, encrypted offsite archive support, manifest checksums and verification metadata, restore-verify tooling for a scratch MySQL target, migration advisory locking + risky-migration gating, slow-query timing, hot-path MySQL indexes, tighter thread pagination, short-lived client cache/dedupe with invalidation, route-level lazy loading, and Vite chunk splitting are now in the repo. The next VPS rollout will also be used to complete the pending 12.3 safe-deploy and rollback drills. |
+| 2026-04-04 | Phase 12.3 advanced from local-only to real VPS ops: Cloudflare R2 is configured, compressed local and remote backups are working, backup timers are enabled, health/readiness checks pass in production, and a new `deploy/vps/update-safe.sh` wrapper now provides a one-command safe update path with concise output. The only remaining 12.3 sign-off items are one real safe-deploy run and one rollback drill. |
 | 2026-04-04 | Phase 12.3 local implementation completed: added a global React error boundary + chunk-load recovery UI, structured JSON request/app logs, graceful shutdown and process guards, /api/health/live + /api/health/ready, Nginx maintenance-mode support, deploy-safe.sh with predeploy backup/readiness/rollback flow, compressed MySQL backup + restore scripts, backup manifest helpers, SMTP-backed ops alert plumbing, and new local tests for health/logging/ops behavior. Cloudflare R2 wiring and VPS rollout are the next step. |
 | 2026-04-04 | Phase 12.2 completed locally: added strict server-side plain-text sanitization for user-authored content, explicit production CORS allowlisting + CSP + trust-proxy handling, route-scoped rate limits for auth/invite/health endpoints, password-reset scaffolding with generic `forgot-password` responses, MySQL-backed `audit_logs` and `password_reset_tokens`, request-id based security logging, and bounded retention rules so audit/system logs do not grow without limit. Password reset remains scaffold-only until SMTP delivery is implemented. |
 | 2026-04-04 | Phase 12.1 completed on the BigRock VPS path: SSH was hardened with key-only access, UFW/fail2ban/nginx/docker were enabled, Node 22 and Bun were installed, MySQL 8.0 was provisioned in Docker, production env and uploads paths were configured, the app now runs under systemd behind Nginx, DNS points to the VPS, HTTPS is live via Let's Encrypt with certbot auto-renewal, and `Docs/vps-setup.md` now includes a practical cheat sheet. First-user browser smoke testing is intentionally deferred so the intended first admin can sign up. |
@@ -366,7 +369,7 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 | 2026-04-03 | ConfirmDialog now accepts `overlayClassName` for z-index control. |
 | 2026-03-31 | Phase 12.0 completed: MySQL switch (mysql2 + Drizzle migrations), test DB reset speedups (truncate + single-worker Vitest), and user-run server tests passing. |
 | 2026-03-31 | Phase 12 planning updated: canonical domain flo-state.in (www redirect), added Phase 12.0 DB switch (MySQL, DDL-only), and expanded hosting plan sections in Docs/hosting.md. |
-| 2026-03-31 | Phase 12 planning: moved hosting plan to Docs/hosting.md, set domain to flo-state.in, and split Phase 12 into subphases (12.1–12.5). |
+| 2026-03-31 | Phase 12 planning: moved hosting plan to Docs/hosting.md, set domain to flo-state.in, and split Phase 12 into subphases (12.1â€“12.5). |
 | 2026-03-31 | Phase 12 started: production readiness checklist + hosting plan (hosting.md) drafted; no implementation changes yet. |
 | 2026-03-30 | Deferred Phase 10.5 templates/polish work by request; to be revisited later. |
 | 2026-03-30 | Settings templates implemented (panel/form/list/modal), a11y focus/hover polish across settings, and client tests run. |
@@ -412,6 +415,8 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 | 2026-03-12 | Added Phase 3.3 client tests (`client/src/pages/boards/board-detail-page.test.tsx`) for card create/edit/delete flows; client lint + typecheck pass; awaiting user-run `client` and `server` tests for full Phase 3 verification. |
 | 2026-03-12 | Phase 4.1 delivered: checklists data model + API, board card collapsible checklist previews with progress bars, card modal checklist CRUD, and new client/server checklist tests (user-run pending). |
 | 2026-03-13 | Phase 4.2 delivered: attachments (upload/download/delete), board-level retention settings (day/hour/min + mode toggle), retention-aware time-left labels, attachment cleanup on card deletion, and new attachments API test. User to run tests. |
+
+
 
 
 

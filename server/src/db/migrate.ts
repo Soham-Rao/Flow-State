@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 
 import { migrate } from "drizzle-orm/mysql2/migrator";
 
+import { logger } from "../utils/logger.js";
 import { db, pool } from "./connection.js";
+import { prepareMigrationRun, runMigrationPostchecks } from "./migration-guard.js";
 
 const migrationsFolder = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -11,7 +13,17 @@ const migrationsFolder = path.resolve(
 );
 
 export async function runMigrations(): Promise<void> {
-  await migrate(db, { migrationsFolder });
+  const migrationRun = await prepareMigrationRun(migrationsFolder);
+  try {
+    await migrate(db, { migrationsFolder });
+    await runMigrationPostchecks();
+    logger.info("db.migrations_complete", {
+      pendingCount: migrationRun.pendingMigrations.length,
+      riskyCount: migrationRun.riskyMigrations.length
+    });
+  } finally {
+    await migrationRun.release();
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

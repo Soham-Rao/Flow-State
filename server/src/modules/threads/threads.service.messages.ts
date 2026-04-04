@@ -196,7 +196,7 @@ export async function listThreadMessages(
     await assertConversationPermission(userId, conversationId, "channel_read");
   }
 
-  const limit = params.limit ?? 50;
+  const limit = Math.min(params.limit ?? 50, 80);
   const conditions = [eq(threadMessages.conversationId, conversationId)];
   if (params.cursor) {
     conditions.push(lt(threadMessages.createdAt, new Date(params.cursor)));
@@ -782,6 +782,7 @@ export async function deleteThreadMessage(
     message: summary
   };
 }
+
 
 
 

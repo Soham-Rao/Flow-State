@@ -1,6 +1,7 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 import { io, type Socket } from "socket.io-client";
 
+import { invalidateApiCacheByTag } from "@/lib/api-client";
 import { getSessionToken } from "@/lib/session";
 import { useActivityStore } from "@/stores/activity-store";
 import { usePresenceStore } from "@/stores/presence-store";
@@ -102,6 +103,10 @@ function flushActivityQueue(): void {
 }
 
 function enqueueActivity(entry: ActivityLogEntry): void {
+  invalidateApiCacheByTag(["activity:workspace", "dashboard:summary"]);
+  if (entry.boardId) {
+    invalidateApiCacheByTag(`activity:board:${entry.boardId}`);
+  }
   activityQueue.push(entry);
   if (flushTimer !== null) return;
   flushTimer = setTimeout(() => {
@@ -134,6 +139,7 @@ function flushThreadQueue(): void {
 }
 
 function enqueueThreadEvent(event: string, payload: ThreadEventPayload): void {
+  invalidateApiCacheByTag(["threads:dms", "threads:channels", "dashboard:summary"]);
   threadQueue.push({ event, payload });
   if (threadFlushTimer !== null) return;
   threadFlushTimer = setTimeout(() => {
@@ -295,3 +301,4 @@ export const useSocketStore = create<SocketStoreState>((set) => ({
     setPreferredStatus(status);
   }
 }));
+

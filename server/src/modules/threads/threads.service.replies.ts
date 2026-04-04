@@ -75,7 +75,7 @@ export async function listThreadReplies(
     await assertConversationPermission(userId, parent.conversationId, "channel_read");
   }
 
-  const limit = params.limit ?? 50;
+  const limit = Math.min(params.limit ?? 50, 80);
   const conditions = [eq(threadReplies.parentMessageId, messageId)];
   if (params.cursor) {
     conditions.push(lt(threadReplies.createdAt, new Date(params.cursor)));
@@ -515,5 +515,6 @@ export async function deleteThreadReply(
   emitThreadEvent(reply.conversationId, "threads:reply:delete", { conversationId: reply.conversationId });
   return { id: replyId, scope: "all" };
 }
+
 
 

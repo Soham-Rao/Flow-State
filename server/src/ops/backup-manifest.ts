@@ -4,13 +4,18 @@ import path from "node:path";
 export type BackupKind = "predeploy" | "daily" | "weekly";
 
 export interface BackupManifest {
-  version: 1;
+  version: 2;
   backupId: string;
   kind: BackupKind;
   createdAt: string;
   archiveFileName: string;
   archivePath: string;
   archiveSizeBytes: number | null;
+  archiveSha256: string | null;
+  encryptedArchiveFileName: string | null;
+  encryptedArchivePath: string | null;
+  encryptedArchiveSizeBytes: number | null;
+  encryptedArchiveSha256: string | null;
   currentSha: string;
   targetSha: string | null;
   packageVersion: string | null;
@@ -18,6 +23,16 @@ export interface BackupManifest {
   migrationJournalHash: string | null;
   mysqlDatabase: string | null;
   compression: "zstd";
+  encryption: {
+    enabled: boolean;
+    algorithm: "aes-256-gcm" | null;
+    keyId: string | null;
+  };
+  verification: {
+    archive: "verified" | "missing";
+    encryptedArchive: "verified" | "not_applicable" | "missing";
+    lastVerifiedAt: string | null;
+  };
 }
 
 export function buildBackupId(kind: BackupKind, currentSha: string, createdAt = new Date()): string {
@@ -37,6 +52,11 @@ export function buildBackupManifest(input: {
   backupId: string;
   kind: BackupKind;
   archivePath: string;
+  archiveSha256?: string | null;
+  encryptedArchivePath?: string | null;
+  encryptedArchiveSha256?: string | null;
+  encryptionEnabled?: boolean;
+  encryptionKeyId?: string | null;
   currentSha: string;
   targetSha?: string | null;
   packageVersion?: string | null;
@@ -47,22 +67,48 @@ export function buildBackupManifest(input: {
 }): BackupManifest {
   const archiveFileName = path.basename(input.archivePath);
   const archiveSizeBytes = fs.existsSync(input.archivePath) ? fs.statSync(input.archivePath).size : null;
+  const encryptedArchivePath = input.encryptedArchivePath ?? null;
+  const encryptedArchiveFileName = encryptedArchivePath ? path.basename(encryptedArchivePath) : null;
+  const encryptedArchiveSizeBytes = encryptedArchivePath && fs.existsSync(encryptedArchivePath)
+    ? fs.statSync(encryptedArchivePath).size
+    : null;
+  const createdAt = input.createdAt ?? new Date().toISOString();
+  const encryptionEnabled = Boolean(input.encryptionEnabled);
 
   return {
-    version: 1,
+    version: 2,
     backupId: input.backupId,
     kind: input.kind,
-    createdAt: input.createdAt ?? new Date().toISOString(),
+    createdAt,
     archiveFileName,
     archivePath: input.archivePath,
     archiveSizeBytes,
+    archiveSha256: input.archiveSha256 ?? null,
+    encryptedArchiveFileName,
+    encryptedArchivePath,
+    encryptedArchiveSizeBytes,
+    encryptedArchiveSha256: input.encryptedArchiveSha256 ?? null,
     currentSha: input.currentSha,
     targetSha: input.targetSha ?? null,
     packageVersion: input.packageVersion ?? null,
     bunLockHash: input.bunLockHash ?? null,
     migrationJournalHash: input.migrationJournalHash ?? null,
     mysqlDatabase: input.mysqlDatabase ?? null,
-    compression: "zstd"
+    compression: "zstd",
+    encryption: {
+      enabled: encryptionEnabled,
+      algorithm: encryptionEnabled ? "aes-256-gcm" : null,
+      keyId: input.encryptionKeyId ?? null
+    },
+    verification: {
+      archive: archiveSizeBytes === null ? "missing" : "verified",
+      encryptedArchive: !encryptionEnabled
+        ? "not_applicable"
+        : encryptedArchiveSizeBytes === null
+          ? "missing"
+          : "verified",
+      lastVerifiedAt: createdAt
+    }
   };
 }
 

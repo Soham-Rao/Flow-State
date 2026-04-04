@@ -1,13 +1,13 @@
 ---
-sohamsrao ✔️ 
+sohamsrao ✔️ 0 ✔️
 computerproject ✔️ 0 ✔️ 
 abman ✔️ 0 ✔️ 
-shadow supreme 
+shadow supreme ✔️ 0 ✔️ 
 storage 1 ✔️ 0 ✔️ 
 storage 2 ✔️ 0 ✔️ 
 storage 3 ✔️ 0 ✔️ 
-storage p ✔️0 ✔️ 0
-clash 4 free ✔️ 0 ✔️ 0
+storage p ✔️0 ✔️
+clash 4 free ✔️ 0 ✔️
 burner finger ✔️ 0  ✔️ 0
 burner finger +1 ✔️ 0  ✔️ 0
 burner finger +2 ✔️ 0  ✔️ 0
@@ -94,7 +94,7 @@ esc button exit for create or delete announcements, glowing border for new one
 make it team wise - multiple teams on flo-state.in
 deletion / encryption / compression of all general content to preserve disk space
 alerts for downtime during updates/migrations in frontend - warning 
-skeleton loading, fast loading bars, splash screens
+instead of `flowstate loading` -> skeleton loading, fast loading bars, splash screens
 separate teams at signin screen
 smtp/brevo
 
@@ -102,6 +102,9 @@ messages are perfect, but first message should have pfp
 copy option 
 
 put all options under a dropdown instead of being shown 
+
+refactor larger files again 
+pagination -> infinite scroll 
 ---
 3 docs subdirs 
 1. user facing - multiple tutorials

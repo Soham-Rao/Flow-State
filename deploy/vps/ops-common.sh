@@ -11,8 +11,7 @@ NGINX_MAINTENANCE_ROOT="${NGINX_MAINTENANCE_ROOT:-/var/www/flowstate-maintenance
 MYSQL_ENV_FILE_DEFAULT="/opt/flowstate/infra/mysql.env"
 
 flowstate_log() {
-  printf '[flowstate-ops] %s
-' "$*"
+  printf '%s\n' "[flowstate-ops] $*"
 }
 
 require_command() {
@@ -50,20 +49,43 @@ load_mysql_env() {
   set +a
 }
 
+wait_for_local_health() {
+  local url="${1:-http://127.0.0.1:4000/api/health/ready}"
+  local timeout_seconds="${2:-20}"
+  local interval_seconds="${3:-1}"
+  local elapsed=0
+
+  while (( elapsed < timeout_seconds )); do
+    if curl -fsS "$url" >/dev/null; then
+      return 0
+    fi
+    sleep "$interval_seconds"
+    elapsed=$((elapsed + interval_seconds))
+  done
+
+  flowstate_log "Timed out waiting for local health endpoint: $url"
+  return 1
+}
+
+backup_encryption_enabled() {
+  [[ "${BACKUP_ENCRYPTION_ENABLED:-false}" == "true" ]]
+}
+
 r2_is_configured() {
-  [[ -n "${BACKUP_R2_BUCKET:-}" && -n "${BACKUP_R2_ACCESS_KEY_ID:-}" && -n "${BACKUP_R2_SECRET_ACCESS_KEY:-}" && ( -n "${BACKUP_R2_ENDPOINT:-}" || -n "${BACKUP_R2_ACCOUNT_ID:-}" ) ]]
+  [[ -n "${BACKUP_R2_BUCKET:-}" ]] || return 1
+  [[ -n "${BACKUP_R2_ACCESS_KEY_ID:-}" ]] || return 1
+  [[ -n "${BACKUP_R2_SECRET_ACCESS_KEY:-}" ]] || return 1
+  [[ -n "${BACKUP_R2_ENDPOINT:-}" || -n "${BACKUP_R2_ACCOUNT_ID:-}" ]]
 }
 
 resolve_r2_endpoint() {
   if [[ -n "${BACKUP_R2_ENDPOINT:-}" ]]; then
-    printf '%s
-' "$BACKUP_R2_ENDPOINT"
+    printf '%s\n' "$BACKUP_R2_ENDPOINT"
     return
   fi
 
   if [[ -n "${BACKUP_R2_ACCOUNT_ID:-}" ]]; then
-    printf 'https://%s.r2.cloudflarestorage.com
-' "$BACKUP_R2_ACCOUNT_ID"
+    printf 'https://%s.r2.cloudflarestorage.com\n' "$BACKUP_R2_ACCOUNT_ID"
     return
   fi
 
@@ -73,29 +95,23 @@ resolve_r2_endpoint() {
 aws_r2() {
   local endpoint
   endpoint="$(resolve_r2_endpoint)"
-  AWS_ACCESS_KEY_ID="$BACKUP_R2_ACCESS_KEY_ID"   AWS_SECRET_ACCESS_KEY="$BACKUP_R2_SECRET_ACCESS_KEY"   AWS_DEFAULT_REGION="auto"     aws --endpoint-url "$endpoint" "$@"
+  AWS_ACCESS_KEY_ID="$BACKUP_R2_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_R2_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION="auto" aws --endpoint-url "$endpoint" "$@"
 }
 
 local_keep_count() {
   case "$1" in
-    predeploy) printf '%s
-' "${BACKUP_RETENTION_LOCAL_PREDEPLOY:-5}" ;;
-    daily) printf '%s
-' "${BACKUP_RETENTION_LOCAL_DAILY:-7}" ;;
-    weekly) printf '%s
-' "${BACKUP_RETENTION_LOCAL_WEEKLY:-4}" ;;
+    predeploy) printf '%s\n' "${BACKUP_RETENTION_LOCAL_PREDEPLOY:-5}" ;;
+    daily) printf '%s\n' "${BACKUP_RETENTION_LOCAL_DAILY:-7}" ;;
+    weekly) printf '%s\n' "${BACKUP_RETENTION_LOCAL_WEEKLY:-4}" ;;
     *) flowstate_log "Unknown backup kind: $1"; exit 1 ;;
   esac
 }
 
 remote_keep_count() {
   case "$1" in
-    predeploy) printf '%s
-' "${BACKUP_RETENTION_REMOTE_PREDEPLOY:-10}" ;;
-    daily) printf '%s
-' "${BACKUP_RETENTION_REMOTE_DAILY:-14}" ;;
-    weekly) printf '%s
-' "${BACKUP_RETENTION_REMOTE_WEEKLY:-8}" ;;
+    predeploy) printf '%s\n' "${BACKUP_RETENTION_REMOTE_PREDEPLOY:-10}" ;;
+    daily) printf '%s\n' "${BACKUP_RETENTION_REMOTE_DAILY:-14}" ;;
+    weekly) printf '%s\n' "${BACKUP_RETENTION_REMOTE_WEEKLY:-8}" ;;
     *) flowstate_log "Unknown backup kind: $1"; exit 1 ;;
   esac
 }

@@ -1,7 +1,8 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import multer from "multer";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { setPrivateShortCache } from "../../utils/http-cache.js";
 import {
   addChannelMembersSchema,
   createChannelSchema,
@@ -60,6 +61,7 @@ threadsRouter.use(requireAuth);
 threadsRouter.get("/dms/users", async (req, res, next) => {
   try {
     const data = await listDmUsers(req.auth!.userId);
+    setPrivateShortCache(res, 30, 60);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
@@ -69,6 +71,7 @@ threadsRouter.get("/dms/users", async (req, res, next) => {
 threadsRouter.get("/dms", async (req, res, next) => {
   try {
     const data = await listDmConversations(req.auth!.userId);
+    setPrivateShortCache(res, 6, 15);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
@@ -87,6 +90,7 @@ threadsRouter.post("/dms/:userId", async (req, res, next) => {
 threadsRouter.get("/channels", async (req, res, next) => {
   try {
     const data = await listChannelConversations(req.auth!.userId);
+    setPrivateShortCache(res, 6, 15);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
@@ -135,6 +139,7 @@ threadsRouter.delete("/channels/:conversationId", async (req, res, next) => {
 threadsRouter.get("/channels/:conversationId/members", async (req, res, next) => {
   try {
     const data = await listChannelMembers(req.auth!.userId, req.params.conversationId);
+    setPrivateShortCache(res, 8, 20);
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
@@ -365,3 +370,4 @@ threadsRouter.post("/replies/:replyId/reactions", async (req, res, next) => {
     next(error);
   }
 });
+

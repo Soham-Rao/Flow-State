@@ -6,6 +6,7 @@ import { createInvite, listInvites, revokeInvite } from "@/lib/invites-api";
 import { getDashboardSummary } from "@/lib/dashboard-api";
 import { useActivityStore } from "@/stores/activity-store";
 import { useAuthStore } from "@/stores/auth-store";
+import { useSocketStore } from "@/stores/socket-store";
 import type { AnnouncementAudience, AnnouncementAudienceOptions, AnnouncementDetail } from "@/types/announcements";
 import type { DashboardCardSummary, DashboardSummary } from "@/types/dashboard";
 import type { CommentMentionDetail } from "@/types/mentions";
@@ -100,6 +101,7 @@ const mergeBoardMentions = (
 export function HomePage(): JSX.Element {
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === "admin";
+  const socketStatus = useSocketStore((state) => state.status);
 
   const activity = useActivityStore((state) => state.workspace);
   const activityStatus = useActivityStore((state) => state.workspaceStatus);
@@ -442,8 +444,9 @@ export function HomePage(): JSX.Element {
     if (!user) return;
     void loadSummary();
     const interval = window.setInterval(() => {
+      if (document.hidden) return;
       void loadSummary();
-    }, 5000);
+    }, 15000);
     return () => window.clearInterval(interval);
   }, [user?.id]);
 
@@ -475,11 +478,15 @@ export function HomePage(): JSX.Element {
   useEffect(() => {
     if (!user) return;
     void loadWorkspaceActivity();
+    if (socketStatus === "connected") {
+      return;
+    }
     const workspaceInterval = window.setInterval(() => {
+      if (document.hidden) return;
       void loadWorkspaceActivity();
-    }, 2000);
+    }, 10000);
     return () => window.clearInterval(workspaceInterval);
-  }, [user, loadWorkspaceActivity]);
+  }, [user, loadWorkspaceActivity, socketStatus]);
 
   useEffect(() => {
     if (!isInviteModalOpen) return;
@@ -648,6 +655,11 @@ export function HomePage(): JSX.Element {
     </div>
   );
 }
+
+
+
+
+
 
 
 

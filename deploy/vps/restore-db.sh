@@ -5,9 +5,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/ops-common.sh"
 
-ARCHIVE_PATH="${1:-}"
-if [[ -z "$ARCHIVE_PATH" ]]; then
-  flowstate_log "Usage: restore-db.sh <local-archive-path>"
+INPUT_PATH="${1:-}"
+if [[ -z "$INPUT_PATH" ]]; then
+  flowstate_log "Usage: restore-db.sh <manifest-path|local-archive-path>"
   exit 1
 fi
 
@@ -15,6 +15,11 @@ source_env
 load_mysql_env
 require_command docker
 require_command zstd
+
+ARCHIVE_PATH="$INPUT_PATH"
+if [[ "$INPUT_PATH" == *.json ]]; then
+  ARCHIVE_PATH="$("$NODE_BIN" "$APP_DIR/server/dist/ops/backup-verify-cli.js" --manifest-path "$INPUT_PATH")"
+fi
 
 if [[ ! -f "$ARCHIVE_PATH" ]]; then
   flowstate_log "Archive not found: $ARCHIVE_PATH"

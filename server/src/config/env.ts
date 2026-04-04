@@ -53,6 +53,10 @@ const envSchema = z.object({
   OPS_ALERT_EMAIL_TO: z.string().trim().optional(),
   OPS_ALERT_EMAIL_FROM: z.string().trim().optional(),
   BACKUP_LOCAL_DIR: z.string().trim().min(1).default(DEFAULT_BACKUP_LOCAL_DIR),
+  BACKUP_ENCRYPTION_ENABLED: z.coerce.boolean().default(false),
+  BACKUP_ENCRYPTION_KEY: z.string().trim().optional(),
+  BACKUP_ENCRYPTION_KEY_ID: z.string().trim().optional(),
+  BACKUP_VERIFY_SCRATCH_MYSQL_URL: z.string().url().optional(),
   BACKUP_R2_BUCKET: z.string().trim().optional(),
   BACKUP_R2_PREFIX: z.string().trim().default("flowstate"),
   BACKUP_R2_ACCOUNT_ID: z.string().trim().optional(),
@@ -65,6 +69,7 @@ const envSchema = z.object({
   BACKUP_RETENTION_REMOTE_PREDEPLOY: z.coerce.number().int().min(1).default(10),
   BACKUP_RETENTION_REMOTE_DAILY: z.coerce.number().int().min(1).default(14),
   BACKUP_RETENTION_REMOTE_WEEKLY: z.coerce.number().int().min(1).default(8),
+  DB_SLOW_QUERY_THRESHOLD_MS: z.coerce.number().int().min(0).default(750),
   MYSQL_CONTAINER_NAME: z.string().trim().default("flowstate-mysql"),
   MYSQL_ENV_FILE: z.string().trim().default("/opt/flowstate/infra/mysql.env")
 });
@@ -137,5 +142,14 @@ if (env.NODE_ENV === "production") {
 
   if (missing.length > 0) {
     throw new Error(`Missing production env overrides: ${missing.join(", ")}`);
+  }
+}
+
+if (env.BACKUP_ENCRYPTION_ENABLED) {
+  const rawKey = env.BACKUP_ENCRYPTION_KEY?.trim() ?? "";
+  const isHex = rawKey.length === 64 && /^[0-9a-fA-F]+$/.test(rawKey);
+  const isBase64 = rawKey.length === 44 && /^[A-Za-z0-9+/]+=*$/.test(rawKey);
+  if (!isHex && !isBase64) {
+    throw new Error("BACKUP_ENCRYPTION_KEY must be a 32-byte key encoded as 64 hex or 44 base64 characters");
   }
 }

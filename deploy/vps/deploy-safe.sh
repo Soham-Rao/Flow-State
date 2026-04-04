@@ -78,13 +78,13 @@ set -a
 source "$ENV_FILE"
 set +a
 DB_CHANGED=1
-"$NODE_BIN" server/dist/db/migrate.js
+FLOWSTATE_LAST_BACKUP_MANIFEST="$ROLLBACK_MANIFEST" "$NODE_BIN" server/dist/db/migrate.js
 
 FAILED_STAGE="restart"
 sudo systemctl restart "$SERVICE_NAME"
 
 FAILED_STAGE="readiness-check"
-curl -fsS http://127.0.0.1:4000/api/health/ready >/dev/null
+wait_for_local_health "http://127.0.0.1:4000/api/health/ready" 20 1
 
 FAILED_STAGE="maintenance-disable"
 bash "$SCRIPT_DIR/maintenance-disable.sh"

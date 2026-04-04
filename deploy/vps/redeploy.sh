@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/flowstate/app}"
-ENV_FILE="${ENV_FILE:-/etc/flowstate/flowstate.env}"
-BUN_BIN="${BUN_BIN:-/home/flowstate/.bun/bin/bun}"
-NODE_BIN="${NODE_BIN:-/usr/bin/node}"
-SERVICE_NAME="${SERVICE_NAME:-flowstate}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/ops-common.sh"
 
 if [[ ! -x "$BUN_BIN" ]]; then
   echo "Bun not found at $BUN_BIN"
@@ -22,6 +20,8 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+require_command curl
+
 cd "$APP_DIR"
 
 "$BUN_BIN" install --frozen-lockfile
@@ -31,5 +31,5 @@ source "$ENV_FILE"
 set +a
 "$NODE_BIN" server/dist/db/migrate.js
 sudo systemctl restart "$SERVICE_NAME"
-curl -fsS http://127.0.0.1:4000/api/health/ready >/dev/null
+wait_for_local_health "http://127.0.0.1:4000/api/health/ready" 20 1
 sudo systemctl status "$SERVICE_NAME" --no-pager

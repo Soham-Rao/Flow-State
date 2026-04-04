@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import * as authApi from "@/lib/auth-api";
+import { clearApiCache, invalidateApiCacheByTag } from "@/lib/api-client";
 import { clearSessionToken, getSessionToken, setSessionToken } from "@/lib/session";
 import type { AuthUser } from "@/types/auth";
 
@@ -69,6 +70,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const token = getSessionToken();
     if (!token) {
+      clearApiCache();
       set({ ...setUnauthenticated(), hydrated: true });
       return;
     }
@@ -80,6 +82,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ ...setAuthenticated(user), hydrated: true });
     } catch {
       clearSessionToken();
+      clearApiCache();
       set({ ...setUnauthenticated(), hydrated: true });
     }
   },
@@ -90,6 +93,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authApi.register(input);
       setSessionToken(response.token);
+      clearApiCache();
       set(setAuthenticated(response.user));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to register";
@@ -104,6 +108,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authApi.login(input);
       setSessionToken(response.token);
+      clearApiCache();
       set(setAuthenticated(response.user));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to login";
@@ -115,6 +120,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   updateProfile: async (input) => {
     try {
       const updated = await authApi.updateProfile(input);
+      invalidateApiCacheByTag(["dashboard:summary", "threads:dm-users", "threads:dms", "threads:channels"]);
       set((state) => ({
         user: state.user ? { ...state.user, ...updated } : updated
       }));
@@ -133,6 +139,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     clearSessionToken();
+    clearApiCache();
     set(setUnauthenticated());
   },
 

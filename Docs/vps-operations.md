@@ -29,18 +29,34 @@ Use `Docs/vps-setup.md` only for first-time server setup or disaster rebuilds.
 
 ## Deploy Paths
 
-### Preferred safe deploy path
+### Preferred one-command update path
 
-Use this once Phase 12.3 VPS wiring is in place:
+Use this for normal production updates once Phase 12.3 VPS wiring is in place:
 
 ```bash
 ssh flowstate-vps
 cd /opt/flowstate/app
 git pull origin master
-bash deploy/vps/deploy-safe.sh
+bash deploy/vps/update-safe.sh
 ```
 
 What it does:
+- confirms env/runtime/tools are available
+- fetches the latest remote state and prints a short commit summary
+- runs the safe deploy flow
+- verifies localhost and public readiness
+- verifies the app service and backup timers are healthy
+- prints short `[ok]` / `[fail]` lines so successful deploys stay compact
+
+### Safe deploy engine
+
+`update-safe.sh` is the recommended human-facing command. Internally it uses:
+
+```bash
+bash deploy/vps/deploy-safe.sh
+```
+
+That lower-level script:
 - enables maintenance mode
 - creates a compressed predeploy MySQL backup
 - optionally uploads backup + manifest to R2
@@ -116,6 +132,10 @@ Recommended env block:
 
 ```env
 BACKUP_LOCAL_DIR=/var/lib/flowstate/backups
+BACKUP_ENCRYPTION_ENABLED=true
+BACKUP_ENCRYPTION_KEY=replace-with-a-32-byte-key-as-64-hex-or-44-base64
+BACKUP_ENCRYPTION_KEY_ID=primary
+BACKUP_VERIFY_SCRATCH_MYSQL_URL=mysql://flowstate:change-me@127.0.0.1:3306/flowstate_restore_verify
 BACKUP_R2_BUCKET=your-r2-bucket-name
 BACKUP_R2_PREFIX=flowstate
 BACKUP_R2_ACCOUNT_ID=your-cloudflare-account-id
@@ -128,6 +148,7 @@ BACKUP_RETENTION_LOCAL_WEEKLY=4
 BACKUP_RETENTION_REMOTE_PREDEPLOY=10
 BACKUP_RETENTION_REMOTE_DAILY=14
 BACKUP_RETENTION_REMOTE_WEEKLY=8
+DB_SLOW_QUERY_THRESHOLD_MS=750
 OPS_ALERT_EMAIL_TO=you@example.com
 OPS_ALERT_EMAIL_FROM=FlowState Ops <ops@flo-state.in>
 ```
@@ -135,7 +156,9 @@ OPS_ALERT_EMAIL_FROM=FlowState Ops <ops@flo-state.in>
 Notes:
 - `BACKUP_R2_ENDPOINT` is optional if `BACKUP_R2_ACCOUNT_ID` is set, but storing it explicitly is fine.
 - Alert email envs only matter once SMTP is configured.
-- Uploads are still local-only in 12.3; R2 currently covers DB archives and backup manifests.
+- Uploads are still local-only in 12.3/12.4; R2 currently covers DB archives and backup manifests.
+- When `BACKUP_ENCRYPTION_ENABLED=true`, the offsite R2 object is uploaded as an encrypted `.sql.zst.enc` archive while the local compressed `.sql.zst` copy may remain for simpler emergency restore flows.
+- `BACKUP_VERIFY_SCRATCH_MYSQL_URL` should point at a scratch database name on the same MySQL server/container, not your production database.
 
 ## Maintenance Mode
 
@@ -171,6 +194,12 @@ Output:
 
 If R2 is configured, the script also uploads both files and prunes old remote backups by retention.
 
+When backup encryption is enabled:
+- the local archive is still created as `.sql.zst`
+- the offsite upload becomes an encrypted `.sql.zst.enc` file
+- manifest JSON records checksums, sizes, encryption metadata, and verification state
+- the script prints compact size/compression/footprint stats at the end
+
 ## Restore and Rollback
 
 ### Restore a local DB archive
@@ -180,6 +209,26 @@ cd /opt/flowstate/app
 bash deploy/vps/restore-db.sh /var/lib/flowstate/backups/predeploy/<backup-id>.sql.zst
 ```
 
+### Restore verification drill
+
+Use this after creating or downloading a backup to prove it can be restored safely into a scratch database:
+
+```bash
+cd /opt/flowstate/app
+bash deploy/vps/restore-verify.sh /var/lib/flowstate/backups/manifests/daily/<backup-id>.json
+```
+
+You can also point it directly at a local archive:
+
+```bash
+bash deploy/vps/restore-verify.sh /var/lib/flowstate/backups/daily/<backup-id>.sql.zst
+```
+
+Behavior:
+- verifies archive/manifest checksum consistency first when a manifest is used
+- recreates the scratch database from `BACKUP_VERIFY_SCRATCH_MYSQL_URL`
+- restores the dump into that scratch target
+- runs server-side schema/readiness verification against the restored data
 ### Roll back code and optionally DB
 
 ```bash
@@ -281,6 +330,9 @@ ls /etc/logrotate.d
 ## Current Limitations
 
 - Upload files are not yet backed up offsite.
-- Restore currently expects a local archive path; R2 download helpers can be added later if needed.
+- Restore currently expects a local archive path or local manifest path; R2 download helpers can be added later if needed.
 - Safe deploy/rollback assumes one app service and one MySQL container on the single VPS.
+- Phase 12.3 still needs one real `update-safe.sh` / `deploy-safe.sh` run plus one rollback drill before the deploy/rollback path is fully signed off.
+- Phase 12.4 still needs a real VPS rollout with backup encryption enabled, one encrypted backup validation, and one scratch restore verification drill before it can be marked complete.
 - The first production browser smoke test is still pending because the intended real first admin has not signed up yet.
+

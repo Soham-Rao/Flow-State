@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api-client";
+﻿import { apiRequest } from "@/lib/api-client";
 import { getSessionToken } from "@/lib/session";
 import type {
   ChannelConversationSummary,
@@ -22,28 +22,35 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 export async function listDmUsers(): Promise<ThreadUserSummary[]> {
   return apiRequest<ThreadUserSummary[]>("/threads/dms/users", {
     method: "GET",
-    auth: true
+    auth: true,
+    cacheTtlMs: 30_000,
+    cacheTags: ["threads:dm-users"]
   });
 }
 
 export async function listDmConversations(): Promise<DmConversationSummary[]> {
   return apiRequest<DmConversationSummary[]>("/threads/dms", {
     method: "GET",
-    auth: true
+    auth: true,
+    cacheTtlMs: 6_000,
+    cacheTags: ["threads:dms"]
   });
 }
 
 export async function getOrCreateDmConversation(userId: string): Promise<DmConversationSummary> {
   return apiRequest<DmConversationSummary>(`/threads/dms/${userId}`, {
     method: "POST",
-    auth: true
+    auth: true,
+    invalidateTags: ["threads:dms", "threads:dm-users", "dashboard:summary"]
   });
 }
 
 export async function listChannelConversations(): Promise<ChannelConversationSummary[]> {
   return apiRequest<ChannelConversationSummary[]>("/threads/channels", {
     method: "GET",
-    auth: true
+    auth: true,
+    cacheTtlMs: 6_000,
+    cacheTags: ["threads:channels"]
   });
 }
 
@@ -55,7 +62,8 @@ export async function createChannel(input: {
   return apiRequest<ChannelConversationSummary>("/threads/channels", {
     method: "POST",
     auth: true,
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
+    invalidateTags: ["threads:channels", "dashboard:summary"]
   });
 }
 
@@ -66,28 +74,33 @@ export async function updateChannel(
   return apiRequest<ChannelConversationSummary>(`/threads/channels/${conversationId}`, {
     method: "PATCH",
     auth: true,
-    body: JSON.stringify(input)
+    body: JSON.stringify(input),
+    invalidateTags: ["threads:channels", `threads:channel-members:${conversationId}`]
   });
 }
 
 export async function leaveChannel(conversationId: string): Promise<{ id: string }> {
   return apiRequest<{ id: string }>(`/threads/channels/${conversationId}/leave`, {
     method: "POST",
-    auth: true
+    auth: true,
+    invalidateTags: ["threads:channels", `threads:channel-members:${conversationId}`, "dashboard:summary"]
   });
 }
 
 export async function deleteChannel(conversationId: string): Promise<{ id: string }> {
   return apiRequest<{ id: string }>(`/threads/channels/${conversationId}`, {
     method: "DELETE",
-    auth: true
+    auth: true,
+    invalidateTags: ["threads:channels", `threads:channel-members:${conversationId}`, "dashboard:summary"]
   });
 }
 
 export async function listChannelMembers(conversationId: string): Promise<ChannelMemberSummary[]> {
   return apiRequest<ChannelMemberSummary[]>(`/threads/channels/${conversationId}/members`, {
     method: "GET",
-    auth: true
+    auth: true,
+    cacheTtlMs: 8_000,
+    cacheTags: [`threads:channel-members:${conversationId}`]
   });
 }
 
@@ -98,7 +111,8 @@ export async function addChannelMembers(
   return apiRequest<ChannelMemberSummary[]>(`/threads/channels/${conversationId}/members`, {
     method: "POST",
     auth: true,
-    body: JSON.stringify({ members })
+    body: JSON.stringify({ members }),
+    invalidateTags: [`threads:channel-members:${conversationId}`, "threads:channels"]
   });
 }
 
@@ -110,14 +124,16 @@ export async function updateChannelMemberOverrides(
   return apiRequest<ChannelMemberSummary>(`/threads/channels/${conversationId}/members/${memberId}/overrides`, {
     method: "PATCH",
     auth: true,
-    body: JSON.stringify({ overrides })
+    body: JSON.stringify({ overrides }),
+    invalidateTags: [`threads:channel-members:${conversationId}`]
   });
 }
 
 export async function removeChannelMember(conversationId: string, memberId: string): Promise<{ id: string }> {
   return apiRequest<{ id: string }>(`/threads/channels/${conversationId}/members/${memberId}`, {
     method: "DELETE",
-    auth: true
+    auth: true,
+    invalidateTags: [`threads:channel-members:${conversationId}`, "threads:channels"]
   });
 }
 
@@ -436,5 +452,6 @@ export async function fetchThreadReplyVoiceNote(voiceNoteId: string): Promise<Bl
 
   return response.blob();
 }
+
 
 

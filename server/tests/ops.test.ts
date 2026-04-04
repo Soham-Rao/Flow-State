@@ -1,12 +1,29 @@
-import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   buildArchiveFileName,
   buildBackupId,
+  buildBackupManifest,
   buildManifestFileName,
   selectEntriesToPrune,
   shouldRestoreDatabase
 } from "../src/ops/backup-manifest.js";
+import { computeFileSha256, getBackupArchiveExtension, parseBackupEncryptionKey } from "../src/ops/backup-crypto.js";
+
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  while (tempDirs.length > 0) {
+    const dir = tempDirs.pop();
+    if (dir) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
 
 describe("backup manifest helpers", () => {
   it("builds stable backup file names", () => {
@@ -34,4 +51,63 @@ describe("backup manifest helpers", () => {
     expect(shouldRestoreDatabase("auto", true)).toBe(true);
     expect(shouldRestoreDatabase("auto", false)).toBe(false);
   });
+
+  it("records checksum and encryption metadata in backup manifests", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "flowstate-manifest-"));
+    tempDirs.push(dir);
+    const archivePath = path.join(dir, "backup.sql.zst");
+    const encryptedPath = path.join(dir, "backup.sql.zst.enc");
+    fs.writeFileSync(archivePath, "plain backup");
+    fs.writeFileSync(encryptedPath, "encrypted backup");
+
+    const manifest = buildBackupManifest({
+      backupId: "20260405T120000Z-daily-abcdef1",
+      kind: "daily",
+      archivePath,
+      archiveSha256: "archive-sha",
+      encryptedArchivePath: encryptedPath,
+      encryptedArchiveSha256: "encrypted-sha",
+      encryptionEnabled: true,
+      encryptionKeyId: "primary-key",
+      currentSha: "abcdef1234567",
+      packageVersion: "0.1.0"
+    });
+
+    expect(manifest.version).toBe(2);
+    expect(manifest.archiveSha256).toBe("archive-sha");
+    expect(manifest.encryptedArchiveSha256).toBe("encrypted-sha");
+    expect(manifest.encryption).toEqual({
+      enabled: true,
+      algorithm: "aes-256-gcm",
+      keyId: "primary-key"
+    });
+    expect(manifest.verification.archive).toBe("verified");
+    expect(manifest.verification.encryptedArchive).toBe("verified");
+  });
 });
+
+describe("backup crypto helpers", () => {
+  it("parses hex and base64 backup keys", () => {
+    const hex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const base64 = Buffer.from(hex, "hex").toString("base64");
+
+    expect(parseBackupEncryptionKey(hex)).toHaveLength(32);
+    expect(parseBackupEncryptionKey(base64)).toHaveLength(32);
+  });
+
+  it("computes stable file checksums", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "flowstate-checksum-"));
+    tempDirs.push(dir);
+    const filePath = path.join(dir, "sample.txt");
+    fs.writeFileSync(filePath, "hello checksum");
+
+    const sha = await computeFileSha256(filePath);
+    expect(sha).toBe("2187766ebb93f57fbcb53b559a612bc2f95c4bc306abf35dfa13e7e7ead58ce0");
+  });
+
+  it("returns the correct backup archive extension", () => {
+    expect(getBackupArchiveExtension(true)).toBe(".sql.zst.enc");
+    expect(getBackupArchiveExtension(false)).toBe(".sql.zst");
+  });
+});
+

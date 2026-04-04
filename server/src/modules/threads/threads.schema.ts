@@ -47,7 +47,7 @@ export const threadReactionSchema = z.object({
 });
 
 export const threadMessageListSchema = z.object({
-  limit: z.coerce.number().int().positive().max(100).optional(),
+  limit: z.coerce.number().int().positive().max(80).optional(),
   cursor: z.coerce.number().int().positive().optional()
 });
 
@@ -103,6 +103,7 @@ export type CreateChannelInput = z.infer<typeof createChannelSchema>;
 export type AddChannelMembersInput = z.infer<typeof addChannelMembersSchema>;
 export type UpdateChannelMemberOverridesInput = z.infer<typeof updateChannelMemberOverridesSchema>;
 export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;
+
 
 
 

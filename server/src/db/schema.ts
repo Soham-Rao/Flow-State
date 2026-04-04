@@ -282,6 +282,7 @@ export const cards = mysqlTable("cards", {
   updatedAt: createdAt("updated_at").notNull().$defaultFn(() => new Date())
 }, (table: TableColumns) => ({
   listIdIdx: index("idx_cards_list_id").on(table.listId),
+  createdByIdx: index("idx_cards_created_by").on(table.createdBy),
   doneEnteredAtIdx: index("idx_cards_done_entered_at").on(table.doneEnteredAt)
 }));
 
@@ -411,7 +412,8 @@ export const commentMentions = mysqlTable("comment_mentions", {
   seenAt: createdAt("seen_at")
 }, (table: TableColumns) => ({
   pk: primaryKey({ columns: [table.commentId, table.userId] }),
-  userIdIdx: index("idx_comment_mentions_user_id").on(table.userId)
+  userIdIdx: index("idx_comment_mentions_user_id").on(table.userId),
+  userSeenCreatedIdx: index("idx_comment_mentions_user_seen_created").on(table.userId, table.seenAt, table.createdAt)
 }));
 
 export const announcements = mysqlTable("announcements", {
@@ -435,7 +437,8 @@ export const announcementRecipients = mysqlTable("announcement_recipients", {
   createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date()),
   seenAt: createdAt("seen_at")
 }, (table: TableColumns) => ({
-  pk: primaryKey({ columns: [table.announcementId, table.userId] })
+  pk: primaryKey({ columns: [table.announcementId, table.userId] }),
+  userSeenCreatedIdx: index("idx_announcement_recipients_user_seen_created").on(table.userId, table.seenAt, table.createdAt)
 }));
 
 export const threadConversations = mysqlTable("thread_conversations", {
@@ -503,6 +506,7 @@ export const threadMessages = mysqlTable("thread_messages", {
   deletedAt: createdAt("deleted_at")
 }, (table: TableColumns) => ({
   conversationIdx: index("idx_thread_messages_conversation_id").on(table.conversationId),
+  conversationCreatedIdx: index("idx_thread_messages_conversation_created").on(table.conversationId, table.createdAt),
   authorIdx: index("idx_thread_messages_author_id").on(table.authorId),
   createdAtIdx: index("idx_thread_messages_created_at").on(table.createdAt),
   replyToMessageIdx: index("idx_thread_messages_reply_to_message").on(table.replyToMessageId),
@@ -530,7 +534,9 @@ export const threadReplies = mysqlTable("thread_replies", {
   updatedAt: createdAt("updated_at").notNull().$defaultFn(() => new Date()),
   deletedAt: createdAt("deleted_at")
 }, (table: TableColumns) => ({
-  parentMessageIdx: index("idx_thread_replies_parent_message_id").on(table.parentMessageId)
+  parentMessageIdx: index("idx_thread_replies_parent_message_id").on(table.parentMessageId),
+  parentCreatedIdx: index("idx_thread_replies_parent_created").on(table.parentMessageId, table.createdAt),
+  authorIdx: index("idx_thread_replies_author_id").on(table.authorId)
 }));
 
 export const threadReplyAttachments = mysqlTable("thread_reply_attachments", {
@@ -588,7 +594,8 @@ export const threadMentions = mysqlTable("thread_mentions", {
   createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date()),
   seenAt: createdAt("seen_at")
 }, (table: TableColumns) => ({
-  userIdx: index("idx_thread_mentions_user_id").on(table.mentionedUserId)
+  userIdx: index("idx_thread_mentions_user_id").on(table.mentionedUserId),
+  userSeenCreatedIdx: index("idx_thread_mentions_user_seen_created").on(table.mentionedUserId, table.seenAt, table.createdAt)
 }));
 
 export const threadReplyMentions = mysqlTable("thread_reply_mentions", {
@@ -602,7 +609,8 @@ export const threadReplyMentions = mysqlTable("thread_reply_mentions", {
   createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date()),
   seenAt: createdAt("seen_at")
 }, (table: TableColumns) => ({
-  userIdx: index("idx_thread_reply_mentions_user_id").on(table.mentionedUserId)
+  userIdx: index("idx_thread_reply_mentions_user_id").on(table.mentionedUserId),
+  userSeenCreatedIdx: index("idx_thread_reply_mentions_user_seen_created").on(table.mentionedUserId, table.seenAt, table.createdAt)
 }));
 
 export const threadMessageDeletions = mysqlTable("thread_message_deletions", {
@@ -678,8 +686,10 @@ export const activityLogs = mysqlTable("activity_logs", {
   createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
 }, (table: TableColumns) => ({
   boardIdx: index("idx_activity_logs_board_id").on(table.boardId),
+  boardCreatedIdx: index("idx_activity_logs_board_created").on(table.boardId, table.createdAt),
   actorIdx: index("idx_activity_logs_actor_id").on(table.actorId),
   createdAtIdx: index("idx_activity_logs_created_at").on(table.createdAt),
+  typeCreatedIdx: index("idx_activity_logs_type_created").on(table.type, table.createdAt),
   threadConversationIdx: index("idx_activity_logs_thread_conversation_id").on(table.threadConversationId)
 }));
 
@@ -748,6 +758,13 @@ export type ThreadMemberRole = (typeof threadMemberRoles)[number];
 export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
+
+
+
+
+
+
+
 
 
 

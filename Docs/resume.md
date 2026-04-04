@@ -1,18 +1,18 @@
 # FlowState Resume Checkpoint
 
-Last checkpoint update: 2026-04-04 +05:30
+Last checkpoint update: 2026-04-05 +05:30
 Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
 - Recent changes since last checkpoint:
-  - Phase 12.3 local implementation is now complete.
-  - The client now has a global error boundary plus chunk-load recovery UI for bad post-deploy asset states.
-  - The server now exposes `/api/health/live` and `/api/health/ready`, uses structured JSON logging, and shuts down gracefully on signals/fatal process events.
-  - A new safe deploy path now exists under `deploy/vps/deploy-safe.sh` with maintenance mode, predeploy backup creation, readiness checks, rollback hooks, and alert hooks.
-  - New ops scripts were added for maintenance toggling, compressed MySQL backups, local DB restore, and rollback.
-  - `deploy/vps/redeploy.sh` remains the fast path, but now also verifies localhost readiness before finishing.
-  - Cloudflare R2 upload support is coded but not configured yet; real offsite backup validation still needs the Cloudflare account, bucket, and keys.
-  - `Docs/vps-operations.md` is now the canonical guide for the 12.3 rollout and future safe deploy/backup operations.
+  - Phase 12.3 is now live on the VPS with R2-backed backups, backup timers, maintenance mode, readiness checks, rollback tooling, and the `update-safe.sh` wrapper.
+  - Phase 12.4 local implementation is now complete.
+  - Backup tooling now supports optional AES-256-GCM encrypted offsite archives, checksum-rich manifests, verification metadata, and scratch restore verification.
+  - The migration runner now uses advisory locking, risky-migration detection, backup-aware gating for destructive changes, and postchecks.
+  - The server now logs slow queries using a bounded threshold and the schema includes new hot-path indexes for threads, mentions, activity, cards, and audit-adjacent reads.
+  - Client data fetching now has short-lived cache/dedupe + invalidation for stable reads, while realtime-heavy surfaces remain freshness-first.
+  - The router now lazy-loads major pages and Vite chunking is tuned to reduce the old monolithic client bundle.
+  - `Docs/vps-operations.md` is now the canonical guide for the 12.3/12.4 rollout and future safe deploy/backup operations.
 
 - Phase status:
   - Phase 1.1, 1.2, 1.3: complete
@@ -30,8 +30,9 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 12.0: complete
   - Phase 12.1: complete and live
   - Phase 12.2: complete and live
-  - Phase 12.3: local implementation complete; Cloudflare R2 + VPS rollout pending
-  - Phase 12.4, 12.5: not started
+  - Phase 12.3: live on prod but still pending a real safe-deploy run + rollback drill before sign-off
+  - Phase 12.4: local implementation complete; VPS rollout, encrypted backup validation, restore-verify, and sign-off pending
+  - Phase 12.5: not started
   - Phase 13: not started (future polish + CI/CD pipeline)
 
 - Deployment state:
@@ -43,23 +44,24 @@ Purpose: Resume from this exact project state, not from zero.
 ## 2) Resume-Next Priority
 
 Recommended next order:
-1. Create the Cloudflare account + R2 bucket + R2 access keys for backup storage.
-2. Add the new 12.3 backup/alert env values on the VPS.
-3. Install the remaining VPS-side 12.3 prerequisites (`awscli`, `zstd`, maintenance/backup timer assets).
-4. Roll out the new Nginx maintenance config, backup timers, and safe deploy scripts on the VPS.
-5. Validate one manual local backup, one R2 upload, one safe deploy, and one rollback scenario on the VPS.
-6. After the deployment path is proven, let the intended first user perform the first signup/admin bootstrap and then run the browser smoke test.
+1. Add the new 12.4 env values on the VPS, especially `BACKUP_ENCRYPTION_*`, `BACKUP_VERIFY_SCRATCH_MYSQL_URL`, and `DB_SLOW_QUERY_THRESHOLD_MS`.
+2. Pull the latest repo state on the VPS.
+3. Run `bash deploy/vps/update-safe.sh` as the first real safe deploy.
+4. Create one encrypted manual backup and verify the encrypted R2 object + manifest.
+5. Run `bash deploy/vps/restore-verify.sh <manifest-or-archive>` against the scratch MySQL target.
+6. Perform one controlled rollback drill using a real backup manifest.
+7. If all of that passes, mark both Phase 12.3 and 12.4 complete, then proceed to first-user signup/admin bootstrap + browser smoke test.
 
 ## 3) Production Update Workflow
 
 There are now two production deploy paths.
 
-Preferred Phase 12.3 path:
+Preferred Phase 12.3/12.4 path:
 ```bash
 ssh flowstate-vps
 cd /opt/flowstate/app
 git pull origin master
-bash deploy/vps/deploy-safe.sh
+bash deploy/vps/update-safe.sh
 ```
 
 Fast path for low-risk updates when you intentionally do not want maintenance mode + predeploy backup:
@@ -97,9 +99,11 @@ Primary reference:
 - Certbot renewal is automatic; `certbot.timer` should stay enabled.
 - Password reset is only backend scaffolding right now: `forgot-password` always returns a generic success response and real delivery must wait for SMTP/provider setup.
 - Security audit logs are stored compactly in MySQL with retention cleanup; host request/service logs should remain bounded via journald/logrotate compression and size limits.
-- Phase 12.3 offsite backups depend on Cloudflare R2 env values and are not active until those values exist on the VPS.
-- Phase 12.3 alert emails depend on SMTP settings plus `OPS_ALERT_EMAIL_TO`; until those are configured, alert hooks will safely no-op.
-- Upload files are still local-only in 12.3; database backups and release manifests are the primary rollback assets.
+- Phase 12.3 alert emails still depend on SMTP settings plus `OPS_ALERT_EMAIL_TO`; until those are configured, alert hooks will safely no-op.
+- Phase 12.4 adds backup encryption envs: `BACKUP_ENCRYPTION_ENABLED`, `BACKUP_ENCRYPTION_KEY`, and `BACKUP_ENCRYPTION_KEY_ID`.
+- Phase 12.4 adds scratch restore verification via `BACKUP_VERIFY_SCRATCH_MYSQL_URL`; this must point at a scratch database, never production.
+- `DB_SLOW_QUERY_THRESHOLD_MS` now controls bounded production slow-query timing logs.
+- Upload files are still local-only in 12.3/12.4; database backups and release manifests are the primary rollback assets.
 
 ## 6) Working Rules I Must Remember on Resume
 
@@ -111,14 +115,13 @@ Primary reference:
 
 ## 7) Immediate Follow-up Item
 
-Move Phase 12.3 from local-only to real production ops:
-- create the Cloudflare/R2 side
-- add the new env block on the VPS
-- install `awscli` + `zstd`
-- wire maintenance mode + backup timers + safe deploy assets
-- verify backup, safe deploy, and rollback on the VPS
+Complete the shared Phase 12.3/12.4 production sign-off:
+- run one real `update-safe.sh` deploy on the VPS
+- verify one encrypted offsite backup + manifest
+- run one scratch restore verification drill
+- run one rollback drill using a real manifest
 
-After that, resume the first-user production signup + smoke test.
+After that, mark both phases complete and resume the first-user production signup + smoke test.
 
 ## 8) Resume Command Pack
 
@@ -148,3 +151,4 @@ curl https://flo-state.in/api/health/ready
 ```
 
 This file is the resume checkpoint contract for continuing FlowState safely and quickly.
+
