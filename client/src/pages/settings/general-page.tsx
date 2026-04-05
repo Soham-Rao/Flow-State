@@ -6,6 +6,7 @@ import { AssignRolesModal } from "./general-page.assign-roles-modal";
 import { CreateRoleModal } from "./general-page.create-role-modal";
 import { ManageRolesModal } from "./general-page.manage-roles-modal";
 import { listInvites } from "@/lib/invites-api";
+import { hasUserPermission } from "@/lib/permissions";
 import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole, updateUserRoles } from "@/lib/roles-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useThreadSettingsStore } from "@/stores/thread-settings-store";
@@ -37,7 +38,7 @@ import {
 
 export function GeneralSettingsPage(): JSX.Element {
   const currentUser = useAuthStore((state) => state.user);
-  const canManageRoles = currentUser?.role === "admin";
+  const canManageRoles = hasUserPermission(currentUser, "manage_roles");
   const [selectedFont, setSelectedFont] = useState<FontOption>("grotesk");
   const [baselineFont, setBaselineFont] = useState<FontOption>("grotesk");
   const [selectedSpacing, setSelectedSpacing] = useState<SpacingOption>("default");
@@ -560,3 +561,4 @@ export function GeneralSettingsPage(): JSX.Element {
     </div>
   );
 }
+

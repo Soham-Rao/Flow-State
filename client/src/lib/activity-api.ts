@@ -7,7 +7,7 @@ export async function listActivityLogs(boardId?: string): Promise<ActivityLogEnt
   return apiRequest<ActivityLogEntry[]>("/activity" + query, {
     method: "GET",
     auth: true,
-    cacheTtlMs: boardId ? 6_000 : 5_000,
+    cacheTtlMs: boardId ? 1_200 : 2_500,
     cacheTags: [tag]
   });
 }

@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,27 @@ export function CreateRoleModal({
   onTogglePermission,
   onSubmit
 }: CreateRoleModalProps): JSX.Element {
+  const [permissionSearch, setPermissionSearch] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setPermissionSearch("");
+    }
+  }, [open]);
+
+  const normalizedSearch = permissionSearch.trim().toLowerCase();
+  const visibleGroups = useMemo(() => {
+    if (!normalizedSearch) return permissionGroups;
+    return permissionGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => {
+          const haystack = `${group.title} ${group.description} ${item.title} ${item.description} ${item.permission}`.toLowerCase();
+          return haystack.includes(normalizedSearch);
+        })
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [normalizedSearch]);
   return (
     <SettingsModal
       open={open}
@@ -62,7 +83,14 @@ export function CreateRoleModal({
             className="h-10 w-full sm:w-16"
           />
         </div>
-        {permissionGroups.map((group) => (
+        <Input
+          placeholder="Search permissions by name, description, or permission key"
+          value={permissionSearch}
+          onChange={(event) => setPermissionSearch(event.target.value)}
+        />
+        {visibleGroups.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No permissions match that search.</p>
+        ) : visibleGroups.map((group) => (
           <div key={group.id} className="space-y-3">
             <div>
               <h3 className="text-sm font-semibold">{group.title}</h3>

@@ -4,7 +4,7 @@ import type { DashboardSummary } from "@/types/dashboard";
 export function getDashboardSummary(): Promise<DashboardSummary> {
   return apiRequest<DashboardSummary>("/dashboard/summary", {
     auth: true,
-    cacheTtlMs: 12_000,
+    cacheTtlMs: 5_000,
     cacheTags: ["dashboard:summary"]
   });
 }

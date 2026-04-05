@@ -72,12 +72,15 @@ export async function getSystemRoleIds(): Promise<{ adminRoleId: string; memberR
   return { adminRoleId: admin.id, memberRoleId: member.id, guestRoleId: guest.id };
 }
 
-async function resolveLegacyRole(roleIds: string[]): Promise<UserRole> {
-  const { adminRoleId, memberRoleId } = await getSystemRoleIds();
+export async function resolveLegacyRole(roleIds: string[]): Promise<UserRole> {
+  const { adminRoleId, memberRoleId, guestRoleId } = await getSystemRoleIds();
   if (roleIds.includes(adminRoleId)) {
     return "admin";
   }
   if (roleIds.includes(memberRoleId)) {
+    return "member";
+  }
+  if (roleIds.some((roleId) => roleId !== guestRoleId)) {
     return "member";
   }
   return "guest";
@@ -169,7 +172,7 @@ export async function createRole(input: CreateRoleInput, actorId: string): Promi
   }
 
   const priority = input.priority ?? await getMaxPriorityBelow(actorHighest.priority);
-  await assertRoleHierarchy(actorId, priority);
+  await assertRoleHierarchy(actorId, priority, { allowEqual: true });
 
   const roleId = crypto.randomUUID();
   const now = new Date();
@@ -237,7 +240,7 @@ export async function updateRole(roleId: string, input: UpdateRoleInput, actorId
   }
 
   const nextPriority = input.priority ?? role.priority;
-  await assertRoleHierarchy(actorId, nextPriority);
+  await assertRoleHierarchy(actorId, nextPriority, { allowEqual: true });
 
   const now = new Date();
 
@@ -284,7 +287,7 @@ export async function deleteRole(roleId: string, actorId: string): Promise<void>
     throw new ApiError(403, "System roles cannot be deleted");
   }
 
-  await assertRoleHierarchy(actorId, role.priority);
+  await assertRoleHierarchy(actorId, role.priority, { allowEqual: true });
 
   await db.delete(roles).where(eq(roles.id, roleId)).execute();
 }
@@ -366,7 +369,7 @@ export async function updateUserRoles(userId: string, roleIds: string[], actorId
   }
 
   for (const role of rolesRows) {
-    await assertRoleHierarchy(actorId, role.priority);
+    await assertRoleHierarchy(actorId, role.priority, { allowEqual: true });
   }
 
   const now = new Date();

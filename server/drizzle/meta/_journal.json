@@ -43,6 +43,13 @@
       "when": 1775344059741,
       "tag": "0005_famous_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1775406017311,
+      "tag": "0006_cold_shadowcat",
+      "breakpoints": true
     }
   ]
 }

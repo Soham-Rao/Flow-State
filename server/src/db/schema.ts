@@ -542,6 +542,7 @@ export const threadReplies = mysqlTable("thread_replies", {
   parentMessageId: char("parent_message_id", { length: 36 })
     .notNull()
     .references(() => threadMessages.id, { onDelete: "cascade" }),
+  replyToReplyId: char("reply_to_reply_id", { length: 36 }),
   authorId: char("author_id", { length: 36 })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -555,7 +556,13 @@ export const threadReplies = mysqlTable("thread_replies", {
 }, (table: TableColumns) => ({
   parentMessageIdx: index("idx_thread_replies_parent_message_id").on(table.parentMessageId),
   parentCreatedIdx: index("idx_thread_replies_parent_created").on(table.parentMessageId, table.createdAt),
-  authorIdx: index("idx_thread_replies_author_id").on(table.authorId)
+  replyToReplyIdx: index("idx_thread_replies_reply_to_reply").on(table.replyToReplyId),
+  authorIdx: index("idx_thread_replies_author_id").on(table.authorId),
+  replyToReplyFk: foreignKey({
+    name: "fk_thread_replies_reply_to_reply",
+    columns: [table.replyToReplyId],
+    foreignColumns: [table.id]
+  }).onDelete("set null")
 }));
 
 export const threadReplyAttachments = mysqlTable("thread_reply_attachments", {
@@ -778,6 +785,7 @@ export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
 export type BugReportStatus = (typeof bugReportStatuses)[number];
+
 
 
 

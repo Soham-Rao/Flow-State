@@ -5,14 +5,15 @@ import { and, count, eq, isNull, ne } from "drizzle-orm";
 
 import { env } from "../../config/env.js";
 import { db } from "../../db/connection.js";
-import { passwordResetTokens, users, type UserRole } from "../../db/schema.js";
+import { passwordResetTokens, roles, userRoleAssignments, users, type RolePermission, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { SecurityRequestContext } from "../../utils/request-context.js";
+import { getUserPermissions } from "../../utils/permissions.js";
 import { sanitizeOptionalPlainText, sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import { signAccessToken } from "../../utils/jwt.js";
 import { consumeInvite, validateInviteForRegistration } from "../invites/invites.service.js";
 import { hashAuditValue, recordAuditLog } from "../security/audit.service.js";
-import { getSystemRoleIds, setUserRoles } from "../roles/roles.service.js";
+import { getSystemRoleIds, resolveLegacyRole, setUserRoles } from "../roles/roles.service.js";
 import type { ForgotPasswordBody, LoginBody, RegisterBody, ResetPasswordBody, UpdateProfileBody } from "./auth.schema.js";
 
 interface PublicUser {
@@ -20,6 +21,8 @@ interface PublicUser {
   name: string;
   email: string;
   role: UserRole;
+  permissions: RolePermission[];
+  assignedRoles: Array<{ id: string; name: string; color: string }>;
   username: string | null;
   displayName: string | null;
   bio: string | null;
@@ -54,11 +57,25 @@ function buildAuditContext(context?: Partial<AuditContext>): AuditContext {
   };
 }
 
+async function getAssignedRoles(userId: string): Promise<Array<{ id: string; name: string; color: string }>> {
+  return db
+    .select({
+      id: roles.id,
+      name: roles.name,
+      color: roles.color
+    })
+    .from(userRoleAssignments)
+    .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+    .where(eq(userRoleAssignments.userId, userId));
+}
+
 function toPublicUser(user: {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  permissions: RolePermission[];
+  assignedRoles: Array<{ id: string; name: string; color: string }>;
   username: string | null;
   displayName: string | null;
   bio: string | null;
@@ -71,6 +88,8 @@ function toPublicUser(user: {
     name: user.name,
     email: user.email,
     role: user.role,
+    permissions: user.permissions,
+    assignedRoles: user.assignedRoles,
     username: user.username,
     displayName: user.displayName,
     bio: user.bio,
@@ -113,9 +132,9 @@ export async function registerUser(input: RegisterBody, context?: Partial<AuditC
     .from(users);
   const totalUsers = totalRows[0]?.totalUsers ?? 0;
 
-  const { adminRoleId, memberRoleId, guestRoleId } = await getSystemRoleIds();
+  const { adminRoleId, guestRoleId } = await getSystemRoleIds();
   const roleIds = totalUsers === 0 ? [adminRoleId] : (invite?.roleIds ?? [guestRoleId]);
-  const role: UserRole = roleIds.includes(adminRoleId) ? "admin" : roleIds.includes(memberRoleId) ? "member" : "guest";
+  const role: UserRole = await resolveLegacyRole(roleIds);
   const passwordHash = await bcrypt.hash(input.password, 12);
   const now = new Date();
   const userId = crypto.randomUUID();
@@ -186,7 +205,7 @@ export async function registerUser(input: RegisterBody, context?: Partial<AuditC
 
   return {
     token,
-    user: toPublicUser(created)
+    user: toPublicUser({ ...created, permissions: Array.from(await getUserPermissions(created.id)).sort(), assignedRoles: await getAssignedRoles(created.id) })
   };
 }
 
@@ -263,7 +282,7 @@ export async function loginUser(input: LoginBody, context?: Partial<AuditContext
 
   return {
     token,
-    user: toPublicUser(user)
+    user: toPublicUser({ ...user, permissions: Array.from(await getUserPermissions(user.id)).sort(), assignedRoles: await getAssignedRoles(user.id) })
   };
 }
 
@@ -423,7 +442,7 @@ export async function getCurrentUser(userId: string): Promise<PublicUser> {
     throw new ApiError(404, "User not found");
   }
 
-  return toPublicUser(user);
+  return toPublicUser({ ...user, permissions: Array.from(await getUserPermissions(user.id)).sort(), assignedRoles: await getAssignedRoles(user.id) });
 }
 
 export async function updateProfile(userId: string, input: UpdateProfileBody): Promise<PublicUser> {
@@ -498,5 +517,9 @@ export async function updateProfile(userId: string, input: UpdateProfileBody): P
     throw new ApiError(404, "User not found");
   }
 
-  return toPublicUser(user);
+  return toPublicUser({ ...user, permissions: Array.from(await getUserPermissions(user.id)).sort(), assignedRoles: await getAssignedRoles(user.id) });
 }
+
+
+
+

@@ -125,6 +125,8 @@ export interface ThreadMessageSummary {
 export interface ThreadReplySummary {
   id: string;
   parentMessageId: string;
+  replyToReplyId: string | null;
+  replyContext: ThreadReplyContext | null;
   author: ThreadUserSummary;
   body: string | null;
   createdAt: string;
@@ -140,6 +142,7 @@ export interface ThreadDeleteResult {
   scope: "me" | "all";
   message?: ThreadMessageSummary;
 }
+
 
 
 

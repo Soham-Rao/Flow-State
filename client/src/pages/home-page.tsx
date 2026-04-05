@@ -304,7 +304,7 @@ export function HomePage(): JSX.Element {
     if (announcementOptionsStatus === "loading") return;
     setAnnouncementOptionsStatus("loading");
     try {
-      const options = await listAnnouncementAudienceOptions();
+      const options = await listAnnouncementAudienceOptions({ skipCache: true });
       setAnnouncementOptions(options);
       setAnnouncementOptionsStatus("ready");
     } catch {
@@ -323,40 +323,11 @@ export function HomePage(): JSX.Element {
   };
 
   const toggleRoleAudience = (roleId: string, source: "include" | "exclude"): void => {
-    if (!announcementOptions) return;
-    const allRoleIds = announcementOptions.roles.map((role) => role.id);
-    if (allRoleIds.length === 0) return;
-
-    setAnnouncementAudience((prev) => {
-      const includeSet = new Set(prev.includeRoleIds);
-      const excludeSet = new Set(prev.excludeRoleIds);
-
-      if (source === "include") {
-        if (includeSet.has(roleId)) {
-          includeSet.delete(roleId);
-        } else {
-          includeSet.add(roleId);
-        }
-        const nextExclude = allRoleIds.filter((id) => !includeSet.has(id));
-        return {
-          ...prev,
-          includeRoleIds: Array.from(includeSet),
-          excludeRoleIds: nextExclude
-        };
-      }
-
-      if (excludeSet.has(roleId)) {
-        excludeSet.delete(roleId);
-      } else {
-        excludeSet.add(roleId);
-      }
-      const nextInclude = allRoleIds.filter((id) => !excludeSet.has(id));
-      return {
-        ...prev,
-        includeRoleIds: nextInclude,
-        excludeRoleIds: Array.from(excludeSet)
-      };
-    });
+    setAnnouncementAudience((prev) => ({
+      ...prev,
+      includeRoleIds: source === "include" ? toggleAudienceList(prev.includeRoleIds, roleId) : prev.includeRoleIds,
+      excludeRoleIds: source === "exclude" ? toggleAudienceList(prev.excludeRoleIds, roleId) : prev.excludeRoleIds
+    }));
   };
 
   const handleSendAnnouncement = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -447,7 +418,7 @@ export function HomePage(): JSX.Element {
     const interval = window.setInterval(() => {
       if (document.hidden) return;
       void loadSummary();
-    }, 15000);
+    }, 7000);
     return () => window.clearInterval(interval);
   }, [user?.id]);
 
@@ -485,7 +456,7 @@ export function HomePage(): JSX.Element {
     const workspaceInterval = window.setInterval(() => {
       if (document.hidden) return;
       void loadWorkspaceActivity();
-    }, 10000);
+    }, 4000);
     return () => window.clearInterval(workspaceInterval);
   }, [user, loadWorkspaceActivity, socketStatus]);
 
@@ -565,6 +536,25 @@ export function HomePage(): JSX.Element {
             <ThreadMentionsCard mentions={threadMentions} isLoading={summaryStatus === "loading"} />
           </div>
 
+          <AnnouncementsCard
+            announcements={announcements}
+            isLoading={summaryStatus === "loading"}
+            canSend={Boolean(announcementCapabilities?.canSend)}
+            selectionMode={announcementSelectionMode}
+            selectedAnnouncementIds={selectedAnnouncementSet}
+            listError={announcementListError}
+            onToggleSelectionMode={setAnnouncementSelection}
+            onToggleSelection={toggleAnnouncementSelection}
+            onDeleteSelected={() => {
+              void handleDeleteAnnouncements(selectedAnnouncementIds);
+            }}
+            onDeleteAnnouncement={(id) => {
+              void handleDeleteAnnouncements([id]);
+            }}
+            onOpenCompose={openAnnouncementCompose}
+            onOpenView={openAnnouncementView}
+          />
+
           <InvitesCard
             isAdmin={isAdmin}
             inviteEmail={inviteEmail}
@@ -591,24 +581,6 @@ export function HomePage(): JSX.Element {
           <SummaryCard weekly={weeklyMetrics} monthly={monthlyMetrics} />
           <ActivityHighlightsCard items={activityHighlights} isLoading={summaryStatus === "loading"} />
           <TeamPulseCard activity={activity} status={activityStatus} currentUserId={user?.id ?? null} />
-                    <AnnouncementsCard
-            announcements={announcements}
-            isLoading={summaryStatus === "loading"}
-            canSend={Boolean(announcementCapabilities?.canSend)}
-            selectionMode={announcementSelectionMode}
-            selectedAnnouncementIds={selectedAnnouncementSet}
-            listError={announcementListError}
-            onToggleSelectionMode={setAnnouncementSelection}
-            onToggleSelection={toggleAnnouncementSelection}
-            onDeleteSelected={() => {
-              void handleDeleteAnnouncements(selectedAnnouncementIds);
-            }}
-            onDeleteAnnouncement={(id) => {
-              void handleDeleteAnnouncements([id]);
-            }}
-            onOpenCompose={openAnnouncementCompose}
-            onOpenView={openAnnouncementView}
-          />
           <NewJoinersCard joiners={newJoiners} isLoading={summaryStatus === "loading"} />
         </div>
       </div>
@@ -660,6 +632,7 @@ export function HomePage(): JSX.Element {
     </div>
   );
 }
+
 
 
 

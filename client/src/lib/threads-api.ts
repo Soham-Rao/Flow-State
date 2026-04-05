@@ -1,4 +1,4 @@
-﻿import { apiRequest } from "@/lib/api-client";
+import { apiRequest } from "@/lib/api-client";
 import { getSessionToken } from "@/lib/session";
 import type {
   ChannelConversationSummary,
@@ -220,7 +220,7 @@ export async function deleteThreadReply(replyId: string, scope: "me" | "all" = "
   });
 }
 
-export async function createThreadReply(messageId: string, input: { body: string; mentions?: string[]; hasAttachments?: boolean; hasVoiceNote?: boolean }): Promise<ThreadReplySummary> {
+export async function createThreadReply(messageId: string, input: { body: string; mentions?: string[]; hasAttachments?: boolean; hasVoiceNote?: boolean; replyToReplyId?: string }): Promise<ThreadReplySummary> {
   return apiRequest<ThreadReplySummary>(`/threads/messages/${messageId}/replies`, {
     method: "POST",
     auth: true,
@@ -452,6 +452,7 @@ export async function fetchThreadReplyVoiceNote(voiceNoteId: string): Promise<Bl
 
   return response.blob();
 }
+
 
 
 

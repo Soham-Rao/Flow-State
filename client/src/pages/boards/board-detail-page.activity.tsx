@@ -12,8 +12,8 @@ interface BoardActivityPanelProps {
 }
 
 const EMPTY_ACTIVITY_EVENTS: ActivityLogEntry[] = [];
-const POLL_INTERVAL_MS = 2000;
-const MAX_VISIBLE_EVENTS = 20;
+const POLL_INTERVAL_MS = 1200;
+const MAX_VISIBLE_EVENTS = 36;
 
 type ActivitySectionKey = "comments" | "mentions" | "checklists" | "movement" | "deletions" | "updates" | "other";
 
@@ -70,6 +70,7 @@ export function BoardActivityPanel({ boardId }: BoardActivityPanelProps): JSX.El
     if (!boardId) return;
     void loadBoardActivity(boardId);
     const interval = window.setInterval(() => {
+      if (document.hidden) return;
       void loadBoardActivity(boardId);
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);

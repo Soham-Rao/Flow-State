@@ -32,6 +32,7 @@ const inFlightRequests = new Map<string, Promise<unknown>>();
 const tagToCacheKeys = new Map<string, Set<string>>();
 let maintenanceRedirectPending = false;
 let maintenanceRedirectHandler: (() => void) | null = null;
+let sessionExpiryDialogOpen = false;
 
 function triggerMaintenanceRedirect(): void {
   if (typeof window === "undefined" || maintenanceRedirectPending) {
@@ -92,11 +93,16 @@ function classifyAndPresentError(responseStatus: number, message: string, authRe
   }
 
   if (responseStatus === 401 && authRequest) {
+    if (sessionExpiryDialogOpen) {
+      return;
+    }
+    sessionExpiryDialogOpen = true;
     openFriendlyErrorDialog({
       title: "Session expired",
       description: "Your FlowState session is no longer valid. Sign in again to continue.",
       confirmLabel: "Sign in again",
       onConfirm: () => {
+        sessionExpiryDialogOpen = false;
         clearSessionToken();
         clearApiCache();
         if (typeof window !== "undefined") {
@@ -200,11 +206,13 @@ export function clearApiCache(): void {
   inFlightRequests.clear();
   tagToCacheKeys.clear();
   maintenanceRedirectPending = false;
+  sessionExpiryDialogOpen = false;
 }
 
 export function __setMaintenanceRedirectHandlerForTests(handler: (() => void) | null): void {
   maintenanceRedirectHandler = handler;
   maintenanceRedirectPending = false;
+  sessionExpiryDialogOpen = false;
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {

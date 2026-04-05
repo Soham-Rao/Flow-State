@@ -410,7 +410,7 @@ export function BoardsPage(): JSX.Element {
         )}
 
         {isCreateOpen && (
-          <div className={`fixed inset-0 z-[70] h-[100dvh] w-screen flex items-center justify-center ${boardGlassOverlay} ${boardGlassOverlayDark} p-4`}
+          <div className={`fixed inset-0 z-[70] flex h-[100dvh] w-screen items-start justify-center overflow-y-auto ${boardGlassOverlay} ${boardGlassOverlayDark} p-3 sm:items-center sm:p-4`}
             onMouseDown={(event) => {
               if (event.target === event.currentTarget) {
                 setIsCreateOpen(false);
@@ -418,12 +418,12 @@ export function BoardsPage(): JSX.Element {
               }
             }}
           >
-            <Card className={`w-full max-w-lg ${boardGlassModal}`} onMouseDown={(event) => event.stopPropagation()}>
+            <Card className={`w-[min(100%,36rem)] max-h-[calc(100dvh-1.5rem)] overflow-hidden ${boardGlassModal} sm:max-h-[calc(100dvh-2rem)]`} onMouseDown={(event) => event.stopPropagation()}>
               <CardHeader>
                 <CardTitle>Create board</CardTitle>
                 <CardDescription>Choose a name, short description, and visual background.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-h-[calc(100dvh-9rem)] overflow-y-auto">
                 <form className="space-y-4" onSubmit={onCreateBoard}>
                   <Input
                     value={name}
@@ -503,6 +503,7 @@ export function BoardsPage(): JSX.Element {
     </>
   );
 }
+
 
 
 

@@ -124,6 +124,8 @@ export interface ThreadMessageSummary {
 export interface ThreadReplySummary {
   id: string;
   parentMessageId: string;
+  replyToReplyId: string | null;
+  replyContext: ThreadReplyContext | null;
   author: ThreadUserSummary;
   body: string | null;
   createdAt: Date;
@@ -133,6 +135,7 @@ export interface ThreadReplySummary {
   attachments: ThreadReplyAttachment[];
   voiceNote: ThreadReplyVoiceNote | null;
 }
+
 
 
 

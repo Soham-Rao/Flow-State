@@ -101,7 +101,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className={`fixed inset-0 ${overlayClassName} flex items-center justify-center bg-black/45 p-4`}
+      className={`fixed inset-0 ${overlayClassName} flex items-start justify-center overflow-y-auto bg-black/45 p-3 sm:items-center sm:p-4`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onCancel();
@@ -115,7 +115,7 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="w-full max-w-md"
+        className="w-[min(100%,32rem)] max-h-[calc(100dvh-1.5rem)] overflow-hidden sm:max-h-[calc(100dvh-2rem)]"
         onMouseDown={(event) => event.stopPropagation()}
         tabIndex={-1}
       >
@@ -123,28 +123,31 @@ export function ConfirmDialog({
           <CardTitle id={titleId}>{title}</CardTitle>
           <CardDescription id={descriptionId}>{description}</CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-end gap-2">
-          {showCancel && (
-            <Button ref={cancelRef} type="button" variant="ghost" onClick={onCancel}>
-              {cancelLabel}
-            </Button>
-          )}
-          {showConfirm && (
-            <Button
-              ref={confirmRef}
-              type="button"
-              variant={confirmVariant}
-              className={confirmClassName}
-              onClick={onConfirm}
-            >
-              {confirmLabel}
-            </Button>
-          )}
+        <CardContent className="max-h-[calc(100dvh-9rem)] overflow-y-auto">
+          <div className="flex flex-wrap justify-end gap-2">
+            {showCancel && (
+              <Button ref={cancelRef} type="button" variant="ghost" onClick={onCancel}>
+                {cancelLabel}
+              </Button>
+            )}
+            {showConfirm && (
+              <Button
+                ref={confirmRef}
+                type="button"
+                variant={confirmVariant}
+                className={confirmClassName}
+                onClick={onConfirm}
+              >
+                {confirmLabel}
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
 
 
 

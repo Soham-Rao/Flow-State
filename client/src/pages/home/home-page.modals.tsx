@@ -43,14 +43,14 @@ export function InviteStatusModal({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/40 p-3 sm:items-center sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
         }
       }}
     >
-      <Card className={`w-full max-w-3xl ${glassStrongClass} bg-white/60 border-white/60`} onMouseDown={(event) => event.stopPropagation()}>
+      <Card className={`w-[min(100%,48rem)] max-h-[calc(100dvh-1.5rem)] overflow-hidden ${glassStrongClass} bg-white/60 border-white/60 sm:max-h-[calc(100dvh-2rem)]`} onMouseDown={(event) => event.stopPropagation()}>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Invite status</CardTitle>
@@ -163,14 +163,14 @@ export function AnnouncementComposeModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 dark:bg-black/55"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/20 p-3 sm:items-center sm:p-4 dark:bg-black/55"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
         }
       }}
     >
-      <Card className={`w-full max-w-4xl ${glassStrongClass} bg-white/60 border-white/70 shadow-[0_24px_70px_rgba(15,23,42,0.12)] dark:!bg-black/45 dark:!border-white/20 dark:text-white/95 dark:!backdrop-blur-2xl`} onMouseDown={(event) => event.stopPropagation()}>
+      <Card className={`w-[min(100%,64rem)] max-h-[calc(100dvh-1.5rem)] overflow-hidden ${glassStrongClass} bg-white/60 border-white/70 shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:max-h-[calc(100dvh-2rem)] dark:!bg-black/45 dark:!border-white/20 dark:text-white/95 dark:!backdrop-blur-2xl`} onMouseDown={(event) => event.stopPropagation()}>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>New announcement</CardTitle>
@@ -180,7 +180,7 @@ export function AnnouncementComposeModal({
             Close
           </Button>
         </CardHeader>
-        <CardContent className="max-h-[70vh] overflow-y-auto pr-2">
+        <CardContent className="max-h-[calc(100dvh-9rem)] overflow-y-auto pr-2">
           <form className="space-y-4" onSubmit={onSend}>
             {error && (
               <p className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -345,14 +345,14 @@ export function AnnouncementViewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 dark:bg-black/55"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/20 p-3 sm:items-center sm:p-4 dark:bg-black/55"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
         }
       }}
     >
-      <Card className={`w-full max-w-2xl ${glassStrongClass} bg-white/60 border-white/60`} onMouseDown={(event) => event.stopPropagation()}>
+      <Card className={`w-[min(100%,42rem)] max-h-[calc(100dvh-1.5rem)] overflow-hidden ${glassStrongClass} bg-white/60 border-white/60 sm:max-h-[calc(100dvh-2rem)]`} onMouseDown={(event) => event.stopPropagation()}>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>{announcement.subject}</CardTitle>
@@ -364,7 +364,7 @@ export function AnnouncementViewModal({
             Close
           </Button>
         </CardHeader>
-        <CardContent className="max-h-[70vh] space-y-4 overflow-y-auto pr-2">
+        <CardContent className="max-h-[calc(100dvh-9rem)] space-y-4 overflow-y-auto pr-2">
           <div className={`rounded-md p-4 ${glassSubtleClass}`}>
             <p className="whitespace-pre-wrap text-sm text-foreground">{announcement.body}</p>
           </div>
@@ -373,6 +373,7 @@ export function AnnouncementViewModal({
     </div>
   );
 }
+
 
 
 

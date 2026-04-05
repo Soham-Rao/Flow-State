@@ -96,6 +96,72 @@ describe("Threads API", () => {
     expect(repliesResponse.body.data.length).toBe(1);
   });
 
+  it("returns reply context when replying to another reply", async () => {
+    const admin = await registerUser("Admin", "admin@example.com");
+    const member = await registerUser("Member", "member@example.com");
+
+    const conversationResponse = await request(app)
+      .post(`/api/threads/dms/${member.id}`)
+      .set("Authorization", `Bearer ${admin.token}`);
+
+    const conversationId = conversationResponse.body.data.id as string;
+
+    const messageResponse = await request(app)
+      .post(`/api/threads/conversations/${conversationId}/messages`)
+      .set("Authorization", `Bearer ${admin.token}`)
+      .send({
+        body: "Parent message",
+        mentions: []
+      });
+
+    const messageId = messageResponse.body.data.id as string;
+
+    const firstReplyResponse = await request(app)
+      .post(`/api/threads/messages/${messageId}/replies`)
+      .set("Authorization", `Bearer ${admin.token}`)
+      .send({
+        body: "First reply",
+        mentions: []
+      });
+
+    expect(firstReplyResponse.status).toBe(201);
+    const firstReplyId = firstReplyResponse.body.data.id as string;
+
+    const secondReplyResponse = await request(app)
+      .post(`/api/threads/messages/${messageId}/replies`)
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({
+        body: "Replying to the first reply",
+        mentions: [],
+        replyToReplyId: firstReplyId
+      });
+
+    expect(secondReplyResponse.status).toBe(201);
+    expect(secondReplyResponse.body.data.replyToReplyId).toBe(firstReplyId);
+    expect(secondReplyResponse.body.data.replyContext).toMatchObject({
+      id: firstReplyId,
+      kind: "reply",
+      author: { id: admin.id },
+      body: "First reply"
+    });
+
+    const repliesResponse = await request(app)
+      .get(`/api/threads/messages/${messageId}/replies`)
+      .set("Authorization", `Bearer ${admin.token}`);
+
+    expect(repliesResponse.status).toBe(200);
+    const nestedReply = (repliesResponse.body.data as Array<{ id: string; replyToReplyId: string | null; replyContext: { id: string; kind: string; body: string | null } | null }>).find(
+      (reply) => reply.id === secondReplyResponse.body.data.id
+    );
+
+    expect(nestedReply?.replyToReplyId).toBe(firstReplyId);
+    expect(nestedReply?.replyContext).toMatchObject({
+      id: firstReplyId,
+      kind: "reply",
+      body: "First reply"
+    });
+  });
+
   it("tracks unread mentions across threads and comments", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");

@@ -280,6 +280,24 @@ export function ThreadsReplyDrawer({
                 ? reply.body
                 : "This message was deleted."
               : reply.body;
+            const replyContext = reply.replyContext;
+            const replyAuthorLabel = replyContext
+              ? replyContext.author.displayName ?? replyContext.author.username ?? replyContext.author.name
+              : "";
+            const replyPreview = replyContext?.body?.trim()
+              ? replyContext.body
+              : replyContext
+                ? "Attachment"
+                : "";
+            const replyBlock = replyContext ? (
+              <div className={`mb-2 rounded-lg border border-border/60 bg-background/70 px-3 py-2 text-[11px] text-muted-foreground ${isMine ? "text-right" : "text-left"}`}>
+                <div className={`flex items-center gap-1 ${isMine ? "justify-end" : "justify-start"}`}>
+                  <CornerUpLeft className="h-3 w-3" />
+                  <span>Replying to {replyAuthorLabel}</span>
+                </div>
+                <p className="mt-1 text-[12px] text-foreground/80">{replyPreview}</p>
+              </div>
+            ) : null;
             const avatar = (
               <UserHoverCard user={reply.author}>
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-sm font-semibold">
@@ -394,6 +412,7 @@ export function ThreadsReplyDrawer({
                     : "border-emerald-400/40 bg-emerald-500/15"
                 }`}
               >
+                {replyBlock}
                 {isEdited && !isEditing && (
                   <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                     Edited

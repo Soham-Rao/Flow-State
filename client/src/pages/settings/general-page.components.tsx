@@ -34,19 +34,19 @@ export function SettingsModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-3 sm:items-center sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
         }
       }}
     >
-      <Card className="w-full max-w-4xl" onMouseDown={(event) => event.stopPropagation()}>
+      <Card className="w-[min(100%,64rem)] max-h-[calc(100dvh-1.5rem)] overflow-hidden sm:max-h-[calc(100dvh-2rem)]" onMouseDown={(event) => event.stopPropagation()}>
         <CardHeader className="space-y-1">
           <CardTitle>{title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
-        <CardContent className="max-h-[70vh] space-y-4 overflow-y-auto">
+        <CardContent className="max-h-[calc(100dvh-9rem)] space-y-4 overflow-y-auto">
           {children}
           <div className="flex justify-end">
             <Button type="button" variant="secondary" onClick={onClose}>
@@ -98,3 +98,4 @@ export function PermissionToggleRow({
     </div>
   );
 }
+

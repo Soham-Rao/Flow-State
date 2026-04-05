@@ -39,6 +39,7 @@ interface AuthState {
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
+  refreshCurrentUser: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -142,6 +143,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     clearSessionToken();
     clearApiCache();
     set(setUnauthenticated());
+  },
+
+  refreshCurrentUser: async () => {
+    const token = getSessionToken();
+    if (!token) {
+      return;
+    }
+
+    try {
+      const user = await authApi.getCurrentUser();
+      set((state) => (state.user ? { ...setAuthenticated(user), hydrated: state.hydrated } : state));
+    } catch {
+      clearSessionToken();
+      clearApiCache();
+      set((state) => ({ ...setUnauthenticated(), hydrated: state.hydrated }));
+    }
   },
 
   clearError: () => {

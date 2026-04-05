@@ -7,7 +7,7 @@ import { db, type DbTransaction } from "../../db/connection.js";
 import { inviteRoleAssignments, invites, roles, users, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { assertRoleHierarchy } from "../../utils/permissions.js";
-import { getSystemRoleIds } from "../roles/roles.service.js";
+import { getSystemRoleIds, resolveLegacyRole } from "../roles/roles.service.js";
 import type { CreateInviteInput } from "./invites.schema.js";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -380,17 +380,12 @@ export async function updateInviteRoles(inviteId: string, roleIds: string[], act
   }
 
   for (const role of rolesRows) {
-    await assertRoleHierarchy(actorId, role.priority);
+    await assertRoleHierarchy(actorId, role.priority, { allowEqual: true });
   }
 
   await replaceInviteRoles(inviteId, uniqueRoleIds);
 
-  const { adminRoleId, memberRoleId } = await getSystemRoleIds();
-  const legacyRole: UserRole = uniqueRoleIds.includes(adminRoleId)
-    ? "admin"
-    : uniqueRoleIds.includes(memberRoleId)
-      ? "member"
-      : "guest";
+  const legacyRole: UserRole = await resolveLegacyRole(uniqueRoleIds);
 
   await db.update(invites).set({ role: legacyRole, updatedAt: new Date() }).where(eq(invites.id, inviteId)).execute();
 

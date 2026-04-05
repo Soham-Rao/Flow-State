@@ -1055,7 +1055,12 @@ export function useThreadActions({
       if (userId) {
         mentionSet.delete(userId);
       }
-      const created = await createThreadReply(replyTarget.id, { body: trimmed, mentions: Array.from(mentionSet), hasAttachments });
+      const created = await createThreadReply(replyTarget.id, {
+        body: trimmed,
+        mentions: Array.from(mentionSet),
+        hasAttachments,
+        replyToReplyId: replyInlineTarget?.id ?? undefined
+      });
       let attachments = created.attachments ?? [];
       if (replyPendingAttachments.length > 0) {
         attachments = await createThreadReplyAttachments(created.id, replyPendingAttachments);
@@ -1340,6 +1345,7 @@ export function useThreadActions({
     handleReplyKeyDown
   };
 }
+
 
 
 

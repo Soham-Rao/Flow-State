@@ -12,6 +12,7 @@ const seedUser = () => {
       name: "Test User",
       email: "test@example.com",
       role: "member",
+      permissions: [],
       username: "tester",
       displayName: "Tester",
       bio: null,

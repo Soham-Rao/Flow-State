@@ -287,7 +287,7 @@ export function StandardModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/20 p-4 backdrop-blur-sm dark:bg-black/55"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/20 p-3 backdrop-blur-sm sm:items-center sm:p-4 dark:bg-black/55"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -299,7 +299,7 @@ export function StandardModal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={cn("w-full rounded-3xl overflow-hidden", glassStrongClass, "bg-white/60 border-white/70 backdrop-blur-2xl shadow-[0_24px_70px_rgba(15,23,42,0.12)] text-slate-900 [&_.text-muted-foreground]:text-slate-600 [&_.text-foreground]:text-slate-900 dark:bg-black/45 dark:border-white/20 dark:text-white dark:[&_.text-muted-foreground]:text-white/70 dark:[&_.text-foreground]:text-white dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] dark:backdrop-blur-2xl", sizeClass)}
+        className={cn("w-full rounded-3xl overflow-hidden max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)]", glassStrongClass, "bg-white/60 border-white/70 backdrop-blur-2xl shadow-[0_24px_70px_rgba(15,23,42,0.12)] text-slate-900 [&_.text-muted-foreground]:text-slate-600 [&_.text-foreground]:text-slate-900 dark:bg-black/45 dark:border-white/20 dark:text-white dark:[&_.text-muted-foreground]:text-white/70 dark:[&_.text-foreground]:text-white dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] dark:backdrop-blur-2xl", sizeClass)}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 px-6 py-4">
@@ -315,7 +315,7 @@ export function StandardModal({
           </div>
           {headerActions && <div className="flex flex-wrap items-center gap-2">{headerActions}</div>}
         </div>
-        <div className={cn("max-h-[70vh] overflow-y-auto px-6 py-4", bodyClassName)}>
+        <div className={cn("max-h-[calc(100dvh-9rem)] overflow-y-auto px-4 py-4 sm:px-6", bodyClassName)}>
           {children}
         </div>
         {resolvedFooter !== null && (
@@ -330,6 +330,7 @@ export const templateInputClass = cn(
   "w-full rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
   glassInputClass
 );
+
 
 
 

@@ -1,25 +1,46 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, lt } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
 import { emitThreadEvent } from "../../realtime/socket.js";
-import { threadMessages, threadReplies, threadReplyAttachments, threadReplyDeletions, threadReplyMentions, threadReplyReactions, threadReplyVoiceNotes, users, type UserRole } from "../../db/schema.js";
+import {
+  threadMessages,
+  threadReplies,
+  threadReplyAttachments,
+  threadReplyDeletions,
+  threadReplyMentions,
+  threadReplyReactions,
+  threadReplyVoiceNotes,
+  users,
+  type UserRole
+} from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { sanitizePlainText } from "../../utils/sanitize.js";
 import { decryptDmBody, encryptDmBody } from "../../utils/encryption.js";
 import { assertPermission } from "../../utils/permissions.js";
-import type { CreateThreadReplyInput, DeleteThreadReplyInput, ThreadMessageListParams, UpdateThreadReplyInput } from "./threads.schema.js";
-import type { ThreadReactionDetail, ThreadReplySummary, ThreadUserSummary } from "./threads.service.types.js";
+import type {
+  CreateThreadReplyInput,
+  DeleteThreadReplyInput,
+  ThreadMessageListParams,
+  UpdateThreadReplyInput
+} from "./threads.schema.js";
+import type { ThreadReactionDetail, ThreadReplyContext, ThreadReplySummary, ThreadUserSummary } from "./threads.service.types.js";
 import { assertConversationMember, assertConversationPermission, ensureUserExists, getConversation } from "./threads.service.access.js";
 import { storeThreadReplyMentions } from "./threads.service.mentions.js";
-import { getThreadAttachmentsForReplies, getThreadReplyDeletionSet, getThreadReplyReactions, getThreadVoiceNotesForReplies } from "./threads.service.data.js";
+import {
+  getThreadAttachmentsForReplies,
+  getThreadReplyDeletionSet,
+  getThreadReplyReactions,
+  getThreadVoiceNotesForReplies
+} from "./threads.service.data.js";
 import { resolveThreadReplyAttachmentPath, resolveThreadReplyVoiceNotePath } from "./threads.service.storage.js";
 
 type ThreadReplyRow = {
   id: string;
   parentMessageId: string;
+  replyToReplyId: string | null;
   body: string | null;
   bodyEncrypted: string | null;
   encryptionVersion: number;
@@ -45,6 +66,88 @@ type ThreadReplyReactionRow = {
   bio: string | null;
   role: UserRole;
 };
+
+type ReplyContextRow = {
+  id: string;
+  body: string | null;
+  bodyEncrypted: string | null;
+  encryptionVersion: number;
+  createdAt: Date;
+  deletedAt: Date | null;
+  authorId: string;
+  authorName: string;
+  authorDisplayName: string | null;
+  authorUsername: string | null;
+  authorEmail: string;
+  authorBio: string | null;
+  authorRole: UserRole;
+};
+
+const mapReplyContextRow = (
+  row: ReplyContextRow,
+  conversationType: "dm" | "channel"
+): ThreadReplyContext => {
+  let body = row.body;
+  if (row.deletedAt) {
+    body = "This message was deleted.";
+  } else if (conversationType === "dm" && row.bodyEncrypted) {
+    body = decryptDmBody(row.bodyEncrypted, row.encryptionVersion);
+  }
+
+  return {
+    id: row.id,
+    kind: "reply",
+    author: {
+      id: row.authorId,
+      name: row.authorName,
+      displayName: row.authorDisplayName,
+      username: row.authorUsername,
+      email: row.authorEmail,
+      bio: row.authorBio,
+      role: row.authorRole
+    },
+    body,
+    createdAt: row.createdAt,
+    deletedAt: row.deletedAt
+  };
+};
+
+async function loadReplyContextMap(
+  conversationType: "dm" | "channel",
+  messageId: string,
+  replyToReplyIds: string[]
+): Promise<Map<string, ThreadReplyContext>> {
+  const replyMap = new Map<string, ThreadReplyContext>();
+  if (replyToReplyIds.length === 0) {
+    return replyMap;
+  }
+
+  const rows: ReplyContextRow[] = await db
+    .select({
+      id: threadReplies.id,
+      body: threadReplies.body,
+      bodyEncrypted: threadReplies.bodyEncrypted,
+      encryptionVersion: threadReplies.encryptionVersion,
+      createdAt: threadReplies.createdAt,
+      deletedAt: threadReplies.deletedAt,
+      authorId: users.id,
+      authorName: users.name,
+      authorDisplayName: users.displayName,
+      authorUsername: users.username,
+      authorEmail: users.email,
+      authorBio: users.bio,
+      authorRole: users.role
+    })
+    .from(threadReplies)
+    .innerJoin(users, eq(threadReplies.authorId, users.id))
+    .where(and(inArray(threadReplies.id, replyToReplyIds), eq(threadReplies.parentMessageId, messageId)));
+
+  rows.forEach((row) => {
+    replyMap.set(row.id, mapReplyContextRow(row, conversationType));
+  });
+
+  return replyMap;
+}
 
 export async function listThreadReplies(
   userId: string,
@@ -85,6 +188,7 @@ export async function listThreadReplies(
     .select({
       id: threadReplies.id,
       parentMessageId: threadReplies.parentMessageId,
+      replyToReplyId: threadReplies.replyToReplyId,
       body: threadReplies.body,
       bodyEncrypted: threadReplies.bodyEncrypted,
       encryptionVersion: threadReplies.encryptionVersion,
@@ -109,6 +213,10 @@ export async function listThreadReplies(
   const deletedForUser = await getThreadReplyDeletionSet(userId, replyIds);
   const filteredRows = rows.filter((row) => !deletedForUser.has(row.id));
   const visibleReplyIds = filteredRows.map((row) => row.id);
+  const replyToReplyIds = Array.from(
+    new Set(filteredRows.map((row) => row.replyToReplyId).filter((value): value is string => Boolean(value)))
+  );
+  const replyContextMap = await loadReplyContextMap(conversation.type, messageId, replyToReplyIds);
   const [reactionsByReplyId, attachmentsByReplyId, voiceNotesByReplyId] = await Promise.all([
     getThreadReplyReactions(visibleReplyIds),
     getThreadAttachmentsForReplies(visibleReplyIds),
@@ -126,6 +234,8 @@ export async function listThreadReplies(
     return {
       id: row.id,
       parentMessageId: row.parentMessageId,
+      replyToReplyId: row.replyToReplyId ?? null,
+      replyContext: row.replyToReplyId ? replyContextMap.get(row.replyToReplyId) ?? null : null,
       author: {
         id: row.authorId,
         name: row.authorName,
@@ -238,6 +348,18 @@ export async function createThreadReply(userId: string, messageId: string, input
     await assertConversationPermission(userId, parent.conversationId, "channel_write");
   }
 
+  const replyToReplyId = input.replyToReplyId ?? null;
+  if (replyToReplyId) {
+    const rows = await db
+      .select({ id: threadReplies.id })
+      .from(threadReplies)
+      .where(and(eq(threadReplies.id, replyToReplyId), eq(threadReplies.parentMessageId, messageId)))
+      .limit(1);
+    if (!rows[0]) {
+      throw new ApiError(400, "Reply target not found");
+    }
+  }
+
   const trimmed = sanitizePlainText(input.body);
   const hasAttachments = Boolean(input.hasAttachments);
   const hasVoiceNote = Boolean(input.hasVoiceNote);
@@ -262,6 +384,7 @@ export async function createThreadReply(userId: string, messageId: string, input
     .values({
       id: replyId,
       parentMessageId: messageId,
+      replyToReplyId,
       authorId: userId,
       body,
       bodyEncrypted,
@@ -275,10 +398,14 @@ export async function createThreadReply(userId: string, messageId: string, input
 
   await storeThreadReplyMentions(conversation.id, replyId, input.mentions, userId);
 
+  const replyContextMap = await loadReplyContextMap(conversation.type, messageId, replyToReplyId ? [replyToReplyId] : []);
+  const replyContext = replyToReplyId ? replyContextMap.get(replyToReplyId) ?? null : null;
   const author = await ensureUserExists(userId);
   const summary = {
     id: replyId,
     parentMessageId: messageId,
+    replyToReplyId,
+    replyContext,
     author,
     body: conversation.type === "dm" ? (trimmed || null) : body,
     createdAt: now,
@@ -292,12 +419,12 @@ export async function createThreadReply(userId: string, messageId: string, input
   return summary;
 }
 
-
 export async function updateThreadReply(userId: string, replyId: string, input: UpdateThreadReplyInput): Promise<ThreadReplySummary> {
   const replyRows = await db
     .select({
       id: threadReplies.id,
       parentMessageId: threadReplies.parentMessageId,
+      replyToReplyId: threadReplies.replyToReplyId,
       conversationId: threadMessages.conversationId,
       authorId: threadReplies.authorId,
       body: threadReplies.body,
@@ -381,6 +508,12 @@ export async function updateThreadReply(userId: string, replyId: string, input: 
     .where(eq(threadReplies.id, replyId))
     .execute();
 
+  const replyContextMap = await loadReplyContextMap(
+    conversation.type,
+    reply.parentMessageId,
+    reply.replyToReplyId ? [reply.replyToReplyId] : []
+  );
+  const replyContext = reply.replyToReplyId ? replyContextMap.get(reply.replyToReplyId) ?? null : null;
   const author = await ensureUserExists(userId);
   const [reactionsByReplyId, attachmentsByReplyId, voiceNotesByReplyId] = await Promise.all([
     getThreadReplyReactions([replyId]),
@@ -391,6 +524,8 @@ export async function updateThreadReply(userId: string, replyId: string, input: 
   const summary = {
     id: replyId,
     parentMessageId: reply.parentMessageId,
+    replyToReplyId: reply.replyToReplyId ?? null,
+    replyContext,
     author,
     body: conversation.type === "dm" ? (trimmed || null) : body,
     createdAt: reply.createdAt,
@@ -515,6 +650,3 @@ export async function deleteThreadReply(
   emitThreadEvent(reply.conversationId, "threads:reply:delete", { conversationId: reply.conversationId });
   return { id: replyId, scope: "all" };
 }
-
-
-

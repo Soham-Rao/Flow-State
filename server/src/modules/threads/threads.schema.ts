@@ -20,7 +20,8 @@ export const createThreadReplySchema = z.object({
   body: z.string().trim().max(5000),
   mentions: z.array(z.string().uuid()).optional(),
   hasAttachments: z.boolean().optional(),
-  hasVoiceNote: z.boolean().optional()
+  hasVoiceNote: z.boolean().optional(),
+  replyToReplyId: z.string().uuid().optional()
 }).refine((data) => data.body.length > 0 || data.hasAttachments || data.hasVoiceNote, {
   message: "Reply body cannot be empty",
   path: ["body"]
@@ -103,6 +104,7 @@ export type CreateChannelInput = z.infer<typeof createChannelSchema>;
 export type AddChannelMembersInput = z.infer<typeof addChannelMembersSchema>;
 export type UpdateChannelMemberOverridesInput = z.infer<typeof updateChannelMemberOverridesSchema>;
 export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;
+
 
 
 

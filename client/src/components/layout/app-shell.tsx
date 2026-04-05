@@ -4,6 +4,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { hasUserPermission } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/auth-store";
 import { useThreadSettingsStore } from "@/stores/thread-settings-store";
 import { useMentionStore } from "@/stores/mentions-store";
@@ -33,8 +34,11 @@ const navItems = [
   { to: "/focus", label: "Focus", icon: Timer }
 ];
 
+const accountItems = [
+  { to: "/settings/profile", label: "Profile", icon: User }
+];
+
 const settingsItems = [
-  { to: "/settings/profile", label: "Profile", icon: User },
   { to: "/settings/general", label: "General", icon: Settings },
   { to: "/settings/advanced", label: "Advanced", icon: Sliders }
 ];
@@ -42,6 +46,7 @@ const settingsItems = [
 export function AppShell({ children }: AppShellProps): JSX.Element {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const refreshCurrentUser = useAuthStore((state) => state.refreshCurrentUser);
   const status = useAuthStore((state) => state.status);
   const refreshMentions = useMentionStore((state) => state.refresh);
   const mentionCounts = useMentionStore((state) => state.counts);
@@ -62,10 +67,18 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
 
   const refreshThreadCounts = useCallback(async (): Promise<void> => {
     if (!user) return;
+    const canReadDms = hasUserPermission(user, "dm_read");
+    const canReadChannels = hasUserPermission(user, "channel_read");
+
+    if (!canReadDms && !canReadChannels) {
+      setThreadCounts({ dms: 0, channels: 0 });
+      return;
+    }
+
     try {
       const [dmConversations, channelConversations] = await Promise.all([
-        listDmConversations(),
-        listChannelConversations()
+        canReadDms ? listDmConversations() : Promise.resolve([]),
+        canReadChannels ? listChannelConversations() : Promise.resolve([])
       ]);
 
       const countForMode = (conversations: Array<{ unreadMentions: number; unreadReplyMentions: number; hasUnread: boolean }>) => {
@@ -88,6 +101,23 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
       // ignore
     }
   }, [user, threadBadgeMode]);
+
+  useEffect(() => {
+    if (!user) return;
+    void refreshCurrentUser();
+    const onFocus = () => {
+      void refreshCurrentUser();
+    };
+    const interval = window.setInterval(() => {
+      if (document.hidden) return;
+      void refreshCurrentUser();
+    }, 12000);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(interval);
+    };
+  }, [user?.id, refreshCurrentUser]);
   useEffect(() => {
     if (!user) return;
     void refreshMentions();
@@ -155,6 +185,8 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const isSubmitting = status === "loading";
+  const canViewSettings = hasUserPermission(user, "view_settings");
+  const canViewThreads = hasUserPermission(user, "view_threads") || hasUserPermission(user, "dm_read") || hasUserPermission(user, "channel_read");
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -164,7 +196,13 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     return user?.displayName || user?.username || "Teammate";
   }, [user]);
 
-  const roleLabel = useMemo(() => (user?.role ?? "guest").toUpperCase(), [user]);
+  const roleBadges = useMemo(() => {
+    const assigned = user?.assignedRoles ?? [];
+    if (assigned.length > 0) {
+      return assigned;
+    }
+    return [{ id: user?.role ?? "guest", name: (user?.role ?? "guest").toUpperCase(), color: "#64748b" }];
+  }, [user]);
 
   const threadsTab = useMemo(() => {
     const tab = new URLSearchParams(location.search).get("tab");
@@ -278,6 +316,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
           ))}
         </nav>
 
+        {canViewThreads && (
         <div className="mt-8">
           <button
             type="button"
@@ -330,13 +369,14 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
             </nav>
           )}
         </div>
+        )}
 
         <div className="mt-8">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-white/60">
-            Settings
+            Account
           </p>
           <nav className="grid gap-2">
-            {settingsItems.map(({ to, label, icon: Icon }) => (
+            {accountItems.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={label}
                 to={to}
@@ -350,26 +390,60 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
               >
                 <Icon className="h-4 w-4" />
                 {label}
-                {label === "Advanced" && (bugInboxCount ?? 0) > 0 && (
-                  <span className="ml-auto rounded-full bg-amber-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    {bugInboxCount}
-                  </span>
-                )}
               </NavLink>
             ))}
           </nav>
         </div>
+
+        {canViewSettings && (
+          <div className="mt-8">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-white/60">
+              Settings
+            </p>
+            <nav className="grid gap-2">
+              {settingsItems.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={label}
+                  to={to}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-black/5 text-slate-900 dark:bg-white/15 dark:text-white"
+                        : "text-slate-700 hover:bg-black/5 hover:text-slate-900 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
+                    }`
+                  }
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                  {label === "Advanced" && (bugInboxCount ?? 0) > 0 && (
+                    <span className="ml-auto rounded-full bg-amber-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      {bugInboxCount}
+                    </span>
+                  )}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+        )}
       </aside>
       </div>
 
       <main className="flex min-h-screen flex-col">
         <header className="sticky top-0 z-10 border-b border-white/30 bg-white/25 px-4 py-2 backdrop-blur-xl lg:px-6 dark:border-white/15 dark:bg-black/35 dark:backdrop-blur-2xl">
           <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white/90">
+                        <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white/90">
               <span>{displayName}</span>
-              <span className="rounded-full border border-black/10 bg-black/5 px-2 py-0.5 text-[10px] font-semibold tracking-[0.2em] text-slate-700 dark:border-white/20 dark:bg-white/10 dark:text-white/80">
-                {roleLabel}
-              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {roleBadges.map((role) => (
+                  <span
+                    key={role.id}
+                    className="rounded-full border border-black/10 bg-black/5 px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-slate-700 dark:border-white/20 dark:bg-white/10 dark:text-white/80"
+                    style={{ borderColor: `${role.color}55`, color: role.color }}
+                  >
+                    {role.name.toUpperCase()}
+                  </span>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -422,6 +496,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                       <User className="h-4 w-4" />
                       Profile
                     </button>
+                    {canViewSettings && (
                     <button
                       type="button"
                       className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
@@ -433,10 +508,14 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
                       <Settings className="h-4 w-4" />
                       Settings
                     </button>
+                    )}
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-500 dark:text-white/70"
-                      disabled
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate("/help");
+                      }}
                     >
                       <Bell className="h-4 w-4" />
                       Help center
@@ -469,6 +548,8 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     </>
   );
 }
+
+
 
 
 

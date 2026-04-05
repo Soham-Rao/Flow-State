@@ -108,9 +108,14 @@ export async function getUserHighestRole(
   return rows[0] ?? null;
 }
 
-export async function assertRoleHierarchy(actorId: string, rolePriority: number): Promise<void> {
+export async function assertRoleHierarchy(
+  actorId: string,
+  rolePriority: number,
+  options?: { allowEqual?: boolean }
+): Promise<void> {
   const highest = await getUserHighestRole(actorId);
-  if (!highest || highest.priority <= rolePriority) {
+  const allowEqual = options?.allowEqual ?? false;
+  if (!highest || highest.priority < rolePriority || (!allowEqual && highest.priority === rolePriority)) {
     throw new ApiError(403, "You cannot manage roles at or above your own role");
   }
 }

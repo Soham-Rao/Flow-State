@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AuthGate } from "@/routes/auth-gate";
-import { GuestOnlyRoute, ProtectedRoute } from "@/routes/protected-route";
+import { GuestOnlyRoute, PermissionRoute, ProtectedRoute } from "@/routes/protected-route";
 
 const HomePage = lazy(async () => ({ default: (await import("@/pages/home-page")).HomePage }));
 const BoardsPage = lazy(async () => ({ default: (await import("@/pages/boards/boards-page")).BoardsPage }));
@@ -13,6 +13,7 @@ const ThreadsPage = lazy(async () => ({ default: (await import("@/pages/threads-
 const ProfileSettingsPage = lazy(async () => ({ default: (await import("@/pages/settings/profile-page")).ProfileSettingsPage }));
 const GeneralSettingsPage = lazy(async () => ({ default: (await import("@/pages/settings/general-page")).GeneralSettingsPage }));
 const AdvancedSettingsPage = lazy(async () => ({ default: (await import("@/pages/settings/advanced-page")).AdvancedSettingsPage }));
+const HelpDocsPage = lazy(async () => ({ default: (await import("@/pages/help/help-docs-page")).HelpDocsPage }));
 const LoginPage = lazy(async () => ({ default: (await import("@/pages/login-page")).LoginPage }));
 const RegisterPage = lazy(async () => ({ default: (await import("@/pages/register-page")).RegisterPage }));
 const PrivacyPage = lazy(async () => ({ default: (await import("@/pages/legal/privacy-page")).PrivacyPage }));
@@ -34,6 +35,18 @@ function WithShell({ children }: { children: ReactNode }): JSX.Element {
       <AppShell>
         <Suspense fallback={<RouteFallback />}>{children}</Suspense>
       </AppShell>
+    </ProtectedRoute>
+  );
+}
+
+function WithSettingsPermission({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <ProtectedRoute>
+      <PermissionRoute permission="view_settings">
+        <AppShell>
+          <Suspense fallback={<RouteFallback />}>{children}</Suspense>
+        </AppShell>
+      </PermissionRoute>
     </ProtectedRoute>
   );
 }
@@ -60,9 +73,10 @@ export function AppRouter(): JSX.Element {
           <Route path="/boards/:boardId" element={<WithShell><BoardDetailPage /></WithShell>} />
           <Route path="/focus" element={<WithShell><FocusPage /></WithShell>} />
           <Route path="/threads" element={<WithShell><ThreadsPage /></WithShell>} />
+          <Route path="/help" element={<WithShell><HelpDocsPage /></WithShell>} />
           <Route path="/settings/profile" element={<WithShell><ProfileSettingsPage /></WithShell>} />
-          <Route path="/settings/general" element={<WithShell><GeneralSettingsPage /></WithShell>} />
-          <Route path="/settings/advanced" element={<WithShell><AdvancedSettingsPage /></WithShell>} />
+          <Route path="/settings/general" element={<WithSettingsPermission><GeneralSettingsPage /></WithSettingsPermission>} />
+          <Route path="/settings/advanced" element={<WithSettingsPermission><AdvancedSettingsPage /></WithSettingsPermission>} />
           <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
           <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
           <Route path="/privacy" element={<PublicRoute><PrivacyPage /></PublicRoute>} />
@@ -73,3 +87,4 @@ export function AppRouter(): JSX.Element {
     </AuthGate>
   );
 }
+

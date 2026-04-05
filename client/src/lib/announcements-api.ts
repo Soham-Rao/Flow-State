@@ -4,16 +4,17 @@ import type { AnnouncementAudience, AnnouncementAudienceOptions, AnnouncementDet
 export function getAnnouncementCapabilities(): Promise<{ canSend: boolean }> {
   return apiRequest<{ canSend: boolean }>("/announcements/capabilities", {
     auth: true,
-    cacheTtlMs: 30_000,
+    cacheTtlMs: 5_000,
     cacheTags: ["announcements:capabilities"]
   });
 }
 
-export function listAnnouncementAudienceOptions(): Promise<AnnouncementAudienceOptions> {
+export function listAnnouncementAudienceOptions(options?: { skipCache?: boolean }): Promise<AnnouncementAudienceOptions> {
   return apiRequest<AnnouncementAudienceOptions>("/announcements/audience", {
     auth: true,
-    cacheTtlMs: 30_000,
-    cacheTags: ["announcements:audience"]
+    cacheTtlMs: 5_000,
+    cacheTags: ["announcements:audience"],
+    skipCache: options?.skipCache
   });
 }
 

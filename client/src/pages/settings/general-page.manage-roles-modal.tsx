@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,6 +45,27 @@ export function ManageRolesModal({
   onToggleRolePermission,
   onDeleteRole
 }: ManageRolesModalProps): JSX.Element {
+  const [permissionSearch, setPermissionSearch] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setPermissionSearch("");
+    }
+  }, [open]);
+
+  const normalizedSearch = permissionSearch.trim().toLowerCase();
+  const visibleGroups = useMemo(() => {
+    if (!normalizedSearch) return permissionGroups;
+    return permissionGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => {
+          const haystack = `${group.title} ${group.description} ${item.title} ${item.description} ${item.permission}`.toLowerCase();
+          return haystack.includes(normalizedSearch);
+        })
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [normalizedSearch]);
   return (
     <SettingsModal
       open={open}
@@ -122,7 +145,19 @@ export function ManageRolesModal({
                 </div>
 
                 <div className="space-y-4">
-                  {permissionGroups.map((group) => (
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      Search permissions
+                    </label>
+                    <Input
+                      value={permissionSearch}
+                      onChange={(event) => setPermissionSearch(event.target.value)}
+                      placeholder="Search by name, description, or permission key"
+                    />
+                  </div>
+                  {visibleGroups.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No permissions match that search.</p>
+                  ) : visibleGroups.map((group) => (
                     <div key={group.id} className="space-y-3">
                       <div>
                         <h3 className="text-sm font-semibold">{group.title}</h3>
