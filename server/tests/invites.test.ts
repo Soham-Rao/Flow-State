@@ -34,8 +34,13 @@ async function registerAdmin(): Promise<string> {
   const response = await request(app).post("/api/auth/register").send({
     name: "Admin",
     email: "admin@example.com",
-    password: "password123"
+    password: "password123",
+    acceptedLegalTerms: true
   });
+
+  if (response.status !== 201) {
+    throw new Error(`Admin registration failed: ${response.status} ${JSON.stringify(response.body)}`);
+  }
 
   return response.body.data.token as string;
 }
@@ -76,7 +81,8 @@ describe("Invites API", () => {
       name: "Joiner",
       email: "join@example.com",
       password: "password123",
-      inviteToken
+      inviteToken,
+      acceptedLegalTerms: true
     });
 
     expect(registerResponse.status).toBe(201);

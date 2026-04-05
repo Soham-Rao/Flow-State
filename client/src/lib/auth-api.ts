@@ -57,3 +57,4 @@ export function updateProfile(input: UpdateProfileInput): Promise<AuthUser> {
     body: JSON.stringify(input)
   });
 }
+

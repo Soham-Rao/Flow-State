@@ -1,14 +1,16 @@
 import { Router } from "express";
 
-import { assertPermission, getUserPermissions } from "../../utils/permissions.js";
+import { assertBoardPermission, getBoardScopedPermissions } from "../../utils/access-control.js";
 import { deleteComment, toggleCommentReaction } from "./boards.service.js";
+import { assertCommentExists } from "./boards.service.lookups.js";
 import { commentReactionSchema } from "./boards.schema.js";
 
 export const boardsCommentsRouter = Router();
 
 boardsCommentsRouter.delete("/comments/:commentId", async (req, res, next) => {
   try {
-    const permissions = await getUserPermissions(req.auth!.userId);
+    const comment = await assertCommentExists(req.params.commentId);
+    const permissions = await getBoardScopedPermissions(req.auth!.userId, comment.boardId);
     await deleteComment(req.params.commentId, {
       userId: req.auth!.userId,
       canDeleteAny: permissions.has("delete_comments"),
@@ -28,7 +30,8 @@ boardsCommentsRouter.delete("/comments/:commentId", async (req, res, next) => {
 
 boardsCommentsRouter.post("/comments/:commentId/reactions", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "react");
+    const comment = await assertCommentExists(req.params.commentId);
+    await assertBoardPermission(req.auth!.userId, "react", comment.boardId);
     const body = commentReactionSchema.parse(req.body);
     const data = await toggleCommentReaction(req.params.commentId, req.auth!.userId, body);
 

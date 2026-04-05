@@ -4,7 +4,10 @@ export const registerBodySchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(255),
   password: z.string().min(8).max(128),
-  inviteToken: z.string().trim().min(8).optional()
+  inviteToken: z.string().trim().min(8).optional(),
+  acceptedLegalTerms: z.literal(true, {
+    errorMap: () => ({ message: "You must accept the Privacy Policy and Terms of Use." })
+  })
 });
 
 export const loginBodySchema = z.object({

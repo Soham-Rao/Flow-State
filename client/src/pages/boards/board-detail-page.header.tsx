@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import type React from "react";
 import { Link } from "react-router-dom";
+import { PageErrorState } from "@/components/feedback/page-error-state";
 import { Button } from "@/components/ui/button";
 import { MentionsField } from "@/components/mentions/mentions-input";
 import { CommentNote } from "@/pages/boards/board-detail-page.components";
@@ -131,13 +132,18 @@ export function BoardHeaderSection({
         </div>
       </div>
       {error && (
-        <p className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error}
-        </p>
+        <PageErrorState
+          title="Unable to load board details"
+          message={error}
+        />
       )}
     </>
   );
 }
+
+
+
+
 
 
 

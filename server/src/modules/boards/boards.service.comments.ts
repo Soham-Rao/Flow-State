@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db, type DbTransaction } from "../../db/connection.js";
 import { emitBoardEvent } from "../../realtime/socket.js";
 import { commentMentions, commentReactions, comments } from "../../db/schema.js";
-import { ApiError } from "../../utils/api-error.js";
+import { assertOwnOrAnyAccess } from "../../utils/access-control.js";
 import type { CommentReactionInput, CreateCommentInput } from "./boards.schema.js";
 import type { BoardComment } from "./boards.service.types.js";
 import { assertBoardExists, assertCardExists, assertCommentExists, assertListExists, getCardBoardContext } from "./boards.service.lookups.js";
@@ -12,10 +12,13 @@ import { createCommentRecord, getCommentById } from "./boards.service.comments-d
 export async function deleteComment(commentId: string, requester: { userId: string; canDeleteAny: boolean; canDeleteOwn: boolean }): Promise<void> {
   const comment = await assertCommentExists(commentId);
 
-  const canDelete = requester.canDeleteAny || (requester.canDeleteOwn && comment.authorId === requester.userId);
-  if (!canDelete) {
-    throw new ApiError(403, "You can only delete comments you created");
-  }
+  assertOwnOrAnyAccess({
+    actorId: requester.userId,
+    ownerId: comment.authorId,
+    canAny: requester.canDeleteAny,
+    canOwn: requester.canDeleteOwn,
+    ownMessage: "You can only delete comments you created"
+  });
 
   await db.transaction(async (tx: DbTransaction) => {
     await tx.delete(commentMentions).where(eq(commentMentions.commentId, commentId)).execute();
@@ -99,3 +102,4 @@ export async function toggleCommentReaction(commentId: string, userId: string, i
   emitBoardEvent(updated.boardId, { boardId: updated.boardId, type: "comment.reaction", data: { commentId } });
   return updated;
 }
+

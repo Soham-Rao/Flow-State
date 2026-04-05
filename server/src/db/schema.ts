@@ -88,6 +88,7 @@ export const cardCoverColors = [
   "purple",
   "pink"
 ] as const;
+export const bugReportStatuses = ["open", "triaged", "closed"] as const;
 
 type TableColumns = Record<string, any>;
 
@@ -158,6 +159,24 @@ export const auditLogs = mysqlTable("audit_logs", {
   actorIdx: index("idx_audit_logs_actor_id").on(table.actorId),
   actionIdx: index("idx_audit_logs_action").on(table.action),
   createdAtIdx: index("idx_audit_logs_created_at").on(table.createdAt)
+}));
+
+export const bugReports = mysqlTable("bug_reports", {
+  id: char("id", { length: 36 }).primaryKey(),
+  reporterId: char("reporter_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 200 }).notNull(),
+  message: text("message").notNull(),
+  pagePath: varchar("page_path", { length: 512 }),
+  userAgent: varchar("user_agent", { length: 512 }),
+  status: mysqlEnum("status", bugReportStatuses).notNull().default("open"),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: createdAt("updated_at").notNull().$defaultFn(() => new Date())
+}, (table: TableColumns) => ({
+  reporterIdx: index("idx_bug_reports_reporter_id").on(table.reporterId),
+  statusCreatedIdx: index("idx_bug_reports_status_created").on(table.status, table.createdAt),
+  createdAtIdx: index("idx_bug_reports_created_at").on(table.createdAt)
 }));
 
 export const roles = mysqlTable("roles", {
@@ -758,6 +777,9 @@ export type ThreadMemberRole = (typeof threadMemberRoles)[number];
 export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
+export type BugReportStatus = (typeof bugReportStatuses)[number];
+
+
 
 
 

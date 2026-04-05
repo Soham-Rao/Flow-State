@@ -53,7 +53,7 @@ describe("backup manifest helpers", () => {
     expect(shouldRestoreDatabase("auto", false)).toBe(false);
   });
 
-  it("records checksum and encryption metadata in backup manifests", () => {
+  it("records checksum, encryption, and migration metadata in backup manifests", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "flowstate-manifest-"));
     tempDirs.push(dir);
     const archivePath = path.join(dir, "backup.sql.zst");
@@ -71,16 +71,27 @@ describe("backup manifest helpers", () => {
       encryptionEnabled: true,
       encryptionKeyId: "primary-key",
       currentSha: "abcdef1234567",
-      packageVersion: "0.1.0"
+      packageVersion: "0.1.0",
+      migrationJournalHash: "journal-sha",
+      migrationPendingFiles: ["0005_add_bug_reports.sql"],
+      migrationRiskyFiles: ["0006_cleanup.sql"],
+      migrationAcknowledgedRiskyFiles: ["0006_cleanup.sql"]
     });
 
-    expect(manifest.version).toBe(2);
+    expect(manifest.version).toBe(3);
     expect(manifest.archiveSha256).toBe("archive-sha");
     expect(manifest.encryptedArchiveSha256).toBe("encrypted-sha");
     expect(manifest.encryption).toEqual({
       enabled: true,
       algorithm: "aes-256-gcm",
       keyId: "primary-key"
+    });
+    expect(manifest.migrationJournalHash).toBe("journal-sha");
+    expect(manifest.migration).toEqual({
+      journalHash: "journal-sha",
+      pendingFiles: ["0005_add_bug_reports.sql"],
+      riskyFiles: ["0006_cleanup.sql"],
+      acknowledgedRiskyFiles: ["0006_cleanup.sql"]
     });
     expect(manifest.verification.archive).toBe("verified");
     expect(manifest.verification.encryptedArchive).toBe("verified");

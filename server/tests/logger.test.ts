@@ -23,3 +23,4 @@ describe("logger redaction", () => {
     });
   });
 });
+

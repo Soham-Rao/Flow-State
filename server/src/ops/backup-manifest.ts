@@ -4,7 +4,7 @@ import path from "node:path";
 export type BackupKind = "predeploy" | "daily" | "weekly";
 
 export interface BackupManifest {
-  version: 2;
+  version: 3;
   backupId: string;
   kind: BackupKind;
   createdAt: string;
@@ -21,6 +21,12 @@ export interface BackupManifest {
   packageVersion: string | null;
   bunLockHash: string | null;
   migrationJournalHash: string | null;
+  migration: {
+    journalHash: string | null;
+    pendingFiles: string[];
+    riskyFiles: string[];
+    acknowledgedRiskyFiles: string[];
+  };
   mysqlDatabase: string | null;
   compression: "zstd";
   encryption: {
@@ -62,6 +68,9 @@ export function buildBackupManifest(input: {
   packageVersion?: string | null;
   bunLockHash?: string | null;
   migrationJournalHash?: string | null;
+  migrationPendingFiles?: string[];
+  migrationRiskyFiles?: string[];
+  migrationAcknowledgedRiskyFiles?: string[];
   mysqlDatabase?: string | null;
   createdAt?: string;
 }): BackupManifest {
@@ -76,7 +85,7 @@ export function buildBackupManifest(input: {
   const encryptionEnabled = Boolean(input.encryptionEnabled);
 
   return {
-    version: 2,
+    version: 3,
     backupId: input.backupId,
     kind: input.kind,
     createdAt,
@@ -93,6 +102,12 @@ export function buildBackupManifest(input: {
     packageVersion: input.packageVersion ?? null,
     bunLockHash: input.bunLockHash ?? null,
     migrationJournalHash: input.migrationJournalHash ?? null,
+    migration: {
+      journalHash: input.migrationJournalHash ?? null,
+      pendingFiles: [...(input.migrationPendingFiles ?? [])],
+      riskyFiles: [...(input.migrationRiskyFiles ?? [])],
+      acknowledgedRiskyFiles: [...(input.migrationAcknowledgedRiskyFiles ?? [])]
+    },
     mysqlDatabase: input.mysqlDatabase ?? null,
     compression: "zstd",
     encryption: {

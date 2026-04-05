@@ -7,6 +7,7 @@ import {
   invalidateApiCacheByTag
 } from "@/lib/api-client";
 import { clearSessionToken, setSessionToken } from "@/lib/session";
+import { useAppFeedbackStore } from "@/stores/app-feedback-store";
 import { usePermissionErrorStore } from "@/stores/permission-error-store";
 
 describe("api client cache", () => {
@@ -14,6 +15,7 @@ describe("api client cache", () => {
     clearApiCache();
     clearSessionToken();
     usePermissionErrorStore.getState().clear();
+    useAppFeedbackStore.getState().clearDialog();
     __setMaintenanceRedirectHandlerForTests(null);
     vi.restoreAllMocks();
   });
@@ -142,6 +144,55 @@ describe("api client cache", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("opens the permission modal for 403 responses", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ success: false, error: { message: "Permission denied" } })
+    }));
+
+    await expect(apiRequest("/boards", { auth: true })).rejects.toThrow(/permission/i);
+    expect(usePermissionErrorStore.getState().message).toMatch(/permission/i);
+    expect(useAppFeedbackStore.getState().dialog).toBeNull();
+  });
+
+  it("opens a session-expired dialog for 401 auth responses", async () => {
+    setSessionToken("token-123");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ success: false, error: { message: "Expired token" } })
+    }));
+
+    await expect(apiRequest("/auth/me", { auth: true })).rejects.toThrow(/expired token/i);
+
+    const dialog = useAppFeedbackStore.getState().dialog;
+    expect(dialog?.title).toBe("Session expired");
+    expect(dialog?.confirmLabel).toBe("Sign in again");
+  });
+
+  it("opens a friendly rate-limit dialog for 429 responses", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => ({ success: false, error: { message: "Too many requests" } })
+    }));
+
+    await expect(apiRequest("/auth/login", { method: "POST", body: JSON.stringify({}) })).rejects.toThrow(/too many requests/i);
+
+    const dialog = useAppFeedbackStore.getState().dialog;
+    expect(dialog?.title).toBe("Too many requests");
+  });
+
+  it("opens a friendly network dialog when fetch fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+
+    await expect(apiRequest("/dashboard/summary", { auth: true })).rejects.toThrow(/offline/i);
+
+    const dialog = useAppFeedbackStore.getState().dialog;
+    expect(dialog?.title).toBe("Connection problem");
+  });
+
   it("redirects once when maintenance mode returns 503 without opening the permission modal", async () => {
     const redirectSpy = vi.fn();
     __setMaintenanceRedirectHandlerForTests(redirectSpy);
@@ -157,5 +208,6 @@ describe("api client cache", () => {
 
     expect(redirectSpy).toHaveBeenCalledTimes(1);
     expect(usePermissionErrorStore.getState().message).toBeNull();
+    expect(useAppFeedbackStore.getState().dialog).toBeNull();
   });
 });

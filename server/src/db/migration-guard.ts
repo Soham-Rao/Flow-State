@@ -9,12 +9,30 @@ import { logger } from "../utils/logger.js";
 
 const MIGRATION_LOCK_NAME = "flowstate:migrations";
 const REQUIRED_TABLES = ["users", "roles", "boards", "__drizzle_migrations"];
-const RISKY_MIGRATION_PATTERN = /\b(drop\s+(table|column|index)|truncate\s+table|delete\s+from|alter\s+table[\s\S]*\bdrop\b)\b/i;
+const RISK_ACK_PATTERN = /^\s*--\s*@flowstate-risk-ack:\s*(.+)$/im;
+const RISK_RULES = [
+  { code: "drop_table", pattern: /\bdrop\s+table\b/i },
+  { code: "drop_column", pattern: /\bdrop\s+column\b/i },
+  { code: "drop_index", pattern: /\bdrop\s+index\b/i },
+  { code: "truncate_table", pattern: /\btruncate\s+table\b/i },
+  { code: "rename_table", pattern: /\brename\s+table\b/i },
+  { code: "rename_column", pattern: /\balter\s+table\b[\s\S]*\brename\s+column\b/i },
+  { code: "change_column", pattern: /\balter\s+table\b[\s\S]*\bchange\b/i },
+  { code: "delete_from", pattern: /\bdelete\s+from\b/i }
+] as const;
 
-export interface PendingMigrationInfo {
+type MigrationRiskCode = (typeof RISK_RULES)[number]["code"] | "broad_update";
+
+export interface MigrationRiskAnalysis {
+  risky: boolean;
+  riskReasons: MigrationRiskCode[];
+  acknowledged: boolean;
+  acknowledgement: string | null;
+}
+
+export interface PendingMigrationInfo extends MigrationRiskAnalysis {
   fileName: string;
   filePath: string;
-  risky: boolean;
 }
 
 export interface MigrationRunPreparation {
@@ -23,9 +41,51 @@ export interface MigrationRunPreparation {
   release: () => Promise<void>;
 }
 
+export interface MigrationInventory {
+  pendingMigrations: PendingMigrationInfo[];
+  riskyMigrations: PendingMigrationInfo[];
+  acknowledgedRiskyMigrations: PendingMigrationInfo[];
+}
+
+function stripComments(sqlText: string): string {
+  return sqlText.replace(/--.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
+function extractRiskAcknowledgement(sqlText: string): string | null {
+  const match = sqlText.match(RISK_ACK_PATTERN);
+  const value = match?.[1]?.trim();
+  return value ? value : null;
+}
+
+function hasBroadTableWideUpdate(sqlText: string): boolean {
+  const normalized = stripComments(sqlText);
+  const statements = normalized.split(";").map((statement) => statement.trim()).filter(Boolean);
+
+  return statements.some((statement) => /\bupdate\s+[`"\w.]+\s+set\b/i.test(statement) && !/\bwhere\b/i.test(statement));
+}
+
+export function analyzeMigrationRisk(sqlText: string): MigrationRiskAnalysis {
+  const normalized = stripComments(sqlText);
+  const riskReasons: MigrationRiskCode[] = RISK_RULES
+    .filter((rule) => rule.pattern.test(normalized))
+    .map((rule) => rule.code as MigrationRiskCode);
+
+  if (hasBroadTableWideUpdate(sqlText)) {
+    riskReasons.push("broad_update");
+  }
+
+  const acknowledgement = extractRiskAcknowledgement(sqlText);
+
+  return {
+    risky: riskReasons.length > 0,
+    riskReasons,
+    acknowledged: riskReasons.length === 0 ? false : acknowledgement !== null,
+    acknowledgement
+  };
+}
+
 export function detectRiskyMigration(sqlText: string): boolean {
-  const normalized = sqlText.replace(/--.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
-  return RISKY_MIGRATION_PATTERN.test(normalized);
+  return analyzeMigrationRisk(sqlText).risky;
 }
 
 async function getAppliedMigrationCount(): Promise<number> {
@@ -64,6 +124,36 @@ async function releaseMigrationLock(): Promise<void> {
   }
 }
 
+export async function getPendingMigrationInventory(migrationsFolder: string): Promise<MigrationInventory> {
+  if (!fs.existsSync(migrationsFolder)) {
+    throw new Error(`Migrations folder not found: ${migrationsFolder}`);
+  }
+
+  const appliedCount = await getAppliedMigrationCount();
+  const migrationFiles = listSqlMigrationFiles(migrationsFolder);
+  const pendingFiles = migrationFiles.slice(appliedCount);
+  const pendingMigrations = pendingFiles.map((fileName) => {
+    const filePath = path.join(migrationsFolder, fileName);
+    const sqlText = fs.readFileSync(filePath, "utf8");
+    const analysis = analyzeMigrationRisk(sqlText);
+
+    return {
+      fileName,
+      filePath,
+      risky: analysis.risky,
+      riskReasons: analysis.riskReasons,
+      acknowledged: analysis.acknowledged,
+      acknowledgement: analysis.acknowledgement
+    } satisfies PendingMigrationInfo;
+  });
+
+  return {
+    pendingMigrations,
+    riskyMigrations: pendingMigrations.filter((migration) => migration.risky),
+    acknowledgedRiskyMigrations: pendingMigrations.filter((migration) => migration.risky && migration.acknowledged)
+  };
+}
+
 export async function prepareMigrationRun(migrationsFolder: string): Promise<MigrationRunPreparation> {
   if (!fs.existsSync(migrationsFolder)) {
     throw new Error(`Migrations folder not found: ${migrationsFolder}`);
@@ -73,39 +163,36 @@ export async function prepareMigrationRun(migrationsFolder: string): Promise<Mig
 
   try {
     await pool.query("SELECT 1");
-    const appliedCount = await getAppliedMigrationCount();
-    const migrationFiles = listSqlMigrationFiles(migrationsFolder);
-    const pendingFiles = migrationFiles.slice(appliedCount);
-    const pendingMigrations = pendingFiles.map((fileName) => {
-      const filePath = path.join(migrationsFolder, fileName);
-      const sqlText = fs.readFileSync(filePath, "utf8");
-      return {
-        fileName,
-        filePath,
-        risky: detectRiskyMigration(sqlText)
-      };
-    });
-    const riskyMigrations = pendingMigrations.filter((migration) => migration.risky);
+    const inventory = await getPendingMigrationInventory(migrationsFolder);
+    const unacknowledgedRisky = inventory.riskyMigrations.filter((migration) => !migration.acknowledged);
+
+    if (unacknowledgedRisky.length > 0) {
+      throw new Error(
+        `Risky pending migrations require an explicit -- @flowstate-risk-ack: <reason> comment. Pending risky files without acknowledgement: ${unacknowledgedRisky.map((migration) => migration.fileName).join(", ")}`
+      );
+    }
 
     if (
       env.NODE_ENV === "production" &&
-      riskyMigrations.length > 0 &&
+      inventory.riskyMigrations.length > 0 &&
       (!process.env.FLOWSTATE_LAST_BACKUP_MANIFEST || !fs.existsSync(process.env.FLOWSTATE_LAST_BACKUP_MANIFEST))
     ) {
       throw new Error(
-        `Risky pending migrations require a valid FLOWSTATE_LAST_BACKUP_MANIFEST. Pending risky files: ${riskyMigrations.map((migration) => migration.fileName).join(", ")}`
+        `Risky pending migrations require a valid FLOWSTATE_LAST_BACKUP_MANIFEST. Pending risky files: ${inventory.riskyMigrations.map((migration) => migration.fileName).join(", ")}`
       );
     }
 
     logger.info("db.migrations_prepare", {
-      pendingCount: pendingMigrations.length,
-      riskyCount: riskyMigrations.length,
-      pendingFiles: pendingMigrations.map((migration) => migration.fileName)
+      pendingCount: inventory.pendingMigrations.length,
+      riskyCount: inventory.riskyMigrations.length,
+      pendingFiles: inventory.pendingMigrations.map((migration) => migration.fileName),
+      riskyFiles: inventory.riskyMigrations.map((migration) => migration.fileName),
+      acknowledgedRiskyFiles: inventory.acknowledgedRiskyMigrations.map((migration) => migration.fileName)
     });
 
     return {
-      pendingMigrations,
-      riskyMigrations,
+      pendingMigrations: inventory.pendingMigrations,
+      riskyMigrations: inventory.riskyMigrations,
       release: releaseMigrationLock
     };
   } catch (error) {
@@ -126,3 +213,5 @@ export async function runMigrationPostchecks(): Promise<void> {
     throw new Error(`Migration postcheck failed. Missing required tables: ${missing.join(", ")}`);
   }
 }
+
+

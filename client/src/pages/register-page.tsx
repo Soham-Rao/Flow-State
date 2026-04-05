@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import { PublicPageLayout } from "@/components/public/public-page-layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { lookupInvite } from "@/lib/invites-api";
 import { useAuthStore } from "@/stores/auth-store";
@@ -16,6 +16,7 @@ export function RegisterPage(): JSX.Element {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedLegalTerms, setAcceptedLegalTerms] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("invite") ?? undefined;
@@ -61,6 +62,13 @@ export function RegisterPage(): JSX.Element {
       });
   }, [inviteToken]);
 
+  const clearLocalErrors = (): void => {
+    if (apiError || formError) {
+      clearError();
+      setFormError(null);
+    }
+  };
+
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
 
@@ -68,7 +76,7 @@ export function RegisterPage(): JSX.Element {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedName || !normalizedEmail || !password) {
-      setFormError("Please complete all fields.");
+      setFormError("Please complete all required fields.");
       return;
     }
 
@@ -87,6 +95,11 @@ export function RegisterPage(): JSX.Element {
       return;
     }
 
+    if (!acceptedLegalTerms) {
+      setFormError("You must accept the Privacy Policy and Terms of Use.");
+      return;
+    }
+
     setFormError(null);
 
     try {
@@ -94,7 +107,8 @@ export function RegisterPage(): JSX.Element {
         name: normalizedName,
         email: normalizedEmail,
         password,
-        inviteToken: inviteToken && !inviteError ? inviteToken : undefined
+        inviteToken: inviteToken && !inviteError ? inviteToken : undefined,
+        acceptedLegalTerms: true
       });
       navigate("/");
     } catch {
@@ -102,99 +116,95 @@ export function RegisterPage(): JSX.Element {
     }
   };
 
-  const onNameChange = (value: string): void => {
-    setName(value);
-    if (apiError || formError) {
-      clearError();
-      setFormError(null);
-    }
-  };
-
-  const onEmailChange = (value: string): void => {
-    setEmail(value);
-    if (apiError || formError) {
-      clearError();
-      setFormError(null);
-    }
-  };
-
-  const onPasswordChange = (value: string): void => {
-    setPassword(value);
-    if (apiError || formError) {
-      clearError();
-      setFormError(null);
-    }
-  };
-
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Create account</CardTitle>
-          <CardDescription>First successful signup will be admin.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={onSubmit}>
-            <Input
-              type="text"
-              placeholder="Name"
-              value={name}
-              onChange={(event) => onNameChange(event.target.value)}
-              autoComplete="name"
-              minLength={2}
-              required
-            />
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(event) => onEmailChange(event.target.value)}
-              autoComplete="email"
-              required
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(event) => onPasswordChange(event.target.value)}
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
+    <PublicPageLayout
+      title="Create account"
+      description="Register for FlowState with a valid email address, a secure password, and acceptance of the governing legal terms."
+    >
+      <form className="space-y-4" onSubmit={onSubmit}>
+        <Input
+          type="text"
+          placeholder="Full name"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            clearLocalErrors();
+          }}
+          autoComplete="name"
+          minLength={2}
+          required
+        />
+        <Input
+          type="email"
+          placeholder="Work email"
+          value={email}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            clearLocalErrors();
+          }}
+          autoComplete="email"
+          required
+        />
+        <Input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(event) => {
+            setPassword(event.target.value);
+            clearLocalErrors();
+          }}
+          autoComplete="new-password"
+          minLength={8}
+          required
+        />
 
-            {(formError || apiError) && (
-              <p className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {formError ?? apiError}
-              </p>
-            )}
+        {inviteToken && (
+          <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+            {inviteLoading
+              ? "Checking invite..."
+              : inviteError
+                ? inviteError
+                : inviteInfo?.email
+                  ? `Invite for ${inviteInfo.email}`
+                  : "Invite link detected."}
+          </div>
+        )}
 
-            {inviteToken && (
-              <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-                {inviteLoading
-                  ? "Checking invite..."
-                  : inviteError
-                    ? inviteError
-                    : inviteInfo?.email
-                      ? `Invite for ${inviteInfo.email}`
-                      : "Invite link detected."}
-              </div>
-            )}
+        <label className="flex items-start gap-3 rounded-xl border border-border/70 bg-card/70 px-3 py-3 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4"
+            checked={acceptedLegalTerms}
+            onChange={(event) => {
+              setAcceptedLegalTerms(event.target.checked);
+              clearLocalErrors();
+            }}
+            required
+          />
+          <span>
+            I have read and accept the <Link className="font-medium text-primary hover:underline" to="/privacy">Privacy Policy</Link> and <Link className="font-medium text-primary hover:underline" to="/terms">Terms of Use</Link>.
+          </span>
+        </label>
 
-            <p className="text-xs text-muted-foreground">Use a valid email and password with at least 8 characters.</p>
-
-            <Button className="w-full" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating account..." : "Create account"}
-            </Button>
-          </form>
-
-          <p className="mt-4 text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link className="font-medium text-primary hover:underline" to="/login">
-              Sign in
-            </Link>
+        {(formError || apiError) && (
+          <p className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {formError ?? apiError}
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+
+        <p className="text-xs text-muted-foreground">The first successful signup becomes the initial workspace administrator.</p>
+
+        <Button className="w-full" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Creating account..." : "Create account"}
+        </Button>
+      </form>
+
+      <p className="mt-4 text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <Link className="font-medium text-primary hover:underline" to="/login">
+          Sign in
+        </Link>
+      </p>
+    </PublicPageLayout>
   );
 }

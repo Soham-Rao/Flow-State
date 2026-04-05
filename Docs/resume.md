@@ -5,14 +5,15 @@ Purpose: Resume from this exact project state, not from zero.
 
 ## 1) Resume Snapshot (Current State)
 - Recent changes since last checkpoint:
-  - Phase 12.3 is now live on the VPS with R2-backed backups, backup timers, maintenance mode, readiness checks, rollback tooling, and the `update-safe.sh` wrapper.
-  - Phase 12.4 local implementation is now complete.
+  - Phase 12.3 is now fully signed off on the VPS with real safe deploys, backup/rollback validation, maintenance mode, readiness checks, rollback tooling, and the `update-safe.sh` wrapper.
+  - Phase 12.4 is now fully signed off as well.
   - Backup tooling now supports optional AES-256-GCM encrypted offsite archives, checksum-rich manifests, verification metadata, and scratch restore verification.
   - The migration runner now uses advisory locking, risky-migration detection, backup-aware gating for destructive changes, and postchecks.
   - The server now logs slow queries using a bounded threshold and the schema includes new hot-path indexes for threads, mentions, activity, cards, and audit-adjacent reads.
   - Client data fetching now has short-lived cache/dedupe + invalidation for stable reads, while realtime-heavy surfaces remain freshness-first.
   - The router now lazy-loads major pages and Vite chunking is tuned to reduce the old monolithic client bundle.
-  - `Docs/vps-operations.md` is now the canonical guide for the 12.3/12.4 rollout and future safe deploy/backup operations.
+  - Maintenance mode now serves a reassuring auto-refresh page, and already-open tabs treat deploy-time `503` responses as maintenance instead of spamming permission errors.
+  - `Docs/vps-operations.md` is now the canonical guide for the 12.3/12.4 production deploy, backup, restore, and rollback workflow.
 
 - Phase status:
   - Phase 1.1, 1.2, 1.3: complete
@@ -30,8 +31,8 @@ Purpose: Resume from this exact project state, not from zero.
   - Phase 12.0: complete
   - Phase 12.1: complete and live
   - Phase 12.2: complete and live
-  - Phase 12.3: live on prod but still pending a real safe-deploy run + rollback drill before sign-off
-  - Phase 12.4: local implementation complete; VPS rollout, encrypted backup validation, restore-verify, and sign-off pending
+  - Phase 12.3: complete and signed off
+  - Phase 12.4: complete and signed off
   - Phase 12.5: not started
   - Phase 13: not started (future polish + CI/CD pipeline)
 
@@ -44,13 +45,9 @@ Purpose: Resume from this exact project state, not from zero.
 ## 2) Resume-Next Priority
 
 Recommended next order:
-1. Add the new 12.4 env values on the VPS, especially `BACKUP_ENCRYPTION_*`, `BACKUP_VERIFY_SCRATCH_MYSQL_URL`, and `DB_SLOW_QUERY_THRESHOLD_MS`.
-2. Pull the latest repo state on the VPS.
-3. Run `bash deploy/vps/update-safe.sh` as the first real safe deploy.
-4. Create one encrypted manual backup and verify the encrypted R2 object + manifest.
-5. Run `bash deploy/vps/restore-verify.sh <manifest-or-archive>` against the scratch MySQL target.
-6. Perform one controlled rollback drill using a real backup manifest.
-7. If all of that passes, mark both Phase 12.3 and 12.4 complete, then proceed to first-user signup/admin bootstrap + browser smoke test.
+1. Proceed to the next product phase rather than more production-hardening catch-up; Phase 12.3 and 12.4 are already signed off.
+2. When shipping future updates to prod, use `bash deploy/vps/update-safe.sh` as the default path.
+3. The next operational milestone on the live site is still the intentional first-user signup/admin bootstrap plus a browser smoke test.
 
 ## 3) Production Update Workflow
 
@@ -100,8 +97,8 @@ Primary reference:
 - Password reset is only backend scaffolding right now: `forgot-password` always returns a generic success response and real delivery must wait for SMTP/provider setup.
 - Security audit logs are stored compactly in MySQL with retention cleanup; host request/service logs should remain bounded via journald/logrotate compression and size limits.
 - Phase 12.3 alert emails still depend on SMTP settings plus `OPS_ALERT_EMAIL_TO`; until those are configured, alert hooks will safely no-op.
-- Phase 12.4 adds backup encryption envs: `BACKUP_ENCRYPTION_ENABLED`, `BACKUP_ENCRYPTION_KEY`, and `BACKUP_ENCRYPTION_KEY_ID`.
-- Phase 12.4 adds scratch restore verification via `BACKUP_VERIFY_SCRATCH_MYSQL_URL`; this must point at a scratch database, never production.
+- Phase 12.4 backup encryption envs are now live in prod: `BACKUP_ENCRYPTION_ENABLED`, `BACKUP_ENCRYPTION_KEY`, and `BACKUP_ENCRYPTION_KEY_ID`.
+- Scratch restore verification uses `BACKUP_VERIFY_SCRATCH_MYSQL_URL`; this must always point at a scratch database, never production.
 - `DB_SLOW_QUERY_THRESHOLD_MS` now controls bounded production slow-query timing logs.
 - Upload files are still local-only in 12.3/12.4; database backups and release manifests are the primary rollback assets.
 
@@ -115,13 +112,10 @@ Primary reference:
 
 ## 7) Immediate Follow-up Item
 
-Complete the shared Phase 12.3/12.4 production sign-off:
-- run one real `update-safe.sh` deploy on the VPS
-- verify one encrypted offsite backup + manifest
-- run one scratch restore verification drill
-- run one rollback drill using a real manifest
-
-After that, mark both phases complete and resume the first-user production signup + smoke test.
+Move on from production-hardening sign-off into the next planned workstream, while keeping the current production posture stable:
+- use `update-safe.sh` for future deploys
+- preserve the first-user-admin rule during the first real signup
+- do a careful browser smoke test when ready for that first intended user
 
 ## 8) Resume Command Pack
 
@@ -138,7 +132,7 @@ Preferred production deploy path:
 ssh flowstate-vps
 cd /opt/flowstate/app
 git pull origin master
-bash deploy/vps/deploy-safe.sh
+bash deploy/vps/update-safe.sh
 ```
 
 Production checks:
@@ -151,4 +145,5 @@ curl https://flo-state.in/api/health/ready
 ```
 
 This file is the resume checkpoint contract for continuing FlowState safely and quickly.
+
 

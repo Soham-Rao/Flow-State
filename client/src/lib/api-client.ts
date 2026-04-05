@@ -1,4 +1,5 @@
-import { getSessionToken } from "@/lib/session";
+import { clearSessionToken, getSessionToken } from "@/lib/session";
+import { useAppFeedbackStore } from "@/stores/app-feedback-store";
 import { usePermissionErrorStore } from "@/stores/permission-error-store";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
@@ -68,6 +69,60 @@ function getBestErrorMessage(error: ApiErrorPayload | undefined): string {
   }
 
   return message ?? "Request failed";
+}
+
+function openFriendlyErrorDialog(input: {
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  onConfirm?: (() => void) | null;
+}): void {
+  useAppFeedbackStore.getState().openDialog({
+    title: input.title,
+    description: input.description,
+    confirmLabel: input.confirmLabel,
+    onConfirm: input.onConfirm ?? null
+  });
+}
+
+function classifyAndPresentError(responseStatus: number, message: string, authRequest: boolean): void {
+  if (responseStatus === 403 || /permission/i.test(message)) {
+    usePermissionErrorStore.getState().setError(message);
+    return;
+  }
+
+  if (responseStatus === 401 && authRequest) {
+    openFriendlyErrorDialog({
+      title: "Session expired",
+      description: "Your FlowState session is no longer valid. Sign in again to continue.",
+      confirmLabel: "Sign in again",
+      onConfirm: () => {
+        clearSessionToken();
+        clearApiCache();
+        if (typeof window !== "undefined") {
+          window.location.assign("/login");
+        }
+      }
+    });
+    return;
+  }
+
+  if (responseStatus === 429) {
+    openFriendlyErrorDialog({
+      title: "Too many requests",
+      description: "That action is being requested too often right now. Please wait a moment and try again.",
+      confirmLabel: "OK"
+    });
+    return;
+  }
+
+  if (responseStatus >= 500) {
+    openFriendlyErrorDialog({
+      title: "Something went wrong",
+      description: "FlowState hit a temporary server problem while handling that request. Please try again in a moment.",
+      confirmLabel: "OK"
+    });
+  }
 }
 
 function normalizeTags(tags: string[] | undefined): string[] {
@@ -183,11 +238,21 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   const requestPromise = (async () => {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers,
-      cache
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers,
+        cache
+      });
+    } catch (error) {
+      openFriendlyErrorDialog({
+        title: "Connection problem",
+        description: "FlowState could not reach the server. Check your connection and try again.",
+        confirmLabel: "OK"
+      });
+      throw (error instanceof Error ? error : new Error("Network request failed"));
+    }
 
     const payload = (await response.json().catch(() => null)) as
       | { success?: boolean; data?: T; error?: ApiErrorPayload }
@@ -200,9 +265,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       }
 
       const message = getBestErrorMessage(payload?.error);
-      if (response.status === 403 || /permission/i.test(message)) {
-        usePermissionErrorStore.getState().setError(message);
-      }
+      classifyAndPresentError(response.status, message, Boolean(options.auth));
       throw new Error(message);
     }
 

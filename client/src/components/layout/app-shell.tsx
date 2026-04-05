@@ -10,6 +10,8 @@ import { useMentionStore } from "@/stores/mentions-store";
 import { usePresenceStore } from "@/stores/presence-store";
 import { useSocketStore } from "@/stores/socket-store";
 import { usePermissionErrorStore } from "@/stores/permission-error-store";
+import { useAppFeedbackStore } from "@/stores/app-feedback-store";
+import { getBugReportSummary } from "@/lib/bug-reports-api";
 import { listChannelConversations, listDmConversations } from "@/lib/threads-api";
 import type { PresenceUser } from "@/types/presence";
 
@@ -47,12 +49,15 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const assignmentBadgeCount = mentionCounts?.assignments ?? 0;
   const threadBadgeMode = useThreadSettingsStore((state) => state.threadBadgeMode);
   const [threadCounts, setThreadCounts] = useState({ dms: 0, channels: 0 });
+  const [bugInboxCount, setBugInboxCount] = useState<number | null>(null);
   const workspacePresence = usePresenceStore((state) => state.workspace);
   const connectSocket = useSocketStore((state) => state.connect);
   const disconnectSocket = useSocketStore((state) => state.disconnect);
   const subscribeThreadEvents = useSocketStore((state) => state.subscribeThreadEvents);
   const permissionErrorMessage = usePermissionErrorStore((state) => state.message);
   const clearPermissionError = usePermissionErrorStore((state) => state.clear);
+  const feedbackDialog = useAppFeedbackStore((state) => state.dialog);
+  const clearFeedbackDialog = useAppFeedbackStore((state) => state.clearDialog);
 
 
   const refreshThreadCounts = useCallback(async (): Promise<void> => {
@@ -94,6 +99,28 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     return () => window.clearInterval(interval);
   }, [user, refreshMentions, refreshThreadCounts]);
 
+  useEffect(() => {
+    if (!user || user.role !== "admin") {
+      setBugInboxCount(null);
+      return;
+    }
+
+    const refreshBugSummary = async (): Promise<void> => {
+      try {
+        const summary = await getBugReportSummary();
+        setBugInboxCount(summary.openCount ?? 0);
+      } catch {
+        // ignore
+      }
+    };
+
+    void refreshBugSummary();
+    const interval = window.setInterval(() => {
+      void refreshBugSummary();
+    }, 15000);
+
+    return () => window.clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -188,6 +215,20 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
       showCancel={false}
       onCancel={clearPermissionError}
       onConfirm={clearPermissionError}
+    />
+    <ConfirmDialog
+      open={feedbackDialog !== null}
+      title={feedbackDialog?.title ?? "Notice"}
+      description={feedbackDialog?.description ?? ""}
+      confirmLabel={feedbackDialog?.confirmLabel ?? "OK"}
+      overlayClassName="z-[210]"
+      showCancel={false}
+      onCancel={clearFeedbackDialog}
+      onConfirm={() => {
+        const nextAction = feedbackDialog?.onConfirm;
+        clearFeedbackDialog();
+        nextAction?.();
+      }}
     />
     <div className="min-h-screen bg-[radial-gradient(900px_circle_at_top_left,rgba(45,212,191,0.55),transparent_60%),radial-gradient(800px_circle_at_bottom_right,rgba(99,102,241,0.5),transparent_60%),radial-gradient(700px_circle_at_top_right,rgba(251,191,36,0.35),transparent_65%),linear-gradient(135deg,#f8fafc,#eef2ff)] dark:bg-[radial-gradient(900px_circle_at_top_left,rgba(99,102,241,0.32),transparent_58%),radial-gradient(800px_circle_at_bottom_right,rgba(16,185,129,0.28),transparent_60%),radial-gradient(700px_circle_at_top_right,rgba(236,72,153,0.25),transparent_62%),linear-gradient(135deg,#0a0f1f,#030712)]">
       <div className="group/sidebar">
@@ -309,6 +350,11 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
               >
                 <Icon className="h-4 w-4" />
                 {label}
+                {label === "Advanced" && (bugInboxCount ?? 0) > 0 && (
+                  <span className="ml-auto rounded-full bg-amber-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    {bugInboxCount}
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -423,6 +469,11 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     </>
   );
 }
+
+
+
+
+
 
 
 

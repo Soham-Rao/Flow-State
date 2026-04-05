@@ -6,6 +6,7 @@ import { db, type DbTransaction } from "../../db/connection.js";
 import { recordActivity } from "../activity/activity.service.js";
 import { cards, type CardCoverColor } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { assertOwnOrAnyAccess } from "../../utils/access-control.js";
 import type { CreateCardInput, MoveCardInput, UpdateCardInput } from "./boards.schema.js";
 import type { BoardCard, MoveCardResult } from "./boards.service.types.js";
 import { clampIndex, normalizeCoverColor, normalizeDueDate, normalizeOptionalDescription, normalizeRequiredName, resolveRestoredName } from "./boards.service.utils.js";
@@ -343,3 +344,4 @@ export async function moveCard(input: MoveCardInput, userId: string): Promise<Mo
     destinationCards: await getCardsForList(destinationList.id)
   };
 }
+

@@ -19,7 +19,10 @@ export async function runMigrations(): Promise<void> {
     await runMigrationPostchecks();
     logger.info("db.migrations_complete", {
       pendingCount: migrationRun.pendingMigrations.length,
-      riskyCount: migrationRun.riskyMigrations.length
+      riskyCount: migrationRun.riskyMigrations.length,
+      pendingFiles: migrationRun.pendingMigrations.map((migration) => migration.fileName),
+      riskyFiles: migrationRun.riskyMigrations.map((migration) => migration.fileName),
+      acknowledgedRiskyFiles: migrationRun.riskyMigrations.filter((migration) => migration.acknowledged).map((migration) => migration.fileName)
     });
   } finally {
     await migrationRun.release();
@@ -37,3 +40,4 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       process.exit(1);
     });
 }
+

@@ -11,7 +11,8 @@ async function registerAndGetToken(email = "owner@example.com"): Promise<string>
   const response = await request(app).post("/api/auth/register").send({
     name: "Owner",
     email,
-    password: "password123"
+    password: "password123",
+      acceptedLegalTerms: true
   });
 
   return response.body.data.token as string;
@@ -166,3 +167,5 @@ afterAll(async () => {
   await clearDatabaseForTests();
   await closePool();
 });
+
+

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { PageErrorState } from "@/components/feedback/page-error-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -263,12 +264,15 @@ export function BoardsPage(): JSX.Element {
             New board
           </Button>
         </div>
-
-        {error && (
-          <p className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
+      {error && (
+        <PageErrorState
+          title="Unable to load boards"
+          message={error}
+          onRetry={() => {
+            void loadBoards(true);
+          }}
+        />
+      )}
 
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading boards...</p>
@@ -499,6 +503,11 @@ export function BoardsPage(): JSX.Element {
     </>
   );
 }
+
+
+
+
+
 
 
 

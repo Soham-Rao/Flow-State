@@ -1,4 +1,5 @@
 import request from "supertest";
+import type { Pool, RowDataPacket } from "mysql2/promise";
 
 const testDbUrl = "mysql://root:root@localhost:3306/flowstate_test";
 
@@ -6,6 +7,7 @@ let app: import("express").Express;
 let initializeDatabase: () => Promise<void>;
 let clearDatabaseForTests: () => Promise<void>;
 let closePool: () => Promise<void>;
+let pool: Pool;
 
 interface AuthContext {
   token: string;
@@ -16,8 +18,13 @@ async function registerAndGetAuth(email: string, name = "User"): Promise<AuthCon
   const response = await request(app).post("/api/auth/register").send({
     name,
     email,
-    password: "password123"
+    password: "password123",
+    acceptedLegalTerms: true
   });
+
+  if (response.status !== 201) {
+    throw new Error(`Registration failed: ${response.status} ${JSON.stringify(response.body)}`);
+  }
 
   return {
     token: response.body.data.token as string,
@@ -45,11 +52,11 @@ async function assignRoles(token: string, userId: string, roleIds: string[]): Pr
     .send({ roleIds });
 
   if (response.status !== 200) {
-    throw new Error("Failed to assign roles");
+    throw new Error(`Failed to assign roles: ${response.status} ${JSON.stringify(response.body)}`);
   }
 }
 
-async function createBoardWithDefaults(token: string): Promise<{
+async function createBoardWithDefaults(token: string, name = "Phase 3 Board"): Promise<{
   boardId: string;
   todoListId: string;
   inProgressListId: string;
@@ -59,9 +66,13 @@ async function createBoardWithDefaults(token: string): Promise<{
     .post("/api/boards")
     .set("Authorization", `Bearer ${token}`)
     .send({
-      name: "Phase 3 Board",
+      name,
       background: "teal-gradient"
     });
+
+  if (response.status !== 201) {
+    throw new Error(`Board creation failed: ${response.status} ${JSON.stringify(response.body)}`);
+  }
 
   const boardId = response.body.data.id as string;
   const lists = response.body.data.lists as Array<{ id: string; name: string }>;
@@ -91,6 +102,7 @@ beforeAll(async () => {
   initializeDatabase = dbInitModule.initializeDatabase;
   clearDatabaseForTests = dbInitModule.clearDatabaseForTests;
   closePool = dbModule.closePool;
+  pool = dbModule.pool;
 
   await initializeDatabase();
 });
@@ -157,7 +169,7 @@ describe("Cards API", () => {
 
   it("moves cards across lists and tracks doneEnteredAt", async () => {
     const auth = await registerAndGetAuth("drag@example.com", "Drag User");
-    const { todoListId, doneListId } = await createBoardWithDefaults(auth.token);
+    const { todoListId, doneListId } = await createBoardWithDefaults(auth.token, "Move Board");
 
     const firstCard = await request(app)
       .post(`/api/boards/lists/${todoListId}/cards`)
@@ -223,7 +235,7 @@ describe("Cards API", () => {
     await assignRoles(admin.token, memberOne.userId, [memberRoleId]);
     await assignRoles(admin.token, memberTwo.userId, [memberRoleId]);
 
-    const { todoListId } = await createBoardWithDefaults(memberOne.token);
+    const { todoListId } = await createBoardWithDefaults(memberOne.token, "Delete Permission Board");
 
     const createdCard = await request(app)
       .post(`/api/boards/lists/${todoListId}/cards`)
@@ -243,6 +255,47 @@ describe("Cards API", () => {
       .set("Authorization", `Bearer ${admin.token}`);
 
     expect(adminDelete.status).toBe(200);
+  });
+
+  it("respects board-scoped overrides when creating cards", async () => {
+    const admin = await registerAndGetAuth("admin@example.com", "Admin User");
+    const guest = await registerAndGetAuth("guest@example.com", "Guest User");
+    const deniedMember = await registerAndGetAuth("denied-member@example.com", "Denied Member");
+
+    const memberRoleId = await getRoleIdByName(admin.token, "Member");
+    const [guestRoleRows] = await pool.query<Array<RowDataPacket & { id: string }>>("SELECT id FROM roles WHERE name = ?", ["Guest"]);
+    const guestRoleId = guestRoleRows[0]?.id;
+
+    expect(guestRoleId).toBeTruthy();
+    await assignRoles(admin.token, deniedMember.userId, [memberRoleId]);
+
+    const allowBoard = await createBoardWithDefaults(admin.token, "Override Allow Board");
+    const denyBoard = await createBoardWithDefaults(admin.token, "Override Deny Board");
+
+    await pool.query(
+      "INSERT INTO role_scope_overrides (role_id, scope_type, scope_id, permission, access, created_at) VALUES (?, 'board', ?, 'create_cards', 'allow', NOW(3))",
+      [guestRoleId, allowBoard.boardId]
+    );
+
+    await pool.query(
+      "INSERT INTO role_scope_overrides (role_id, scope_type, scope_id, permission, access, created_at) VALUES (?, 'board', ?, 'create_cards', 'deny', NOW(3))",
+      [memberRoleId, denyBoard.boardId]
+    );
+
+    const allowedCreate = await request(app)
+      .post(`/api/boards/lists/${allowBoard.todoListId}/cards`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({ title: "Override-created card" });
+
+    expect(allowedCreate.status).toBe(201);
+    expect(allowedCreate.body.data.title).toBe("Override-created card");
+
+    const deniedCreate = await request(app)
+      .post(`/api/boards/lists/${denyBoard.todoListId}/cards`)
+      .set("Authorization", `Bearer ${deniedMember.token}`)
+      .send({ title: "Should be blocked" });
+
+    expect(deniedCreate.status).toBe(403);
   });
 });
 

@@ -12,6 +12,7 @@ interface RegisterInput {
   email: string;
   password: string;
   inviteToken?: string;
+  acceptedLegalTerms: boolean;
 }
 
 interface LoginInput {
@@ -147,3 +148,4 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ error: null });
   }
 }));
+

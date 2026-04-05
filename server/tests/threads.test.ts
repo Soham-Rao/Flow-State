@@ -38,7 +38,8 @@ async function registerUser(name: string, email: string): Promise<{ token: strin
   const response = await request(app).post("/api/auth/register").send({
     name,
     email,
-    password: "password123"
+    password: "password123",
+      acceptedLegalTerms: true
   });
 
   return { token: response.body.data.token as string, id: response.body.data.user.id as string };
@@ -349,3 +350,5 @@ afterAll(async () => {
   await clearDatabaseForTests();
   await closePool();
 });
+
+

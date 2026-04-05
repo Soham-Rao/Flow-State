@@ -16,6 +16,7 @@ import { activityRouter } from "./modules/activity/activity.route.js";
 import { announcementsRouter } from "./modules/announcements/announcements.route.js";
 import { authRouter } from "./modules/auth/auth.route.js";
 import { boardsRouter } from "./modules/boards/boards.route.js";
+import { bugReportsRouter } from "./modules/bug-reports/bug-reports.route.js";
 import { dashboardRouter } from "./modules/dashboard/dashboard.route.js";
 import { invitesRouter } from "./modules/invites/invites.route.js";
 import { mentionsRouter } from "./modules/mentions/mentions.route.js";
@@ -68,6 +69,7 @@ app.locals.allowedOrigins = allowedOrigins;
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/boards", boardsRouter);
+app.use("/api/bug-reports", bugReportsRouter);
 app.use("/api/invites", invitesRouter);
 app.use("/api/roles", rolesRouter);
 app.use("/api/threads", threadsRouter);
@@ -86,3 +88,4 @@ if (env.NODE_ENV === "production" && hasClientBuild) {
 
 app.use(notFoundMiddleware);
 app.use(errorHandler);
+

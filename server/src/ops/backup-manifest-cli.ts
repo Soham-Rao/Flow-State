@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { getPendingMigrationInventory } from "../db/migration-guard.js";
 import { buildBackupManifest, type BackupKind } from "./backup-manifest.js";
 
 function getArg(flag: string): string | null {
@@ -30,6 +31,7 @@ if (!kind || !archivePath || !currentSha || !backupId || !manifestPath) {
   process.exit(1);
 }
 
+const inventory = await getPendingMigrationInventory(path.resolve("server/drizzle"));
 const manifest = buildBackupManifest({
   backupId,
   kind,
@@ -44,6 +46,9 @@ const manifest = buildBackupManifest({
   packageVersion,
   bunLockHash,
   migrationJournalHash,
+  migrationPendingFiles: inventory.pendingMigrations.map((migration) => migration.fileName),
+  migrationRiskyFiles: inventory.riskyMigrations.map((migration) => migration.fileName),
+  migrationAcknowledgedRiskyFiles: inventory.acknowledgedRiskyMigrations.map((migration) => migration.fileName),
   mysqlDatabase
 });
 

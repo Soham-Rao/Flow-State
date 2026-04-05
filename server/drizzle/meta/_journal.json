@@ -36,6 +36,13 @@
       "when": 1775333431172,
       "tag": "0004_futuristic_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1775344059741,
+      "tag": "0005_famous_major_mapleleaf",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { CheckCircle2, ListTodo } from "lucide-react";
 
+import { PageErrorState } from "@/components/feedback/page-error-state";
 import { createAnnouncement, deleteAnnouncements, getAnnouncementCapabilities, listAnnouncementAudienceOptions, markAnnouncementsSeen } from "@/lib/announcements-api";
 import { createInvite, listInvites, revokeInvite } from "@/lib/invites-api";
 import { getDashboardSummary } from "@/lib/dashboard-api";
@@ -512,9 +513,13 @@ export function HomePage(): JSX.Element {
       <DashboardHeader email={user?.email} />
 
       {summaryError && (
-        <p className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {summaryError}
-        </p>
+        <PageErrorState
+          title="Unable to load dashboard"
+          message={summaryError}
+          onRetry={() => {
+            void loadSummary();
+          }}
+        />
       )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
@@ -655,6 +660,8 @@ export function HomePage(): JSX.Element {
     </div>
   );
 }
+
+
 
 
 

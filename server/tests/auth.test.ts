@@ -45,7 +45,8 @@ describe("Auth API", () => {
     const response = await request(app).post("/api/auth/register").send({
       name: "Soham",
       email: "soham@example.com",
-      password: "password123"
+      password: "password123",
+      acceptedLegalTerms: true
     });
 
     expect(response.status).toBe(201);
@@ -54,13 +55,27 @@ describe("Auth API", () => {
     expect(response.body.data.token).toEqual(expect.any(String));
   });
 
-  it("sanitizes profile text fields during registration and profile updates", async () => {
-    const registerResponse = await request(app).post("/api/auth/register").send({
-      name: "<b>Soham</b>",
+  it("requires legal consent during registration", async () => {
+    const response = await request(app).post("/api/auth/register").send({
+      name: "Soham",
       email: "soham@example.com",
       password: "password123"
     });
 
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(JSON.stringify(response.body.error)).toMatch(/accept/i);
+  });
+
+  it("sanitizes profile text fields during registration and profile updates", async () => {
+    const registerResponse = await request(app).post("/api/auth/register").send({
+      name: "<b>Soham</b>",
+      email: "soham@example.com",
+      password: "password123",
+      acceptedLegalTerms: true
+    });
+
+    expect(registerResponse.status).toBe(201);
     const token = registerResponse.body.data.token as string;
     expect(registerResponse.body.data.user.name).toBe("Soham");
 
@@ -79,16 +94,20 @@ describe("Auth API", () => {
   });
 
   it("registers second user as guest", async () => {
-    await request(app).post("/api/auth/register").send({
+    const firstRegister = await request(app).post("/api/auth/register").send({
       name: "Admin",
       email: "admin@example.com",
-      password: "password123"
+      password: "password123",
+      acceptedLegalTerms: true
     });
+
+    expect(firstRegister.status).toBe(201);
 
     const response = await request(app).post("/api/auth/register").send({
       name: "Member",
       email: "member@example.com",
-      password: "password123"
+      password: "password123",
+      acceptedLegalTerms: true
     });
 
     expect(response.status).toBe(201);
@@ -96,11 +115,14 @@ describe("Auth API", () => {
   });
 
   it("logs in and returns a token", async () => {
-    await request(app).post("/api/auth/register").send({
+    const firstRegister = await request(app).post("/api/auth/register").send({
       name: "Soham",
       email: "soham@example.com",
-      password: "password123"
+      password: "password123",
+      acceptedLegalTerms: true
     });
+
+    expect(firstRegister.status).toBe(201);
 
     const response = await request(app).post("/api/auth/login").send({
       email: "soham@example.com",
@@ -116,10 +138,13 @@ describe("Auth API", () => {
     const registerResponse = await request(app).post("/api/auth/register").send({
       name: "Soham",
       email: "soham@example.com",
-      password: "password123"
+      password: "password123",
+      acceptedLegalTerms: true
     });
 
+    expect(registerResponse.status).toBe(201);
     const token = registerResponse.body.data.token as string;
+
     const meResponse = await request(app)
       .get("/api/auth/me")
       .set("Authorization", `Bearer ${token}`);
@@ -129,11 +154,14 @@ describe("Auth API", () => {
   });
 
   it("returns 401 for invalid login and records an audit log", async () => {
-    await request(app).post("/api/auth/register").send({
+    const firstRegister = await request(app).post("/api/auth/register").send({
       name: "Soham",
       email: "soham@example.com",
-      password: "password123"
+      password: "password123",
+      acceptedLegalTerms: true
     });
+
+    expect(firstRegister.status).toBe(201);
 
     const response = await request(app).post("/api/auth/login").send({
       email: "soham@example.com",
@@ -152,11 +180,14 @@ describe("Auth API", () => {
   });
 
   it("returns a generic forgot-password response for existing and missing users", async () => {
-    await request(app).post("/api/auth/register").send({
+    const firstRegister = await request(app).post("/api/auth/register").send({
       name: "Soham",
       email: "soham@example.com",
-      password: "password123"
+      password: "password123",
+      acceptedLegalTerms: true
     });
+
+    expect(firstRegister.status).toBe(201);
 
     const existingResponse = await request(app).post("/api/auth/forgot-password").send({
       email: "soham@example.com"
@@ -174,9 +205,11 @@ describe("Auth API", () => {
     const registerResponse = await request(app).post("/api/auth/register").send({
       name: "Soham",
       email: "soham@example.com",
-      password: "password123"
+      password: "password123",
+      acceptedLegalTerms: true
     });
 
+    expect(registerResponse.status).toBe(201);
     const userId = registerResponse.body.data.user.id as string;
     const rawToken = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");

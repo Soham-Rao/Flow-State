@@ -16,7 +16,8 @@ async function registerAndGetAuth(email: string, name = "User"): Promise<AuthCon
   const response = await request(app).post("/api/auth/register").send({
     name,
     email,
-    password: "password123"
+    password: "password123",
+      acceptedLegalTerms: true
   });
 
   return {
@@ -132,3 +133,5 @@ afterAll(async () => {
   await clearDatabaseForTests();
   await closePool();
 });
+
+

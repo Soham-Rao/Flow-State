@@ -15,6 +15,8 @@ const GeneralSettingsPage = lazy(async () => ({ default: (await import("@/pages/
 const AdvancedSettingsPage = lazy(async () => ({ default: (await import("@/pages/settings/advanced-page")).AdvancedSettingsPage }));
 const LoginPage = lazy(async () => ({ default: (await import("@/pages/login-page")).LoginPage }));
 const RegisterPage = lazy(async () => ({ default: (await import("@/pages/register-page")).RegisterPage }));
+const PrivacyPage = lazy(async () => ({ default: (await import("@/pages/legal/privacy-page")).PrivacyPage }));
+const TermsPage = lazy(async () => ({ default: (await import("@/pages/legal/terms-page")).TermsPage }));
 
 function RouteFallback(): JSX.Element {
   return (
@@ -44,6 +46,10 @@ function GuestRoute({ children }: { children: ReactNode }): JSX.Element {
   );
 }
 
+function PublicRoute({ children }: { children: ReactNode }): JSX.Element {
+  return <Suspense fallback={<RouteFallback />}>{children}</Suspense>;
+}
+
 export function AppRouter(): JSX.Element {
   return (
     <AuthGate>
@@ -59,6 +65,8 @@ export function AppRouter(): JSX.Element {
           <Route path="/settings/advanced" element={<WithShell><AdvancedSettingsPage /></WithShell>} />
           <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
           <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
+          <Route path="/privacy" element={<PublicRoute><PrivacyPage /></PublicRoute>} />
+          <Route path="/terms" element={<PublicRoute><TermsPage /></PublicRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
