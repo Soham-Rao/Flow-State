@@ -1,6 +1,6 @@
 # FlowState VPS Operations Guide
 
-This guide is for ongoing deploys and routine maintenance after the one-time VPS bootstrap in `Docs/vps-setup.md` is already complete.
+This guide is for ongoing deploys and routine maintenance after the one-time VPS bootstrap in `Docs/dev/vps-setup.md` is already complete.
 
 ## Purpose
 
@@ -12,7 +12,7 @@ Use this document for:
 - Cloudflare R2 setup for offsite backups
 - production health checks and retention checks
 
-Use `Docs/vps-setup.md` only for first-time server setup or disaster rebuilds.
+Use `Docs/dev/vps-setup.md` only for first-time server setup or disaster rebuilds.
 
 ## Current Production Shape
 

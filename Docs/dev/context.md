@@ -1,7 +1,7 @@
 # FlowState — Project Context & Progress
 
 > Full project context, decisions, progress, and phase tracking.
-> `instructions.md` is used for phase-specific notes and checklists.
+> Official project tracking lives here under `Docs/dev/`. Personal scratch notes now live under ignored `My_Docs/personal/`.
 > Last updated: 2026-04-05
 
 ---
@@ -236,8 +236,8 @@ Recurring tasks, task dependencies, archive system with timer, auto-cleanup cron
 ### Phase 12: Hosting & Production Readiness
 Production hosting, deployment setup, hardening, observability, durability, and user-facing deployment documentation.
 
-### Phase 12.5: User-Facing Docs
-Onboarding/tutorials, deployment-facing help, and user guidance for the live product experience.
+### Phase 12.5: Documentation System Rebuild
+Official tracked docs rebuilt into `Docs/user` and `Docs/dev`, with personal docs moved under ignored `My_Docs/`, plus comprehensive user guidance, developer handoff docs, and personal web-dev learning references.
 
 ### Phase 12.6: Access Hardening, Error UX & Public-Facing Compliance
 Follow-up production polish focused on stronger authorization centralization and negative testing, better user-facing error states/modals for common failures, privacy/terms/legal surface area for a publicly hosted app, and lightweight bug-diagnostics/feedback flows that help support without turning the product into a tracked public analytics platform.
@@ -304,14 +304,14 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 | Phase 10.4: Dashboard UI overhaul | ✅ Completed | 2026-03-27 | 2026-03-27 | Glassmorphism redesign, two-column layout, priority/alert styling, visual polish only |
 | Phase 10.5: Templates + pins + settings polish | 🟡 Deferred | 2026-03-30 | — | Deferred by request; revisit later (templates/polish + pins/templates gallery) |
 | Phase 11: Polish & Advanced | ⬜ Not Started | — | — | — |
-| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Phase 12.0–12.4 are now completed and signed off; remaining planned follow-ups are 12.5 user-facing docs, 12.6 authorization/error-UX/compliance polish, and 12.7 SMTP-backed support/recovery features |
+| Phase 12: Hosting & Production Readiness | 🟡 In Progress | 2026-03-31 | — | Phase 12.0–12.6 are now completed and signed off; the remaining planned follow-up is 12.7 SMTP-backed support/recovery features |
 | Phase 12.0: Database Platform Switch | ✅ Completed | 2026-03-31 | 2026-03-31 | MySQL switch + Drizzle migrations + test infra |
 | Phase 12.1: Hosting + Deployment Setup | ✅ Completed | 2026-04-03 | 2026-04-04 | BigRock VPS bootstrap completed: SSH hardening, UFW/fail2ban, Node+Bun, MySQL Docker, production env, systemd app, Nginx, DNS, HTTPS, and auto-renewing Certbot setup |
 | Phase 12.2: Security Hardening | ✅ Completed | 2026-04-04 | 2026-04-04 | Input sanitization, explicit CORS/CSP/trust-proxy hardening, rate limits, password-reset scaffolding, audit logs, and bounded log retention policies |
 | Phase 12.3: Reliability + Observability | ✅ Completed | 2026-04-04 | 2026-04-05 | Completed on the VPS with real safe deploys, structured prod logging, health splits, maintenance mode, compressed MySQL backups, R2 upload, backup timers, rollback tooling, and the `update-safe.sh` wrapper verified in production |
 | Phase 12.4: Data Durability + Performance | ✅ Completed | 2026-04-05 | 2026-04-05 | Completed locally and validated operationally with encrypted offsite backups, checksum-rich manifests, scratch restore verification, migration advisory locking and risky-migration gating, slow-query timing, hot-path indexes, bounded pagination, short-lived client caching, route lazy-loading, and bundle splitting |
-| Phase 12.5: User-Facing Docs | ⬜ Not Started | — | — | onboarding/tutorials |
-| Phase 12.6: Access Hardening, Error UX & Public-Facing Compliance | 🟡 In Progress | 2026-04-05 | — | Local implementation now covers risky-migration linting + acknowledgements, formal privacy/terms pages with required signup consent, in-app bug inbox flows, centralized override-aware access helpers, and friendlier common error UX; rollout/sign-off still pending |
+| Phase 12.5: Documentation System Rebuild | ✅ Completed | 2026-04-05 | 2026-04-05 | Rebuilt official docs into `Docs/user` + `Docs/dev`, moved prior notes to ignored `My_Docs/personal`, added comprehensive user manuals, developer handoff docs, and personal web-dev learning docs under `My_Docs/webdev` |
+| Phase 12.6: Access Hardening, Error UX & Public-Facing Compliance | ✅ Completed | 2026-04-05 | 2026-04-05 | Risky-migration linting + acknowledgements, formal privacy/terms pages with required signup consent, in-app bug inbox flows, centralized override-aware access helpers, and friendlier common error UX have been implemented and deployed |
 | Phase 12.7: SMTP, Support & Account Recovery | ⬜ Not Started | — | — | SMTP-backed password reset, support/contact flows, alert delivery, optional email verification, and other mail-dependent account/support features |
 | Phase 13: Polish and CI/CD Pipeline | ⬜ Not Started | — | — | build/deploy automation on push, pipeline quality gates, staging strategy, repo polish, and maintenance ergonomics |
 
@@ -326,10 +326,11 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 - **Logging is intentionally bounded**: security audit rows use compact metadata with retention cleanup, while host logs remain journald/logrotate-managed and should stay compressed/size-limited at the VPS level.
 - **Phase 12.3 is signed off in production**: the VPS now has maintenance mode, readiness checks, compressed MySQL dump backups, R2 upload, backup timers, alert hooks, rollback scripts, and a one-command `update-safe.sh` wrapper, all exercised in real deploy/rollback flow.
 - **Phase 12.4 is also signed off**: encrypted offsite backups, checksum verification, scratch restore verification, migration advisory locking, risky-migration backup gating, slow-query timing, hot-path indexes, bounded pagination, short-lived client caching/invalidation, route/code splitting, and smoother maintenance UX have all been implemented and verified through the final VPS pass.
-- **Phase 12.6 is now in progress locally**: risky-migration linting + acknowledgement checks, formal privacy/terms pages, required signup consent, a lightweight in-app bug inbox, override-aware authorization helper centralization, and friendlier common-error UX are now implemented in the repo and awaiting rollout/sign-off.
+- **Phase 12.5 is now complete**: official tracked docs live in `Docs/user/` and `Docs/dev/`, while old personal docs were moved under ignored `My_Docs/personal/` and a separate `My_Docs/webdev/` learning set now explains web-development concepts from first principles.
+- **Phase 12.6 is signed off in production**: risky-migration linting + acknowledgement checks, formal privacy/terms pages, required signup consent, the in-app bug inbox, override-aware authorization helper centralization, and friendlier common-error UX are now live.
 - **SMTP-dependent work stays deferred to Phase 12.7**: password reset delivery, support email flows, ops alert emails, and optional verification/invite mail behavior should all wait for real SMTP/provider setup.
 
-- `instructions.md` can be used for phase-specific notes, checklists, and implementation details when planning a phase. It serves as a scratchpad for detailed specifications.
+- Legacy scratchpad material now lives in `My_Docs/personal/`; official planning, tracking, and handoff docs should stay in `Docs/dev/`.
 - **Test policy**: Write tests during implementation; user runs them on full-phase cadence (or every 2 full phases) and reports output.
 - **Execution preference**: Assistant provides test commands and does not execute tests unless user explicitly requests execution.
 - **Progress logging policy**: At the end of each implementation cycle, update both the Progress Tracker and the Updates table in this file.
@@ -370,21 +371,23 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 
 | Date | Update |
 |------|--------|
+| 2026-04-05 | Phase 12.6 is now complete and deployed. The live app now includes risky-migration linting + acknowledgement checks, required legal-consent gating on signup, public privacy/terms pages, a lightweight in-app bug inbox, override-aware authorization helper centralization, and friendlier common error UX. |
+| 2026-04-05 | Phase 12.5 completed the documentation-system rebuild: the old tracked docs were moved into ignored `My_Docs/personal/`, a new tracked `Docs/user/` manual now explains the product end to end for non-technical users, a new tracked `Docs/dev/` set now acts as the canonical developer handoff, and `My_Docs/webdev/` now holds broad web-development learning notes. |
 | 2026-04-05 | Phase 12.3 and 12.4 are now complete. Final VPS verification succeeded with `update-safe.sh`, encrypted backup creation + R2 upload, a rollback drill, return-to-latest deploy, and follow-up smoothing for maintenance UX and restore/deploy scripts so the production path no longer needs the earlier manual workarounds. |
 | 2026-04-05 | Phase 12.4 local implementation completed: backup encryption env validation, encrypted offsite archive support, manifest checksums and verification metadata, restore-verify tooling for a scratch MySQL target, migration advisory locking + risky-migration gating, slow-query timing, hot-path MySQL indexes, tighter thread pagination, short-lived client cache/dedupe with invalidation, route-level lazy loading, and Vite chunk splitting are now in the repo. The next VPS rollout will also be used to complete the pending 12.3 safe-deploy and rollback drills. |
 | 2026-04-04 | Phase 12.3 advanced from local-only to real VPS ops: Cloudflare R2 is configured, compressed local and remote backups are working, backup timers are enabled, health/readiness checks pass in production, and a new `deploy/vps/update-safe.sh` wrapper now provides a one-command safe update path with concise output. The only remaining 12.3 sign-off items are one real safe-deploy run and one rollback drill. |
 | 2026-04-04 | Phase 12.3 local implementation completed: added a global React error boundary + chunk-load recovery UI, structured JSON request/app logs, graceful shutdown and process guards, /api/health/live + /api/health/ready, Nginx maintenance-mode support, deploy-safe.sh with predeploy backup/readiness/rollback flow, compressed MySQL backup + restore scripts, backup manifest helpers, SMTP-backed ops alert plumbing, and new local tests for health/logging/ops behavior. Cloudflare R2 wiring and VPS rollout are the next step. |
 | 2026-04-04 | Phase 12.2 completed locally: added strict server-side plain-text sanitization for user-authored content, explicit production CORS allowlisting + CSP + trust-proxy handling, route-scoped rate limits for auth/invite/health endpoints, password-reset scaffolding with generic `forgot-password` responses, MySQL-backed `audit_logs` and `password_reset_tokens`, request-id based security logging, and bounded retention rules so audit/system logs do not grow without limit. Password reset remains scaffold-only until SMTP delivery is implemented. |
-| 2026-04-04 | Phase 12.1 completed on the BigRock VPS path: SSH was hardened with key-only access, UFW/fail2ban/nginx/docker were enabled, Node 22 and Bun were installed, MySQL 8.0 was provisioned in Docker, production env and uploads paths were configured, the app now runs under systemd behind Nginx, DNS points to the VPS, HTTPS is live via Let's Encrypt with certbot auto-renewal, and `Docs/vps-setup.md` now includes a practical cheat sheet. First-user browser smoke testing is intentionally deferred so the intended first admin can sign up. |
-| 2026-04-03 | Phase 12.1 advanced for the BigRock Ubuntu VPS path: Express now serves client/dist in production, invite links use PUBLIC_APP_URL, uploads storage is fully configurable via FLOWSTATE_UPLOADS_DIR (including thread cleanup paths), production env examples were added, VPS deploy assets were created for MySQL Docker, systemd, Nginx, redeploy flow, one-time server setup, and Docs/hosting.md was narrowed to the single VPS production plan. |
+| 2026-04-04 | Phase 12.1 completed on the BigRock VPS path: SSH was hardened with key-only access, UFW/fail2ban/nginx/docker were enabled, Node 22 and Bun were installed, MySQL 8.0 was provisioned in Docker, production env and uploads paths were configured, the app now runs under systemd behind Nginx, DNS points to the VPS, HTTPS is live via Let's Encrypt with certbot auto-renewal, and `Docs/dev/vps-setup.md` now includes a practical cheat sheet. First-user browser smoke testing is intentionally deferred so the intended first admin can sign up. |
+| 2026-04-03 | Phase 12.1 advanced for the BigRock Ubuntu VPS path: Express now serves client/dist in production, invite links use PUBLIC_APP_URL, uploads storage is fully configurable via FLOWSTATE_UPLOADS_DIR (including thread cleanup paths), production env examples were added, VPS deploy assets were created for MySQL Docker, systemd, Nginx, redeploy flow, one-time server setup, and `Docs/dev/deployment-overview.md` was narrowed to the single VPS production plan. |
 | 2026-04-03 | Permission checks for card actions are now board-scoped (edit/assign/comment/move/create/archive/delete), so board-level overrides allow non-admin edits/assignments as intended. |
 | 2026-04-03 | Assigned-task badges added to board cards, board header, and list headers; assignment counts exclude done lists; badges refresh when assignment counts change. |
 | 2026-04-03 | Global permission error modal added (ConfirmDialog) with topmost z-index; API client routes 403/permission errors into the modal. |
 | 2026-04-03 | ConfirmDialog now accepts `overlayClassName` for z-index control. |
 | 2026-03-31 | Phase 12.0 completed: MySQL switch (mysql2 + Drizzle migrations), test DB reset speedups (truncate + single-worker Vitest), and user-run server tests passing. |
-| 2026-03-31 | Phase 12 planning updated: canonical domain flo-state.in (www redirect), added Phase 12.0 DB switch (MySQL, DDL-only), and expanded hosting plan sections in Docs/hosting.md. |
-| 2026-03-31 | Phase 12 planning: moved hosting plan to Docs/hosting.md, set domain to flo-state.in, and split Phase 12 into subphases (12.1–12.5). |
-| 2026-03-31 | Phase 12 started: production readiness checklist + hosting plan (hosting.md) drafted; no implementation changes yet. |
+| 2026-03-31 | Phase 12 planning updated: canonical domain flo-state.in (www redirect), added Phase 12.0 DB switch (MySQL, DDL-only), and expanded hosting plan sections in `Docs/dev/deployment-overview.md`. |
+| 2026-03-31 | Phase 12 planning: moved hosting plan to `Docs/dev/deployment-overview.md`, set domain to flo-state.in, and split Phase 12 into subphases (12.1–12.5). |
+| 2026-03-31 | Phase 12 started: production readiness checklist + hosting plan (`Docs/dev/deployment-overview.md`) drafted; no implementation changes yet. |
 | 2026-03-30 | Deferred Phase 10.5 templates/polish work by request; to be revisited later. |
 | 2026-03-30 | Settings templates implemented (panel/form/list/modal), a11y focus/hover polish across settings, and client tests run. |
 | 2026-03-27 | Phase 10.4 completed: dashboard visual overhaul with glassmorphism, two-column layout, priority bands, and alert styling; no backend changes. |
@@ -404,7 +407,7 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 | 2026-03-13 | Phase 4.2 verified complete (attachments, retention settings, list DnD, card autosave, due-date normalization); Phase 4.3 started with labels/assignments/cover colors (schema + API + UI work in progress). |
 | 2026-03-13 | Phase 4.3 completed: labels CRUD, assignee toggles, and cover colors integrated end-to-end with schema/type fixes and polish passes. |
 | 2026-03-12 | Phase 3 verified complete after user-run tests; card drag-and-drop finalized with dnd-kit and docs updated. |
-| 2026-03-12 | Confirmed implementation defaults: Bun, TypeScript for client/server, plain workspace structure, first-signup auto-admin, edit yes/delete restricted, done-list cleanup trigger, email invite flow. Added execution checklist to `Docs/instructions.md` and added progress logging policy. |
+| 2026-03-12 | Confirmed implementation defaults: Bun, TypeScript for client/server, plain workspace structure, first-signup auto-admin, edit yes/delete restricted, done-list cleanup trigger, email invite flow. Added execution checklist to the legacy planning notes and added progress logging policy. |
 | 2026-03-12 | Implemented Phase 1.1 scaffold: Bun workspaces, client React+Vite+Tailwind+shadcn-style shell, server Express+TS health API, lint configs, and baseline tests. Lint and TypeScript checks passed. Client build/test execution in sandbox hit `spawn EPERM`; runtime/build/test verification deferred to user environment and full-phase test cadence. |
 | 2026-03-12 | Fixed server startup blocker by pinning `zod` to `3.24.1`. Implemented Phase 1.2 backend foundation: Drizzle schema (users/boards/lists/cards), SQLite initialization, JWT auth (`register/login/logout/me`), auto-admin on first signup, auth middleware, and auth integration tests. |
 | 2026-03-12 | Implemented Phase 1.3 client auth integration: Zustand auth store, API-backed login/register/logout/me flow, route guards, session hydration, authenticated app-shell header, and Vite API proxy setup. Lint/type/build checks executed; tests intentionally not executed per user instruction. |

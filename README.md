@@ -57,15 +57,22 @@ bun run dev
 - Set `PUBLIC_APP_URL` to the canonical frontend URL used in invite links
 - Set `FLOWSTATE_UPLOADS_DIR` to a persistent directory on the host
 - Use `server/.env.production.example` and `client/.env.production.example` as the production env starting point
-- VPS deployment templates live under `deploy/vps/`, with the one-time setup guide in `Docs/vps-setup.md`
+- VPS deployment templates live under `deploy/vps/`, with the official tracked runbooks under `Docs/dev/operations/`
 
 ## Repo Layout
 
 ```text
 client/   Frontend (Vite + React)
 server/   API + realtime services
-Docs/     Project docs
+Docs/     Official tracked docs (`user/` + `dev/`)
+My_Docs/  Personal/learning docs (ignored by git)
 ```
+
+## Documentation
+
+- End-user documentation lives in [Docs/user](Docs/user/index.md)
+- Developer handoff documentation lives in [Docs/dev](Docs/dev/index.md)
+- Personal webdev learning notes live in `My_Docs/` and are intentionally not tracked
 
 
 

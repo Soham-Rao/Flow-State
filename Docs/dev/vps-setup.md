@@ -468,7 +468,7 @@ sudo apt install -y certbot python3-certbot-nginx
 - Keep MySQL bound to `127.0.0.1` only.
 - Certbot renewal is automatic through `certbot.timer`.
 - The first production signup becomes admin, so do the first signup intentionally.
-- For future pulls, it is fine to keep `Docs/` on the VPS for reference for now, even though it may later be excluded from production-only deploys.
+- For future pulls, it is fine to keep the tracked `Docs/dev/` runbooks on the VPS for reference if needed, even though end-user docs do not need to be part of the production runtime.
 
 ### Minimal command checklist
 
