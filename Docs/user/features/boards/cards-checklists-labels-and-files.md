@@ -34,6 +34,14 @@ Depending on your permissions, a card may let you:
 
 Some teams use cards very lightly. Others use them as the main record of project progress. FlowState supports both approaches, but consistency matters more than complexity.
 
+When you create a new card from a board list, FlowState now requires three pieces of information before it will save the card:
+
+- a card title
+- a due date
+- at least one assignee
+
+This keeps new work accountable from the moment it enters a list.
+
 ## Writing better card titles
 
 A card title should be short enough to scan and specific enough to understand without opening the card every time.
@@ -121,6 +129,8 @@ A due date can be useful for:
 - follow-up checkpoints
 
 Be honest with due dates. If every card gets an unrealistic due date, the board stops showing meaningful urgency.
+
+FlowState shows floating due-date reminders on both the home dashboard and the board page. Assigned users are reminded the day before and again throughout the due day. People with manager due-reminder permission, including admins by default, can also receive lighter reminders for cards assigned to others so they can check in without being interrupted as often as the assignee.
 
 ## Comments
 

@@ -57,7 +57,8 @@ export const rolePermissions = [
   "channel_manage_overrides",
   "channel_delete",
   "view_settings",
-  "send_announcements"
+  "send_announcements",
+  "view_all_due_date_reminders"
 ] as const;
 export const roleScopeTypes = ["global", "board", "section", "card"] as const;
 export const roleScopeAccess = ["allow", "deny"] as const;

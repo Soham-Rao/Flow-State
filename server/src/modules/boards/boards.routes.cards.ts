@@ -28,6 +28,8 @@ boardsCardsRouter.post("/lists/:listId/cards", async (req, res, next) => {
   try {
     const list = await getListRecord(req.params.listId);
     await assertBoardPermission(req.auth!.userId, "create_cards", list.boardId);
+    await assertBoardPermission(req.auth!.userId, "set_due_dates", list.boardId);
+    await assertBoardPermission(req.auth!.userId, "assign_members", list.boardId);
     const body = createCardSchema.parse(req.body);
     const data = await createCard(req.params.listId, body, req.auth!.userId);
 

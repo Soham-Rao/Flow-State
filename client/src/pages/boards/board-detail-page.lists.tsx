@@ -9,7 +9,7 @@ import { MentionsField } from "@/components/mentions/mentions-input";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth-store";
 import { CardSummary, CommentNote, ListDropZone, SortableCard, SortableListContainer, isCommentMentionUnread } from "@/pages/boards/board-detail-page.components";
-import { coverColorSurfaceClasses, toListDragId } from "@/pages/boards/board-detail-page.utils";
+import { clampYearInDateInput, coverColorSurfaceClasses, toListDragId } from "@/pages/boards/board-detail-page.utils";
 import type { BoardCard, BoardComment, BoardList, BoardMember, ChecklistItem } from "@/types/board";
 import { boardGlassCard, boardGlassFrame, boardGlassInput, boardGlassPill, boardGlassStrong, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 
@@ -71,7 +71,11 @@ export function BoardListsSection({
   onCreateListComment,
   boardMembers,
   newCardTitles,
+  newCardDueDates,
+  newCardAssigneeIds,
   onCardTitleChange,
+  onCardDueDateChange,
+  onCardAssigneeChange,
   onCreateCard,
   openCardEditor,
   onToggleChecklistItem,
@@ -115,7 +119,11 @@ export function BoardListsSection({
   onCreateListComment: (listId: string, event: React.FormEvent<HTMLFormElement>) => Promise<void>;
   boardMembers: BoardMember[];
   newCardTitles: Record<string, string>;
+  newCardDueDates: Record<string, string>;
+  newCardAssigneeIds: Record<string, string>;
   onCardTitleChange: (listId: string, value: string) => void;
+  onCardDueDateChange: (listId: string, value: string) => void;
+  onCardAssigneeChange: (listId: string, value: string) => void;
   onCreateCard: (listId: string, event: React.FormEvent<HTMLFormElement>) => Promise<void>;
   openCardEditor: (card: BoardCard, checklistId?: string) => void;
   onToggleChecklistItem: (cardId: string, checklistId: string, item: ChecklistItem, nextValue: boolean) => void;
@@ -185,7 +193,7 @@ export function BoardListsSection({
                 return (
                   <SortableListContainer key={list.id} listId={list.id}>
                     {({ dragHandleProps }) => (
-                      <Card className={`${boardGlassCard} ${listTintClass}`}>
+                      <Card className={`flex max-h-[calc(100dvh-9rem)] min-h-[24rem] flex-col overflow-hidden ${boardGlassCard} ${listTintClass}`}>
                         <CardHeader className="pb-3">
   <div className="flex items-center justify-between gap-2">
     <div className="flex items-center gap-2">
@@ -267,7 +275,7 @@ export function BoardListsSection({
                           </div>
                           </div>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
                         {editingListId === list.id && (
                           <div className="space-y-2">
                             <Input
@@ -380,7 +388,7 @@ export function BoardListsSection({
                           </SortableContext>
                         </div>
                         <form
-                          className="grid gap-2 sm:grid-cols-[1fr_auto]"
+                          className="grid gap-2"
                           onSubmit={(e) => { void onCreateCard(list.id, e); }}
                         >
                           <Input
@@ -388,7 +396,32 @@ export function BoardListsSection({
                             onChange={(e) => onCardTitleChange(list.id, e.target.value)}
                             placeholder="New card title"
                             className={boardGlassInput}
+                            required
                           />
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <Input
+                              type="datetime-local"
+                              value={newCardDueDates[list.id] ?? ""}
+                              onChange={(e) => onCardDueDateChange(list.id, clampYearInDateInput(e.target.value))}
+                              className={boardGlassInput}
+                              aria-label="Card due date"
+                              required
+                            />
+                            <select
+                              value={newCardAssigneeIds[list.id] ?? ""}
+                              onChange={(e) => onCardAssigneeChange(list.id, e.target.value)}
+                              className={`h-10 rounded-md px-3 text-sm ${boardGlassInput}`}
+                              aria-label="Card assignee"
+                              required
+                            >
+                              <option value="" disabled>Assign to...</option>
+                              {boardMembers.map((member) => (
+                                <option key={member.id} value={member.id}>
+                                  {member.displayName || member.username || member.email}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                           <Button type="submit" className={`gap-1 ${boardGlassPill}`}>
                             <Plus className="h-4 w-4" />
                             Add Card

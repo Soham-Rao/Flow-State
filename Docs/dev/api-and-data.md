@@ -49,6 +49,8 @@ Boards routes include:
 - attachments upload/download/delete
 - archived content restore flows
 
+Card creation requires a title, a due date, and at least one assignee. The backend enforces the same rule as the board-list form, so API clients must send `dueDate` and `assigneeIds` when posting to `POST /api/boards/lists/:listId/cards`.
+
 ## 4. Threads API
 
 Threads routes include:
@@ -87,6 +89,7 @@ The effective access model combines:
 These APIs drive:
 
 - home dashboard summaries
+- due-date reminder payloads for assigned cards and manager check-ins
 - board and workspace activity feeds
 - unread board comment mentions
 - announcement composition and audience targeting

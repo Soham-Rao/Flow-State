@@ -63,7 +63,8 @@ export const createCardSchema = z.object({
   description: z.string().trim().max(5000).optional(),
   priority: cardPrioritySchema.default("medium"),
   coverColor: cardCoverColorSchema.optional(),
-  dueDate: z.coerce.date().optional()
+  dueDate: z.coerce.date(),
+  assigneeIds: z.array(z.string().uuid()).min(1)
 });
 
 export const updateCardSchema = z

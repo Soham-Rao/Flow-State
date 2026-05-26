@@ -64,7 +64,8 @@ interface CreateCardInput {
   description?: string;
   priority?: CardPriority;
   coverColor?: CardCoverColor;
-  dueDate?: string;
+  dueDate: string;
+  assigneeIds: string[];
 }
 
 interface UpdateCardInput {

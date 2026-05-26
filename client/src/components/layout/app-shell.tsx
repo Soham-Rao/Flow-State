@@ -271,7 +271,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
     <div className="min-h-screen bg-[radial-gradient(900px_circle_at_top_left,rgba(45,212,191,0.55),transparent_60%),radial-gradient(800px_circle_at_bottom_right,rgba(99,102,241,0.5),transparent_60%),radial-gradient(700px_circle_at_top_right,rgba(251,191,36,0.35),transparent_65%),linear-gradient(135deg,#f8fafc,#eef2ff)] dark:bg-[radial-gradient(900px_circle_at_top_left,rgba(99,102,241,0.32),transparent_58%),radial-gradient(800px_circle_at_bottom_right,rgba(16,185,129,0.28),transparent_60%),radial-gradient(700px_circle_at_top_right,rgba(236,72,153,0.25),transparent_62%),linear-gradient(135deg,#0a0f1f,#030712)]">
       <div className="group/sidebar">
         <div className="hidden lg:block fixed inset-y-0 left-0 z-40 w-3" />
-        <aside className="border-b border-white/30 bg-white/14 px-4 py-4 text-slate-900 backdrop-blur-xl lg:fixed lg:top-0 lg:left-0 lg:z-50 lg:h-screen lg:w-[280px] lg:-translate-x-full lg:border-b-0 lg:border-r lg:border-white/30 lg:px-6 lg:py-6 lg:transition-transform lg:duration-200 lg:group-hover/sidebar:translate-x-0 dark:border-white/18 dark:bg-white/6 dark:text-white/90">
+        <aside className="max-h-[100dvh] overflow-y-auto overscroll-contain border-b border-white/30 bg-white/14 px-4 py-4 text-slate-900 backdrop-blur-xl lg:fixed lg:top-0 lg:left-0 lg:z-50 lg:h-[100dvh] lg:w-[280px] lg:-translate-x-full lg:border-b-0 lg:border-r lg:border-white/30 lg:px-6 lg:py-6 lg:transition-transform lg:duration-200 lg:group-hover/sidebar:translate-x-0 dark:border-white/18 dark:bg-white/6 dark:text-white/90">
         <div className="mb-6 flex items-center justify-between lg:mb-8">
           <NavLink to="/" className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
             FlowState
@@ -428,7 +428,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
       </aside>
       </div>
 
-      <main className="flex min-h-screen flex-col">
+      <main className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
         <header className="sticky top-0 z-10 border-b border-white/30 bg-white/25 px-4 py-2 backdrop-blur-xl lg:px-6 dark:border-white/15 dark:bg-black/35 dark:backdrop-blur-2xl">
           <div className="flex items-center justify-between gap-4">
                         <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white/90">
@@ -542,7 +542,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
           </div>
         </header>
 
-        <section className="flex-1 px-4 pb-1 pt-1.5 lg:px-6 lg:pb-2 lg:pt-2">{children}</section>
+        <section className="min-w-0 flex-1 px-4 pb-1 pt-1.5 lg:px-6 lg:pb-2 lg:pt-2">{children}</section>
       </main>
     </div>
     </>

@@ -110,7 +110,7 @@ const baseCard: BoardCard = {
   description: "",
   priority: "medium",
   coverColor: "none",
-  dueDate: null,
+  dueDate: "2026-03-20T10:00:00.000Z",
   position: 0,
   createdBy: "user-1",
   archivedAt: null,
@@ -120,7 +120,7 @@ const baseCard: BoardCard = {
   checklists: [],
   attachments: [],
   labels: [],
-  assignees: [],
+  assignees: [baseAuthor],
   comments: []
 };
 
@@ -164,7 +164,7 @@ const baseBoard: BoardDetail = {
   updatedAt: "2026-03-12T10:00:00.000Z",
   lists: [listOne, listTwo],
   labels: [],
-  members: [],
+  members: [baseAuthor],
   comments: []
 };
 
@@ -355,12 +355,20 @@ describe("BoardDetailPage cards", () => {
     fireEvent.change(listScope.getByPlaceholderText("New card title"), {
       target: { value: "New card from form" }
     });
+    fireEvent.change(listScope.getByLabelText("Card due date"), {
+      target: { value: "2026-03-20T10:00" }
+    });
+    fireEvent.change(listScope.getByLabelText("Card assignee"), {
+      target: { value: "user-1" }
+    });
     fireEvent.click(listScope.getByRole("button", { name: "Add Card" }));
 
     await waitFor(() => {
-      expect(createCardMock).toHaveBeenCalledWith("list-1", {
-        title: "New card from form"
-      });
+      expect(createCardMock).toHaveBeenCalledWith("list-1", expect.objectContaining({
+        title: "New card from form",
+        dueDate: expect.any(String),
+        assigneeIds: ["user-1"]
+      }));
     });
 
     expect(await screen.findByText("New card from form")).toBeInTheDocument();

@@ -1,0 +1,176 @@
+import { CalendarClock, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+
+import { Button } from "@/components/ui/button";
+import { getPriorityLabel } from "@/pages/boards/board-detail-page.utils";
+import type { CardPriority } from "@/types/board";
+
+export interface DueReminderItem {
+  id: string;
+  title: string;
+  priority: CardPriority;
+  dueDate: string;
+  boardId: string;
+  boardName: string;
+  listName: string;
+  assignee: {
+    id: string;
+    name: string;
+    displayName: string | null;
+    username: string | null;
+    email: string;
+  };
+  isAssignedToViewer: boolean;
+}
+
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+const STORAGE_PREFIX = "flowstate:due-reminders:v1";
+
+function getAssigneeName(item: DueReminderItem): string {
+  return item.assignee.displayName || item.assignee.username || item.assignee.name || item.assignee.email;
+}
+
+function getReminderPhase(dueDate: string, nowMs: number): "before" | "today" | "overdue" | null {
+  const dueMs = new Date(dueDate).getTime();
+  if (Number.isNaN(dueMs)) return null;
+
+  const now = new Date(nowMs);
+  const due = new Date(dueMs);
+  const sameLocalDay =
+    due.getFullYear() === now.getFullYear() &&
+    due.getMonth() === now.getMonth() &&
+    due.getDate() === now.getDate();
+
+  if (sameLocalDay) return "today";
+  if (dueMs < nowMs) return "overdue";
+  if (dueMs - nowMs <= DAY_MS) return "before";
+  return null;
+}
+
+function getSnoozeMs(item: DueReminderItem, phase: "before" | "today" | "overdue"): number {
+  if (!item.isAssignedToViewer) {
+    return 8 * HOUR_MS;
+  }
+  if (phase === "before") {
+    return 12 * HOUR_MS;
+  }
+  return 2 * HOUR_MS;
+}
+
+function readDismissals(storageKey: string): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(storageKey) ?? "{}") as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function writeDismissals(storageKey: string, value: Record<string, number>): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(storageKey, JSON.stringify(value));
+}
+
+export function DueReminderToasts({
+  items,
+  nowMs,
+  currentUserId,
+  surface
+}: {
+  items: DueReminderItem[];
+  nowMs: number;
+  currentUserId: string | null | undefined;
+  surface: "home" | "board";
+}): JSX.Element | null {
+  const [, setDismissVersion] = useState(0);
+  const storageKey = `${STORAGE_PREFIX}:${surface}:${currentUserId ?? "guest"}`;
+  const dismissals = readDismissals(storageKey);
+
+  useEffect(() => {
+    const handleDismiss = () => setDismissVersion((current) => current + 1);
+    window.addEventListener("flowstate-due-reminder-dismissed", handleDismiss);
+    return () => window.removeEventListener("flowstate-due-reminder-dismissed", handleDismiss);
+  }, []);
+
+  const visible = items
+    .map((item) => ({ item, phase: getReminderPhase(item.dueDate, nowMs) }))
+    .filter((entry): entry is { item: DueReminderItem; phase: "before" | "today" | "overdue" } => {
+      if (!entry.phase) return false;
+      const dismissKey = `${entry.item.id}:${entry.item.assignee.id}:${entry.phase}`;
+      return (dismissals[dismissKey] ?? 0) <= nowMs;
+    })
+    .sort((a, b) => new Date(a.item.dueDate).getTime() - new Date(b.item.dueDate).getTime())
+    .slice(0, 3);
+
+  if (visible.length === 0) return null;
+
+  const dismiss = (item: DueReminderItem, phase: "before" | "today" | "overdue"): void => {
+    const dismissKey = `${item.id}:${item.assignee.id}:${phase}`;
+    writeDismissals(storageKey, {
+      ...dismissals,
+      [dismissKey]: nowMs + getSnoozeMs(item, phase)
+    });
+    window.dispatchEvent(new Event("flowstate-due-reminder-dismissed"));
+  };
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[60] w-[min(92vw,26rem)] space-y-2">
+      {visible.map(({ item, phase }) => {
+        const assigneeName = getAssigneeName(item);
+        const dueLabel = new Date(item.dueDate).toLocaleString();
+        const phaseLabel = phase === "before" ? "Due in the next day" : phase === "today" ? "Due today" : "Overdue";
+        const message = item.isAssignedToViewer
+          ? `${item.title} is assigned to you.`
+          : `${assigneeName} has ${item.title}.`;
+
+        return (
+          <div
+            key={`${item.id}:${item.assignee.id}:${phase}`}
+            className="rounded-lg border border-amber-200/70 bg-white/85 p-3 text-slate-900 shadow-[0_18px_50px_rgba(15,23,42,0.25)] backdrop-blur-xl dark:border-amber-200/30 dark:bg-slate-950/85 dark:text-white"
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full bg-amber-400/20 p-2 text-amber-700 dark:text-amber-200">
+                <CalendarClock className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold">{phaseLabel}</p>
+                  <span className="rounded-full border border-black/10 bg-black/5 px-2 py-0.5 text-[10px] font-semibold uppercase dark:border-white/15 dark:bg-white/10">
+                    {getPriorityLabel(item.priority)}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm">{message}</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-white/65">
+                  {item.boardName} / {item.listName} / {dueLabel}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Link to={`/boards/${item.boardId}#card-${item.id}`}>
+                    <Button size="sm" variant="secondary">Open card</Button>
+                  </Link>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => dismiss(item, phase)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="rounded-full p-1 text-slate-500 hover:bg-black/5 hover:text-slate-900 dark:text-white/60 dark:hover:bg-white/10 dark:hover:text-white"
+                onClick={() => dismiss(item, phase)}
+                aria-label="Dismiss reminder"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

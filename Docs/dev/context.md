@@ -2,7 +2,7 @@
 
 > Full project context, decisions, progress, and phase tracking.
 > Official project tracking lives here under `Docs/dev/`. Personal scratch notes now live under ignored `My_Docs/personal/`.
-> Last updated: 2026-04-05
+> Last updated: 2026-05-27
 
 ---
 
@@ -371,6 +371,7 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 
 | Date | Update |
 |------|--------|
+| 2026-05-27 | Card creation now requires due date and assignee fields, due-date reminder toasts appear on home and board surfaces, admins and roles with manager due-reminder permission can receive lighter check-in reminders for everyone, and tall app surfaces such as the sidebar/list columns are scrollable on smaller laptop screens. |
 | 2026-04-05 | Phase 12.6 is now complete and deployed. The live app now includes risky-migration linting + acknowledgement checks, required legal-consent gating on signup, public privacy/terms pages, a lightweight in-app bug inbox, override-aware authorization helper centralization, and friendlier common error UX. |
 | 2026-04-05 | Phase 12.5 completed the documentation-system rebuild: the old tracked docs were moved into ignored `My_Docs/personal/`, a new tracked `Docs/user/` manual now explains the product end to end for non-technical users, a new tracked `Docs/dev/` set now acts as the canonical developer handoff, and `My_Docs/webdev/` now holds broad web-development learning notes. |
 | 2026-04-05 | Phase 12.3 and 12.4 are now complete. Final VPS verification succeeded with `update-safe.sh`, encrypted backup creation + R2 upload, a rollback drill, return-to-latest deploy, and follow-up smoothing for maintenance UX and restore/deploy scripts so the production path no longer needs the earlier manual workarounds. |

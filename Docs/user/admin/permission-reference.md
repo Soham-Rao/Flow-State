@@ -31,6 +31,7 @@ That is why access can differ by location even when a user’s broad role stays 
 | `remove_users` | Remove users | Remove people from the workspace | High-impact membership action |
 | `view_activity_logs` | View activity logs | Review workspace activity and audit-style history | Useful for oversight |
 | `send_announcements` | Send announcements | Create targeted or workspace-wide announcements | Not an ordinary chat action |
+| `view_all_due_date_reminders` | View all due-date reminders | Receive check-in reminders for cards assigned to other people | Enabled for admins by default |
 
 ## Boards and lists
 

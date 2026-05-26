@@ -107,6 +107,8 @@ Summary areas can also help you understand:
 
 These summaries are best for orientation, not detailed editing.
 
+The dashboard can also show floating due-date reminders. You will see reminders for cards assigned to you one day before they are due and again on the due day. Admins, and roles with manager due-reminder permission, may also see lighter check-in reminders for other people's due cards.
+
 ## Invites and admin-only controls
 
 If you are an admin, the dashboard may include invite tools that let you:

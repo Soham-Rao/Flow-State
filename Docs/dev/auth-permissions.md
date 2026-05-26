@@ -33,6 +33,7 @@ Permissions are granular, for example:
 - workspace management
 - role management
 - invite management
+- manager due-date reminder visibility
 - board CRUD
 - card creation/edit/delete
 - label/checklist/attachment abilities
@@ -41,6 +42,8 @@ Permissions are granular, for example:
 - settings and announcement access
 
 Permission strings live in `server/src/db/schema.ts`.
+
+`view_all_due_date_reminders` allows a role to receive due-date check-in reminders for cards assigned to other users. Admins receive this permission by default; ordinary members only receive reminders for cards assigned to themselves unless a custom role grants the permission.
 
 ## 4. Effective access is not just one role
 

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lte, ne, sql } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
 import {
@@ -24,6 +24,27 @@ export interface DashboardCardSummary {
   listId: string;
   listName: string;
   createdAt: Date;
+}
+
+export interface DashboardDueReminderAssignee {
+  id: string;
+  name: string;
+  displayName: string | null;
+  username: string | null;
+  email: string;
+}
+
+export interface DashboardDueReminder {
+  id: string;
+  title: string;
+  priority: (typeof cardPriorities)[number];
+  dueDate: Date;
+  boardId: string;
+  boardName: string;
+  listId: string;
+  listName: string;
+  assignee: DashboardDueReminderAssignee;
+  isAssignedToViewer: boolean;
 }
 
 export interface DashboardActivityHighlight {
@@ -52,6 +73,7 @@ export interface DashboardMetricsSummary {
 export interface DashboardSummary {
   assignedCards: DashboardCardSummary[];
   createdCards: DashboardCardSummary[];
+  dueReminders: DashboardDueReminder[];
   boardMentions: Awaited<ReturnType<typeof listUnreadCommentMentions>>;
   threadMentions: Awaited<ReturnType<typeof listUnreadThreadMentions>>;
   announcements: AnnouncementDetail[];
@@ -155,6 +177,70 @@ async function listCreatedCards(userId: string, accessibleBoardIds: string[]): P
   return mapCardRows(rows);
 }
 
+async function listDueReminders(userId: string, accessibleBoardIds: string[]): Promise<DashboardDueReminder[]> {
+  if (accessibleBoardIds.length === 0) return [];
+
+  const canViewAllDueReminders = await userHasPermission(userId, "view_all_due_date_reminders");
+  const now = new Date();
+  const reminderStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const reminderEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  const rows = await db
+    .select({
+      id: cards.id,
+      title: cards.title,
+      priority: cards.priority,
+      dueDate: cards.dueDate,
+      boardId: boards.id,
+      boardName: boards.name,
+      listId: lists.id,
+      listName: lists.name,
+      assigneeId: users.id,
+      assigneeName: users.name,
+      assigneeDisplayName: users.displayName,
+      assigneeUsername: users.username,
+      assigneeEmail: users.email
+    })
+    .from(cardAssignees)
+    .innerJoin(cards, and(eq(cardAssignees.cardId, cards.id), isNull(cards.archivedAt)))
+    .innerJoin(lists, and(eq(cards.listId, lists.id), isNull(lists.archivedAt)))
+    .innerJoin(boards, and(eq(lists.boardId, boards.id), isNull(boards.archivedAt)))
+    .innerJoin(users, eq(cardAssignees.userId, users.id))
+    .where(
+      and(
+        canViewAllDueReminders ? sql`1 = 1` : eq(cardAssignees.userId, userId),
+        inArray(boards.id, accessibleBoardIds),
+        ne(lists.isDoneList, true),
+        isNotNull(cards.dueDate),
+        gte(cards.dueDate, reminderStart),
+        lte(cards.dueDate, reminderEnd)
+      )
+    )
+    .orderBy(cards.dueDate, cards.title);
+
+  return rows.flatMap((row) => {
+    if (!row.dueDate) return [];
+    return [{
+      id: row.id,
+      title: row.title,
+      priority: row.priority,
+      dueDate: row.dueDate,
+      boardId: row.boardId,
+      boardName: row.boardName,
+      listId: row.listId,
+      listName: row.listName,
+      assignee: {
+        id: row.assigneeId,
+        name: row.assigneeName,
+        displayName: row.assigneeDisplayName,
+        username: row.assigneeUsername,
+        email: row.assigneeEmail
+      },
+      isAssignedToViewer: row.assigneeId === userId
+    }];
+  });
+}
+
 async function getMetricsForRange(accessibleBoardIds: string[], startDate: Date): Promise<DashboardMetricsSummary> {
   if (accessibleBoardIds.length === 0) {
     return {
@@ -254,6 +340,7 @@ export async function getDashboardSummary(userId: string): Promise<DashboardSumm
 
   const assignedCards = await listAssignedCards(userId, accessibleBoardIds);
   const createdCards = await listCreatedCards(userId, accessibleBoardIds);
+  const dueReminders = await listDueReminders(userId, accessibleBoardIds);
 
   const now = new Date();
   const weeklyStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -295,6 +382,7 @@ export async function getDashboardSummary(userId: string): Promise<DashboardSumm
   return {
     assignedCards,
     createdCards,
+    dueReminders,
     boardMentions: await listUnreadCommentMentions(userId),
     threadMentions: await listUnreadThreadMentions(userId),
     activityHighlights,

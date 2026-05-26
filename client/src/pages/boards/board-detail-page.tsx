@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getBoardBackgroundClass, getBoardSurfaceClass } from "@/lib/board-backgrounds";
+import { hasUserPermission } from "@/lib/permissions";
+import { DueReminderToasts, type DueReminderItem } from "@/components/reminders/due-reminder-toast";
 import {
   getBoardById
 } from "@/lib/boards-api";
@@ -81,6 +83,8 @@ export function BoardDetailPage(): JSX.Element {
   const [listNameDrafts, setListNameDrafts] = useState<Record<string, string>>({});
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [newCardTitles, setNewCardTitles] = useState<Record<string, string>>({});
+  const [newCardDueDates, setNewCardDueDates] = useState<Record<string, string>>({});
+  const [newCardAssigneeIds, setNewCardAssigneeIds] = useState<Record<string, string>>({});
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [cardDraft, setCardDraft] = useState<CardDraft | null>(null);
   const [cardSaveStatus, setCardSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -108,7 +112,8 @@ export function BoardDetailPage(): JSX.Element {
   const subscribeBoardEvents = useSocketStore((state) => state.subscribeBoardEvents);
   const boardPresenceRaw = usePresenceStore((state) => (boardId ? state.board[boardId] : undefined));
   const boardPresence = boardPresenceRaw ?? [];
-  const currentUserId = useAuthStore((state) => state.user?.id);
+  const currentUser = useAuthStore((state) => state.user);
+  const currentUserId = currentUser?.id;
   const assignmentBadgeCount = useMentionStore((state) => state.counts?.assignments ?? 0);
 
   const [scrollToChecklistId, setScrollToChecklistId] = useState<string | null>(null);
@@ -131,10 +136,6 @@ export function BoardDetailPage(): JSX.Element {
   const lastAssignmentCountRef = useRef<number | null>(null);
 
   const orderedLists = useMemo(() => (board ? sortBoardListsWithCards(board.lists ?? []) : []), [board]);
-  const hasDoneCards = useMemo(
-    () => (board ? board.lists.some((list) => list.cards.some((card) => Boolean(card.doneEnteredAt))) : false),
-    [board]
-  );
   const retentionTotalMinutes = useMemo(
     () => toRetentionMinutes(retentionDays, retentionHours, retentionMinutesPart),
     [retentionDays, retentionHours, retentionMinutesPart]
@@ -168,6 +169,29 @@ export function BoardDetailPage(): JSX.Element {
       return total + listCount;
     }, 0);
   }, [board, currentUserId]);
+  const boardDueReminders = useMemo<DueReminderItem[]>(() => {
+    if (!board || !currentUserId) return [];
+    const canViewAllDueReminders = hasUserPermission(currentUser, "view_all_due_date_reminders");
+    return board.lists.flatMap((list) => {
+      if (list.isDoneList || list.archivedAt) return [];
+      return list.cards.flatMap((card) => {
+        if (!card.dueDate || card.archivedAt) return [];
+        return (card.assignees ?? [])
+          .filter((assignee) => canViewAllDueReminders || assignee.id === currentUserId)
+          .map((assignee) => ({
+            id: card.id,
+            title: card.title,
+            priority: card.priority,
+            dueDate: card.dueDate as string,
+            boardId: board.id,
+            boardName: board.name,
+            listName: list.name,
+            assignee,
+            isAssignedToViewer: assignee.id === currentUserId
+          }));
+      });
+    });
+  }, [board, currentUser, currentUserId]);
 
   const resolvedBoardBackground = board?.background ?? boardBackground;
   const activeBannerClass = useMemo(() => getBoardBackgroundClass(resolvedBoardBackground), [resolvedBoardBackground]);
@@ -285,6 +309,32 @@ export function BoardDetailPage(): JSX.Element {
       }
       return next;
     });
+    setNewCardDueDates((current) => {
+      const next = { ...current };
+      for (const list of sortedLists) {
+        if (next[list.id] === undefined) next[list.id] = "";
+      }
+      for (const key of Object.keys(next)) {
+        if (!sortedLists.some((list) => list.id === key)) delete next[key];
+      }
+      return next;
+    });
+    setNewCardAssigneeIds((current) => {
+      const next = { ...current };
+      const memberIds = new Set((data.members ?? []).map((member) => member.id));
+      const defaultAssigneeId = currentUserId && memberIds.has(currentUserId)
+        ? currentUserId
+        : (data.members?.[0]?.id ?? "");
+      for (const list of sortedLists) {
+        if (next[list.id] === undefined || (next[list.id] && !memberIds.has(next[list.id]))) {
+          next[list.id] = defaultAssigneeId;
+        }
+      }
+      for (const key of Object.keys(next)) {
+        if (!sortedLists.some((list) => list.id === key)) delete next[key];
+      }
+      return next;
+    });
     setNewListCommentDrafts((current) => {
       const next = { ...current };
       for (const list of sortedLists) {
@@ -295,7 +345,7 @@ export function BoardDetailPage(): JSX.Element {
       }
       return next;
     });
-  }, []);
+  }, [currentUserId]);
   const {
     runListNameAutosave,
     scheduleLabelAutosave,
@@ -410,6 +460,7 @@ export function BoardDetailPage(): JSX.Element {
     boardId,
     board,
     boardMembers,
+    currentUserId,
     newBoardComment,
     setNewBoardComment,
     newListCommentDrafts,
@@ -433,7 +484,11 @@ export function BoardDetailPage(): JSX.Element {
     setListNameDrafts,
     setListSavingIds,
     setNewCardTitles,
+    setNewCardDueDates,
+    setNewCardAssigneeIds,
     newCardTitles,
+    newCardDueDates,
+    newCardAssigneeIds,
     newLabelName,
     newLabelColor,
     setNewLabelName,
@@ -486,10 +541,9 @@ export function BoardDetailPage(): JSX.Element {
   }, [boardId, subscribeBoardEvents, scheduleBoardRefresh]);
 
   useEffect(() => {
-    if (!hasDoneCards) return;
     const interval = window.setInterval(() => setNowMs(Date.now()), 60 * 1000);
     return () => window.clearInterval(interval);
-  }, [hasDoneCards]);
+  }, []);
   const {
     openCardEditor,
     closeCardEditor,
@@ -573,6 +627,8 @@ export function BoardDetailPage(): JSX.Element {
     newListName,
     newListDone,
     newCardTitles,
+    newCardDueDates,
+    newCardAssigneeIds,
     newLabelName,
     newLabelColor,
     labelDrafts,
@@ -655,6 +711,12 @@ export function BoardDetailPage(): JSX.Element {
     onCardTitleChange: (listId: string, value: string) => {
       setNewCardTitles((current) => ({ ...current, [listId]: value }));
     },
+    onCardDueDateChange: (listId: string, value: string) => {
+      setNewCardDueDates((current) => ({ ...current, [listId]: value }));
+    },
+    onCardAssigneeChange: (listId: string, value: string) => {
+      setNewCardAssigneeIds((current) => ({ ...current, [listId]: value }));
+    },
     onCreateCard,
     openCardEditor,
     onToggleChecklistItem,
@@ -726,11 +788,19 @@ export function BoardDetailPage(): JSX.Element {
   };
 
   return (
-    <BoardDetailPageView
-      state={viewState}
-      refs={viewRefs}
-      actions={viewActions}
-    />
+    <>
+      <BoardDetailPageView
+        state={viewState}
+        refs={viewRefs}
+        actions={viewActions}
+      />
+      <DueReminderToasts
+        items={boardDueReminders}
+        nowMs={nowMs}
+        currentUserId={currentUserId}
+        surface="board"
+      />
+    </>
   );
 }
 

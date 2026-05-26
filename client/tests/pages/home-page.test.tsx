@@ -40,6 +40,7 @@ describe("HomePage", () => {
   const baseSummary = {
     assignedCards: [],
     createdCards: [],
+    dueReminders: [],
     boardMentions: [],
     threadMentions: [],
     announcements: [],

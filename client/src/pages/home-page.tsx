@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { CheckCircle2, ListTodo } from "lucide-react";
 
 import { PageErrorState } from "@/components/feedback/page-error-state";
+import { DueReminderToasts } from "@/components/reminders/due-reminder-toast";
 import { createAnnouncement, deleteAnnouncements, getAnnouncementCapabilities, listAnnouncementAudienceOptions, markAnnouncementsSeen } from "@/lib/announcements-api";
 import { createInvite, listInvites, revokeInvite } from "@/lib/invites-api";
 import { getDashboardSummary } from "@/lib/dashboard-api";
@@ -142,6 +143,7 @@ export function HomePage(): JSX.Element {
 
   const [assignedSort, setAssignedSort] = useState<TaskSortState>({ priority: false, dueDate: false });
   const [createdSort, setCreatedSort] = useState<TaskSortState>({ priority: false, dueDate: false });
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const dismissedBoardMentionsRef = useRef<Set<string>>(new Set());
 
@@ -161,6 +163,7 @@ export function HomePage(): JSX.Element {
   const boardMentions = summary?.boardMentions ?? [];
   const threadMentions = summary?.threadMentions ?? [];
   const announcements = summary?.announcements ?? [];
+  const dueReminders = summary?.dueReminders ?? [];
 
   const selectedAnnouncementSet = useMemo(() => new Set(selectedAnnouncementIds), [selectedAnnouncementIds]);
   const activityHighlights = summary?.activityHighlights ?? [];
@@ -423,6 +426,11 @@ export function HomePage(): JSX.Element {
   }, [user?.id]);
 
   useEffect(() => {
+    const interval = window.setInterval(() => setNowMs(Date.now()), 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     if (!announcementComposeOpen) return;
     void loadAnnouncementOptions();
   }, [announcementComposeOpen, announcementCapabilities?.canSend]);
@@ -629,6 +637,12 @@ export function HomePage(): JSX.Element {
       />
 
       <AnnouncementViewModal announcement={announcementView} onClose={closeAnnouncementView} />
+      <DueReminderToasts
+        items={dueReminders}
+        nowMs={nowMs}
+        currentUserId={user?.id}
+        surface="home"
+      />
     </div>
   );
 }

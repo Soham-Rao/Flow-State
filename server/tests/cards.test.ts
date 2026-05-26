@@ -88,6 +88,14 @@ async function createBoardWithDefaults(token: string, name = "Phase 3 Board"): P
   return { boardId, todoListId, inProgressListId, doneListId };
 }
 
+function cardPayload(title: string, assigneeId: string, dueDate = "2026-03-20T10:00:00.000Z") {
+  return {
+    title,
+    dueDate,
+    assigneeIds: [assigneeId]
+  };
+}
+
 beforeAll(async () => {
   process.env.NODE_ENV = "test";
   process.env.MYSQL_URL = testDbUrl;
@@ -129,6 +137,7 @@ describe("Cards API", () => {
       .post(`/api/boards/lists/${todoListId}/cards`)
       .set("Authorization", `Bearer ${auth.token}`)
       .send({
+        ...cardPayload("API integration", auth.userId),
         title: "API integration",
         description: "Implement create card endpoint",
         priority: "high"
@@ -167,6 +176,31 @@ describe("Cards API", () => {
     expect(todo.cards[0].title).toBe("API integration done");
   });
 
+  it("requires a due date and assignee when creating cards", async () => {
+    const auth = await registerAndGetAuth("required-fields@example.com", "Required User");
+    const { todoListId } = await createBoardWithDefaults(auth.token, "Required Fields Board");
+
+    const missingDueDate = await request(app)
+      .post(`/api/boards/lists/${todoListId}/cards`)
+      .set("Authorization", `Bearer ${auth.token}`)
+      .send({
+        title: "Missing due date",
+        assigneeIds: [auth.userId]
+      });
+
+    expect(missingDueDate.status).toBe(400);
+
+    const missingAssignee = await request(app)
+      .post(`/api/boards/lists/${todoListId}/cards`)
+      .set("Authorization", `Bearer ${auth.token}`)
+      .send({
+        title: "Missing assignee",
+        dueDate: "2026-03-20T10:00:00.000Z"
+      });
+
+    expect(missingAssignee.status).toBe(400);
+  });
+
   it("moves cards across lists and tracks doneEnteredAt", async () => {
     const auth = await registerAndGetAuth("drag@example.com", "Drag User");
     const { todoListId, doneListId } = await createBoardWithDefaults(auth.token, "Move Board");
@@ -174,12 +208,12 @@ describe("Cards API", () => {
     const firstCard = await request(app)
       .post(`/api/boards/lists/${todoListId}/cards`)
       .set("Authorization", `Bearer ${auth.token}`)
-      .send({ title: "Card A" });
+      .send(cardPayload("Card A", auth.userId));
 
     const secondCard = await request(app)
       .post(`/api/boards/lists/${todoListId}/cards`)
       .set("Authorization", `Bearer ${auth.token}`)
-      .send({ title: "Card B" });
+      .send(cardPayload("Card B", auth.userId));
 
     const firstCardId = firstCard.body.data.id as string;
     const secondCardId = secondCard.body.data.id as string;
@@ -240,7 +274,7 @@ describe("Cards API", () => {
     const createdCard = await request(app)
       .post(`/api/boards/lists/${todoListId}/cards`)
       .set("Authorization", `Bearer ${memberOne.token}`)
-      .send({ title: "Protected card" });
+      .send(cardPayload("Protected card", memberOne.userId));
 
     const cardId = createdCard.body.data.id as string;
 
@@ -273,8 +307,16 @@ describe("Cards API", () => {
     const denyBoard = await createBoardWithDefaults(admin.token, "Override Deny Board");
 
     await pool.query(
-      "INSERT INTO role_scope_overrides (role_id, scope_type, scope_id, permission, access, created_at) VALUES (?, 'board', ?, 'create_cards', 'allow', NOW(3))",
-      [guestRoleId, allowBoard.boardId]
+      "INSERT INTO role_scope_overrides (role_id, scope_type, scope_id, permission, access, created_at) VALUES (?, 'board', ?, ?, 'allow', NOW(3))",
+      [guestRoleId, allowBoard.boardId, "create_cards"]
+    );
+    await pool.query(
+      "INSERT INTO role_scope_overrides (role_id, scope_type, scope_id, permission, access, created_at) VALUES (?, 'board', ?, ?, 'allow', NOW(3))",
+      [guestRoleId, allowBoard.boardId, "assign_members"]
+    );
+    await pool.query(
+      "INSERT INTO role_scope_overrides (role_id, scope_type, scope_id, permission, access, created_at) VALUES (?, 'board', ?, ?, 'allow', NOW(3))",
+      [guestRoleId, allowBoard.boardId, "set_due_dates"]
     );
 
     await pool.query(
@@ -285,7 +327,7 @@ describe("Cards API", () => {
     const allowedCreate = await request(app)
       .post(`/api/boards/lists/${allowBoard.todoListId}/cards`)
       .set("Authorization", `Bearer ${guest.token}`)
-      .send({ title: "Override-created card" });
+      .send(cardPayload("Override-created card", guest.userId));
 
     expect(allowedCreate.status).toBe(201);
     expect(allowedCreate.body.data.title).toBe("Override-created card");
@@ -293,7 +335,7 @@ describe("Cards API", () => {
     const deniedCreate = await request(app)
       .post(`/api/boards/lists/${denyBoard.todoListId}/cards`)
       .set("Authorization", `Bearer ${deniedMember.token}`)
-      .send({ title: "Should be blocked" });
+      .send(cardPayload("Should be blocked", deniedMember.userId));
 
     expect(deniedCreate.status).toBe(403);
   });

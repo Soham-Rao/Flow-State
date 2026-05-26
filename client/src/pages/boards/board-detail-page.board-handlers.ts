@@ -29,12 +29,13 @@ import type {
   BoardMember,
   LabelColor
 } from "@/types/board";
-import { sortBoardListsWithCards, sortCardsByPosition } from "@/pages/boards/board-detail-page.utils";
+import { sortBoardListsWithCards, sortCardsByPosition, toIsoFromDateTimeInput } from "@/pages/boards/board-detail-page.utils";
 
 export interface BoardDetailBoardHandlersParams {
   boardId: string | undefined;
   board: BoardDetail | null;
   boardMembers: BoardMember[];
+  currentUserId: string | undefined;
   newBoardComment: string;
   setNewBoardComment: React.Dispatch<React.SetStateAction<string>>;
   newListCommentDrafts: Record<string, string>;
@@ -58,7 +59,11 @@ export interface BoardDetailBoardHandlersParams {
   setListNameDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   setListSavingIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   setNewCardTitles: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setNewCardDueDates: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setNewCardAssigneeIds: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   newCardTitles: Record<string, string>;
+  newCardDueDates: Record<string, string>;
+  newCardAssigneeIds: Record<string, string>;
   newLabelName: string;
   newLabelColor: LabelColor;
   setNewLabelName: React.Dispatch<React.SetStateAction<string>>;
@@ -84,6 +89,7 @@ export function useBoardDetailBoardHandlers({
   boardId,
   board,
   boardMembers,
+  currentUserId,
   newBoardComment,
   setNewBoardComment,
   newListCommentDrafts,
@@ -107,7 +113,11 @@ export function useBoardDetailBoardHandlers({
   setListNameDrafts,
   setListSavingIds,
   setNewCardTitles,
+  setNewCardDueDates,
+  setNewCardAssigneeIds,
   newCardTitles,
+  newCardDueDates,
+  newCardAssigneeIds,
   newLabelName,
   newLabelColor,
   setNewLabelName,
@@ -222,6 +232,13 @@ export function useBoardDetailBoardHandlers({
       });
       setListNameDrafts((c) => ({ ...c, [created.id]: created.name }));
       setNewCardTitles((c) => ({ ...c, [created.id]: "" }));
+      setNewCardDueDates((c) => ({ ...c, [created.id]: "" }));
+      setNewCardAssigneeIds((c) => ({
+        ...c,
+        [created.id]: boardMembers.some((member) => member.id === currentUserId)
+          ? currentUserId ?? ""
+          : boardMembers[0]?.id ?? ""
+      }));
       setNewListName("");
       setNewListDone(false);
       setError(null);
@@ -287,6 +304,8 @@ export function useBoardDetailBoardHandlers({
       });
       setListNameDrafts((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
       setNewCardTitles((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
+      setNewCardDueDates((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
+      setNewCardAssigneeIds((c) => { const n = { ...c }; delete n[listToDelete.id]; return n; });
       setListSavingIds((c) => { const n = new Set(c); n.delete(listToDelete.id); return n; });
       if (editingListId === listToDelete.id) setEditingListId(null);
       setListToDelete(null);
@@ -301,8 +320,13 @@ export function useBoardDetailBoardHandlers({
     event.preventDefault();
     const title = (newCardTitles[listId] ?? "").trim();
     if (title.length < 1) { setError("Card title cannot be empty."); return; }
+    const dueDate = newCardDueDates[listId] ?? "";
+    const dueDateIso = toIsoFromDateTimeInput(dueDate);
+    if (!dueDateIso) { setError("Choose a due date before creating the card."); return; }
+    const assigneeId = newCardAssigneeIds[listId] ?? "";
+    if (!assigneeId) { setError("Choose an assignee before creating the card."); return; }
     try {
-      const created = await createCard(listId, { title });
+      const created = await createCard(listId, { title, dueDate: dueDateIso, assigneeIds: [assigneeId] });
       setBoard((current) => {
         if (!current) return current;
         return {
@@ -314,6 +338,8 @@ export function useBoardDetailBoardHandlers({
         };
       });
       setNewCardTitles((c) => ({ ...c, [listId]: "" }));
+      setNewCardDueDates((c) => ({ ...c, [listId]: "" }));
+      setNewCardAssigneeIds((c) => ({ ...c, [listId]: assigneeId }));
       setError(null);
       triggerSavedNotice();
     } catch (createError) {

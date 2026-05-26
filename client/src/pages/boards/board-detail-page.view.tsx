@@ -56,6 +56,8 @@ export interface BoardDetailPageViewProps {
     newListName: string;
     newListDone: boolean;
     newCardTitles: Record<string, string>;
+    newCardDueDates: Record<string, string>;
+    newCardAssigneeIds: Record<string, string>;
     newLabelName: string;
     newLabelColor: LabelColor;
     labelDrafts: Record<string, string>;
@@ -130,6 +132,8 @@ export interface BoardDetailPageViewProps {
     onListCommentDraftChange: (listId: string, value: string) => void;
     onCreateListComment: (listId: string, event: React.FormEvent<HTMLFormElement>) => Promise<void>;
     onCardTitleChange: (listId: string, value: string) => void;
+    onCardDueDateChange: (listId: string, value: string) => void;
+    onCardAssigneeChange: (listId: string, value: string) => void;
     onCreateCard: (listId: string, event: React.FormEvent<HTMLFormElement>) => Promise<void>;
     openCardEditor: (card: BoardCard, checklistId?: string) => void;
     onToggleChecklistItem: (cardId: string, checklistId: string, item: ChecklistItem, nextValue: boolean) => void;
@@ -263,7 +267,11 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
           onCreateListComment={actions.onCreateListComment}
           boardMembers={state.boardMembers}
           newCardTitles={state.newCardTitles}
+          newCardDueDates={state.newCardDueDates}
+          newCardAssigneeIds={state.newCardAssigneeIds}
           onCardTitleChange={actions.onCardTitleChange}
+          onCardDueDateChange={actions.onCardDueDateChange}
+          onCardAssigneeChange={actions.onCardAssigneeChange}
           onCreateCard={actions.onCreateCard}
           openCardEditor={actions.openCardEditor}
           onToggleChecklistItem={actions.onToggleChecklistItem}

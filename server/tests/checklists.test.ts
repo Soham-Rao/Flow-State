@@ -80,7 +80,11 @@ describe("Checklists API", () => {
     const cardResponse = await request(app)
       .post(`/api/boards/lists/${todoListId}/cards`)
       .set("Authorization", `Bearer ${auth.token}`)
-      .send({ title: "Checklist card" });
+      .send({
+        title: "Checklist card",
+        dueDate: "2026-03-20T10:00:00.000Z",
+        assigneeIds: [auth.userId]
+      });
 
     const cardId = cardResponse.body.data.id as string;
 

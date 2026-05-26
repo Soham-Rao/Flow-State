@@ -99,6 +99,7 @@ Administrators usually have the broadest controls. These may include:
 - assigning roles to users
 - changing workspace-level settings
 - reviewing internal bug reports
+- receiving due-date check-in reminders for other people's assigned cards
 - managing permissions that other users cannot change
 
 Admin access should be used carefully. Being allowed to do something does not always mean it should be done casually.

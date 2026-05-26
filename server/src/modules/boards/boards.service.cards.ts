@@ -4,17 +4,18 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db, type DbTransaction } from "../../db/connection.js";
 import { recordActivity } from "../activity/activity.service.js";
-import { cards, type CardCoverColor } from "../../db/schema.js";
+import { cardAssignees, cards, type CardCoverColor } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
-import { assertOwnOrAnyAccess } from "../../utils/access-control.js";
 import type { CreateCardInput, MoveCardInput, UpdateCardInput } from "./boards.schema.js";
 import type { BoardCard, MoveCardResult } from "./boards.service.types.js";
 import { clampIndex, normalizeCoverColor, normalizeDueDate, normalizeOptionalDescription, normalizeRequiredName, resolveRestoredName } from "./boards.service.utils.js";
-import { assertCardExists, assertListExists, getListRecord } from "./boards.service.lookups.js";
+import { assertCardExists, assertListExists, assertUserExists, getListRecord } from "./boards.service.lookups.js";
 import { deleteAttachmentsForCard, getCardById, getCardByIdIncludingArchived, getCardsForList } from "./boards.service.cards-data.js";
 
 export async function createCard(listId: string, input: CreateCardInput, userId: string): Promise<BoardCard> {
   const list = await assertListExists(listId);
+  const assigneeIds = Array.from(new Set(input.assigneeIds));
+  await Promise.all(assigneeIds.map((assigneeId) => assertUserExists(assigneeId)));
 
   const maxPositionRows = await db
     .select({ maxPosition: sql<number>`coalesce(max(${cards.position}), -1)` })
@@ -25,22 +26,32 @@ export async function createCard(listId: string, input: CreateCardInput, userId:
   const now = new Date();
   const cardId = crypto.randomUUID();
 
-  await db.insert(cards)
-    .values({
-      id: cardId,
-      listId: list.id,
-      title: normalizeRequiredName(input.title, "Card title", 1, 160),
-      description: normalizeOptionalDescription(input.description),
-      priority: input.priority,
-      coverColor: normalizeCoverColor(input.coverColor) ?? null,
-      dueDate: normalizeDueDate(input.dueDate) ?? null,
-      position: (maxPositionRows[0]?.maxPosition ?? -1) + 1,
-      createdBy: userId,
-      doneEnteredAt: list.isDoneList ? now : null,
-      createdAt: now,
-      updatedAt: now
-    })
-    .execute();
+  await db.transaction(async (tx: DbTransaction) => {
+    await tx.insert(cards)
+      .values({
+        id: cardId,
+        listId: list.id,
+        title: normalizeRequiredName(input.title, "Card title", 1, 160),
+        description: normalizeOptionalDescription(input.description),
+        priority: input.priority,
+        coverColor: normalizeCoverColor(input.coverColor) ?? null,
+        dueDate: normalizeDueDate(input.dueDate),
+        position: (maxPositionRows[0]?.maxPosition ?? -1) + 1,
+        createdBy: userId,
+        doneEnteredAt: list.isDoneList ? now : null,
+        createdAt: now,
+        updatedAt: now
+      })
+      .execute();
+
+    await tx.insert(cardAssignees)
+      .values(assigneeIds.map((assigneeId) => ({
+        cardId,
+        userId: assigneeId,
+        createdAt: now
+      })))
+      .execute();
+  });
 
   await recordActivity({
     type: "card.created",

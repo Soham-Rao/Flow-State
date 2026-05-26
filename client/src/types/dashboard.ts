@@ -14,6 +14,27 @@ export interface DashboardCardSummary {
   createdAt: string;
 }
 
+export interface DashboardDueReminderAssignee {
+  id: string;
+  name: string;
+  displayName: string | null;
+  username: string | null;
+  email: string;
+}
+
+export interface DashboardDueReminder {
+  id: string;
+  title: string;
+  priority: CardPriority;
+  dueDate: string;
+  boardId: string;
+  boardName: string;
+  listId: string;
+  listName: string;
+  assignee: DashboardDueReminderAssignee;
+  isAssignedToViewer: boolean;
+}
+
 export interface ThreadMentionDetail {
   id: string;
   mentionType: "message" | "reply";
@@ -53,6 +74,7 @@ export interface DashboardMetricsSummary {
 export interface DashboardSummary {
   assignedCards: DashboardCardSummary[];
   createdCards: DashboardCardSummary[];
+  dueReminders: DashboardDueReminder[];
   boardMentions: CommentMentionDetail[];
   threadMentions: ThreadMentionDetail[];
   announcements: AnnouncementDetail[];

@@ -124,6 +124,13 @@ export const permissionGroups: PermissionGroup[] = [
         description: "Send workspace-wide announcements.",
         enabledLabel: "Can send announcements",
         disabledLabel: "Cannot send announcements"
+      },
+      {
+        permission: "view_all_due_date_reminders",
+        title: "Manager due reminders",
+        description: "Receive due-date reminders for cards assigned to anyone.",
+        enabledLabel: "Can receive everyone's due-date reminders",
+        disabledLabel: "Only receives own due-date reminders"
       }
     ]
   },
