@@ -174,6 +174,80 @@ Behavior:
 - maintenance mode is controlled by `/etc/nginx/flowstate-maintenance-on`
 - users receive a branded `503` maintenance page instead of raw `502` errors during planned maintenance
 
+## If `update-safe.sh` hangs
+
+If `bash deploy/vps/update-safe.sh` prints the early `[ok]` lines and then appears stuck for a long time, do not assume the app is broken. First determine whether the app is still healthy and whether the hang is inside the guarded predeploy backup step.
+
+Open a second SSH session and inspect the live step log:
+
+```bash
+cd /opt/flowstate/app
+ls -lah /tmp/flowstate-ops
+tail -f /tmp/flowstate-ops/step-7.log
+```
+
+Useful checks:
+
+```bash
+ps -ef | grep -E "backup-now|backup-manifest-cli|bun|node|mysqldump|zstd|aws" | grep -v grep
+systemctl status flowstate --no-pager
+curl http://127.0.0.1:4000/api/health/ready
+```
+
+Interpretation:
+- if the log is still actively growing, wait longer
+- if the log is stuck, the app is healthy, and production is only showing the maintenance page, the deploy helper likely hung before the restart step
+- if the app is unhealthy, prefer rerunning the guarded flow or rolling back rather than forcing maintenance off blindly
+
+### Safe recovery when the app is healthy but maintenance is stuck on
+
+If local health is still `ready: true`, the safest recovery is:
+
+```bash
+cd /opt/flowstate/app
+ps -ef | grep -E "backup-now|backup-manifest-cli|deploy-safe" | grep -v grep
+kill <stuck-pid-1> <stuck-pid-2>
+bash deploy/vps/maintenance-disable.sh
+curl https://flo-state.in/api/health/ready
+```
+
+This returns users to the currently running app without pretending the interrupted safe deploy completed successfully.
+
+### Manual finish path when code is already latest and migrations are clean
+
+Use this only when:
+- `git fetch` / `git pull` already show the repo is on the intended latest commit
+- `bun run --cwd server db:migrate` reports `pendingCount: 0`
+- the safe deploy helper is hanging specifically before the reset/build/restart path
+
+Manual finish sequence:
+
+```bash
+cd /opt/flowstate/app
+git fetch origin master
+git reset --hard origin/master
+/home/flowstate/.bun/bin/bun install --frozen-lockfile
+/home/flowstate/.bun/bin/bun run build
+bun run --cwd server db:migrate
+sudo systemctl restart flowstate
+curl http://127.0.0.1:4000/api/health/ready
+bash deploy/vps/maintenance-disable.sh
+curl https://flo-state.in/api/health/ready
+git rev-parse --short HEAD
+```
+
+Use this as an operational recovery path, not the default deploy path. The preferred command remains `bash deploy/vps/update-safe.sh`.
+
+### If you need more verbose output
+
+There is no dedicated `--verbose` flag today. The best manual debug path is:
+
+```bash
+bash -x deploy/vps/deploy-safe.sh
+```
+
+That shows each shell step as it runs.
+
 ## Backup Commands
 
 Create a backup manually:
@@ -332,7 +406,5 @@ ls /etc/logrotate.d
 - Upload files are not yet backed up offsite.
 - Restore currently expects a local archive path or local manifest path; R2 download helpers can be added later if needed.
 - Safe deploy/rollback assumes one app service and one MySQL container on the single VPS.
-- Phase 12.3 still needs one real `update-safe.sh` / `deploy-safe.sh` run plus one rollback drill before the deploy/rollback path is fully signed off.
-- Phase 12.4 still needs a real VPS rollout with backup encryption enabled, one encrypted backup validation, and one scratch restore verification drill before it can be marked complete.
 - The first production browser smoke test is still pending because the intended real first admin has not signed up yet.
 

@@ -42,6 +42,18 @@ The safe deploy flow includes:
 
 That flow is intentionally more defensive than the older fast redeploy path.
 
+## When safe deploy hangs
+
+A real-world deploy can hang before the actual reset/build/restart path, most commonly around the guarded predeploy backup portion of the workflow. When that happens:
+
+- do not assume the app process is dead
+- check local health first
+- inspect `/tmp/flowstate-ops/step-7.log`
+- if the app is still healthy, disable maintenance only after stopping the stuck helper process
+- if the repo is already at the intended latest commit and migrations are already clean, a manual build + migrate + restart finish path is acceptable as an operational recovery step
+
+See [Detailed VPS operations runbook](../vps-operations.md) for the exact commands.
+
 ## Backups
 
 The backup workflow now includes:
