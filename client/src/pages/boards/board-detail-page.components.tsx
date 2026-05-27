@@ -9,7 +9,7 @@ import { markCommentMentionsSeen } from "@/lib/mentions-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMentionStore } from "@/stores/mentions-store";
 import type { BoardCard, BoardComment, BoardMember, Checklist, ChecklistItem } from "@/types/board";
-import { boardGlassFrame, boardGlassStrong, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
+import { boardGlassFrame, boardGlassSubtle } from "@/pages/boards/board-glass.styles";
 import {
   coverColorSurfaceClasses,
   formatDueDateLabel,

@@ -43,7 +43,6 @@ export function useThreadMedia({
 }: ThreadMediaParams): ThreadMediaState {
   const [recording, setRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [recordingError, setRecordingError] = useState<string | null>(null);
   const [sendingVoice, setSendingVoice] = useState(false);
   const [voiceUrls, setVoiceUrls] = useState<Record<string, string>>({});
   const [attachmentPreviewUrls, setAttachmentPreviewUrls] = useState<Record<string, string>>({});
@@ -82,9 +81,9 @@ export function useThreadMedia({
     setAttachmentPreviewUrls({});
     setRecording(false);
     setRecordingDuration(0);
-    setRecordingError(null);
+    setSendError(null);
     setSendingVoice(false);
-  }, [activeConversationId]);
+  }, [activeConversationId, setSendError]);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -191,9 +190,9 @@ export function useThreadMedia({
 
   const startRecording = async () => {
     if (recording || sendingVoice) return;
-    setRecordingError(null);
+    setSendError(null);
     if (!navigator.mediaDevices?.getUserMedia) {
-      setRecordingError("Voice recording isn't supported in this browser.");
+      setSendError("Voice recording isn't supported in this browser.");
       return;
     }
     try {
@@ -220,7 +219,7 @@ export function useThreadMedia({
           return;
         }
         if (chunks.length === 0) {
-          setRecordingError("No audio captured.");
+          setSendError("No audio captured.");
           return;
         }
         const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
@@ -233,7 +232,7 @@ export function useThreadMedia({
       startRecordingTimer();
     } catch {
       cleanupRecordingStream();
-      setRecordingError("Microphone access was blocked.");
+      setSendError("Microphone access was blocked.");
     }
   };
 

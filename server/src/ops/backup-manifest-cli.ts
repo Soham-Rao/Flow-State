@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { closePool } from "../db/connection.js";
 import { getPendingMigrationInventory } from "../db/migration-guard.js";
 import { buildBackupManifest, type BackupKind } from "./backup-manifest.js";
 
@@ -26,32 +27,42 @@ const encryptedArchiveSha256 = getArg("--encrypted-archive-sha256");
 const backupEncryptionEnabled = getArg("--backup-encryption-enabled");
 const backupEncryptionKeyId = getArg("--backup-encryption-key-id");
 
-if (!kind || !archivePath || !currentSha || !backupId || !manifestPath) {
-  console.error("Missing required args for backup manifest creation");
-  process.exit(1);
+async function main(): Promise<void> {
+  if (!kind || !archivePath || !currentSha || !backupId || !manifestPath) {
+    throw new Error("Missing required args for backup manifest creation");
+  }
+
+  const inventory = await getPendingMigrationInventory(path.resolve("server/drizzle"));
+  const manifest = buildBackupManifest({
+    backupId,
+    kind,
+    archivePath,
+    archiveSha256,
+    encryptedArchivePath,
+    encryptedArchiveSha256,
+    encryptionEnabled: backupEncryptionEnabled === "true",
+    encryptionKeyId: backupEncryptionKeyId,
+    currentSha,
+    targetSha,
+    packageVersion,
+    bunLockHash,
+    migrationJournalHash,
+    migrationPendingFiles: inventory.pendingMigrations.map((migration) => migration.fileName),
+    migrationRiskyFiles: inventory.riskyMigrations.map((migration) => migration.fileName),
+    migrationAcknowledgedRiskyFiles: inventory.acknowledgedRiskyMigrations.map((migration) => migration.fileName),
+    mysqlDatabase
+  });
+
+  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  process.stdout.write(`${path.resolve(manifestPath)}\n`);
 }
 
-const inventory = await getPendingMigrationInventory(path.resolve("server/drizzle"));
-const manifest = buildBackupManifest({
-  backupId,
-  kind,
-  archivePath,
-  archiveSha256,
-  encryptedArchivePath,
-  encryptedArchiveSha256,
-  encryptionEnabled: backupEncryptionEnabled === "true",
-  encryptionKeyId: backupEncryptionKeyId,
-  currentSha,
-  targetSha,
-  packageVersion,
-  bunLockHash,
-  migrationJournalHash,
-  migrationPendingFiles: inventory.pendingMigrations.map((migration) => migration.fileName),
-  migrationRiskyFiles: inventory.riskyMigrations.map((migration) => migration.fileName),
-  migrationAcknowledgedRiskyFiles: inventory.acknowledgedRiskyMigrations.map((migration) => migration.fileName),
-  mysqlDatabase
-});
-
-fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
-fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-process.stdout.write(`${path.resolve(manifestPath)}\n`);
+try {
+  await main();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+} finally {
+  await closePool();
+}

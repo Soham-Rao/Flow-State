@@ -25,8 +25,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\eslint.config.js": {
-    "mtime": 1773290606.6603162,
-    "ast_hash": "f19ad54f715e4310156b8463dcd205b4",
+    "mtime": 1779868449.8429055,
+    "ast_hash": "c388cb6858cc918d63248cf948ac65e9",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\package.json": {
@@ -115,8 +115,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\components\\ui\\confirm-dialog.tsx": {
-    "mtime": 1775406053.474444,
-    "ast_hash": "c38bcf3c616f58011068787eb76948ef",
+    "mtime": 1779864802.2661445,
+    "ast_hash": "07feb5a66456f11b859f2e2fa0886ff5",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\components\\ui\\input.tsx": {
@@ -195,8 +195,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\lib\\mentions.ts": {
-    "mtime": 1774427220.2356966,
-    "ast_hash": "5b4adb54886734deb56b9dabf479cf53",
+    "mtime": 1779865012.5369694,
+    "ast_hash": "c3bc0cab9520e113a4a4f09ce7850f4c",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\lib\\permissions.ts": {
@@ -235,8 +235,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\home-page.tsx": {
-    "mtime": 1779829647.5939689,
-    "ast_hash": "30d63d0019fdfc413a2e6e3ce915f789",
+    "mtime": 1779865070.4280064,
+    "ast_hash": "ca6ec5cd5ce39c56222a0ce04715ddb2",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\login-page.tsx": {
@@ -260,18 +260,18 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\threads-page.controller.actions.ts": {
-    "mtime": 1775405339.4167683,
-    "ast_hash": "12ef1d04784ea90e4715280372c07122",
+    "mtime": 1779865104.9694252,
+    "ast_hash": "da5ccd72ccb5d42ba1b2cbc806f268c0",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\threads-page.controller.media.ts": {
-    "mtime": 1774289792.2527328,
-    "ast_hash": "ebaa57fb491448abafe9ac19d773704f",
+    "mtime": 1779865105.060407,
+    "ast_hash": "7a5b69a198149b22ecbf70b9f7106f66",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\threads-page.controller.ts": {
-    "mtime": 1775310025.9633944,
-    "ast_hash": "187cd5f601332f5559da0dc1e4e8357d",
+    "mtime": 1779865105.1502728,
+    "ast_hash": "88a26a1db42bd4396062d81a50e94db9",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\threads-page.forward-modal.tsx": {
@@ -295,8 +295,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\threads-page.reply-drawer.tsx": {
-    "mtime": 1775405863.9007318,
-    "ast_hash": "1786a4b498b5bd6ed70077471029837e",
+    "mtime": 1779864801.8729866,
+    "ast_hash": "2deac82adfdcccf9869740c116f0a0a8",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\threads-page.sidebar.tsx": {
@@ -305,8 +305,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\threads-page.tsx": {
-    "mtime": 1775161489.066295,
-    "ast_hash": "f841de8f0b62287af1d22c34dca03c33",
+    "mtime": 1779865055.3055892,
+    "ast_hash": "1771c03222355c7c4026b2fe38df048c",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\threads-page.utils.ts": {
@@ -345,13 +345,13 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\board-detail-page.components.tsx": {
-    "mtime": 1774645705.936195,
-    "ast_hash": "523995c8134ce8edea1c046eaa9fa106",
+    "mtime": 1779865012.6379712,
+    "ast_hash": "f306558c9fecafb0148b812595030b4f",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\board-detail-page.dialogs.tsx": {
-    "mtime": 1774642190.0623066,
-    "ast_hash": "43e0aa7ecee043bf7702732b2c49769d",
+    "mtime": 1779864801.3385956,
+    "ast_hash": "7df90cfdb8ca4fbc525bfbebf75a2c37",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\board-detail-page.drag.ts": {
@@ -370,8 +370,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\board-detail-page.mentions.ts": {
-    "mtime": 1774465150.0689397,
-    "ast_hash": "e06363a834e5766083fcf4714381c1e0",
+    "mtime": 1779865012.7382786,
+    "ast_hash": "92b34acf6ca270640ca8aaf56ed042b9",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\board-detail-page.settings.tsx": {
@@ -385,8 +385,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\board-detail-page.tsx": {
-    "mtime": 1779829991.9868722,
-    "ast_hash": "eb4f247fa8e3fdf60435d657f33e48f8",
+    "mtime": 1779865030.6279762,
+    "ast_hash": "bdfe701ee5bac3dd8742caff5720bdc4",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\board-detail-page.utils.ts": {
@@ -395,8 +395,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\board-detail-page.view.tsx": {
-    "mtime": 1779829545.312421,
-    "ast_hash": "76f07fd32fdacf07f3b4092c096a6a6f",
+    "mtime": 1779864801.4902227,
+    "ast_hash": "02f87174cb28c19570b92a35b738de94",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\board-glass.styles.ts": {
@@ -405,8 +405,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\boards\\boards-page.tsx": {
-    "mtime": 1775405271.0474665,
-    "ast_hash": "c6c909a36cf0c14712e2e0d1d9779302",
+    "mtime": 1779865021.5701628,
+    "ast_hash": "b404408dbdde9ee82c69fad6ab522070",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\help\\help-docs-page.tsx": {
@@ -470,8 +470,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\settings\\general-page.manage-roles-modal.tsx": {
-    "mtime": 1775408038.1986697,
-    "ast_hash": "9741662a711438870b47dffed26fc2ed",
+    "mtime": 1779865054.8001084,
+    "ast_hash": "298c3dab7c5375e3a397a9f014fc7986",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\settings\\general-page.role-assignment-editor.tsx": {
@@ -480,8 +480,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\settings\\general-page.tsx": {
-    "mtime": 1775405180.7832656,
-    "ast_hash": "dc885925d515f38bb3c7c6948d86fc87",
+    "mtime": 1779865054.905111,
+    "ast_hash": "7c40e59e6451b2ed5302f7c2206e8848",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\settings\\general-page.utils.ts": {
@@ -640,8 +640,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\tests\\pages\\boards\\board-detail-page.test.tsx": {
-    "mtime": 1779829754.0654645,
-    "ast_hash": "d2202f48acefab1fdfc7b51d5f3fd845",
+    "mtime": 1779864836.7349792,
+    "ast_hash": "c645ab0cae94338adf920cf0cd113946",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\tests\\pages\\boards\\focus-page.test.tsx": {
@@ -655,13 +655,13 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\deploy\\vps\\backup-now.sh": {
-    "mtime": 1775336612.2436619,
-    "ast_hash": "3eb1ae092e6e08a703b5f18675b2fe92",
+    "mtime": 1779868518.4668918,
+    "ast_hash": "1bb6efca82cde03d7a5e2fe4852655a2",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\deploy\\vps\\deploy-safe.sh": {
-    "mtime": 1775331776.2470305,
-    "ast_hash": "047d621b29f48cd1609580b430f8452b",
+    "mtime": 1779868528.2274227,
+    "ast_hash": "daca214a0f1feb8d86d8175d059118bc",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\deploy\\vps\\maintenance-disable.sh": {
@@ -675,8 +675,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\deploy\\vps\\ops-common.sh": {
-    "mtime": 1775336585.033032,
-    "ast_hash": "68fa85fbcaa6a0d1a9105b9aba990e69",
+    "mtime": 1779868491.406,
+    "ast_hash": "6b8c47cfe565b3bca4440ca33ba022c3",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\deploy\\vps\\redeploy.sh": {
@@ -700,8 +700,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\deploy\\vps\\update-safe.sh": {
-    "mtime": 1775326251.2081473,
-    "ast_hash": "238b721774ffab0e941d8883ca579f8c",
+    "mtime": 1779868502.130788,
+    "ast_hash": "83dfc6d0ea8bfda9d8e3a3de5965846c",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\docker\\mysql-init.sql": {
@@ -820,8 +820,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\db\\connection.ts": {
-    "mtime": 1775331604.9272735,
-    "ast_hash": "73c0cd9448ae0e2f6c234beae84b9de4",
+    "mtime": 1779864884.6955607,
+    "ast_hash": "f11b7d5a5f7d82130059441ed34a9c90",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\db\\init-roles.ts": {
@@ -850,8 +850,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\db\\schema.ts": {
-    "mtime": 1779829422.910447,
-    "ast_hash": "64e2f1adcb82d047fd82d404e8a4dbf3",
+    "mtime": 1779864884.784892,
+    "ast_hash": "c65d42f14b78e1e6bf3205c5f19fdd3c",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\db\\seed-test.ts": {
@@ -940,23 +940,23 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.routes.attachments.ts": {
-    "mtime": 1774912332.2818718,
-    "ast_hash": "0c22c1a0933b64e89b6fb9f457a7e7f6",
+    "mtime": 1779868350.3383176,
+    "ast_hash": "72b843ac1a7196076e947fc74da2fd48",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.routes.base.ts": {
-    "mtime": 1774912276.7271202,
-    "ast_hash": "4635aefb3777766f594521420a478601",
+    "mtime": 1779868303.4323773,
+    "ast_hash": "73d8c9f25724c5b74eb1f6066463e79c",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.routes.cards.ts": {
-    "mtime": 1779829481.6630042,
-    "ast_hash": "4ffe423d9e805260610c0e3c40f8dffa",
+    "mtime": 1779864801.7713895,
+    "ast_hash": "a0325c17106c06812d313a6b8b7a6c9c",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.routes.checklists.ts": {
-    "mtime": 1774912352.909288,
-    "ast_hash": "4b2a4819d6be345b5c596e238aa621b9",
+    "mtime": 1779868337.3763492,
+    "ast_hash": "255e65bfc68d81a044093ff776ba1b61",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.routes.comments.ts": {
@@ -965,13 +965,13 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.routes.labels.ts": {
-    "mtime": 1774912369.914547,
-    "ast_hash": "bce99dff10fbe6df2da1885123fd7f2e",
+    "mtime": 1779868369.8800166,
+    "ast_hash": "f81258e599d77591462634ead747c461",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.routes.lists.ts": {
-    "mtime": 1774912392.2853882,
-    "ast_hash": "c62612e1c719b23539a4769525de6f77",
+    "mtime": 1779868318.5915842,
+    "ast_hash": "ebdff16cc678c8bec5424985d832691a",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.schema.ts": {
@@ -1045,8 +1045,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.service.lookups.ts": {
-    "mtime": 1775159904.4414814,
-    "ast_hash": "65594dd94d0f8b123733f2a5b60982a2",
+    "mtime": 1779868285.4827394,
+    "ast_hash": "1913b6e59ea391cc22b267e027142cda",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\boards\\boards.service.members.ts": {
@@ -1220,8 +1220,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\ops\\backup-crypto.ts": {
-    "mtime": 1775331808.3244658,
-    "ast_hash": "d5c390e2456931a0d0515f8f7ee743a7",
+    "mtime": 1779864802.6042283,
+    "ast_hash": "ec038f1cc11b23979d2403b708d3e05c",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\ops\\backup-encrypt-cli.ts": {
@@ -1230,8 +1230,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\ops\\backup-manifest-cli.ts": {
-    "mtime": 1775342145.8062158,
-    "ast_hash": "12fa618d66e24cf757ff166aa7fea8b8",
+    "mtime": 1779833811.673944,
+    "ast_hash": "7b3763e1dffbe493ff96a629045a55d6",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\ops\\backup-manifest.ts": {
@@ -1345,8 +1345,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\tests\\cards.test.ts": {
-    "mtime": 1779829963.6261623,
-    "ast_hash": "01c96b031b758ffc7bfab414206f343e",
+    "mtime": 1779868427.8547337,
+    "ast_hash": "3c1fba90b04c260edcfa746fa200fa9c",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\tests\\checklists.test.ts": {

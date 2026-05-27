@@ -28,7 +28,6 @@ export function ThreadsPage(): JSX.Element {
     searchParams,
     setSearchParams,
     activeTab,
-    totalMentions,
     dmBadgeCount,
     channelBadgeCount,
     threadBadgeMode,

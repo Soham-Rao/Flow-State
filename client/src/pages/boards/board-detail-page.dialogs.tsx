@@ -1,7 +1,7 @@
 import { boardGlassPill } from "@/pages/boards/board-glass.styles";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getCommentSnippet } from "@/pages/boards/board-detail-page.utils";
-import type { BoardCard, BoardComment, BoardList, Checklist, ChecklistItem } from "@/types/board";
+import type { BoardCard, BoardComment, BoardLabel, BoardList, Checklist, ChecklistItem } from "@/types/board";
 
 export function BoardDetailDialogs({
   showSavedNotice,
@@ -27,6 +27,9 @@ export function BoardDetailDialogs({
   checklistItemToDelete,
   onCancelDeleteChecklistItem,
   onConfirmDeleteChecklistItem,
+  labelToDelete,
+  onCancelDeleteLabel,
+  onConfirmDeleteLabel,
   listToDelete,
   onCancelDeleteList,
   onConfirmDeleteList,
@@ -56,6 +59,9 @@ export function BoardDetailDialogs({
   checklistItemToDelete: { item: ChecklistItem; cardId: string } | null;
   onCancelDeleteChecklistItem: () => void;
   onConfirmDeleteChecklistItem: () => void;
+  labelToDelete: BoardLabel | null;
+  onCancelDeleteLabel: () => void;
+  onConfirmDeleteLabel: () => void;
   listToDelete: BoardList | null;
   onCancelDeleteList: () => void;
   onConfirmDeleteList: () => void;
@@ -140,6 +146,15 @@ export function BoardDetailDialogs({
         cancelLabel="Keep"
         onCancel={onCancelDeleteChecklistItem}
         onConfirm={onConfirmDeleteChecklistItem}
+      />
+      <ConfirmDialog
+        open={labelToDelete !== null}
+        title="Delete label"
+        description={`Delete "${labelToDelete?.name ?? "this label"}" from this board and all cards?`}
+        confirmLabel="Delete"
+        cancelLabel="Keep"
+        onCancel={onCancelDeleteLabel}
+        onConfirm={onConfirmDeleteLabel}
       />
       <ConfirmDialog
         open={listToDelete !== null}

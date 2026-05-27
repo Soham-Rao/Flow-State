@@ -97,6 +97,7 @@ export interface BoardDetailPageViewProps {
     commentToDelete: BoardComment | null;
     checklistToDelete: Checklist | null;
     checklistItemToDelete: { item: ChecklistItem; cardId: string } | null;
+    labelToDelete: BoardLabel | null;
     listToDelete: BoardList | null;
     nowMs: number;
     activeCardId: string | null;
@@ -190,6 +191,7 @@ export interface BoardDetailPageViewProps {
     onDeleteComment: () => Promise<void>;
     onDeleteChecklist: () => Promise<void>;
     onDeleteChecklistItem: () => Promise<void>;
+    onDeleteLabel: () => Promise<void>;
     onDeleteList: () => Promise<void>;
     onDismissPermissionError: () => void;
   };
@@ -415,6 +417,9 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
         checklistItemToDelete={state.checklistItemToDelete}
         onCancelDeleteChecklistItem={() => actions.onSetChecklistItemToDelete(null)}
         onConfirmDeleteChecklistItem={() => { void actions.onDeleteChecklistItem(); }}
+        labelToDelete={state.labelToDelete}
+        onCancelDeleteLabel={() => actions.onLabelDelete(null)}
+        onConfirmDeleteLabel={() => { void actions.onDeleteLabel(); }}
         listToDelete={state.listToDelete}
         onCancelDeleteList={() => actions.onSetListToDelete(null)}
         onConfirmDeleteList={() => { void actions.onDeleteList(); }}

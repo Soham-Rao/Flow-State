@@ -121,7 +121,7 @@ export function ConfirmDialog({
       >
         <CardHeader>
           <CardTitle id={titleId}>{title}</CardTitle>
-          <CardDescription id={descriptionId}>{description}</CardDescription>
+          <CardDescription id={descriptionId} className="break-words">{description}</CardDescription>
         </CardHeader>
         <CardContent className="max-h-[calc(100dvh-9rem)] overflow-y-auto">
           <div className="flex flex-wrap justify-end gap-2">

@@ -18,6 +18,7 @@ require_command docker
 require_command zstd
 require_command git
 require_command sha256sum
+require_command timeout
 
 cd "$APP_DIR"
 CURRENT_SHA="$(git rev-parse HEAD)"
@@ -31,6 +32,7 @@ ENCRYPTED_ARCHIVE_REMOTE_PATH=""
 ENCRYPTED_ARCHIVE_SHA256=""
 ENCRYPTED_ARCHIVE_SIZE_BYTES=""
 ENCRYPTION_ACTIVE=0
+BACKUP_MANIFEST_TIMEOUT_SECONDS="${BACKUP_MANIFEST_TIMEOUT_SECONDS:-120}"
 
 mkdir -p "$ARCHIVE_DIR" "$MANIFEST_DIR"
 
@@ -89,7 +91,14 @@ if [[ $ENCRYPTION_ACTIVE -eq 1 ]]; then
   )
 fi
 
-"$NODE_BIN" server/dist/ops/backup-manifest-cli.js "${MANIFEST_ARGS[@]}" >/dev/null
+if ! timeout "${BACKUP_MANIFEST_TIMEOUT_SECONDS}s" "$NODE_BIN" server/dist/ops/backup-manifest-cli.js "${MANIFEST_ARGS[@]}" >/dev/null; then
+  flowstate_log "Backup manifest helper failed or timed out after ${BACKUP_MANIFEST_TIMEOUT_SECONDS}s"
+  if [[ -s "$MANIFEST_PATH" ]] && "$NODE_BIN" -e 'const fs = require("node:fs"); JSON.parse(fs.readFileSync(process.argv[1], "utf8"));' "$MANIFEST_PATH"; then
+    flowstate_log "Continuing with existing valid manifest: $MANIFEST_PATH"
+  else
+    exit 1
+  fi
+fi
 
 prune_local() {
   local kind="$1"

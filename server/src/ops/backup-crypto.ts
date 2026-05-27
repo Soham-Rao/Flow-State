@@ -4,7 +4,6 @@ import { pipeline } from "node:stream/promises";
 
 const BACKUP_MAGIC = Buffer.from("FSBK1");
 const IV_LENGTH = 12;
-const AUTH_TAG_LENGTH = 16;
 const BACKUP_ALGORITHM = "aes-256-gcm";
 
 export interface BackupEncryptionConfig {

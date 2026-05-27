@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { assertPermission } from "../../utils/permissions.js";
+import { assertBoardPermission } from "../../utils/access-control.js";
 import {
   createChecklist,
   createChecklistItem,
@@ -15,12 +15,14 @@ import {
   updateChecklistItemSchema,
   updateChecklistSchema
 } from "./boards.schema.js";
+import { getCardBoardContext, getChecklistBoardContext, getChecklistItemBoardContext } from "./boards.service.lookups.js";
 
 export const boardsChecklistsRouter = Router();
 
 boardsChecklistsRouter.post("/cards/:cardId/checklists", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_checklists");
+    const { boardId } = await getCardBoardContext(req.params.cardId);
+    await assertBoardPermission(req.auth!.userId, "manage_checklists", boardId);
     const body = createChecklistSchema.parse(req.body);
     const data = await createChecklist(req.params.cardId, body, req.auth!.userId);
 
@@ -35,7 +37,8 @@ boardsChecklistsRouter.post("/cards/:cardId/checklists", async (req, res, next) 
 
 boardsChecklistsRouter.patch("/checklists/:checklistId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_checklists");
+    const { boardId } = await getChecklistBoardContext(req.params.checklistId);
+    await assertBoardPermission(req.auth!.userId, "manage_checklists", boardId);
     const body = updateChecklistSchema.parse(req.body);
     const data = await updateChecklist(req.params.checklistId, body, req.auth!.userId);
 
@@ -50,7 +53,8 @@ boardsChecklistsRouter.patch("/checklists/:checklistId", async (req, res, next) 
 
 boardsChecklistsRouter.delete("/checklists/:checklistId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_checklists");
+    const { boardId } = await getChecklistBoardContext(req.params.checklistId);
+    await assertBoardPermission(req.auth!.userId, "manage_checklists", boardId);
     await deleteChecklist(req.params.checklistId, req.auth!.userId);
 
     res.status(200).json({
@@ -66,7 +70,8 @@ boardsChecklistsRouter.delete("/checklists/:checklistId", async (req, res, next)
 
 boardsChecklistsRouter.post("/checklists/:checklistId/items", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_checklists");
+    const { boardId } = await getChecklistBoardContext(req.params.checklistId);
+    await assertBoardPermission(req.auth!.userId, "manage_checklists", boardId);
     const body = createChecklistItemSchema.parse(req.body);
     const data = await createChecklistItem(req.params.checklistId, body, req.auth!.userId);
 
@@ -81,7 +86,8 @@ boardsChecklistsRouter.post("/checklists/:checklistId/items", async (req, res, n
 
 boardsChecklistsRouter.patch("/checklist-items/:itemId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_checklists");
+    const { boardId } = await getChecklistItemBoardContext(req.params.itemId);
+    await assertBoardPermission(req.auth!.userId, "manage_checklists", boardId);
     const body = updateChecklistItemSchema.parse(req.body);
     const data = await updateChecklistItem(req.params.itemId, body, req.auth!.userId);
 
@@ -96,7 +102,8 @@ boardsChecklistsRouter.patch("/checklist-items/:itemId", async (req, res, next) 
 
 boardsChecklistsRouter.delete("/checklist-items/:itemId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_checklists");
+    const { boardId } = await getChecklistItemBoardContext(req.params.itemId);
+    await assertBoardPermission(req.auth!.userId, "manage_checklists", boardId);
     await deleteChecklistItem(req.params.itemId, req.auth!.userId);
 
     res.status(200).json({

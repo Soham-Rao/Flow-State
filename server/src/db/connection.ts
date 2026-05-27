@@ -59,7 +59,7 @@ instrumentPoolMethod("execute");
 
 export const db = drizzle(pool, { schema, mode: "default" });
 
-export type DbTransaction = Parameters<typeof db.transaction>[0] extends (tx: infer T, ...args: any) => any ? T : never;
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function withDbTransaction<T>(task: (tx: DbTransaction) => Promise<T>): Promise<T> {
   return db.transaction(async (tx) => task(tx));

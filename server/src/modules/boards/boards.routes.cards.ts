@@ -47,6 +47,9 @@ boardsCardsRouter.patch("/cards/:cardId", async (req, res, next) => {
     const { boardId } = await getCardBoardContext(req.params.cardId);
     await assertBoardPermission(req.auth!.userId, "edit_cards", boardId);
     const body = updateCardSchema.parse(req.body);
+    if (body.dueDate !== undefined) {
+      await assertBoardPermission(req.auth!.userId, "set_due_dates", boardId);
+    }
     const data = await updateCard(req.params.cardId, body, req.auth!.userId);
 
     res.status(200).json({

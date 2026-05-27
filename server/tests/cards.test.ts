@@ -56,6 +56,15 @@ async function assignRoles(token: string, userId: string, roleIds: string[]): Pr
   }
 }
 
+async function allowBoardPermissions(roleId: string, boardId: string, permissions: string[]): Promise<void> {
+  for (const permission of permissions) {
+    await pool.query(
+      "INSERT INTO role_scope_overrides (role_id, scope_type, scope_id, permission, access, created_at) VALUES (?, 'board', ?, ?, 'allow', NOW(3))",
+      [roleId, boardId, permission]
+    );
+  }
+}
+
 async function createBoardWithDefaults(token: string, name = "Phase 3 Board"): Promise<{
   boardId: string;
   todoListId: string;
@@ -174,6 +183,41 @@ describe("Cards API", () => {
     expect(todo.cards).toHaveLength(1);
     expect(todo.cards[0].id).toBe(cardId);
     expect(todo.cards[0].title).toBe("API integration done");
+  });
+
+  it("requires set_due_dates permission when editing a card due date", async () => {
+    const admin = await registerAndGetAuth("admin-due-edit@example.com", "Admin User");
+    const member = await registerAndGetAuth("member-due-edit@example.com", "Member User");
+    const memberRoleId = await getRoleIdByName(admin.token, "Member");
+    await assignRoles(admin.token, member.userId, [memberRoleId]);
+
+    const { boardId, todoListId } = await createBoardWithDefaults(member.token, "Due Date Edit Board");
+    const createResponse = await request(app)
+      .post(`/api/boards/lists/${todoListId}/cards`)
+      .set("Authorization", `Bearer ${member.token}`)
+      .send(cardPayload("Due permission card", member.userId));
+
+    expect(createResponse.status).toBe(201);
+    const cardId = createResponse.body.data.id as string;
+
+    await pool.query(
+      "INSERT INTO role_scope_overrides (role_id, scope_type, scope_id, permission, access, created_at) VALUES (?, 'board', ?, 'set_due_dates', 'deny', NOW(3))",
+      [memberRoleId, boardId]
+    );
+
+    const titleOnlyUpdate = await request(app)
+      .patch(`/api/boards/cards/${cardId}`)
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({ title: "Title-only update still allowed" });
+
+    expect(titleOnlyUpdate.status).toBe(200);
+
+    const dueDateUpdate = await request(app)
+      .patch(`/api/boards/cards/${cardId}`)
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({ dueDate: "2026-03-21T10:00:00.000Z" });
+
+    expect(dueDateUpdate.status).toBe(403);
   });
 
   it("requires a due date and assignee when creating cards", async () => {
@@ -338,6 +382,67 @@ describe("Cards API", () => {
       .send(cardPayload("Should be blocked", deniedMember.userId));
 
     expect(deniedCreate.status).toBe(403);
+  });
+
+  it("respects board-scoped overrides for board child resources", async () => {
+    const admin = await registerAndGetAuth("admin-child-overrides@example.com", "Admin User");
+    const guest = await registerAndGetAuth("guest-child-overrides@example.com", "Guest User");
+
+    const [guestRoleRows] = await pool.query<Array<RowDataPacket & { id: string }>>("SELECT id FROM roles WHERE name = ?", ["Guest"]);
+    const guestRoleId = guestRoleRows[0]?.id;
+    expect(guestRoleId).toBeTruthy();
+
+    const { boardId, todoListId } = await createBoardWithDefaults(admin.token, "Child Override Board");
+    await allowBoardPermissions(guestRoleId, boardId, [
+      "comment",
+      "manage_checklists",
+      "manage_labels",
+      "manage_lists",
+      "upload_files"
+    ]);
+
+    const createListResponse = await request(app)
+      .post(`/api/boards/${boardId}/lists`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({ name: "Guest-managed list" });
+
+    expect(createListResponse.status).toBe(201);
+
+    const createLabelResponse = await request(app)
+      .post(`/api/boards/${boardId}/labels`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({ name: "Guest label", color: "teal" });
+
+    expect(createLabelResponse.status).toBe(201);
+
+    const createCardResponse = await request(app)
+      .post(`/api/boards/lists/${todoListId}/cards`)
+      .set("Authorization", `Bearer ${admin.token}`)
+      .send(cardPayload("Admin-created child resource card", admin.userId));
+
+    expect(createCardResponse.status).toBe(201);
+    const cardId = createCardResponse.body.data.id as string;
+
+    const createChecklistResponse = await request(app)
+      .post(`/api/boards/cards/${cardId}/checklists`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({ title: "Guest checklist" });
+
+    expect(createChecklistResponse.status).toBe(201);
+
+    const createAttachmentResponse = await request(app)
+      .post(`/api/boards/cards/${cardId}/attachments`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .attach("files", Buffer.from("hello"), "hello.txt");
+
+    expect(createAttachmentResponse.status).toBe(201);
+
+    const createCommentResponse = await request(app)
+      .post(`/api/boards/${boardId}/comments`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({ body: "Guest comment through board override" });
+
+    expect(createCommentResponse.status).toBe(201);
   });
 });
 

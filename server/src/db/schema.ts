@@ -13,6 +13,7 @@ import {
   uniqueIndex,
   varchar
 } from "drizzle-orm/mysql-core";
+import type { AnyMySqlColumn } from "drizzle-orm/mysql-core";
 
 export const userRoles = ["admin", "member", "guest"] as const;
 export const rolePermissions = [
@@ -91,7 +92,7 @@ export const cardCoverColors = [
 ] as const;
 export const bugReportStatuses = ["open", "triaged", "closed"] as const;
 
-type TableColumns = Record<string, any>;
+type TableColumns = Record<string, AnyMySqlColumn>;
 
 const createdAt = (name: string) => datetime(name, { mode: "date", fsp: 3 });
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { assertPermission } from "../../utils/permissions.js";
+import { assertBoardPermission } from "../../utils/access-control.js";
 import {
   assignLabelToCard,
   createLabel,
@@ -9,12 +9,13 @@ import {
   updateLabel
 } from "./boards.service.js";
 import { assignLabelSchema, createLabelSchema, updateLabelSchema } from "./boards.schema.js";
+import { assertLabelExists, getCardBoardContext } from "./boards.service.lookups.js";
 
 export const boardsLabelsRouter = Router();
 
 boardsLabelsRouter.post("/:boardId/labels", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_labels");
+    await assertBoardPermission(req.auth!.userId, "manage_labels", req.params.boardId);
     const body = createLabelSchema.parse(req.body);
     const data = await createLabel(req.params.boardId, body);
 
@@ -29,7 +30,8 @@ boardsLabelsRouter.post("/:boardId/labels", async (req, res, next) => {
 
 boardsLabelsRouter.patch("/labels/:labelId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_labels");
+    const label = await assertLabelExists(req.params.labelId);
+    await assertBoardPermission(req.auth!.userId, "manage_labels", label.boardId);
     const body = updateLabelSchema.parse(req.body);
     const data = await updateLabel(req.params.labelId, body);
 
@@ -44,7 +46,8 @@ boardsLabelsRouter.patch("/labels/:labelId", async (req, res, next) => {
 
 boardsLabelsRouter.delete("/labels/:labelId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_labels");
+    const label = await assertLabelExists(req.params.labelId);
+    await assertBoardPermission(req.auth!.userId, "manage_labels", label.boardId);
     await deleteLabel(req.params.labelId);
 
     res.status(200).json({
@@ -60,7 +63,8 @@ boardsLabelsRouter.delete("/labels/:labelId", async (req, res, next) => {
 
 boardsLabelsRouter.post("/cards/:cardId/labels", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_labels");
+    const { boardId } = await getCardBoardContext(req.params.cardId);
+    await assertBoardPermission(req.auth!.userId, "manage_labels", boardId);
     const body = assignLabelSchema.parse(req.body);
     const data = await assignLabelToCard(req.params.cardId, body);
 
@@ -75,7 +79,8 @@ boardsLabelsRouter.post("/cards/:cardId/labels", async (req, res, next) => {
 
 boardsLabelsRouter.delete("/cards/:cardId/labels/:labelId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_labels");
+    const { boardId } = await getCardBoardContext(req.params.cardId);
+    await assertBoardPermission(req.auth!.userId, "manage_labels", boardId);
     const data = await removeLabelFromCard(req.params.cardId, req.params.labelId);
 
     res.status(200).json({

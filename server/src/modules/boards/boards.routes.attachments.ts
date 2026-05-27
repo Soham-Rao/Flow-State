@@ -1,12 +1,13 @@
 import { Router } from "express";
 import multer from "multer";
 
-import { assertPermission } from "../../utils/permissions.js";
+import { assertBoardPermission } from "../../utils/access-control.js";
 import {
   createAttachments,
   deleteAttachment,
   getAttachmentDownloadInfo
 } from "./boards.service.js";
+import { getAttachmentBoardContext, getCardBoardContext } from "./boards.service.lookups.js";
 
 export const boardsAttachmentsRouter = Router();
 
@@ -14,7 +15,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 
 
 boardsAttachmentsRouter.post("/cards/:cardId/attachments", upload.array("files", 10), async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "upload_files");
+    const { boardId } = await getCardBoardContext(req.params.cardId);
+    await assertBoardPermission(req.auth!.userId, "upload_files", boardId);
     const files = (req.files ?? []) as Express.Multer.File[];
     const data = await createAttachments(req.params.cardId, files);
 
@@ -29,7 +31,8 @@ boardsAttachmentsRouter.post("/cards/:cardId/attachments", upload.array("files",
 
 boardsAttachmentsRouter.get("/attachments/:attachmentId/download", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "view_boards");
+    const { boardId } = await getAttachmentBoardContext(req.params.attachmentId);
+    await assertBoardPermission(req.auth!.userId, "view_boards", boardId);
     const attachment = await getAttachmentDownloadInfo(req.params.attachmentId);
     res.download(attachment.filePath, attachment.originalName);
   } catch (error) {
@@ -39,7 +42,8 @@ boardsAttachmentsRouter.get("/attachments/:attachmentId/download", async (req, r
 
 boardsAttachmentsRouter.delete("/attachments/:attachmentId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "upload_files");
+    const { boardId } = await getAttachmentBoardContext(req.params.attachmentId);
+    await assertBoardPermission(req.auth!.userId, "upload_files", boardId);
     await deleteAttachment(req.params.attachmentId);
 
     res.status(200).json({

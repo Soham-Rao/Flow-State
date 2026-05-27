@@ -7,7 +7,6 @@ export interface MentionQuery {
 }
 
 const MENTION_QUERY_ALLOWED = /^[\p{L}\p{N}._'-]*$/u;
-const MENTION_TOKEN = /@[\p{L}\p{N}._'-]+/gu;
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

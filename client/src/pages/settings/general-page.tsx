@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +28,6 @@ import {
   applyFont,
   applySpacing,
   applyTheme,
-  normalizePermissions,
   normalizeRoleIds,
   normalizeStoredFont,
   normalizeStoredTheme,
@@ -70,7 +69,6 @@ export function GeneralSettingsPage(): JSX.Element {
   const [showManageRoles, setShowManageRoles] = useState(false);
   const [showAssignRoles, setShowAssignRoles] = useState(false);
   const [activeRoleId, setActiveRoleId] = useState<string | null>(null);
-  const roleRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     try {
@@ -531,7 +529,6 @@ export function GeneralSettingsPage(): JSX.Element {
         rolesError={rolesError}
         rolesLoading={rolesLoading}
         roles={roles}
-        activeRoleId={activeRoleId}
         activeRole={activeRole}
         activeRoleDraft={activeRoleDraft}
         activeRoleDirty={Boolean(activeRoleDirty)}

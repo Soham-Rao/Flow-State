@@ -9,6 +9,7 @@ DEPLOY_REMOTE="${DEPLOY_REMOTE:-origin}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
 PUBLIC_READY_URL="${PUBLIC_READY_URL:-https://flo-state.in/api/health/ready}"
 WORK_LOG_DIR="${WORK_LOG_DIR:-/tmp/flowstate-ops}"
+DEPLOY_TIMEOUT_SECONDS="${DEPLOY_TIMEOUT_SECONDS:-1800}"
 mkdir -p "$WORK_LOG_DIR"
 
 source_env
@@ -27,13 +28,14 @@ run_step() {
   local label="$1"
   shift
   local log_file="$WORK_LOG_DIR/step-$((++step_count)).log"
-  if "$@" >"$log_file" 2>&1; then
+  printf '[info] %s log=%s\n' "$label" "$log_file"
+  if "$@" > >(tee "$log_file") 2>&1; then
     print_ok "$label"
     return 0
   fi
 
   print_fail "$label"
-  cat "$log_file" >&2
+  tail -n 120 "$log_file" >&2
   return 1
 }
 
@@ -44,6 +46,7 @@ ensure_system_tools() {
   command -v curl >/dev/null 2>&1 || missing_packages+=(curl)
   command -v zstd >/dev/null 2>&1 || missing_packages+=(zstd)
   command -v aws >/dev/null 2>&1 || missing_packages+=(awscli)
+  command -v timeout >/dev/null 2>&1 || missing_packages+=(coreutils)
 
   if (( ${#missing_packages[@]} == 0 )); then
     print_ok "System tools present"
@@ -72,7 +75,7 @@ main() {
   run_step "Ensure system tools" ensure_system_tools
   run_step "Fetch latest remote state" git fetch "$DEPLOY_REMOTE" "$DEPLOY_BRANCH"
   show_summary
-  run_step "Run safe deploy" bash "$SCRIPT_DIR/deploy-safe.sh"
+  run_step "Run safe deploy" timeout "${DEPLOY_TIMEOUT_SECONDS}s" bash "$SCRIPT_DIR/deploy-safe.sh"
   run_step "Verify local readiness" wait_for_local_health "http://127.0.0.1:4000/api/health/ready" 20 1
   run_step "Verify public readiness" curl -fsS "$PUBLIC_READY_URL"
   run_step "Check service status" sudo systemctl is-active --quiet "$SERVICE_NAME"

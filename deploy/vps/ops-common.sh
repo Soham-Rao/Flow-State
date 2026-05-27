@@ -95,7 +95,10 @@ resolve_r2_endpoint() {
 aws_r2() {
   local endpoint
   endpoint="$(resolve_r2_endpoint)"
-  AWS_ACCESS_KEY_ID="$BACKUP_R2_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_R2_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION="auto" aws --endpoint-url "$endpoint" "$@"
+  AWS_ACCESS_KEY_ID="$BACKUP_R2_ACCESS_KEY_ID" AWS_SECRET_ACCESS_KEY="$BACKUP_R2_SECRET_ACCESS_KEY" AWS_DEFAULT_REGION="auto" aws \
+    --cli-connect-timeout "${AWS_CLI_CONNECT_TIMEOUT:-10}" \
+    --cli-read-timeout "${AWS_CLI_READ_TIMEOUT:-120}" \
+    --endpoint-url "$endpoint" "$@"
 }
 
 local_keep_count() {

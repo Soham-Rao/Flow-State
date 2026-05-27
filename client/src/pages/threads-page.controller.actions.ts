@@ -35,14 +35,14 @@ function getThreadLengthError(length: number): string {
   return `Messages can be up to 5,000 characters. This draft is ${length - THREAD_MESSAGE_CHARACTER_LIMIT} characters over the limit.`;
 }
 
-const CompressionStreamImpl = (globalThis as any).CompressionStream as any;
-const DecompressionStreamImpl = (globalThis as any).DecompressionStream as any;
+const CompressionStreamImpl = "CompressionStream" in globalThis ? globalThis.CompressionStream : undefined;
+const DecompressionStreamImpl = "DecompressionStream" in globalThis ? globalThis.DecompressionStream : undefined;
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
 type CompressedReplyPage =
-  | { kind: "gzip"; data: Uint8Array; count: number }
+  | { kind: "gzip"; data: Uint8Array<ArrayBuffer>; count: number }
   | { kind: "json"; data: string; count: number };
 
 async function compressReplies(replies: ThreadReplySummary[]): Promise<CompressedReplyPage> {
@@ -90,7 +90,6 @@ type ThreadActionsParams = {
   setMessages: React.Dispatch<React.SetStateAction<ThreadMessageSummary[]>>;
   setReplySeenCounts: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   refreshConversations: () => Promise<RefreshConversationsResult>;
-  refreshMentions: () => Promise<void>;
   mentionMembers: BoardMember[];
   enablePolling: boolean;
   fileInputRef: React.RefObject<HTMLInputElement>;
@@ -201,7 +200,6 @@ export function useThreadActions({
   setMessages,
   setReplySeenCounts,
   refreshConversations,
-  refreshMentions,
   mentionMembers,
   enablePolling,
   fileInputRef,

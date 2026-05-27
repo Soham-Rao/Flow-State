@@ -24,7 +24,6 @@ import {
   MIN_RETENTION_MINUTES,
   SAVED_TOAST_SHOW_DELAY_MS,
   SAVED_TOAST_VISIBLE_MS,
-  clampRetentionMinutes,
   getCardFromBoard,
   sortBoardListsWithCards,
   splitRetentionMinutes,
@@ -144,18 +143,6 @@ export function BoardDetailPage(): JSX.Element {
     () => toRetentionMinutes(archiveRetentionDays, archiveRetentionHours, archiveRetentionMinutesPart),
     [archiveRetentionDays, archiveRetentionHours, archiveRetentionMinutesPart]
   );
-  const hasExpired = useMemo(() => {
-    if (!board) return false;
-    const retentionMs = clampRetentionMinutes(retentionTotalMinutes) * 60 * 1000;
-    return board.lists.some((list) =>
-      list.cards.some((card) => {
-        if (!card.doneEnteredAt) return false;
-        const enteredAtMs = new Date(card.doneEnteredAt).getTime();
-        if (Number.isNaN(enteredAtMs)) return false;
-        return nowMs - enteredAtMs >= retentionMs;
-      })
-    );
-  }, [board, nowMs, retentionTotalMinutes]);
   const selectedCardWithList = useMemo(() => getCardFromBoard(board, selectedCardId), [board, selectedCardId]);
   const selectedCardChecklists = useMemo(() => selectedCardWithList?.card.checklists ?? [], [selectedCardWithList]);
   const selectedCardAttachments = useMemo(() => selectedCardWithList?.card.attachments ?? [], [selectedCardWithList]);
@@ -668,6 +655,7 @@ export function BoardDetailPage(): JSX.Element {
     commentToDelete,
     checklistToDelete,
     checklistItemToDelete,
+    labelToDelete,
     listToDelete,
     nowMs,
     activeCardId,
@@ -783,6 +771,7 @@ export function BoardDetailPage(): JSX.Element {
     onDeleteComment,
     onDeleteChecklist,
     onDeleteChecklistItem,
+    onDeleteLabel,
     onDeleteList,
     onDismissPermissionError: () => setPermissionError(null),
   };

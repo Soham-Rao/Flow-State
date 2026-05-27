@@ -261,3 +261,58 @@ export async function getCardBoardContext(cardId: string): Promise<{ cardId: str
   return row;
 }
 
+export async function getChecklistBoardContext(checklistId: string): Promise<{ checklistId: string; cardId: string; boardId: string }> {
+  const rows = await db
+    .select({ checklistId: checklists.id, cardId: checklists.cardId, boardId: lists.boardId })
+    .from(checklists)
+    .innerJoin(cards, eq(checklists.cardId, cards.id))
+    .innerJoin(lists, eq(cards.listId, lists.id))
+    .where(eq(checklists.id, checklistId))
+    .limit(1);
+
+  const row = rows[0];
+
+  if (!row) {
+    throw new ApiError(404, "Checklist not found");
+  }
+
+  return row;
+}
+
+export async function getChecklistItemBoardContext(itemId: string): Promise<{ itemId: string; checklistId: string; cardId: string; boardId: string }> {
+  const rows = await db
+    .select({ itemId: checklistItems.id, checklistId: checklistItems.checklistId, cardId: checklists.cardId, boardId: lists.boardId })
+    .from(checklistItems)
+    .innerJoin(checklists, eq(checklistItems.checklistId, checklists.id))
+    .innerJoin(cards, eq(checklists.cardId, cards.id))
+    .innerJoin(lists, eq(cards.listId, lists.id))
+    .where(eq(checklistItems.id, itemId))
+    .limit(1);
+
+  const row = rows[0];
+
+  if (!row) {
+    throw new ApiError(404, "Checklist item not found");
+  }
+
+  return row;
+}
+
+export async function getAttachmentBoardContext(attachmentId: string): Promise<{ attachmentId: string; cardId: string; boardId: string }> {
+  const rows = await db
+    .select({ attachmentId: attachments.id, cardId: attachments.cardId, boardId: lists.boardId })
+    .from(attachments)
+    .innerJoin(cards, eq(attachments.cardId, cards.id))
+    .innerJoin(lists, eq(cards.listId, lists.id))
+    .where(eq(attachments.id, attachmentId))
+    .limit(1);
+
+  const row = rows[0];
+
+  if (!row) {
+    throw new ApiError(404, "Attachment not found");
+  }
+
+  return row;
+}
+

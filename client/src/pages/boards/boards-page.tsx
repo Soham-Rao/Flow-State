@@ -48,7 +48,6 @@ export function BoardsPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
 
   const [commentMentions, setCommentMentions] = useState<CommentMentionDetail[]>([]);
-  const refreshMentions = useMentionStore((state) => state.refresh);
   const assignmentBadgeCount = useMentionStore((state) => state.counts?.assignments ?? 0);
   const [assignedCards, setAssignedCards] = useState<DashboardCardSummary[]>([]);
 

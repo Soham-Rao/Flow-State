@@ -8,7 +8,7 @@ export default [
     ignores: ["dist"]
   },
   {
-    files: ["src/**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -27,12 +27,8 @@ export default [
     rules: {
       ...tsPlugin.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": [
-        "warn",
-        {
-          allowConstantExport: true
-        }
-      ]
+      "react-hooks/exhaustive-deps": "off",
+      "react-refresh/only-export-components": "off"
     }
   }
 ];

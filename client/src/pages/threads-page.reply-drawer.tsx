@@ -138,10 +138,10 @@ export function ThreadsReplyDrawer({
   onSendReply,
   onClose
 }: ThreadsReplyDrawerProps): JSX.Element | null {
-  if (!open) return null;
-
   const hasReplyAttachments = (replyTarget?.attachments?.length ?? 0) > 0;
   const [deleteMenuReplyId, setDeleteMenuReplyId] = useState<string | null>(null);
+
+  if (!open) return null;
 
   return (
     <div className="absolute inset-0 z-20">

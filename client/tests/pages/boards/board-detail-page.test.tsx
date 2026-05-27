@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoardDetailPage } from "@/pages/boards/board-detail-page";
-import type { BoardCard, BoardComment, BoardDetail, BoardList, BoardMember } from "@/types/board";
+import type { BoardCard, BoardComment, BoardDetail, BoardLabel, BoardList, BoardMember } from "@/types/board";
 import * as boardsApi from "@/lib/boards-api";
 
 vi.mock("@/lib/boards-api", () => ({
@@ -65,6 +65,7 @@ const deleteChecklistMock = vi.mocked(boardsApi.deleteChecklist);
 const createChecklistItemMock = vi.mocked(boardsApi.createChecklistItem);
 const updateChecklistItemMock = vi.mocked(boardsApi.updateChecklistItem);
 const deleteChecklistItemMock = vi.mocked(boardsApi.deleteChecklistItem);
+const deleteLabelMock = vi.mocked(boardsApi.deleteLabel);
 const createBoardCommentMock = vi.mocked(boardsApi.createBoardComment);
 const createListCommentMock = vi.mocked(boardsApi.createListComment);
 const createCardCommentMock = vi.mocked(boardsApi.createCardComment);
@@ -166,6 +167,15 @@ const baseBoard: BoardDetail = {
   labels: [],
   members: [baseAuthor],
   comments: []
+};
+
+const baseLabel: BoardLabel = {
+  id: "label-1",
+  boardId: "board-1",
+  name: "Urgent label",
+  color: "red",
+  createdAt: "2026-03-12T10:00:00.000Z",
+  updatedAt: "2026-03-12T10:00:00.000Z"
 };
 
 const baseBoardSummary = {
@@ -270,6 +280,7 @@ beforeEach(() => {
     updatedAt: "2026-03-12T10:00:00.000Z"
   });
   deleteChecklistItemMock.mockResolvedValue({ message: "Checklist item deleted" });
+  deleteLabelMock.mockResolvedValue({ message: "Label deleted" });
   moveCardMock.mockResolvedValue({
     sourceListId: "list-1",
     destinationListId: "list-1",
@@ -447,6 +458,31 @@ describe("BoardDetailPage cards", () => {
 
     await waitFor(() => {
       expect(screen.queryByText("Initial card")).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe("BoardDetailPage labels", () => {
+  it("deletes a board label after confirmation", async () => {
+    const boardWithLabel = cloneBoard();
+    boardWithLabel.labels = [baseLabel];
+    boardWithLabel.lists[0].cards[0].labels = [baseLabel];
+    getBoardByIdMock.mockResolvedValue(boardWithLabel);
+
+    renderBoardPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Show" }));
+    expect(await screen.findByDisplayValue("Urgent label")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle("Delete label"));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+
+    await waitFor(() => {
+      expect(deleteLabelMock).toHaveBeenCalledWith("label-1");
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByDisplayValue("Urgent label")).not.toBeInTheDocument();
     });
   });
 });

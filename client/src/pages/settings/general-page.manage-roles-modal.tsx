@@ -14,7 +14,6 @@ type ManageRolesModalProps = {
   rolesError: string | null;
   rolesLoading: boolean;
   roles: RoleSummary[];
-  activeRoleId: string | null;
   activeRole: RoleSummary | null;
   activeRoleDraft: RoleDraft | null;
   activeRoleDirty: boolean;
@@ -33,7 +32,6 @@ export function ManageRolesModal({
   rolesError,
   rolesLoading,
   roles,
-  activeRoleId,
   activeRole,
   activeRoleDraft,
   activeRoleDirty,

@@ -8,6 +8,7 @@ import { createInvite, listInvites, revokeInvite } from "@/lib/invites-api";
 import { getDashboardSummary } from "@/lib/dashboard-api";
 import { useActivityStore } from "@/stores/activity-store";
 import { useAuthStore } from "@/stores/auth-store";
+import { useAppFeedbackStore } from "@/stores/app-feedback-store";
 import { useSocketStore } from "@/stores/socket-store";
 import type { AnnouncementAudience, AnnouncementAudienceOptions, AnnouncementDetail } from "@/types/announcements";
 import type { DashboardCardSummary, DashboardSummary } from "@/types/dashboard";
@@ -104,6 +105,7 @@ export function HomePage(): JSX.Element {
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === "admin";
   const socketStatus = useSocketStore((state) => state.status);
+  const openFeedbackDialog = useAppFeedbackStore((state) => state.openDialog);
 
   const activity = useActivityStore((state) => state.workspace);
   const activityStatus = useActivityStore((state) => state.workspaceStatus);
@@ -153,10 +155,6 @@ export function HomePage(): JSX.Element {
   const acceptedInvites = invites.filter((invite) => invite.status === "accepted");
   const revokedInvites = invites.filter((invite) => invite.status === "revoked");
   const expiredInvites = invites.filter((invite) => invite.status === "expired");
-
-  const teamPulseItems = activity.slice(0, 6);
-  const hasTeamPulse = teamPulseItems.length > 0;
-  const isTeamPulseLoading = activityStatus === "loading" && !hasTeamPulse;
 
   const assignedCards = summary?.assignedCards ?? [];
   const createdCards = summary?.createdCards ?? [];
@@ -241,7 +239,11 @@ export function HomePage(): JSX.Element {
         setTimeout(() => setCopiedInviteLink(false), 1500);
       }
     } catch {
-      window.prompt("Copy invite link:", inviteUrl);
+      openFeedbackDialog({
+        title: "Copy invite link",
+        description: `Clipboard access was blocked. Copy this invite link manually: ${inviteUrl}`,
+        confirmLabel: "OK"
+      });
     }
   };
 

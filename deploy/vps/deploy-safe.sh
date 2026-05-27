@@ -7,9 +7,11 @@ source "$SCRIPT_DIR/ops-common.sh"
 
 DEPLOY_REMOTE="${DEPLOY_REMOTE:-origin}"
 DEPLOY_BRANCH="${DEPLOY_BRANCH:-master}"
+BACKUP_TIMEOUT_SECONDS="${BACKUP_TIMEOUT_SECONDS:-900}"
 source_env
 require_command git
 require_command curl
+require_command timeout
 
 cd "$APP_DIR"
 CURRENT_SHA="$(git rev-parse HEAD)"
@@ -61,7 +63,13 @@ git fetch "$DEPLOY_REMOTE" "$DEPLOY_BRANCH"
 TARGET_SHA="$(git rev-parse "$DEPLOY_REMOTE/$DEPLOY_BRANCH")"
 
 FAILED_STAGE="predeploy-backup"
-ROLLBACK_MANIFEST="$(bash "$SCRIPT_DIR/backup-now.sh" predeploy "$TARGET_SHA")"
+BACKUP_OUTPUT="$(timeout "${BACKUP_TIMEOUT_SECONDS}s" bash "$SCRIPT_DIR/backup-now.sh" predeploy "$TARGET_SHA")"
+printf '%s\n' "$BACKUP_OUTPUT" >&2
+ROLLBACK_MANIFEST="$(printf '%s\n' "$BACKUP_OUTPUT" | tail -n 1)"
+if [[ ! -f "$ROLLBACK_MANIFEST" ]]; then
+  flowstate_log "Predeploy backup did not return a manifest path"
+  exit 1
+fi
 
 FAILED_STAGE="git-reset"
 git reset --hard "$DEPLOY_REMOTE/$DEPLOY_BRANCH"

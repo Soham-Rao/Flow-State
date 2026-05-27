@@ -37,14 +37,14 @@ const MAX_MESSAGES_IN_MEMORY = 200;
 const TOP_FETCH_THRESHOLD = 140;
 const BOTTOM_SCROLL_THRESHOLD = 80;
 
-const CompressionStreamImpl = (globalThis as any).CompressionStream as any;
-const DecompressionStreamImpl = (globalThis as any).DecompressionStream as any;
+const CompressionStreamImpl = "CompressionStream" in globalThis ? globalThis.CompressionStream : undefined;
+const DecompressionStreamImpl = "DecompressionStream" in globalThis ? globalThis.DecompressionStream : undefined;
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
 type CompressedMessagePage =
-  | { kind: "gzip"; data: Uint8Array; count: number }
+  | { kind: "gzip"; data: Uint8Array<ArrayBuffer>; count: number }
   | { kind: "json"; data: string; count: number };
 
 async function compressMessages(messages: ThreadMessageSummary[]): Promise<CompressedMessagePage> {
@@ -656,7 +656,6 @@ export function useThreadsController() {
     setMessages,
     setReplySeenCounts,
     refreshConversations,
-    refreshMentions,
     mentionMembers,
     enablePolling: socketStatus !== "connected",
     fileInputRef
@@ -1156,7 +1155,7 @@ export function useThreadsController() {
   const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
     const container = messageListRef.current;
     if (!container) return;
-    if (typeof (container as any).scrollTo === "function") {
+    if (typeof container.scrollTo === "function") {
       container.scrollTo({ top: container.scrollHeight, behavior });
     } else {
       container.scrollTop = container.scrollHeight;

@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { assertPermission } from "../../utils/permissions.js";
+import { assertBoardPermission } from "../../utils/access-control.js";
 import {
   archiveList,
   createList,
@@ -17,12 +17,13 @@ import {
   restoreArchiveSchema,
   updateListSchema
 } from "./boards.schema.js";
+import { getListRecord } from "./boards.service.lookups.js";
 
 export const boardsListsRouter = Router();
 
 boardsListsRouter.post("/:boardId/lists", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_lists");
+    await assertBoardPermission(req.auth!.userId, "manage_lists", req.params.boardId);
     const body = createListSchema.parse(req.body);
     const data = await createList(req.params.boardId, body, req.auth!.userId);
 
@@ -37,7 +38,7 @@ boardsListsRouter.post("/:boardId/lists", async (req, res, next) => {
 
 boardsListsRouter.post("/:boardId/lists/reorder", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_lists");
+    await assertBoardPermission(req.auth!.userId, "manage_lists", req.params.boardId);
     const body = reorderListsSchema.parse(req.body);
     const data = await reorderLists(req.params.boardId, body, req.auth!.userId);
 
@@ -52,7 +53,8 @@ boardsListsRouter.post("/:boardId/lists/reorder", async (req, res, next) => {
 
 boardsListsRouter.patch("/lists/:listId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_lists");
+    const list = await getListRecord(req.params.listId);
+    await assertBoardPermission(req.auth!.userId, "manage_lists", list.boardId);
     const body = updateListSchema.parse(req.body);
     const data = await updateList(req.params.listId, body, req.auth!.userId);
 
@@ -67,7 +69,8 @@ boardsListsRouter.patch("/lists/:listId", async (req, res, next) => {
 
 boardsListsRouter.delete("/lists/:listId", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_lists");
+    const list = await getListRecord(req.params.listId);
+    await assertBoardPermission(req.auth!.userId, "manage_lists", list.boardId);
     await deleteList(req.params.listId, req.auth!.userId);
 
     res.status(200).json({
@@ -83,7 +86,8 @@ boardsListsRouter.delete("/lists/:listId", async (req, res, next) => {
 
 boardsListsRouter.post("/lists/:listId/archive", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_lists");
+    const list = await getListRecord(req.params.listId);
+    await assertBoardPermission(req.auth!.userId, "manage_lists", list.boardId);
     const data = await archiveList(req.params.listId, req.auth!.userId);
 
     res.status(200).json({
@@ -97,7 +101,8 @@ boardsListsRouter.post("/lists/:listId/archive", async (req, res, next) => {
 
 boardsListsRouter.post("/lists/:listId/restore", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "manage_lists");
+    const list = await getListRecord(req.params.listId);
+    await assertBoardPermission(req.auth!.userId, "manage_lists", list.boardId);
     const body = restoreArchiveSchema.parse(req.body);
     const data = await restoreList(req.params.listId, body.renameConflicts ?? false, req.auth!.userId);
 
@@ -112,7 +117,8 @@ boardsListsRouter.post("/lists/:listId/restore", async (req, res, next) => {
 
 boardsListsRouter.post("/lists/:listId/comments", async (req, res, next) => {
   try {
-    await assertPermission(req.auth!.userId, "comment");
+    const list = await getListRecord(req.params.listId);
+    await assertBoardPermission(req.auth!.userId, "comment", list.boardId);
     const body = createCommentSchema.parse(req.body);
     const data = await createListComment(req.params.listId, body, req.auth!.userId);
 
