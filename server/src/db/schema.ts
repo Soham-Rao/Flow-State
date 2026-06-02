@@ -91,6 +91,10 @@ export const cardCoverColors = [
   "pink"
 ] as const;
 export const bugReportStatuses = ["open", "triaged", "closed"] as const;
+export const emailNotificationKinds = ["assignee_due_digest", "manager_due_digest"] as const;
+export const emailNotificationWindows = ["morning", "afternoon"] as const;
+export const emailNotificationStatuses = ["sent", "skipped", "failed"] as const;
+export const calendarFeedTypes = ["personal_due_dates", "manager_due_dates"] as const;
 
 type TableColumns = Record<string, AnyMySqlColumn>;
 
@@ -144,6 +148,54 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 }, (table: TableColumns) => ({
   userIdIdx: index("idx_password_reset_tokens_user_id").on(table.userId),
   expiresAtIdx: index("idx_password_reset_tokens_expires_at").on(table.expiresAt)
+}));
+
+export const userNotificationPreferences = mysqlTable("user_notification_preferences", {
+  userId: char("user_id", { length: 36 })
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  dueEmailEnabled: boolean("due_email_enabled").notNull().default(true),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: createdAt("updated_at").notNull().$defaultFn(() => new Date())
+});
+
+export const emailNotificationDeliveries = mysqlTable("email_notification_deliveries", {
+  id: char("id", { length: 36 }).primaryKey(),
+  userId: char("user_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  kind: mysqlEnum("kind", emailNotificationKinds).notNull(),
+  digestDate: varchar("digest_date", { length: 10 }).notNull(),
+  digestWindow: mysqlEnum("digest_window", emailNotificationWindows).notNull(),
+  recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
+  itemCount: int("item_count").notNull().default(0),
+  status: mysqlEnum("status", emailNotificationStatuses).notNull(),
+  error: text("error"),
+  sentAt: createdAt("sent_at"),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
+}, (table: TableColumns) => ({
+  userDigestUnique: uniqueIndex("idx_email_deliveries_user_digest_unique").on(
+    table.userId,
+    table.kind,
+    table.digestDate,
+    table.digestWindow
+  ),
+  digestStatusIdx: index("idx_email_deliveries_digest_status").on(table.digestDate, table.status),
+  userIdIdx: index("idx_email_deliveries_user_id").on(table.userId)
+}));
+
+export const calendarFeedTokens = mysqlTable("calendar_feed_tokens", {
+  id: char("id", { length: 36 }).primaryKey(),
+  userId: char("user_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  feedType: mysqlEnum("feed_type", calendarFeedTypes).notNull(),
+  token: varchar("token", { length: 128 }).notNull(),
+  revokedAt: createdAt("revoked_at"),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
+}, (table: TableColumns) => ({
+  tokenIdx: uniqueIndex("idx_calendar_feed_tokens_token").on(table.token),
+  userFeedIdx: index("idx_calendar_feed_tokens_user_feed").on(table.userId, table.feedType, table.revokedAt)
 }));
 
 export const auditLogs = mysqlTable("audit_logs", {
@@ -787,6 +839,10 @@ export type RetentionMode = (typeof retentionModes)[number];
 export type LabelColor = (typeof labelColors)[number];
 export type CardCoverColor = (typeof cardCoverColors)[number];
 export type BugReportStatus = (typeof bugReportStatuses)[number];
+export type EmailNotificationKind = (typeof emailNotificationKinds)[number];
+export type EmailNotificationWindow = (typeof emailNotificationWindows)[number];
+export type EmailNotificationStatus = (typeof emailNotificationStatuses)[number];
+export type CalendarFeedType = (typeof calendarFeedTypes)[number];
 
 
 

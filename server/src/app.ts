@@ -17,9 +17,11 @@ import { announcementsRouter } from "./modules/announcements/announcements.route
 import { authRouter } from "./modules/auth/auth.route.js";
 import { boardsRouter } from "./modules/boards/boards.route.js";
 import { bugReportsRouter } from "./modules/bug-reports/bug-reports.route.js";
+import { calendarRouter } from "./modules/calendar/calendar.route.js";
 import { dashboardRouter } from "./modules/dashboard/dashboard.route.js";
 import { invitesRouter } from "./modules/invites/invites.route.js";
 import { mentionsRouter } from "./modules/mentions/mentions.route.js";
+import { notificationsRouter } from "./modules/notifications/notifications.route.js";
 import { rolesRouter } from "./modules/roles/roles.route.js";
 import { threadsRouter } from "./modules/threads/threads.route.js";
 import { healthRouter } from "./routes/health.route.js";
@@ -77,6 +79,8 @@ app.use("/api/mentions", mentionsRouter);
 app.use("/api/announcements", announcementsRouter);
 app.use("/api/activity", activityRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/notifications", notificationsRouter);
+app.use("/api/calendar", calendarRouter);
 
 if (env.NODE_ENV === "production" && hasClientBuild) {
   app.use(compression());

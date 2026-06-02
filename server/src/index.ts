@@ -5,12 +5,15 @@ import { env } from "./config/env.js";
 import { closePool } from "./db/connection.js";
 import { initializeDatabase } from "./db/init.js";
 import { cleanupExpiredCards } from "./modules/boards/boards.service.js";
+import { runDueEmailReminderJob } from "./modules/notifications/notifications.service.js";
 import { closeSocketServer, initSocket } from "./realtime/socket.js";
 import { logger } from "./utils/logger.js";
 
 const CLEANUP_INTERVAL_MS = 60 * 1000;
+const DUE_EMAIL_REMINDER_INTERVAL_MS = 5 * 60 * 1000;
 
 let cleanupInterval: NodeJS.Timeout | null = null;
+let dueEmailReminderInterval: NodeJS.Timeout | null = null;
 let server: http.Server | null = null;
 let shuttingDown = false;
 
@@ -19,6 +22,14 @@ async function runCleanup(): Promise<void> {
     await cleanupExpiredCards();
   } catch (error) {
     logger.error("jobs.cleanup_failed", { error });
+  }
+}
+
+async function runDueEmailReminders(): Promise<void> {
+  try {
+    await runDueEmailReminderJob();
+  } catch (error) {
+    logger.error("jobs.due_email_reminders_failed", { error });
   }
 }
 
@@ -33,6 +44,11 @@ async function shutdown(signal: string): Promise<void> {
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
+  }
+
+  if (dueEmailReminderInterval) {
+    clearInterval(dueEmailReminderInterval);
+    dueEmailReminderInterval = null;
   }
 
   try {
@@ -91,6 +107,10 @@ async function startServer(): Promise<void> {
   cleanupInterval = setInterval(() => {
     void runCleanup();
   }, CLEANUP_INTERVAL_MS);
+
+  dueEmailReminderInterval = setInterval(() => {
+    void runDueEmailReminders();
+  }, DUE_EMAIL_REMINDER_INTERVAL_MS);
 
   server = http.createServer(app);
   initSocket(server);

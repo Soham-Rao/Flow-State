@@ -64,6 +64,13 @@
       "when": 1780420000000,
       "tag": "0008_permission_and_retention_consistency",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1780500000000,
+      "tag": "0009_email_calendar_due_integrations",
+      "breakpoints": true
     }
   ]
 }

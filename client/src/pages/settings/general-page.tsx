@@ -5,13 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AssignRolesModal } from "./general-page.assign-roles-modal";
 import { CreateRoleModal } from "./general-page.create-role-modal";
 import { ManageRolesModal } from "./general-page.manage-roles-modal";
+import { getCalendarFeeds, regenerateCalendarFeed } from "@/lib/calendar-api";
 import { listInvites } from "@/lib/invites-api";
+import { getNotificationPreferences, updateNotificationPreferences } from "@/lib/notifications-api";
 import { hasUserPermission } from "@/lib/permissions";
 import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole, updateUserRoles } from "@/lib/roles-api";
 import { useAuthStore } from "@/stores/auth-store";
 import { useThreadSettingsStore } from "@/stores/thread-settings-store";
 import { glassCardClass, glassInputClass, glassSubtleClass } from "@/pages/glassmorphism.styles";
 import type { InviteSummary } from "@/types/invite";
+import type { CalendarFeedSummary, CalendarFeedsResponse, CalendarFeedType } from "@/types/calendar";
 import { type RolePermission, type RoleSummary, type UserRoleAssignment } from "@/types/roles";
 import {
   FONT_STORAGE_KEY,
@@ -38,6 +41,7 @@ import {
 export function GeneralSettingsPage(): JSX.Element {
   const currentUser = useAuthStore((state) => state.user);
   const canManageRoles = hasUserPermission(currentUser, "manage_roles");
+  const canViewManagerDueReminders = hasUserPermission(currentUser, "view_all_due_date_reminders");
   const [selectedFont, setSelectedFont] = useState<FontOption>("grotesk");
   const [baselineFont, setBaselineFont] = useState<FontOption>("grotesk");
   const [selectedSpacing, setSelectedSpacing] = useState<SpacingOption>("default");
@@ -47,6 +51,14 @@ export function GeneralSettingsPage(): JSX.Element {
   const [status, setStatus] = useState<"idle" | "saved">("idle");
   const threadBadgeMode = useThreadSettingsStore((state) => state.threadBadgeMode);
   const setThreadBadgeMode = useThreadSettingsStore((state) => state.setThreadBadgeMode);
+  const [dueEmailEnabled, setDueEmailEnabled] = useState(true);
+  const [notificationStatus, setNotificationStatus] = useState<"idle" | "loading" | "saving" | "saved" | "error">("idle");
+  const [notificationError, setNotificationError] = useState<string | null>(null);
+  const [calendarFeeds, setCalendarFeeds] = useState<CalendarFeedsResponse | null>(null);
+  const [calendarStatus, setCalendarStatus] = useState<"idle" | "loading" | "saved" | "error">("idle");
+  const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [regeneratingFeed, setRegeneratingFeed] = useState<CalendarFeedType | null>(null);
+  const [copiedFeed, setCopiedFeed] = useState<CalendarFeedType | null>(null);
 
   const [roles, setRoles] = useState<RoleSummary[]>([]);
   const [assignments, setAssignments] = useState<UserRoleAssignment[]>([]);
@@ -90,6 +102,47 @@ export function GeneralSettingsPage(): JSX.Element {
       applyTheme("system");
     }
   }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setCalendarFeeds(null);
+      return;
+    }
+
+    let active = true;
+
+    const loadNotificationSettings = async (): Promise<void> => {
+      setNotificationStatus("loading");
+      setCalendarStatus("loading");
+      setNotificationError(null);
+      setCalendarError(null);
+      try {
+        const [preferences, feeds] = await Promise.all([
+          getNotificationPreferences(),
+          getCalendarFeeds()
+        ]);
+
+        if (!active) return;
+        setDueEmailEnabled(preferences.dueEmailEnabled);
+        setCalendarFeeds(feeds);
+        setNotificationStatus("idle");
+        setCalendarStatus("idle");
+      } catch (error) {
+        if (!active) return;
+        const message = error instanceof Error ? error.message : "Failed to load notification settings";
+        setNotificationError(message);
+        setCalendarError(message);
+        setNotificationStatus("error");
+        setCalendarStatus("error");
+      }
+    };
+
+    void loadNotificationSettings();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUser]);
 
   useEffect(() => {
     if (!canManageRoles) {
@@ -218,6 +271,56 @@ export function GeneralSettingsPage(): JSX.Element {
     setBaselineSpacing(selectedSpacing);
     setBaselineTheme(selectedTheme);
     setStatus("saved");
+  };
+
+  const onToggleDueEmail = async (): Promise<void> => {
+    const next = !dueEmailEnabled;
+    setDueEmailEnabled(next);
+    setNotificationStatus("saving");
+    setNotificationError(null);
+    try {
+      const saved = await updateNotificationPreferences({ dueEmailEnabled: next });
+      setDueEmailEnabled(saved.dueEmailEnabled);
+      setNotificationStatus("saved");
+    } catch (error) {
+      setDueEmailEnabled(!next);
+      setNotificationStatus("error");
+      setNotificationError(error instanceof Error ? error.message : "Failed to save notification settings");
+    }
+  };
+
+  const onCopyFeed = async (feed: CalendarFeedSummary): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(feed.url);
+      setCopiedFeed(feed.type);
+      window.setTimeout(() => {
+        setCopiedFeed((current) => (current === feed.type ? null : current));
+      }, 1800);
+    } catch {
+      setCalendarError("Could not copy the calendar link");
+      setCalendarStatus("error");
+    }
+  };
+
+  const onRegenerateFeed = async (type: CalendarFeedType): Promise<void> => {
+    setRegeneratingFeed(type);
+    setCalendarError(null);
+    try {
+      const feed = await regenerateCalendarFeed(type);
+      setCalendarFeeds((current) => {
+        if (!current) return current;
+        if (type === "personal_due_dates") {
+          return { ...current, personal: feed };
+        }
+        return { ...current, manager: feed };
+      });
+      setCalendarStatus("saved");
+    } catch (error) {
+      setCalendarStatus("error");
+      setCalendarError(error instanceof Error ? error.message : "Failed to regenerate calendar feed");
+    } finally {
+      setRegeneratingFeed(null);
+    }
   };
 
   const onToggleNewRolePermission = (permission: RolePermission): void => {
@@ -503,6 +606,82 @@ export function GeneralSettingsPage(): JSX.Element {
             <p className="text-xs text-muted-foreground">
               Applies to DMs, channels, and reply threads. Board mentions stay mention-only.
             </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
+              <div>
+                <p className="text-sm font-medium">Email due-date reminders</p>
+                <p className="text-xs text-muted-foreground">Morning and afternoon due-card digests.</p>
+              </div>
+              <Button
+                type="button"
+                variant={dueEmailEnabled ? "default" : "secondary"}
+                onClick={() => void onToggleDueEmail()}
+                disabled={notificationStatus === "loading" || notificationStatus === "saving"}
+              >
+                {dueEmailEnabled ? "Enabled" : "Disabled"}
+              </Button>
+            </div>
+            {notificationStatus === "saved" && (
+              <p className="text-xs text-emerald-600">Notification settings saved.</p>
+            )}
+            {notificationError && (
+              <p className="text-xs text-destructive">{notificationError}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className={glassCardClass}>
+          <CardHeader>
+            <CardTitle>Calendar feeds</CardTitle>
+            <CardDescription>Private ICS links for due dates and deadlines.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {calendarStatus === "loading" && (
+              <p className="text-sm text-muted-foreground">Loading calendar feeds...</p>
+            )}
+            {calendarFeeds?.personal && (
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wide text-muted-foreground">Personal calendar feed</label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input className={`min-h-10 min-w-0 flex-1 rounded-md px-3 text-sm ${glassInputClass}`} value={calendarFeeds.personal.url} readOnly />
+                  <Button type="button" variant="secondary" onClick={() => void onCopyFeed(calendarFeeds.personal)}>
+                    {copiedFeed === "personal_due_dates" ? "Copied" : "Copy"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void onRegenerateFeed("personal_due_dates")}
+                    disabled={regeneratingFeed === "personal_due_dates"}
+                  >
+                    {regeneratingFeed === "personal_due_dates" ? "Regenerating" : "Regenerate"}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {canViewManagerDueReminders && calendarFeeds?.manager && (
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wide text-muted-foreground">Manager calendar feed</label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input className={`min-h-10 min-w-0 flex-1 rounded-md px-3 text-sm ${glassInputClass}`} value={calendarFeeds.manager.url} readOnly />
+                  <Button type="button" variant="secondary" onClick={() => void onCopyFeed(calendarFeeds.manager!)}>
+                    {copiedFeed === "manager_due_dates" ? "Copied" : "Copy"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void onRegenerateFeed("manager_due_dates")}
+                    disabled={regeneratingFeed === "manager_due_dates"}
+                  >
+                    {regeneratingFeed === "manager_due_dates" ? "Regenerating" : "Regenerate"}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {calendarStatus === "saved" && (
+              <p className="text-xs text-emerald-600">Calendar feed updated.</p>
+            )}
+            {calendarError && (
+              <p className="text-xs text-destructive">{calendarError}</p>
+            )}
           </CardContent>
         </Card>
       </div>

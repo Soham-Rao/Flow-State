@@ -480,8 +480,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\settings\\general-page.tsx": {
-    "mtime": 1779865054.905111,
-    "ast_hash": "7c40e59e6451b2ed5302f7c2206e8848",
+    "mtime": 1780415746.9694445,
+    "ast_hash": "2bf7e5f3fd80a0b075d38625066c43a4",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\settings\\general-page.utils.ts": {
@@ -800,23 +800,23 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\drizzle\\meta\\_journal.json": {
-    "mtime": 1780408392.1932404,
-    "ast_hash": "dbe13a88d55dc7a2d4dfd827802a7eb9",
+    "mtime": 1780415457.0095782,
+    "ast_hash": "f99acdc65c647d69b86e58b283150a0e",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\app.ts": {
-    "mtime": 1775341971.981832,
-    "ast_hash": "e3bb97ebbf04afa8879f2f6083c0dc17",
+    "mtime": 1780415665.2130485,
+    "ast_hash": "cb76627fbc4de43c12acb1bc376d74c3",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\index.ts": {
-    "mtime": 1775253625.1917505,
-    "ast_hash": "ee7aea06453aa5d4933bb8c02c23bf76",
+    "mtime": 1780415675.4601655,
+    "ast_hash": "e519373c4cab7976ba4f6cc2ab1ec523",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\config\\env.ts": {
-    "mtime": 1775331604.9185517,
-    "ast_hash": "33b9a41d37f1a7f9383ed700b1ceb346",
+    "mtime": 1780415464.256943,
+    "ast_hash": "5ea528fd74b8f59051b4fc6c657d9ddb",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\db\\connection.ts": {
@@ -850,8 +850,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\db\\schema.ts": {
-    "mtime": 1780408356.0754254,
-    "ast_hash": "e9348eca3f9123748daef36132bb5fc3",
+    "mtime": 1780416472.1222012,
+    "ast_hash": "fba15d2947a736fe94cb9b78cc4b49c0",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\db\\seed-test.ts": {
@@ -1702,6 +1702,61 @@
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\drizzle\\0008_permission_and_retention_consistency.sql": {
     "mtime": 1780408392.019321,
     "ast_hash": "b1f5036bf98bc9f29c11aebfcf49b0cd",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\lib\\calendar-api.ts": {
+    "mtime": 1780415701.3483381,
+    "ast_hash": "91f8946002dfc06f953fa96fae0dfe11",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\lib\\notifications-api.ts": {
+    "mtime": 1780415694.3618715,
+    "ast_hash": "f9dff06b4ca01c7b1c360d79021e652c",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\types\\calendar.ts": {
+    "mtime": 1780415687.1810703,
+    "ast_hash": "71bdbb23e35738aa722b592e21b26759",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\types\\notifications.ts": {
+    "mtime": 1780415681.4763172,
+    "ast_hash": "7aed410097d2b30e9f3c9d47826b7045",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\drizzle\\0009_email_calendar_due_integrations.sql": {
+    "mtime": 1780415448.6970744,
+    "ast_hash": "14862510591ede094203850de8b2819e",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\calendar\\calendar.route.ts": {
+    "mtime": 1780415657.5001352,
+    "ast_hash": "7c5473f292d6c013043fe53a74122f79",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\calendar\\calendar.service.ts": {
+    "mtime": 1780415647.0761755,
+    "ast_hash": "75163dc781aa71b3b24dbb6b859e3af3",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\notifications\\notifications.route.ts": {
+    "mtime": 1780415588.9301064,
+    "ast_hash": "2ec512741e15fa9d9240e47092470047",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\modules\\notifications\\notifications.service.ts": {
+    "mtime": 1780415770.613644,
+    "ast_hash": "5ddd86801961ce2100ed932c5fdd9dda",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\src\\utils\\mail.ts": {
+    "mtime": 1780415473.8181543,
+    "ast_hash": "ddae483bffc93ff4cd05c588301ccdd3",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\tests\\notifications-calendar.test.ts": {
+    "mtime": 1780416163.8187077,
+    "ast_hash": "fefaea01fa9172114ce27f48fed78ab0",
     "semantic_hash": ""
   }
 }
