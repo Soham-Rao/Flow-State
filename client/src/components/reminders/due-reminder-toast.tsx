@@ -27,6 +27,7 @@ export interface DueReminderItem {
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const STORAGE_PREFIX = "flowstate:due-reminders:v1";
+const NOTIFICATION_STORAGE_PREFIX = "flowstate:due-reminder-notifications:v1";
 
 function getAssigneeName(item: DueReminderItem): string {
   return item.assignee.displayName || item.assignee.username || item.assignee.name || item.assignee.email;
@@ -73,6 +74,10 @@ function writeDismissals(storageKey: string, value: Record<string, number>): voi
   window.localStorage.setItem(storageKey, JSON.stringify(value));
 }
 
+function canUseBrowserNotifications(): boolean {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+
 export function DueReminderToasts({
   items,
   nowMs,
@@ -86,6 +91,7 @@ export function DueReminderToasts({
 }): JSX.Element | null {
   const [, setDismissVersion] = useState(0);
   const storageKey = `${STORAGE_PREFIX}:${surface}:${currentUserId ?? "guest"}`;
+  const notificationStorageKey = `${NOTIFICATION_STORAGE_PREFIX}:${surface}:${currentUserId ?? "guest"}`;
   const dismissals = readDismissals(storageKey);
 
   useEffect(() => {
@@ -103,6 +109,38 @@ export function DueReminderToasts({
     })
     .sort((a, b) => new Date(a.item.dueDate).getTime() - new Date(b.item.dueDate).getTime())
     .slice(0, 3);
+
+  useEffect(() => {
+    if (!canUseBrowserNotifications() || Notification.permission !== "granted") return;
+    if (visible.length === 0) return;
+
+    const notified = readDismissals(notificationStorageKey);
+    const nextNotified = { ...notified };
+    let changed = false;
+
+    for (const { item, phase } of visible) {
+      const notificationKey = `${item.id}:${item.assignee.id}:${phase}`;
+      if ((notified[notificationKey] ?? 0) > nowMs) continue;
+
+      const assigneeName = getAssigneeName(item);
+      const phaseLabel = phase === "before" ? "Due in the next day" : phase === "today" ? "Due today" : "Overdue";
+      const body = item.isAssignedToViewer
+        ? `${item.title} is assigned to you. ${item.boardName} / ${item.listName}`
+        : `${assigneeName} has ${item.title}. ${item.boardName} / ${item.listName}`;
+
+      void new Notification(`FlowState: ${phaseLabel}`, {
+        body,
+        tag: `flowstate-due-${surface}-${notificationKey}`
+      });
+
+      nextNotified[notificationKey] = nowMs + getSnoozeMs(item, phase);
+      changed = true;
+    }
+
+    if (changed) {
+      writeDismissals(notificationStorageKey, nextNotified);
+    }
+  }, [notificationStorageKey, nowMs, surface, visible]);
 
   if (visible.length === 0) return null;
 
@@ -149,6 +187,18 @@ export function DueReminderToasts({
                   <Link to={`/boards/${item.boardId}#card-${item.id}`}>
                     <Button size="sm" variant="secondary">Open card</Button>
                   </Link>
+                  {canUseBrowserNotifications() && Notification.permission === "default" && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        void Notification.requestPermission();
+                      }}
+                    >
+                      Enable browser reminders
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     size="sm"

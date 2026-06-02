@@ -54,7 +54,7 @@ export function BoardDetailPage(): JSX.Element {
   const [boardDescription, setBoardDescription] = useState("");
   const [boardBackground, setBoardBackground] = useState<BoardBackground>("teal-gradient");
   const [retentionMode, setRetentionMode] = useState<RetentionMode>("card_and_attachments");
-  const [retentionDays, setRetentionDays] = useState(7);
+  const [retentionDays, setRetentionDays] = useState(0);
   const [retentionHours, setRetentionHours] = useState(0);
   const [retentionMinutesPart, setRetentionMinutesPart] = useState(0);
   const [archiveRetentionDays, setArchiveRetentionDays] = useState(7);
@@ -266,7 +266,7 @@ export function BoardDetailPage(): JSX.Element {
     setRetentionDays(retentionParts.days);
     setRetentionHours(retentionParts.hours);
     setRetentionMinutesPart(retentionParts.minutes);
-    const archiveRetentionParts = splitRetentionMinutes(data.archiveRetentionMinutes ?? MIN_RETENTION_MINUTES);
+    const archiveRetentionParts = splitRetentionMinutes(data.archiveRetentionMinutes ?? 1);
     setArchiveRetentionDays(archiveRetentionParts.days);
     setArchiveRetentionHours(archiveRetentionParts.hours);
     setArchiveRetentionMinutesPart(archiveRetentionParts.minutes);
@@ -277,7 +277,7 @@ export function BoardDetailPage(): JSX.Element {
       background: data.background,
       retentionMode: data.retentionMode ?? "card_and_attachments",
       retentionMinutes: data.retentionMinutes ?? MIN_RETENTION_MINUTES,
-      archiveRetentionMinutes: data.archiveRetentionMinutes ?? MIN_RETENTION_MINUTES,
+      archiveRetentionMinutes: data.archiveRetentionMinutes ?? 1,
     };
     lastSyncedBoardRef.current = syncedDraft;
     currentDraftBoardRef.current = syncedDraft;

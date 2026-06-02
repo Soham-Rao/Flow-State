@@ -57,6 +57,13 @@
       "when": 1779900000000,
       "tag": "0007_add_due_reminder_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1780420000000,
+      "tag": "0008_permission_and_retention_consistency",
+      "breakpoints": true
     }
   ]
 }

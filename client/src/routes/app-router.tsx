@@ -2,8 +2,11 @@ import { Suspense, lazy, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { hasUserPermission } from "@/lib/permissions";
 import { AuthGate } from "@/routes/auth-gate";
 import { GuestOnlyRoute, PermissionRoute, ProtectedRoute } from "@/routes/protected-route";
+import { useAuthStore } from "@/stores/auth-store";
+import type { RolePermission } from "@/types/roles";
 
 const HomePage = lazy(async () => ({ default: (await import("@/pages/home-page")).HomePage }));
 const BoardsPage = lazy(async () => ({ default: (await import("@/pages/boards/boards-page")).BoardsPage }));
@@ -39,16 +42,31 @@ function WithShell({ children }: { children: ReactNode }): JSX.Element {
   );
 }
 
-function WithSettingsPermission({ children }: { children: ReactNode }): JSX.Element {
+function WithPermission({ children, permission, fallbackTo = "/" }: { children: ReactNode; permission: RolePermission; fallbackTo?: string }): JSX.Element {
   return (
     <ProtectedRoute>
-      <PermissionRoute permission="view_settings">
+      <PermissionRoute permission={permission} fallbackTo={fallbackTo}>
         <AppShell>
           <Suspense fallback={<RouteFallback />}>{children}</Suspense>
         </AppShell>
       </PermissionRoute>
     </ProtectedRoute>
   );
+}
+
+function HomeEntry(): JSX.Element {
+  const user = useAuthStore((state) => state.user);
+  const guestWithoutDashboardAccess =
+    user?.role === "guest" &&
+    !hasUserPermission(user, "view_boards") &&
+    !hasUserPermission(user, "view_activity_logs") &&
+    !hasUserPermission(user, "send_announcements");
+
+  if (guestWithoutDashboardAccess) {
+    return <Navigate to="/focus" replace />;
+  }
+
+  return <HomePage />;
 }
 
 function GuestRoute({ children }: { children: ReactNode }): JSX.Element {
@@ -68,15 +86,15 @@ export function AppRouter(): JSX.Element {
     <AuthGate>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<WithShell><HomePage /></WithShell>} />
-          <Route path="/boards" element={<WithShell><BoardsPage /></WithShell>} />
-          <Route path="/boards/:boardId" element={<WithShell><BoardDetailPage /></WithShell>} />
+          <Route path="/" element={<WithShell><HomeEntry /></WithShell>} />
+          <Route path="/boards" element={<WithPermission permission="view_boards" fallbackTo="/focus"><BoardsPage /></WithPermission>} />
+          <Route path="/boards/:boardId" element={<WithPermission permission="view_boards" fallbackTo="/focus"><BoardDetailPage /></WithPermission>} />
           <Route path="/focus" element={<WithShell><FocusPage /></WithShell>} />
           <Route path="/threads" element={<WithShell><ThreadsPage /></WithShell>} />
           <Route path="/help" element={<WithShell><HelpDocsPage /></WithShell>} />
           <Route path="/settings/profile" element={<WithShell><ProfileSettingsPage /></WithShell>} />
-          <Route path="/settings/general" element={<WithSettingsPermission><GeneralSettingsPage /></WithSettingsPermission>} />
-          <Route path="/settings/advanced" element={<WithSettingsPermission><AdvancedSettingsPage /></WithSettingsPermission>} />
+          <Route path="/settings/general" element={<WithPermission permission="view_settings"><GeneralSettingsPage /></WithPermission>} />
+          <Route path="/settings/advanced" element={<WithPermission permission="view_settings"><AdvancedSettingsPage /></WithPermission>} />
           <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
           <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
           <Route path="/privacy" element={<PublicRoute><PrivacyPage /></PublicRoute>} />

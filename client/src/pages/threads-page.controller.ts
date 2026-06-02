@@ -334,10 +334,12 @@ export function useThreadsController() {
     });
   };
   const refreshConversations = useCallback(async (): Promise<RefreshConversationsResult> => {
-    const [nextDm, nextChannels] = await Promise.all([
+    const [nextDmResult, nextChannelsResult] = await Promise.allSettled([
       listDmConversations(),
       listChannelConversations()
     ]);
+    const nextDm = nextDmResult.status === "fulfilled" ? nextDmResult.value : [];
+    const nextChannels = nextChannelsResult.status === "fulfilled" ? nextChannelsResult.value : [];
     setDmConversations(nextDm);
     setChannelConversations(nextChannels);
     return { nextDm, nextChannels };
@@ -954,11 +956,15 @@ export function useThreadsController() {
     const load = async () => {
       try {
         setLoading(true);
-        const [users, conversations, channels] = await Promise.all([listDmUsers(), listDmConversations(), listChannelConversations()]);
+        const [usersResult, conversationsResult, channelsResult] = await Promise.allSettled([
+          listDmUsers(),
+          listDmConversations(),
+          listChannelConversations()
+        ]);
         if (!active) return;
-        setDmUsers(users);
-        setDmConversations(conversations);
-        setChannelConversations(channels);
+        setDmUsers(usersResult.status === "fulfilled" ? usersResult.value : []);
+        setDmConversations(conversationsResult.status === "fulfilled" ? conversationsResult.value : []);
+        setChannelConversations(channelsResult.status === "fulfilled" ? channelsResult.value : []);
         await refreshMentions();
       } catch {
         // ignore for now

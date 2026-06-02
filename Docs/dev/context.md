@@ -49,7 +49,7 @@ Think → Plan phase (use instructions.md for notes if needed)
 - **Real-time-ish**: Updates on meaningful actions (card moved, comment posted), not every keystroke. Socket.IO with event-based broadcasting.
 - **Lightweight**: Must feel instant. No loading spinners. Optimistic UI updates.
 - **Beautiful**: Modern UI with shadcn/ui primitives. Premium feel. Color-coded. Responsive.
-- **Storage-conscious**: Auto-cleanup of completed cards + files after configurable retention (default 7 days). Predetermined board backgrounds (no uploads). Minimal footprint.
+- **Storage-conscious**: Auto-cleanup of completed cards + files after configurable retention (disabled by default). Predetermined board backgrounds (no uploads). Minimal footprint.
 
 ---
 
@@ -69,7 +69,7 @@ Think → Plan phase (use instructions.md for notes if needed)
 | T9 | Card cover colors | Color band on card for visual distinction at a glance |
 | T10 | Board backgrounds | Predetermined backgrounds (CSS gradients/patterns, not uploaded images) |
 | T11 | Priority levels | Low, Medium, High, Urgent — on each card |
-| T12 | Archive system | Soft-delete cards. Auto-hard-delete after configurable retention (default 7 days) |
+| T12 | Archive system | Soft-delete cards. Auto-hard-delete after configurable retention when enabled |
 | T13 | Card detail modal | Full card view with all fields, checklists, comments, attachments |
 
 ### From Slack
@@ -110,7 +110,7 @@ Think → Plan phase (use instructions.md for notes if needed)
 | O13 | Profile / Settings | User profile editing, app-wide settings, retention period config |
 | O14 | Team invitations | Admin-only invite system for adding team members |
 | O15 | Role-based access | Admin (full control, invite, assign) vs Normal (view, create, comment) |
-| O16 | Auto-cleanup | Cards + files in done/completed lists auto-deleted after 7 days (configurable) |
+| O16 | Auto-cleanup | Cards + files in done/completed lists can be auto-deleted after a configurable retention period |
 | O17 | Real-time updates | Socket.IO — updates on meaningful actions (card moved, comment posted, etc.) |
 | O18 | Email notifications | Critical deadline alerts via email (deferred until SMTP/provider is set up) |
 
@@ -118,7 +118,7 @@ Think → Plan phase (use instructions.md for notes if needed)
 
 ## 4. User's Specific UX Rules
 
-- Completed/done cards: auto-delete card + files after 7 days (configurable in settings)
+- Completed/done cards: auto-delete card + files only when a retention period is configured in settings
 - Checklists visible on board view as collapsible sections with progress bar
 - Drag targets must be large and intuitive
 - Calendar events clickable → navigate directly to the card
@@ -355,7 +355,7 @@ Future deployment automation and repo polish: build pipeline triggered on push, 
 | State | Zustand | Tiny, fast, no Redux boilerplate |
 | Testing | Vitest + Supertest + Playwright | Industry standard for Vite stack |
 | Board backgrounds | Predetermined CSS/gradients | User has limited storage |
-| File cleanup | 7 days after card completion | Configurable in settings |
+| File cleanup | Disabled by default after card completion | Configurable in settings |
 | Cleanup countdown trigger | On entering Done list | Matches workflow semantics for completion |
 | Invite system | Email invite links | Supports admin-only team onboarding |
 | First admin provisioning | First signup becomes admin | Fast bootstrap without manual seeding |

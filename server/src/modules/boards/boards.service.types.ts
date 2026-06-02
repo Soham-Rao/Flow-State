@@ -191,7 +191,7 @@ export const defaultLists = [
   { name: "Done", isDoneList: true }
 ] as const;
 
-export const DEFAULT_RETENTION_MINUTES = 7 * 24 * 60;
+export const DEFAULT_RETENTION_MINUTES = 0;
 export const DEFAULT_RETENTION_MODE: RetentionMode = "card_and_attachments";
 export const DEFAULT_ARCHIVE_RETENTION_MINUTES = 7 * 24 * 60;
 export const MAX_ARCHIVE_RETENTION_MINUTES = 365 * 24 * 60;

@@ -50,12 +50,24 @@ export async function getUserPermissions(userId: string, context?: PermissionCon
         )
       );
 
+    const denied = new Set<RolePermission>();
+    const allowed = new Set<RolePermission>();
     for (const override of overrides) {
       if (override.access === "deny") {
-        effective.delete(override.permission);
+        denied.add(override.permission);
       } else {
-        effective.add(override.permission);
+        allowed.add(override.permission);
       }
+    }
+
+    for (const permission of allowed) {
+      if (!denied.has(permission)) {
+        effective.add(permission);
+      }
+    }
+
+    for (const permission of denied) {
+      effective.delete(permission);
     }
   }
 

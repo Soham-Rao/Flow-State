@@ -78,6 +78,25 @@ async function getConversationPermissionOverride(
   return rows[0]?.access ?? null;
 }
 
+async function conversationHasAdminMember(conversationId: string): Promise<boolean> {
+  const rows = await db
+    .select({ userId: users.id })
+    .from(threadMembers)
+    .innerJoin(users, eq(threadMembers.userId, users.id))
+    .where(and(eq(threadMembers.conversationId, conversationId), eq(users.role, "admin")))
+    .limit(1);
+  return Boolean(rows[0]);
+}
+
+async function userIsGuest(userId: string): Promise<boolean> {
+  const rows = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return rows[0]?.role === "guest";
+}
+
 export async function userHasConversationPermission(
   userId: string,
   conversationId: string,
@@ -87,7 +106,20 @@ export async function userHasConversationPermission(
   if (override === "allow") return true;
   if (override === "deny") return false;
 
+  if ((permission === "dm_read" || permission === "dm_write") && await userIsGuest(userId)) {
+    return conversationHasAdminMember(conversationId);
+  }
+
   if (permission === "channel_read") {
+    const writeOverride = await getConversationPermissionOverride(userId, conversationId, "channel_write");
+    if (writeOverride === "allow") return true;
+    if (writeOverride === "deny") return false;
+    if (await userHasPermission(userId, "channel_write", { scopeType: "section", scopeId: conversationId })) {
+      return true;
+    }
+  }
+
+  if (permission === "react") {
     const writeOverride = await getConversationPermissionOverride(userId, conversationId, "channel_write");
     if (writeOverride === "allow") return true;
     if (writeOverride === "deny") return false;

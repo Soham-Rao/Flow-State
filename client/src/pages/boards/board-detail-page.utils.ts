@@ -34,7 +34,7 @@ export const AUTO_SAVE_DELAY_MS = 750;
 export const CARD_AUTO_SAVE_DELAY_MS = 750;
 export const SAVED_TOAST_SHOW_DELAY_MS = 250;
 export const SAVED_TOAST_VISIBLE_MS = 1500;
-export const MIN_RETENTION_MINUTES = 1;
+export const MIN_RETENTION_MINUTES = 0;
 export const MAX_RETENTION_MINUTES = 525600;
 export const MINUTES_PER_HOUR = 60;
 export const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
@@ -246,7 +246,9 @@ export function sortAttachments(attachments: BoardAttachment[]): BoardAttachment
 export function getTimeLeftLabel(doneEnteredAt: string, nowMs: number, retentionMinutes: number): string {
   const enteredAtMs = new Date(doneEnteredAt).getTime();
   if (Number.isNaN(enteredAtMs)) return "";
-  const retentionMs = clampRetentionMinutes(retentionMinutes) * 60 * 1000;
+  const safeRetention = clampRetentionMinutes(retentionMinutes);
+  if (safeRetention <= 0) return "";
+  const retentionMs = safeRetention * 60 * 1000;
   const remainingMs = retentionMs - (nowMs - enteredAtMs);
   if (remainingMs <= 0) return "Files deleted";
   const second = 1000;

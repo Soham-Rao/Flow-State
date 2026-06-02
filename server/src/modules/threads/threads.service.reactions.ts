@@ -4,10 +4,9 @@ import { db } from "../../db/connection.js";
 import { emitThreadEvent } from "../../realtime/socket.js";
 import { threadMessageReactions, threadMessages, threadReplyReactions, threadReplies } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
-import { assertPermission } from "../../utils/permissions.js";
 import type { ThreadReaction } from "./threads.service.types.js";
 import type { ThreadReactionInput } from "./threads.schema.js";
-import { assertConversationMember, getConversation } from "./threads.service.access.js";
+import { assertConversationMember, assertConversationPermission, getConversation } from "./threads.service.access.js";
 import { getThreadMessageReactions, getThreadReplyReactions } from "./threads.service.data.js";
 
 export async function toggleThreadMessageReaction(userId: string, messageId: string, input: ThreadReactionInput): Promise<ThreadReaction[]> {
@@ -25,7 +24,7 @@ export async function toggleThreadMessageReaction(userId: string, messageId: str
 
   await getConversation(message.conversationId);
   await assertConversationMember(userId, message.conversationId);
-  await assertPermission(userId, "react", { scopeType: "section", scopeId: message.conversationId });
+  await assertConversationPermission(userId, message.conversationId, "react");
 
   const existingRows = await db
     .select({ messageId: threadMessageReactions.messageId })
@@ -78,7 +77,7 @@ export async function toggleThreadReplyReaction(userId: string, replyId: string,
 
   await getConversation(reply.conversationId);
   await assertConversationMember(userId, reply.conversationId);
-  await assertPermission(userId, "react", { scopeType: "section", scopeId: reply.conversationId });
+  await assertConversationPermission(userId, reply.conversationId, "react");
 
   const existingRows = await db
     .select({ replyId: threadReplyReactions.replyId })

@@ -45,10 +45,23 @@ async function registerUser(name: string, email: string): Promise<{ token: strin
   return { token: response.body.data.token as string, id: response.body.data.user.id as string };
 }
 
+async function assignSystemRole(userId: string, roleName: "Member" | "Guest" | "Admin"): Promise<void> {
+  const [rows] = await pool.query<Array<RowDataPacket & { id: string }>>("SELECT id FROM roles WHERE name = ?", [roleName]);
+  const roleId = rows[0]?.id;
+  if (!roleId) {
+    throw new Error(`Role ${roleName} not found`);
+  }
+  await pool.query(
+    "INSERT IGNORE INTO user_roles (user_id, role_id, created_at) VALUES (?, ?, NOW(3))",
+    [userId, roleId]
+  );
+}
+
 describe("Threads API", () => {
   it("creates encrypted DM messages and replies", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");
+    await assignSystemRole(member.id, "Member");
 
     const conversationResponse = await request(app)
       .post(`/api/threads/dms/${member.id}`)
@@ -99,6 +112,7 @@ describe("Threads API", () => {
   it("returns reply context when replying to another reply", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");
+    await assignSystemRole(member.id, "Member");
 
     const conversationResponse = await request(app)
       .post(`/api/threads/dms/${member.id}`)
@@ -165,6 +179,7 @@ describe("Threads API", () => {
   it("tracks unread mentions across threads and comments", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");
+    await assignSystemRole(member.id, "Member");
 
     const conversationResponse = await request(app)
       .post(`/api/threads/dms/${member.id}`)
@@ -232,6 +247,7 @@ describe("Threads API", () => {
   it("edits a DM message within 15 minutes", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");
+    await assignSystemRole(member.id, "Member");
 
     const conversationResponse = await request(app)
       .post(`/api/threads/dms/${member.id}`)
@@ -272,6 +288,7 @@ describe("Threads API", () => {
   it("allows channel overrides for users without global permission", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const guest = await registerUser("Guest", "guest@example.com");
+    const outsider = await registerUser("Outsider", "outsider@example.com");
 
     const [guestRoles] = await pool.query<Array<RowDataPacket & { id: string }>>("SELECT id FROM roles WHERE name = ?", ["Guest"]);
     const guestRole = guestRoles[0];
@@ -318,6 +335,34 @@ describe("Threads API", () => {
       });
 
     expect(postResponse.status).toBe(201);
+    const messageId = postResponse.body.data.id as string;
+
+    const reactionResponse = await request(app)
+      .post(`/api/threads/messages/${messageId}/reactions`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({ emoji: "ok" });
+
+    expect(reactionResponse.status).toBe(201);
+
+    const attachmentResponse = await request(app)
+      .post(`/api/threads/messages/${messageId}/attachments`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .attach("files", Buffer.from("hello"), "hello.txt");
+
+    expect(attachmentResponse.status).toBe(201);
+    const attachmentId = attachmentResponse.body.data[0].id as string;
+
+    const downloadResponse = await request(app)
+      .get(`/api/threads/attachments/${attachmentId}/download`)
+      .set("Authorization", `Bearer ${guest.token}`);
+
+    expect(downloadResponse.status).toBe(200);
+
+    const outsiderDownloadResponse = await request(app)
+      .get(`/api/threads/attachments/${attachmentId}/download`)
+      .set("Authorization", `Bearer ${outsider.token}`);
+
+    expect(outsiderDownloadResponse.status).toBe(403);
 
     await request(app)
       .patch(`/api/threads/channels/${conversationId}/members/${guest.id}/overrides`)
@@ -335,11 +380,58 @@ describe("Threads API", () => {
       });
 
     expect(blockedResponse.status).toBe(403);
+
+    const blockedReactionResponse = await request(app)
+      .post(`/api/threads/messages/${messageId}/reactions`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({ emoji: "party" });
+
+    expect(blockedReactionResponse.status).toBe(403);
+  });
+
+  it("allows guests to discover and DM admins only", async () => {
+    const admin = await registerUser("Admin", "admin@example.com");
+    const guest = await registerUser("Guest", "guest@example.com");
+    const member = await registerUser("Member", "member@example.com");
+    await assignSystemRole(member.id, "Member");
+
+    const usersResponse = await request(app)
+      .get("/api/threads/dms/users")
+      .set("Authorization", `Bearer ${guest.token}`);
+
+    expect(usersResponse.status).toBe(200);
+    const dmUserIds = (usersResponse.body.data as Array<{ id: string }>).map((row) => row.id);
+    expect(dmUserIds).toContain(admin.id);
+    expect(dmUserIds).not.toContain(member.id);
+
+    const adminDmResponse = await request(app)
+      .post(`/api/threads/dms/${admin.id}`)
+      .set("Authorization", `Bearer ${guest.token}`);
+
+    expect(adminDmResponse.status).toBe(201);
+    const conversationId = adminDmResponse.body.data.id as string;
+
+    const messageResponse = await request(app)
+      .post(`/api/threads/conversations/${conversationId}/messages`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send({
+        body: "Hello admin",
+        mentions: []
+      });
+
+    expect(messageResponse.status).toBe(201);
+
+    const blockedMemberDmResponse = await request(app)
+      .post(`/api/threads/dms/${member.id}`)
+      .set("Authorization", `Bearer ${guest.token}`);
+
+    expect(blockedMemberDmResponse.status).toBe(403);
   });
 
   it("requires delete_threads permission for delete-for-all", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");
+    await assignSystemRole(member.id, "Member");
 
     const [memberRoles] = await pool.query<Array<RowDataPacket & { id: string }>>("SELECT id FROM roles WHERE name = ?", ["Member"]);
     const memberRole = memberRoles[0];
@@ -379,6 +471,7 @@ describe("Threads API", () => {
   it("blocks delete-for-all after the other member has seen the message", async () => {
     const admin = await registerUser("Admin", "admin@example.com");
     const member = await registerUser("Member", "member@example.com");
+    await assignSystemRole(member.id, "Member");
 
     const conversationResponse = await request(app)
       .post(`/api/threads/dms/${member.id}`)

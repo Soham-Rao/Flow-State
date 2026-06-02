@@ -54,6 +54,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const assignmentBadgeCount = mentionCounts?.assignments ?? 0;
   const threadBadgeMode = useThreadSettingsStore((state) => state.threadBadgeMode);
   const [threadCounts, setThreadCounts] = useState({ dms: 0, channels: 0 });
+  const [hasChannelNavAccess, setHasChannelNavAccess] = useState(false);
   const [bugInboxCount, setBugInboxCount] = useState<number | null>(null);
   const workspacePresence = usePresenceStore((state) => state.workspace);
   const connectSocket = useSocketStore((state) => state.connect);
@@ -68,18 +69,14 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const refreshThreadCounts = useCallback(async (): Promise<void> => {
     if (!user) return;
     const canReadDms = hasUserPermission(user, "dm_read");
-    const canReadChannels = hasUserPermission(user, "channel_read");
-
-    if (!canReadDms && !canReadChannels) {
-      setThreadCounts({ dms: 0, channels: 0 });
-      return;
-    }
+    const hasGlobalChannelRead = hasUserPermission(user, "channel_read");
 
     try {
       const [dmConversations, channelConversations] = await Promise.all([
         canReadDms ? listDmConversations() : Promise.resolve([]),
-        canReadChannels ? listChannelConversations() : Promise.resolve([])
+        listChannelConversations()
       ]);
+      setHasChannelNavAccess(hasGlobalChannelRead || channelConversations.length > 0);
 
       const countForMode = (conversations: Array<{ unreadMentions: number; unreadReplyMentions: number; hasUnread: boolean }>) => {
         if (threadBadgeMode === "never") return 0;
@@ -98,7 +95,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
         channels: countForMode(channelConversations)
       });
     } catch {
-      // ignore
+      setHasChannelNavAccess(hasGlobalChannelRead);
     }
   }, [user, threadBadgeMode]);
 
@@ -185,8 +182,14 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const isSubmitting = status === "loading";
+  const canViewBoards = hasUserPermission(user, "view_boards");
   const canViewSettings = hasUserPermission(user, "view_settings");
-  const canViewThreads = hasUserPermission(user, "view_threads") || hasUserPermission(user, "dm_read") || hasUserPermission(user, "channel_read");
+  const canViewThreads = hasUserPermission(user, "dm_read") || hasUserPermission(user, "channel_read") || hasChannelNavAccess;
+  const visibleNavItems = useMemo(() => navItems.filter((item) => {
+    if (item.label === "Boards") return canViewBoards;
+    if (item.label === "Dashboard") return user?.role !== "guest";
+    return true;
+  }), [canViewBoards, user?.role]);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -283,7 +286,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
         </div>
 
         <nav className="grid gap-2">
-          {navItems.map(({ to, label, icon: Icon }) => (
+          {visibleNavItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={label}
               to={to}

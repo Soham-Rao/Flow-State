@@ -255,7 +255,7 @@ export const boards = mysqlTable("boards", {
   retentionMode: mysqlEnum("retention_mode", retentionModes)
     .notNull()
     .default("card_and_attachments"),
-  retentionMinutes: int("retention_minutes").notNull().default(7 * 24 * 60),
+  retentionMinutes: int("retention_minutes").notNull().default(0),
   archiveRetentionMinutes: int("archive_retention_minutes").notNull().default(7 * 24 * 60),
   archivedAt: createdAt("archived_at"),
   createdBy: char("created_by", { length: 36 })

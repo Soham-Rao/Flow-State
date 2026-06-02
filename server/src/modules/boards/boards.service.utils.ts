@@ -45,15 +45,15 @@ export function resolveRestoredName(name: string, existing: Set<string>): string
 }
 
 export function clampRetentionMinutes(value: number | undefined): number {
-  if (!value || Number.isNaN(value)) {
+  if (value === undefined || Number.isNaN(value)) {
     return 0;
   }
-  return Math.max(1, Math.round(value));
+  return Math.max(0, Math.round(value));
 }
 
 export function clampArchiveRetentionMinutes(value: number | undefined): number {
   if (!value || Number.isNaN(value)) {
-    return 0;
+    return 1;
   }
   return Math.max(1, Math.round(value));
 }

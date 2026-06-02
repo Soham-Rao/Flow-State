@@ -326,7 +326,7 @@ threadsRouter.get("/voice-notes/:voiceNoteId/download", async (req, res, next) =
 
 threadsRouter.get("/attachments/:attachmentId/download", async (req, res, next) => {
   try {
-    const attachment = await getThreadAttachmentDownloadInfo(req.params.attachmentId);
+    const attachment = await getThreadAttachmentDownloadInfo(req.auth!.userId, req.params.attachmentId);
     res.download(attachment.filePath, attachment.originalName);
   } catch (error) {
     next(error);

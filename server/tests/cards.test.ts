@@ -138,6 +138,18 @@ describe("Cards API", () => {
     expect(response.body.success).toBe(false);
   });
 
+  it("creates boards with done-list cleanup disabled by default", async () => {
+    const auth = await registerAndGetAuth("retention-default@example.com", "Retention User");
+    const { boardId } = await createBoardWithDefaults(auth.token, "Retention Default Board");
+
+    const [rows] = await pool.query<Array<RowDataPacket & { retention_minutes: number }>>(
+      "SELECT retention_minutes FROM boards WHERE id = ?",
+      [boardId]
+    );
+
+    expect(rows[0]?.retention_minutes).toBe(0);
+  });
+
   it("creates card, updates it, and returns cards in board detail", async () => {
     const auth = await registerAndGetAuth("owner@example.com", "Owner");
     const { boardId, todoListId } = await createBoardWithDefaults(auth.token);
@@ -375,6 +387,19 @@ describe("Cards API", () => {
 
     expect(allowedCreate.status).toBe(201);
     expect(allowedCreate.body.data.title).toBe("Override-created card");
+
+    await assignRoles(admin.token, guest.userId, [guestRoleId, memberRoleId]);
+    await pool.query(
+      "INSERT INTO role_scope_overrides (role_id, scope_type, scope_id, permission, access, created_at) VALUES (?, 'board', ?, 'create_cards', 'deny', NOW(3))",
+      [memberRoleId, allowBoard.boardId]
+    );
+
+    const conflictingCreate = await request(app)
+      .post(`/api/boards/lists/${allowBoard.todoListId}/cards`)
+      .set("Authorization", `Bearer ${guest.token}`)
+      .send(cardPayload("Deny should win", guest.userId));
+
+    expect(conflictingCreate.status).toBe(403);
 
     const deniedCreate = await request(app)
       .post(`/api/boards/lists/${denyBoard.todoListId}/cards`)

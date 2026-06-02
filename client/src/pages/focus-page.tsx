@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RotateCcw, SkipForward, Sparkles, Timer, TrendingUp } from "lucide-react";
+import { BellRing, Pause, Play, RotateCcw, SkipForward, Sparkles, Timer, TrendingUp } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { glassCardClass, glassInputClass, glassStrongClass, glassSubtleClass } from "@/pages/glassmorphism.styles";
 import { useAuthStore } from "@/stores/auth-store";
@@ -17,6 +18,11 @@ interface FocusSessionEntry {
   completedAt: string;
 }
 
+interface AlarmState {
+  fromMode: SessionMode;
+  nextMode: SessionMode;
+}
+
 const DEFAULT_FOCUS_MINUTES = 90;
 const DEFAULT_BREAK_MINUTES = 10;
 
@@ -24,6 +30,14 @@ const PRESET_OPTIONS = [
   { label: "90 / 10 Deep Work", focus: 90, break: 10 },
   { label: "50 / 10 Sustained", focus: 50, break: 10 },
   { label: "25 / 5 Classic", focus: 25, break: 5 }
+];
+
+const FOCUS_EXIT_MESSAGES = [
+  "You are close enough to make this count.",
+  "The tab can wait. Your attention is the rare thing.",
+  "A tiny return now saves a messy restart later.",
+  "Stay with the work a little longer.",
+  "One clean block beats ten scattered almosts."
 ];
 
 const formatTime = (totalSeconds: number): string => {
@@ -54,6 +68,17 @@ const createId = (): string => {
   return `session_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 };
 
+const canUseFullscreen = (): boolean => (
+  typeof document !== "undefined" &&
+  Boolean(document.fullscreenEnabled && document.documentElement.requestFullscreen)
+);
+
+const getFullscreenExitMessage = (remainingSeconds: number): string => {
+  const minutesLeft = Math.max(1, Math.ceil(remainingSeconds / 60));
+  const message = FOCUS_EXIT_MESSAGES[Math.floor(Math.random() * FOCUS_EXIT_MESSAGES.length)];
+  return `${minutesLeft} min left. ${message}`;
+};
+
 export function FocusPage(): JSX.Element {
   const user = useAuthStore((state) => state.user);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,11 +93,15 @@ export function FocusPage(): JSX.Element {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [history, setHistory] = useState<FocusSessionEntry[]>([]);
   const [sessionId, setSessionId] = useState(() => createId());
+  const [fullscreenPromptMessage, setFullscreenPromptMessage] = useState<string | null>(null);
+  const [alarmState, setAlarmState] = useState<AlarmState | null>(null);
   const lastRecordedSessionId = useRef<string | null>(null);
   const lastDurationKey = useRef<string>("focus:90-break:10-mode:focus");
+  const suppressFullscreenPauseRef = useRef(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioUnlockedRef = useRef(false);
+  const alarmIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
   if (typeof window === "undefined") return;
@@ -177,6 +206,27 @@ export function FocusPage(): JSX.Element {
     window.localStorage.setItem(storageKey, payload);
   }, [storageKey]);
 
+  const requestFocusFullscreen = useCallback(async (): Promise<boolean> => {
+    if (mode !== "focus" || !canUseFullscreen()) return true;
+    if (document.fullscreenElement) return true;
+    try {
+      await document.documentElement.requestFullscreen();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [mode]);
+
+  const exitFullscreenSilently = useCallback((): void => {
+    if (typeof document === "undefined" || !document.fullscreenElement) return;
+    suppressFullscreenPauseRef.current = true;
+    void document.exitFullscreen().finally(() => {
+      window.setTimeout(() => {
+        suppressFullscreenPauseRef.current = false;
+      }, 0);
+    });
+  }, []);
+
 
 
 
@@ -245,6 +295,26 @@ useEffect(() => {
       setRemainingSeconds((mode === "focus" ? focusMinutes : breakMinutes) * 60);
     }
     unlockAudio();
+    if (mode === "focus" && canUseFullscreen() && !document.fullscreenElement) {
+      setHasStarted(true);
+      setFullscreenPromptMessage("Resume is ready. Return to fullscreen to keep this focus block clean.");
+      const nextRemaining = remainingSeconds <= 0
+        ? (mode === "focus" ? focusMinutes : breakMinutes) * 60
+        : remainingSeconds;
+      persistFocusState({
+        focusMinutes,
+        breakMinutes,
+        mode,
+        remainingSeconds: nextRemaining,
+        isRunning: false,
+        hasStarted: true,
+        history
+      });
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("resume");
+      setSearchParams(nextParams, { replace: true });
+      return;
+    }
     setHasStarted(true);
     setIsRunning(true);
     const nextRemaining = remainingSeconds <= 0
@@ -293,11 +363,31 @@ useEffect(() => {
     beep(now + 0.4, 660);
   }, [ensureAudioContext]);
 
-  const notifySessionEnd = useCallback((fromMode: SessionMode, nextMode: SessionMode) => {
+  const clearAlarmInterval = useCallback(() => {
+    if (alarmIntervalRef.current !== null) {
+      window.clearInterval(alarmIntervalRef.current);
+      alarmIntervalRef.current = null;
+    }
+  }, []);
+
+  const stopAlarm = useCallback(() => {
+    clearAlarmInterval();
+    setAlarmState(null);
+  }, [clearAlarmInterval]);
+
+  const startSessionAlarm = useCallback((fromMode: SessionMode, nextMode: SessionMode) => {
     if (!audioUnlockedRef.current) {
       unlockAudio();
     }
-    playChime();
+    setAlarmState({ fromMode, nextMode });
+    clearAlarmInterval();
+
+    const ring = () => {
+      playChime();
+      window.setTimeout(playChime, 650);
+    };
+    ring();
+    alarmIntervalRef.current = window.setInterval(ring, 3500);
 
     if (typeof window === "undefined" || !("Notification" in window)) {
       return;
@@ -309,18 +399,25 @@ useEffect(() => {
         body: `Time for ${nextLabel}.`
       });
     }
-  }, [playChime, unlockAudio]);
+  }, [clearAlarmInterval, playChime, unlockAudio]);
+
+  useEffect(() => () => clearAlarmInterval(), [clearAlarmInterval]);
 
 
 
   const advanceSession = useCallback(
-    (options?: { record?: boolean; elapsedSeconds?: number }) => {
+    (options?: { record?: boolean; elapsedSeconds?: number; ringAlarm?: boolean }) => {
       if (options?.record) {
         recordSession(options.elapsedSeconds);
       }
 
       const nextMode = mode === "focus" ? "break" : "focus";
-      notifySessionEnd(mode, nextMode);
+      if (options?.ringAlarm !== false) {
+        startSessionAlarm(mode, nextMode);
+      }
+      if (mode === "focus") {
+        exitFullscreenSilently();
+      }
       const nextRemaining = (nextMode === "focus" ? focusMinutes : breakMinutes) * 60;
       setMode(nextMode);
       setRemainingSeconds(nextRemaining);
@@ -338,8 +435,30 @@ useEffect(() => {
         history
       });
     },
-    [breakMinutes, focusMinutes, history, mode, persistFocusState, recordSession]
+    [breakMinutes, exitFullscreenSilently, focusMinutes, history, mode, persistFocusState, recordSession, startSessionAlarm]
   );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const handleFullscreenChange = () => {
+      if (suppressFullscreenPauseRef.current) return;
+      if (mode !== "focus" || !isRunning || !hasStarted) return;
+      if (document.fullscreenElement) return;
+      setIsRunning(false);
+      setFullscreenPromptMessage(getFullscreenExitMessage(remainingSeconds));
+      persistFocusState({
+        focusMinutes,
+        breakMinutes,
+        mode,
+        remainingSeconds,
+        isRunning: false,
+        hasStarted: true,
+        history
+      });
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, [breakMinutes, focusMinutes, hasStarted, history, isRunning, mode, persistFocusState, remainingSeconds]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -401,6 +520,9 @@ useEffect(() => {
   const modeLabel = mode === "focus" ? "Focus" : "Break";
   const modeSubLabel = mode === "focus" ? "Deep work session" : "Recovery session";
   const nextModeLabel = mode === "focus" ? "Break" : "Focus";
+  const alarmDescription = alarmState
+    ? `${alarmState.fromMode === "focus" ? "Focus" : "Break"} session complete. ${alarmState.nextMode === "focus" ? "Focus" : "Break"} is ready. The alarm will keep ringing until you dismiss it.`
+    : "";
 
   const handlePreset = (presetFocus: number, presetBreak: number) => {
     setFocusMinutes(presetFocus);
@@ -411,7 +533,83 @@ useEffect(() => {
     }
   };
 
+  const handleTimerToggle = async (): Promise<void> => {
+    unlockAudio();
+    stopAlarm();
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+
+    const nextIsRunning = !isRunning;
+    const nextRemaining = !isRunning && remainingSeconds <= 0 ? totalSeconds : remainingSeconds;
+
+    if (nextIsRunning && mode === "focus") {
+      const fullscreenReady = await requestFocusFullscreen();
+      if (!fullscreenReady) {
+        setFullscreenPromptMessage("Fullscreen was blocked. Start from here again to enter focus mode.");
+        return;
+      }
+    }
+
+    if (!isRunning && remainingSeconds <= 0) {
+      setRemainingSeconds(nextRemaining);
+    }
+    if (nextIsRunning) {
+      setHasStarted(true);
+      setFullscreenPromptMessage(null);
+    }
+    setIsRunning(nextIsRunning);
+    persistFocusState({
+      focusMinutes,
+      breakMinutes,
+      mode,
+      remainingSeconds: nextRemaining,
+      isRunning: nextIsRunning,
+      hasStarted: nextIsRunning || hasStarted,
+      history
+    });
+  };
+
+  const resumeFromFullscreenPrompt = async (): Promise<void> => {
+    const fullscreenReady = await requestFocusFullscreen();
+    if (!fullscreenReady) return;
+    setFullscreenPromptMessage(null);
+    setHasStarted(true);
+    setIsRunning(true);
+    persistFocusState({
+      focusMinutes,
+      breakMinutes,
+      mode,
+      remainingSeconds,
+      isRunning: true,
+      hasStarted: true,
+      history
+    });
+  };
+
   return (
+    <>
+    <ConfirmDialog
+      open={alarmState !== null}
+      title="Timer complete"
+      description={alarmDescription}
+      confirmLabel="Dismiss alarm"
+      showCancel={false}
+      overlayClassName="z-[70]"
+      onConfirm={stopAlarm}
+      onCancel={() => {}}
+    />
+    <ConfirmDialog
+      open={fullscreenPromptMessage !== null}
+      title="Return to focus?"
+      description={fullscreenPromptMessage ?? ""}
+      confirmLabel="Resume fullscreen"
+      cancelLabel="Stay paused"
+      onConfirm={() => {
+        void resumeFromFullscreenPrompt();
+      }}
+      onCancel={() => setFullscreenPromptMessage(null)}
+    />
     <div className="space-y-6">
       <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 ${glassSubtleClass}`}>
         <div>
@@ -447,7 +645,16 @@ useEffect(() => {
               Timer runs privately for you. Take a quiet break before the next focus block.
             </CardDescription>
           </CardHeader>
-          <CardContent className="relative space-y-6 pb-8">
+            <CardContent className="relative space-y-6 pb-8">
+            {alarmState && (
+              <div className={`flex flex-wrap items-center justify-between gap-3 rounded-lg p-3 ${glassSubtleClass}`}>
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <BellRing className="h-4 w-4 text-orange-500" />
+                  Session alarm is ringing
+                </div>
+                <Button size="sm" onClick={stopAlarm}>Dismiss alarm</Button>
+              </div>
+            )}
             <div className="flex flex-col items-center justify-center gap-6">
               <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
                 <Sparkles className="h-4 w-4" />
@@ -468,30 +675,7 @@ useEffect(() => {
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-3">
-                <Button onClick={() => {
-                  unlockAudio();
-                  if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-                    void Notification.requestPermission();
-                  }
-                  const nextIsRunning = !isRunning;
-                  const nextRemaining = !isRunning && remainingSeconds <= 0 ? totalSeconds : remainingSeconds;
-                  if (!isRunning && remainingSeconds <= 0) {
-                    setRemainingSeconds(nextRemaining);
-                  }
-                  if (nextIsRunning) {
-                    setHasStarted(true);
-                  }
-                  setIsRunning(nextIsRunning);
-                  persistFocusState({
-                    focusMinutes,
-                    breakMinutes,
-                    mode,
-                    remainingSeconds: nextRemaining,
-                    isRunning: nextIsRunning,
-                    hasStarted: nextIsRunning || hasStarted,
-                    history
-                  });
-                }} className="gap-2">
+                <Button onClick={() => { void handleTimerToggle(); }} className="gap-2">
                   {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   {isRunning ? "Pause" : hasStarted ? "Resume" : "Start"}
                 </Button>
@@ -500,10 +684,13 @@ useEffect(() => {
                   className="gap-2"
                   onClick={() => {
                     unlockAudio();
+                    stopAlarm();
                     const nextRemaining = (mode === "focus" ? focusMinutes : breakMinutes) * 60;
                     setIsRunning(false);
                     setRemainingSeconds(nextRemaining);
                     setHasStarted(false);
+                    setFullscreenPromptMessage(null);
+                    exitFullscreenSilently();
                     setSessionId(createId());
                     lastDurationKey.current = `focus:${focusMinutes}-break:${breakMinutes}-mode:${mode}`;
                     persistFocusState({
@@ -525,8 +712,9 @@ useEffect(() => {
                   className="gap-2"
                   onClick={() => {
                     unlockAudio();
+                    stopAlarm();
                     const elapsedSeconds = Math.max(0, totalSeconds - remainingSeconds);
-                    advanceSession({ record: true, elapsedSeconds });
+                    advanceSession({ record: true, elapsedSeconds, ringAlarm: false });
                   }}
                 >
                   <SkipForward className="h-4 w-4" />
@@ -674,6 +862,7 @@ useEffect(() => {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

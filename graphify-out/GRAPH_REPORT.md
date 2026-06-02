@@ -1,16 +1,16 @@
-# Graph Report - FlowState  (2026-05-27)
+# Graph Report - FlowState  (2026-06-02)
 
 ## Corpus Check
-- 335 files · ~208,344 words
+- 336 files · ~210,096 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 5405 nodes · 7466 edges · 493 communities (451 shown, 42 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 186 edges (avg confidence: 0.8)
+- 5423 nodes · 7503 edges · 514 communities (469 shown, 45 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 188 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3339864c`
+- Built from commit: `e33a05ee`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -356,16 +356,24 @@
 - [[_COMMUNITY_Community 338|Community 338]]
 - [[_COMMUNITY_Community 339|Community 339]]
 - [[_COMMUNITY_Community 340|Community 340]]
+- [[_COMMUNITY_Community 341|Community 341]]
 - [[_COMMUNITY_Community 342|Community 342]]
 - [[_COMMUNITY_Community 343|Community 343]]
+- [[_COMMUNITY_Community 344|Community 344]]
+- [[_COMMUNITY_Community 345|Community 345]]
 - [[_COMMUNITY_Community 346|Community 346]]
+- [[_COMMUNITY_Community 347|Community 347]]
+- [[_COMMUNITY_Community 348|Community 348]]
 - [[_COMMUNITY_Community 349|Community 349]]
+- [[_COMMUNITY_Community 350|Community 350]]
 - [[_COMMUNITY_Community 351|Community 351]]
+- [[_COMMUNITY_Community 352|Community 352]]
 - [[_COMMUNITY_Community 353|Community 353]]
 - [[_COMMUNITY_Community 354|Community 354]]
 - [[_COMMUNITY_Community 355|Community 355]]
 - [[_COMMUNITY_Community 356|Community 356]]
 - [[_COMMUNITY_Community 357|Community 357]]
+- [[_COMMUNITY_Community 358|Community 358]]
 - [[_COMMUNITY_Community 359|Community 359]]
 - [[_COMMUNITY_Community 360|Community 360]]
 - [[_COMMUNITY_Community 361|Community 361]]
@@ -373,11 +381,15 @@
 - [[_COMMUNITY_Community 363|Community 363]]
 - [[_COMMUNITY_Community 364|Community 364]]
 - [[_COMMUNITY_Community 365|Community 365]]
+- [[_COMMUNITY_Community 366|Community 366]]
+- [[_COMMUNITY_Community 367|Community 367]]
 - [[_COMMUNITY_Community 368|Community 368]]
+- [[_COMMUNITY_Community 369|Community 369]]
 - [[_COMMUNITY_Community 370|Community 370]]
 - [[_COMMUNITY_Community 371|Community 371]]
 - [[_COMMUNITY_Community 372|Community 372]]
 - [[_COMMUNITY_Community 373|Community 373]]
+- [[_COMMUNITY_Community 374|Community 374]]
 - [[_COMMUNITY_Community 375|Community 375]]
 - [[_COMMUNITY_Community 376|Community 376]]
 - [[_COMMUNITY_Community 377|Community 377]]
@@ -392,11 +404,13 @@
 - [[_COMMUNITY_Community 386|Community 386]]
 - [[_COMMUNITY_Community 387|Community 387]]
 - [[_COMMUNITY_Community 388|Community 388]]
+- [[_COMMUNITY_Community 389|Community 389]]
 - [[_COMMUNITY_Community 390|Community 390]]
 - [[_COMMUNITY_Community 391|Community 391]]
 - [[_COMMUNITY_Community 392|Community 392]]
 - [[_COMMUNITY_Community 393|Community 393]]
 - [[_COMMUNITY_Community 394|Community 394]]
+- [[_COMMUNITY_Community 395|Community 395]]
 - [[_COMMUNITY_Community 396|Community 396]]
 - [[_COMMUNITY_Community 397|Community 397]]
 - [[_COMMUNITY_Community 398|Community 398]]
@@ -406,6 +420,7 @@
 - [[_COMMUNITY_Community 402|Community 402]]
 - [[_COMMUNITY_Community 403|Community 403]]
 - [[_COMMUNITY_Community 404|Community 404]]
+- [[_COMMUNITY_Community 405|Community 405]]
 - [[_COMMUNITY_Community 406|Community 406]]
 - [[_COMMUNITY_Community 407|Community 407]]
 - [[_COMMUNITY_Community 408|Community 408]]
@@ -413,6 +428,7 @@
 - [[_COMMUNITY_Community 410|Community 410]]
 - [[_COMMUNITY_Community 411|Community 411]]
 - [[_COMMUNITY_Community 412|Community 412]]
+- [[_COMMUNITY_Community 413|Community 413]]
 - [[_COMMUNITY_Community 414|Community 414]]
 - [[_COMMUNITY_Community 415|Community 415]]
 - [[_COMMUNITY_Community 416|Community 416]]
@@ -429,13 +445,18 @@
 - [[_COMMUNITY_Community 427|Community 427]]
 - [[_COMMUNITY_Community 428|Community 428]]
 - [[_COMMUNITY_Community 429|Community 429]]
+- [[_COMMUNITY_Community 430|Community 430]]
 - [[_COMMUNITY_Community 431|Community 431]]
 - [[_COMMUNITY_Community 432|Community 432]]
 - [[_COMMUNITY_Community 433|Community 433]]
+- [[_COMMUNITY_Community 434|Community 434]]
+- [[_COMMUNITY_Community 435|Community 435]]
 - [[_COMMUNITY_Community 436|Community 436]]
+- [[_COMMUNITY_Community 437|Community 437]]
+- [[_COMMUNITY_Community 438|Community 438]]
 - [[_COMMUNITY_Community 439|Community 439]]
+- [[_COMMUNITY_Community 440|Community 440]]
 - [[_COMMUNITY_Community 442|Community 442]]
-- [[_COMMUNITY_Community 443|Community 443]]
 - [[_COMMUNITY_Community 444|Community 444]]
 - [[_COMMUNITY_Community 445|Community 445]]
 - [[_COMMUNITY_Community 446|Community 446]]
@@ -495,13 +516,13 @@
 1. `apiRequest()` - 99 edges
 2. `db` - 38 edges
 3. `recordActivity()` - 34 edges
-4. `getConversation()` - 32 edges
-5. `ApiError` - 32 edges
-6. `assertConversationMember()` - 31 edges
-7. `assertPermission()` - 29 edges
-8. `assertConversationPermission()` - 28 edges
+4. `getConversation()` - 33 edges
+5. `assertConversationMember()` - 32 edges
+6. `assertConversationPermission()` - 32 edges
+7. `ApiError` - 32 edges
+8. `assertPermission()` - 29 edges
 9. `users` - 22 edges
-10. `Cards, Checklists, Labels, Files, and Retention` - 20 edges
+10. `Cards, Checklists, Labels, Files, and Retention` - 21 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `listActivityLogs()` --calls--> `apiRequest()`  [INFERRED]
@@ -515,27 +536,27 @@
 - `getCurrentUser()` --calls--> `apiRequest()`  [INFERRED]
   client/src/lib/auth-api.ts → client/src/lib/api-client.ts
 
-## Communities (493 total, 42 thin omitted)
+## Communities (514 total, 45 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
 Nodes (56): apiRequest(), archiveBoard(), archiveCard(), archiveList(), assignLabelToCard(), assignMemberToCard(), CommentReactionInput, createBoard() (+48 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.05
-Nodes (53): BoardBackground, boardBackgrounds, boardsRouter, boardsAttachmentsRouter, files, upload, boardsBaseRouter, body (+45 more)
+Cohesion: 0.06
+Nodes (54): BoardBackground, boardBackgrounds, boardsRouter, boardsAttachmentsRouter, files, upload, boardsBaseRouter, body (+46 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.15
-Nodes (15): body, MarkCommentMentionsInput, markCommentMentionsSchema, MarkThreadMentionsInput, markThreadMentionsSchema, MarkThreadMessageMentionsInput, markThreadMessageMentionsSchema, MarkThreadReplyMentionIdsInput (+7 more)
+Cohesion: 0.12
+Nodes (26): body, MarkCommentMentionsInput, markCommentMentionsSchema, MarkThreadMentionsInput, markThreadMentionsSchema, MarkThreadMessageMentionsInput, markThreadMessageMentionsSchema, MarkThreadReplyMentionIdsInput (+18 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.14
-Nodes (26): PermissionToggleRow(), SettingsModal(), FontOption, fontOptions, PermissionGroup, permissionGroups, PermissionItem, RoleDraft (+18 more)
+Cohesion: 0.08
+Nodes (37): AcceptedMemberEntry, AssignRolesModal(), AssignRolesModalProps, PermissionToggleRow(), SettingsModal(), FontOption, fontOptions, PermissionGroup (+29 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.12
-Nodes (35): body, assignLabelSchema, createLabelSchema, updateLabelSchema, assignMemberToCard(), removeMemberFromCard(), getArchivedLists(), attachChecklistsToCards() (+27 more)
+Cohesion: 0.22
+Nodes (19): body, AssignAssigneeInput, assignLabelSchema, createLabelSchema, updateLabelSchema, assignMemberToCard(), removeMemberFromCard(), getCardById() (+11 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.05
@@ -550,8 +571,8 @@ Cohesion: 0.05
 Nodes (40): archiveBoardMock, archiveCardMock, archiveListMock, baseAuthor, baseBoard, baseBoardSummary, baseCard, baseLabel (+32 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.21
-Nodes (15): listAnnouncements(), DashboardActivityHighlight, DashboardCardSummary, DashboardDueReminder, DashboardDueReminderAssignee, DashboardMetricsSummary, DashboardNewJoiner, getAccessibleBoardIds() (+7 more)
+Cohesion: 0.18
+Nodes (20): CreateCardInput, MoveCardInput, UpdateCardInput, createAttachments(), deleteAttachment(), getAttachmentDownloadInfo(), createCard(), moveCard() (+12 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.05
@@ -566,48 +587,48 @@ Cohesion: 0.05
 Nodes (37): Common Workflows and End-to-End Tutorials, Step 1: Go to Settings > Advanced, Step 1: Make sure the work object is clear, Step 1: Read the request fully, Step 1: Review dashboard signals first, Step 1: Sign in or create your account, Step 1: Start in the first appropriate list, Step 2: Add enough detail early (+29 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.12
-Nodes (26): announcementsRouter, body, AnnouncementAudienceInput, audienceSchema, CreateAnnouncementInput, createAnnouncementSchema, DeleteAnnouncementsInput, deleteAnnouncementsSchema (+18 more)
+Cohesion: 0.07
+Nodes (47): announcementsRouter, body, AnnouncementAudienceInput, audienceSchema, CreateAnnouncementInput, createAnnouncementSchema, DeleteAnnouncementsInput, deleteAnnouncementsSchema (+39 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.07
 Nodes (30): cn(), MentionsField(), MentionsFieldProps, Card, CardContent(), CardDescription(), CardHeader(), CardTitle() (+22 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.22
-Nodes (12): pool, clearDatabaseForTests(), initializeDatabase(), migrationLock, ensureDefaultRoles(), ensureInviteRoleAssignments(), ensureUserRoleAssignments(), seedRoles() (+4 more)
+Cohesion: 0.11
+Nodes (29): AssignLabelInput, CreateLabelInput, UpdateLabelInput, attachChecklistsToCards(), CardAssigneeRow, CardLabelRow, ChecklistRow, getAssigneesForCards() (+21 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.23
-Nodes (10): requestLogger(), redacted, JsonObject, JsonValue, logHttpRequest(), LogLevel, redactForLogs(), serializeError() (+2 more)
+Cohesion: 0.16
+Nodes (18): body, context, env, auditLogs, errorHandler(), createJsonRateLimiter(), forgotPasswordRateLimiter, loginRateLimiter (+10 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.32
-Nodes (7): ActivityActor, ActivityLogEntry, createActivityLog(), listActivityLogs(), mapActivityRow(), parseMetadata(), activityLogs
+Cohesion: 0.12
+Nodes (31): createBugReport(), threadMessageDeletions, CreateChannelInput, UpdateChannelInput, UpdateChannelMemberOverridesInput, ensureUserExists(), getUserSummary(), addChannelMembers() (+23 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.12
-Nodes (28): CreateCardInput, CreateListInput, MoveCardInput, ReorderListsInput, UpdateCardInput, UpdateListInput, archiveCard(), getCardByIdIncludingArchived() (+20 more)
+Nodes (38): recordActivity(), CreateListInput, ReorderListsInput, UpdateListInput, archiveCard(), getCardByIdIncludingArchived(), getCardsForList(), deleteCard() (+30 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.07
 Nodes (31): AnnouncementAudience, AnnouncementAudienceOptions, AnnouncementDetail, ArchivedListEntry, BoardAttachment, BoardBackground, BoardCard, BoardComment (+23 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.06
-Nodes (57): attachmentsRelations, boardsRelations, bugReports, cardsRelations, checklistItemsRelations, checklistsRelations, listsRelations, passwordResetTokens (+49 more)
+Cohesion: 0.07
+Nodes (45): db, threadAttachments, threadConversations, threadMembers, threadMentions, threadMessageReactions, threadMessages, threadReplies (+37 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.07
-Nodes (31): activityRouter, authRouter, allowedOrigins, cspConnectSources, DEFAULT_BACKUP_LOCAL_DIR, DEFAULT_UPLOADS_DIR, envSchema, extraAllowedOrigins (+23 more)
+Cohesion: 0.10
+Nodes (20): activityRouter, authRouter, allowedOrigins, cspConnectSources, DEFAULT_BACKUP_LOCAL_DIR, DEFAULT_UPLOADS_DIR, envSchema, extraAllowedOrigins (+12 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.09
-Nodes (35): body, bugReportsRouter, context, query, CreateBugReportInput, createBugReportSchema, ListBugReportsQuery, listBugReportsQuerySchema (+27 more)
+Cohesion: 0.11
+Nodes (27): body, bugReportsRouter, context, query, CreateBugReportInput, createBugReportSchema, ListBugReportsQuery, listBugReportsQuerySchema (+19 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.05
-Nodes (70): PublicUser, closePool(), db, inviteRoleAssignments, invites, RolePermission, rolePermissions, rolePermissionsTable (+62 more)
+Cohesion: 0.11
+Nodes (31): PublicUser, RolePermission, rolePermissions, rolePermissionsTable, body, context, CreateRoleInput, createRoleSchema (+23 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.08
@@ -618,36 +639,36 @@ Cohesion: 0.07
 Nodes (28): dependencies, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, @fontsource/fraunces, @fontsource/ibm-plex-sans, @fontsource/merriweather, @fontsource/space-grotesk (+20 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.12
-Nodes (25): CreateBoardInput, UpdateBoardInput, archiveBoard(), ArchivedCardRow, deleteBoard(), getBoardById(), restoreBoard(), getBoardSummaryById() (+17 more)
+Cohesion: 0.14
+Nodes (28): CreateBoardInput, UpdateBoardInput, archiveBoard(), ArchivedCardRow, createBoard(), deleteBoard(), getArchivedLists(), getBoardById() (+20 more)
 
 ### Community 26 - "Community 26"
 Cohesion: 0.11
 Nodes (16): BoardEventPayload, boardPresence, boardRoom(), emitActivityEvent(), emitBoardPresence(), emitWorkspacePresence(), getPresenceUsers(), PresenceStatus (+8 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.07
-Nodes (51): body, context, ForgotPasswordBody, forgotPasswordBodySchema, LoginBody, loginBodySchema, nullableDate, nullableNumber (+43 more)
+Cohesion: 0.09
+Nodes (36): ForgotPasswordBody, forgotPasswordBodySchema, LoginBody, loginBodySchema, nullableDate, nullableNumber, RegisterBody, registerBodySchema (+28 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.32
-Nodes (6): AcceptedMemberEntry, AssignRolesModal(), AssignRolesModalProps, getInitials(), RoleAssignmentEditor(), RoleAssignmentEditorProps
+Cohesion: 0.11
+Nodes (20): autoincrement, name, notNull, primaryKey, type, columns, columns, announcement_id (+12 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.07
 Nodes (26): Ask for a specific outcome, Channels or shared conversations, Common mistakes, Direct messages, DMs, Channels, Replies, Mentions, and Media, Forwarding and sharing messages, Good communication habits in FlowState, If you cannot send a message (+18 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.08
-Nodes (25): A simple good-card checklist, Archived lists and archived cards, Archiving a card, Assigning people, Cards, Checklists, Labels, Files, and Retention, Checklists, Comments, Common mistakes people make (+17 more)
+Cohesion: 0.07
+Nodes (26): A simple good-card checklist, Archived lists and archived cards, Archiving a card, Assigning people, Cards, Checklists, Labels, Files, and Retention, Checklists, Comments, Common mistakes people make (+18 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.08
 Nodes (25): A simple recovery checklist, First question: what kind of problem is this, Frequently asked questions, I can see a board but cannot change it, I cannot find a board or channel someone mentioned, I cannot register, I cannot sign in, I got a permission dialog (+17 more)
 
 ### Community 32 - "Community 32"
-Cohesion: 0.09
-Nodes (14): BoardListsSection(), LIST_TINT_OPTIONS, LoginPage(), RegisterPage(), AuthGate(), AuthGateProps, GuestOnlyRoute(), PermissionRoute() (+6 more)
+Cohesion: 0.11
+Nodes (17): AppShell(), hasUserPermission(), HomePage(), RegisterPage(), HomeEntry(), GuestOnlyRoute(), PermissionRoute(), PermissionRouteProps (+9 more)
 
 ### Community 33 - "Community 33"
 Cohesion: 0.09
@@ -658,20 +679,20 @@ Cohesion: 0.08
 Nodes (25): columns, autoincrement, name, notNull, primaryKey, type, card_id, mime_type (+17 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.15
-Nodes (19): acquireMigrationLock(), analyzeMigrationRisk(), detectRiskyMigration(), extractRiskAcknowledgement(), getAppliedMigrationCount(), getPendingMigrationInventory(), hasBroadTableWideUpdate(), listSqlMigrationFiles() (+11 more)
+Cohesion: 0.13
+Nodes (22): migrationsFolder, runMigrations(), acquireMigrationLock(), analyzeMigrationRisk(), detectRiskyMigration(), extractRiskAcknowledgement(), getAppliedMigrationCount(), getPendingMigrationInventory() (+14 more)
 
 ### Community 36 - "Community 36"
-Cohesion: 0.12
-Nodes (27): threadConversations, threadMemberPermissions, AddChannelMembersInput, CreateChannelInput, UpdateChannelInput, UpdateChannelMemberOverridesInput, getConversationPermissionOverride(), getUserSummary() (+19 more)
+Cohesion: 0.10
+Nodes (27): body, durationSec, files, params, upload, AddChannelMembersInput, addChannelMembersSchema, channelMemberInputSchema (+19 more)
 
 ### Community 37 - "Community 37"
-Cohesion: 0.07
-Nodes (84): threadReplyAttachments, threadReplyDeletions, emitThreadEvent(), body, durationSec, files, params, upload (+76 more)
+Cohesion: 0.15
+Nodes (41): emitThreadEvent(), assertConversationMember(), assertConversationPermission(), getConversation(), deleteChannelConversation(), leaveChannelConversation(), removeChannelMember(), getThreadAttachmentsForReplies() (+33 more)
 
 ### Community 38 - "Community 38"
-Cohesion: 0.14
-Nodes (33): recordActivity(), body, createChecklistItemSchema, createChecklistSchema, updateChecklistItemSchema, updateChecklistSchema, createBoard(), updateBoard() (+25 more)
+Cohesion: 0.11
+Nodes (29): DbTransaction, DEPRECATED_THREAD_PERMISSIONS, inviteRoleAssignments, invites, roles, body, context, invitesRouter (+21 more)
 
 ### Community 39 - "Community 39"
 Cohesion: 0.09
@@ -682,36 +703,36 @@ Cohesion: 0.09
 Nodes (4): PriorityStyle, priorityStyles, SortLabels, TaskSortState
 
 ### Community 41 - "Community 41"
-Cohesion: 0.22
-Nodes (17): createAttachments(), deleteAttachment(), getAttachmentDownloadInfo(), deleteAttachmentsForCard(), cleanupArchivedBoards(), cleanupArchivedCards(), cleanupArchivedLists(), cleanupExpiredCards() (+9 more)
+Cohesion: 0.07
+Nodes (27): ActivityActor, ActivityLogEntry, createActivityLog(), listActivityLogs(), mapActivityRow(), parseMetadata(), activityLogs, attachmentsRelations (+19 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.18
-Nodes (20): CommentReactionInput, CreateCommentInput, createBoardComment(), createListComment(), attachCommentRelations(), createCommentRecord(), getCommentById(), getCommentMentionsForComments() (+12 more)
+Cohesion: 0.16
+Nodes (22): CommentReactionInput, CreateCommentInput, createBoardComment(), createListComment(), attachCommentRelations(), createCommentRecord(), getCommentById(), getCommentMentionsForComments() (+14 more)
 
 ### Community 43 - "Community 43"
-Cohesion: 0.09
-Nodes (22): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, checkConstraint (+14 more)
+Cohesion: 0.14
+Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
 
 ### Community 44 - "Community 44"
 Cohesion: 0.11
 Nodes (15): ApiErrorPayload, buildCacheKey(), CacheEntry, classifyAndPresentError(), getCacheEntry(), inFlightRequests, invalidateApiCacheByKey(), normalizeTags() (+7 more)
 
 ### Community 45 - "Community 45"
-Cohesion: 0.11
-Nodes (11): BoardDetailAutosaveParams, useBoardDetailAutosave(), BoardDetailBoardHandlersParams, useBoardDetailBoardHandlers(), BoardDetailPage(), BoardDetailCardHandlersParams, useBoardDetailCardHandlers(), useBoardDragAndDrop() (+3 more)
+Cohesion: 0.10
+Nodes (13): BoardDetailAutosaveParams, useBoardDetailAutosave(), BoardDetailBoardHandlersParams, useBoardDetailBoardHandlers(), BoardDetailPage(), BoardDetailCardHandlersParams, useBoardDetailCardHandlers(), useBoardDragAndDrop() (+5 more)
 
 ### Community 46 - "Community 46"
-Cohesion: 0.20
-Nodes (15): AnnouncementDetail, DashboardSummary, cleanupInvalidCommentMentions(), cleanupInvalidThreadMentions(), CommentMentionDetail, getAccessibleBoardIds(), getUnreadMentions(), listCommentMentions() (+7 more)
+Cohesion: 0.17
+Nodes (21): resolveThreadPreviewBody(), buildMessagePreview(), getThreadAttachmentsForMessages(), getThreadMessageDeletionSet(), getThreadMessageReactions(), getThreadReplyCounts(), getThreadReplyMentionCounts(), getThreadVoiceNotesForMessages() (+13 more)
 
 ### Community 47 - "Community 47"
 Cohesion: 0.10
 Nodes (13): AdvancedSettingsPage, BoardDetailPage, BoardsPage, FocusPage, GeneralSettingsPage, HelpDocsPage, HomePage, LoginPage (+5 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.08
-Nodes (26): autoincrement, name, notNull, primaryKey, type, columns, columns, announcement_id (+18 more)
+Cohesion: 0.15
+Nodes (13): autoincrement, name, notNull, primaryKey, type, columns, announcement_id, seen_at (+5 more)
 
 ### Community 49 - "Community 49"
 Cohesion: 0.10
@@ -730,32 +751,32 @@ Cohesion: 0.11
 Nodes (18): 1. Board header, 2. Lists, 3. Cards, 4. Supporting dialogs and panels, Archiving a board versus deleting work, Boards: The Big Picture, Common real-life ways to use boards, Creating a board (+10 more)
 
 ### Community 53 - "Community 53"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, card_assignees_user_id_users_id_fk
+Cohesion: 0.14
+Nodes (15): requestLogger(), message, subject, isOpsAlertConfigured(), sendOpsAlert(), redacted, JsonObject, JsonValue (+7 more)
 
 ### Community 54 - "Community 54"
 Cohesion: 0.11
 Nodes (18): Activity and recency, Announcement sending and audience controls, Announcements, Assigned work, created work, and summaries, Common mistakes on the dashboard, Confusing summaries with the work itself, Good beginner habit, Home Dashboard and Announcements (+10 more)
 
 ### Community 55 - "Community 55"
-Cohesion: 0.08
-Nodes (25): columns, mime_type, original_name, storage_path, stored_name, autoincrement, name, notNull (+17 more)
+Cohesion: 0.15
+Nodes (13): columns, mime_type, original_name, autoincrement, name, notNull, primaryKey, type (+5 more)
 
 ### Community 56 - "Community 56"
-Cohesion: 0.33
-Nodes (6): list_id, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.15
+Nodes (13): columns, autoincrement, name, notNull, primaryKey, type, card_id, user_id (+5 more)
 
 ### Community 57 - "Community 57"
 Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, autoincrement, name, notNull (+11 more)
+Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, actor_id, request_id (+11 more)
 
 ### Community 58 - "Community 58"
 Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, autoincrement, name (+11 more)
+Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, body, created_at (+11 more)
 
 ### Community 59 - "Community 59"
 Cohesion: 0.11
-Nodes (19): columns, metadata, thread_reply_id, type, autoincrement, name, notNull, primaryKey (+11 more)
+Nodes (19): columns, metadata, thread_message_id, type, autoincrement, name, notNull, primaryKey (+11 more)
 
 ### Community 60 - "Community 60"
 Cohesion: 0.11
@@ -783,15 +804,15 @@ Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, action, tar
 
 ### Community 66 - "Community 66"
 Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, announcement_id, created_at (+11 more)
+Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, announcement_id, seen_at (+11 more)
 
 ### Community 67 - "Community 67"
 Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, audience, id (+11 more)
+Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, audience, created_by (+11 more)
 
 ### Community 68 - "Community 68"
 Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, board_id, list_id (+11 more)
+Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, board_id, mentioned_user_id (+11 more)
 
 ### Community 69 - "Community 69"
 Cohesion: 0.11
@@ -803,11 +824,11 @@ Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, action, tar
 
 ### Community 71 - "Community 71"
 Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, announcement_id, created_at (+11 more)
+Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, announcement_id, seen_at (+11 more)
 
 ### Community 72 - "Community 72"
 Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, audience, id (+11 more)
+Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, body, id (+11 more)
 
 ### Community 73 - "Community 73"
 Cohesion: 0.11
@@ -819,7 +840,7 @@ Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, action, tar
 
 ### Community 75 - "Community 75"
 Cohesion: 0.11
-Nodes (19): columns, list_id, thread_reply_id, type, autoincrement, name, notNull, primaryKey (+11 more)
+Nodes (19): columns, list_id, thread_conversation_id, thread_reply_id, autoincrement, name, notNull, primaryKey (+11 more)
 
 ### Community 76 - "Community 76"
 Cohesion: 0.11
@@ -838,8 +859,8 @@ Cohesion: 0.11
 Nodes (17): 10. First-account rule in a fresh environment, 11. Email address expectations, 12. Username, display name, and full name, 13. Privacy and what your browser stores, 14. Safety rules for shared workspaces, 15. If something looks suspicious, 16. Quick checklist, 1. What the login and register pages are for (+9 more)
 
 ### Community 80 - "Community 80"
-Cohesion: 0.08
-Nodes (26): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, columns (+18 more)
+Cohesion: 0.20
+Nodes (10): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+2 more)
 
 ### Community 81 - "Community 81"
 Cohesion: 0.14
@@ -859,11 +880,11 @@ Nodes (8): DocEntry, DocTreeNode, MarkdownBlock, rawDocs, RawDocsModule, renderB
 
 ### Community 85 - "Community 85"
 Cohesion: 0.12
-Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, columns (+9 more)
+Nodes (17): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, name, uniqueConstraints, columnsFrom (+9 more)
 
 ### Community 86 - "Community 86"
-Cohesion: 0.06
-Nodes (34): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, columns (+26 more)
+Cohesion: 0.12
+Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, columns (+9 more)
 
 ### Community 87 - "Community 87"
 Cohesion: 0.12
@@ -874,8 +895,8 @@ Cohesion: 0.12
 Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, checkConstraint (+9 more)
 
 ### Community 89 - "Community 89"
-Cohesion: 0.12
-Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, checkConstraint (+9 more)
+Cohesion: 0.22
+Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, audit_logs_id (+1 more)
 
 ### Community 90 - "Community 90"
 Cohesion: 0.12
@@ -902,8 +923,8 @@ Cohesion: 0.12
 Nodes (16): autoincrement, default, name, notNull, primaryKey, type, name, columns (+8 more)
 
 ### Community 96 - "Community 96"
-Cohesion: 0.12
-Nodes (16): autoincrement, default, name, notNull, primaryKey, type, name, columns (+8 more)
+Cohesion: 0.05
+Nodes (43): autoincrement, default, name, notNull, primaryKey, type, name, autoincrement (+35 more)
 
 ### Community 97 - "Community 97"
 Cohesion: 0.12
@@ -918,8 +939,8 @@ Cohesion: 0.13
 Nodes (14): Beginner-friendly workflow, Choosing the right task, Combining focus mode with the rest of FlowState, Common mistakes, Focus Mode and Timers, Ignoring new urgent reality, Never closing the loop, Pomodoro-style usage (+6 more)
 
 ### Community 100 - "Community 100"
-Cohesion: 0.13
-Nodes (14): autoincrement, name, notNull, primaryKey, type, columns, name, card_id (+6 more)
+Cohesion: 0.22
+Nodes (8): columns, name, dialect, id, prevId, tables, card_labels, version
 
 ### Community 101 - "Community 101"
 Cohesion: 0.13
@@ -958,12 +979,12 @@ Cohesion: 0.14
 Nodes (13): files, code, document, image, paper, video, graphifyignore_patterns, needs_graph (+5 more)
 
 ### Community 110 - "Community 110"
-Cohesion: 0.09
-Nodes (22): checkConstraint, compositePrimaryKeys, columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom (+14 more)
+Cohesion: 0.14
+Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
 
 ### Community 111 - "Community 111"
-Cohesion: 0.09
-Nodes (22): checkConstraint, compositePrimaryKeys, columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom (+14 more)
+Cohesion: 0.14
+Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
 
 ### Community 112 - "Community 112"
 Cohesion: 0.09
@@ -978,8 +999,8 @@ Cohesion: 0.14
 Nodes (14): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+6 more)
 
 ### Community 115 - "Community 115"
-Cohesion: 0.14
-Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
+Cohesion: 0.12
+Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, checkConstraint (+9 more)
 
 ### Community 116 - "Community 116"
 Cohesion: 0.14
@@ -994,8 +1015,8 @@ Cohesion: 0.14
 Nodes (14): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+6 more)
 
 ### Community 119 - "Community 119"
-Cohesion: 0.15
-Nodes (12): assignRoles(), AuthContext, cardId, createBoardWithDefaults(), firstCardId, getRoleIdByName(), [guestRoleRows], movedBackCard (+4 more)
+Cohesion: 0.18
+Nodes (8): AuthContext, cardId, firstCardId, [guestRoleRows], movedBackCard, [rows], secondCardId, todo
 
 ### Community 120 - "Community 120"
 Cohesion: 0.14
@@ -1014,8 +1035,8 @@ Cohesion: 0.15
 Nodes (12): code:bash (bun install), code:bash (bun run dev), code:text (client/   Frontend (Vite + React)), Common Commands, Documentation, FlowState, Highlights, Local URLs (+4 more)
 
 ### Community 124 - "Community 124"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, archived_at
+Cohesion: 0.15
+Nodes (13): autoincrement, name, notNull, primaryKey, type, columns, archived_at, description (+5 more)
 
 ### Community 125 - "Community 125"
 Cohesion: 0.15
@@ -1026,24 +1047,24 @@ Cohesion: 0.15
 Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
 
 ### Community 127 - "Community 127"
-Cohesion: 0.11
-Nodes (20): autoincrement, name, notNull, primaryKey, type, columns, columns, announcement_id (+12 more)
-
-### Community 128 - "Community 128"
-Cohesion: 0.08
-Nodes (25): columns, mime_type, original_name, storage_path, stored_name, autoincrement, name, notNull (+17 more)
-
-### Community 129 - "Community 129"
 Cohesion: 0.33
 Nodes (6): seen_at, autoincrement, name, notNull, primaryKey, type
 
+### Community 128 - "Community 128"
+Cohesion: 0.11
+Nodes (19): columns, mime_type, original_name, storage_path, autoincrement, name, notNull, primaryKey (+11 more)
+
+### Community 129 - "Community 129"
+Cohesion: 0.25
+Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcements_created_by_users_id_fk
+
 ### Community 130 - "Community 130"
-Cohesion: 0.08
-Nodes (26): autoincrement, name, notNull, primaryKey, type, columns, archived_at, description (+18 more)
+Cohesion: 0.15
+Nodes (13): autoincrement, name, notNull, primaryKey, type, columns, archived_at, description (+5 more)
 
 ### Community 131 - "Community 131"
-Cohesion: 0.06
-Nodes (31): columns, autoincrement, name, notNull, primaryKey, type, autoincrement, name (+23 more)
+Cohesion: 0.15
+Nodes (13): columns, autoincrement, name, notNull, primaryKey, type, autoincrement, name (+5 more)
 
 ### Community 132 - "Community 132"
 Cohesion: 0.15
@@ -1090,15 +1111,15 @@ Cohesion: 0.23
 Nodes (9): AUDIO_EXTENSIONS, FORCE_FILE_EXTENSIONS, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, RefreshConversationsResult, ThreadMediaParams, ThreadMediaState, getAttachmentKind() (+1 more)
 
 ### Community 143 - "Community 143"
-Cohesion: 0.39
-Nodes (7): closeSocketServer(), initSocket(), app, registerProcessGuards(), runCleanup(), shutdown(), startServer()
+Cohesion: 0.25
+Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, boards_created_by_users_id_fk
 
 ### Community 144 - "Community 144"
 Cohesion: 0.17
 Nodes (11): Board-scoped override examples, Boards and lists, Cards, Channel-specific override permissions, Comments and mentions, Complete Permission Reference, How permissions work in practice, Practical advice for admins (+3 more)
 
 ### Community 145 - "Community 145"
-Cohesion: 0.29
+Cohesion: 0.25
 Nodes (3): DueReminderItem, DueReminderToasts(), readDismissals()
 
 ### Community 146 - "Community 146"
@@ -1146,8 +1167,8 @@ Cohesion: 0.18
 Nodes (10): Backups, Deploy, Backup, Restore, and Rollback Operations, Maintenance behavior, Migration guardrails in operations, Primary production command, Restore verification, Rollback, Safe deploy path (+2 more)
 
 ### Community 157 - "Community 157"
-Cohesion: 0.17
-Nodes (11): boardId, channelIds, commentId, conversationId, firstReplyId, [guestRoles], [memberRoles], messageId (+3 more)
+Cohesion: 0.14
+Nodes (12): attachmentId, boardId, channelIds, commentId, conversationId, dmUserIds, firstReplyId, [guestRoles] (+4 more)
 
 ### Community 158 - "Community 158"
 Cohesion: 0.25
@@ -1170,16 +1191,16 @@ Cohesion: 0.20
 Nodes (10): Cheat Sheet, code:conf (PermitRootLogin no), code:bash (docker compose -f docker-compose.prod.yml down -v), code:bash (sudo apt install -y certbot python3-certbot-nginx), code:bash (ssh flowstate-vps), code:bash (systemctl status flowstate --no-pager), Minimal command checklist, Points to remember (+2 more)
 
 ### Community 164 - "Community 164"
-Cohesion: 0.11
-Nodes (18): checkConstraint, compositePrimaryKeys, columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom (+10 more)
+Cohesion: 0.20
+Nodes (10): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+2 more)
 
 ### Community 165 - "Community 165"
 Cohesion: 0.11
 Nodes (18): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+10 more)
 
 ### Community 166 - "Community 166"
-Cohesion: 0.11
-Nodes (18): checkConstraint, compositePrimaryKeys, columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom (+10 more)
+Cohesion: 0.20
+Nodes (10): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+2 more)
 
 ### Community 167 - "Community 167"
 Cohesion: 0.20
@@ -1278,16 +1299,16 @@ Cohesion: 0.25
 Nodes (5): AuthState, AuthStatus, LoginInput, RegisterInput, UpdateProfileInput
 
 ### Community 191 - "Community 191"
-Cohesion: 0.32
-Nodes (6): FocusPage(), FocusSessionEntry, formatDuration(), formatTime(), PRESET_OPTIONS, SessionMode
+Cohesion: 0.20
+Nodes (8): AlarmState, FOCUS_EXIT_MESSAGES, FocusPage(), FocusSessionEntry, formatDuration(), formatTime(), PRESET_OPTIONS, SessionMode
 
 ### Community 192 - "Community 192"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, actor_id
+Cohesion: 0.11
+Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, actor_id, list_id (+11 more)
 
 ### Community 193 - "Community 193"
-Cohesion: 0.33
-Nodes (6): description, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.29
+Nodes (7): retention_mode, autoincrement, default, name, notNull, primaryKey, type
 
 ### Community 194 - "Community 194"
 Cohesion: 0.25
@@ -1322,8 +1343,8 @@ Cohesion: 0.25
 Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_message_id_thread_messages_id_fk
 
 ### Community 202 - "Community 202"
-Cohesion: 0.33
-Nodes (6): list_id, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.25
+Nodes (8): dashboardRouter, UserRole, InviteSummary, requireAuth(), UserRoleAssignment, AuthTokenPayload, signAccessToken(), verifyAccessToken()
 
 ### Community 203 - "Community 203"
 Cohesion: 0.33
@@ -1334,12 +1355,12 @@ Cohesion: 0.25
 Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_announcement_id_announcements_id_fk
 
 ### Community 205 - "Community 205"
-Cohesion: 0.33
-Nodes (6): metadata, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.11
+Nodes (22): closePool(), pool, clearDatabaseForTests(), initializeDatabase(), migrationLock, ensureDefaultRoles(), ensureInviteRoleAssignments(), ensureUserRoleAssignments() (+14 more)
 
 ### Community 206 - "Community 206"
-Cohesion: 0.33
-Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.22
+Nodes (9): indexes, columns, isUnique, name, columns, isUnique, name, idx_card_assignees_card_id (+1 more)
 
 ### Community 207 - "Community 207"
 Cohesion: 0.25
@@ -1598,8 +1619,8 @@ Cohesion: 0.25
 Nodes (7): 12.4, 12.6, API, DB, and Feature Map, DB attention areas, Important recent capability milestones, Major backend feature areas, Major client feature areas
 
 ### Community 271 - "Community 271"
-Cohesion: 0.32
-Nodes (5): message, subject, isOpsAlertConfigured(), sendOpsAlert(), logger
+Cohesion: 0.25
+Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, card_assignees_card_id_cards_id_fk
 
 ### Community 272 - "Community 272"
 Cohesion: 0.46
@@ -1658,8 +1679,8 @@ Cohesion: 0.29
 Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
 
 ### Community 286 - "Community 286"
-Cohesion: 0.29
-Nodes (7): autoincrement, default, name, notNull, primaryKey, type, archive_retention_minutes
+Cohesion: 0.25
+Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_announcement_id_announcements_id_fk
 
 ### Community 287 - "Community 287"
 Cohesion: 0.29
@@ -1670,12 +1691,12 @@ Cohesion: 0.29
 Nodes (7): retention_minutes, autoincrement, default, name, notNull, primaryKey, type
 
 ### Community 289 - "Community 289"
-Cohesion: 0.33
-Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.25
+Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_user_id_users_id_fk
 
 ### Community 290 - "Community 290"
-Cohesion: 0.29
-Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
+Cohesion: 0.33
+Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
 
 ### Community 291 - "Community 291"
 Cohesion: 0.29
@@ -1686,8 +1707,8 @@ Cohesion: 0.29
 Nodes (7): retention_minutes, autoincrement, default, name, notNull, primaryKey, type
 
 ### Community 293 - "Community 293"
-Cohesion: 0.33
-Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.25
+Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcements_created_by_users_id_fk
 
 ### Community 294 - "Community 294"
 Cohesion: 0.29
@@ -1714,16 +1735,16 @@ Cohesion: 0.29
 Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
 
 ### Community 300 - "Community 300"
-Cohesion: 0.29
-Nodes (7): autoincrement, default, name, notNull, primaryKey, type, background
+Cohesion: 0.25
+Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, boards_created_by_users_id_fk
 
 ### Community 301 - "Community 301"
-Cohesion: 0.29
-Nodes (7): retention_minutes, autoincrement, default, name, notNull, primaryKey, type
+Cohesion: 0.25
+Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, card_assignees_user_id_users_id_fk
 
 ### Community 302 - "Community 302"
-Cohesion: 0.29
-Nodes (7): retention_mode, autoincrement, default, name, notNull, primaryKey, type
+Cohesion: 0.25
+Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, audit_logs_actor_id_users_id_fk
 
 ### Community 303 - "Community 303"
 Cohesion: 0.29
@@ -1766,8 +1787,8 @@ Cohesion: 0.33
 Nodes (4): createInvite(), listInvites(), lookupInvite(), updateInviteRoles()
 
 ### Community 313 - "Community 313"
-Cohesion: 0.13
-Nodes (12): AppShell(), hasUserPermission(), HomePage(), AppFeedbackDialog, AppFeedbackState, useAppFeedbackStore, PermissionErrorState, usePermissionErrorStore (+4 more)
+Cohesion: 0.33
+Nodes (6): thread_reply_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 314 - "Community 314"
 Cohesion: 0.33
@@ -1798,20 +1819,20 @@ Cohesion: 0.53
 Nodes (4): formatActivityLabel(), getActivitySnippet(), getActorName(), getMetadataString()
 
 ### Community 322 - "Community 322"
-Cohesion: 0.11
-Nodes (19): columns, mentioned_user_id, metadata, thread_reply_id, autoincrement, name, notNull, primaryKey (+11 more)
+Cohesion: 0.33
+Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 323 - "Community 323"
 Cohesion: 0.33
 Nodes (6): autoincrement, name, notNull, primaryKey, type, board_id
 
 ### Community 324 - "Community 324"
-Cohesion: 0.29
-Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
+Cohesion: 0.33
+Nodes (6): autoincrement, name, notNull, primaryKey, type, actor_id
 
 ### Community 325 - "Community 325"
-Cohesion: 0.33
-Nodes (6): user_id, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.29
+Nodes (7): autoincrement, default, name, notNull, primaryKey, type, archive_retention_minutes
 
 ### Community 326 - "Community 326"
 Cohesion: 0.33
@@ -1822,8 +1843,8 @@ Cohesion: 0.33
 Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 328 - "Community 328"
-Cohesion: 0.33
-Nodes (6): type, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.29
+Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
 
 ### Community 329 - "Community 329"
 Cohesion: 0.33
@@ -1838,16 +1859,16 @@ Cohesion: 0.33
 Nodes (6): id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 332 - "Community 332"
-Cohesion: 0.29
-Nodes (7): columns, name, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.33
+Nodes (6): name, autoincrement, name, notNull, primaryKey, type
 
 ### Community 333 - "Community 333"
 Cohesion: 0.33
 Nodes (6): updated_at, autoincrement, name, notNull, primaryKey, type
 
 ### Community 334 - "Community 334"
-Cohesion: 0.50
-Nodes (4): getInitialBadgeMode(), normalizeThreadBadgeMode(), ThreadBadgeMode, ThreadSettingsState
+Cohesion: 0.29
+Nodes (7): columns, mentioned_user_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 335 - "Community 335"
 Cohesion: 0.50
@@ -1855,43 +1876,67 @@ Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
 
 ### Community 336 - "Community 336"
 Cohesion: 0.33
-Nodes (6): type, autoincrement, name, notNull, primaryKey, type
+Nodes (6): name, autoincrement, name, notNull, primaryKey, type
 
 ### Community 337 - "Community 337"
 Cohesion: 0.50
 Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
 
 ### Community 338 - "Community 338"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_created_at
+Cohesion: 0.33
+Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 339 - "Community 339"
 Cohesion: 0.33
-Nodes (6): created_by, autoincrement, name, notNull, primaryKey, type
+Nodes (6): thread_reply_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 340 - "Community 340"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_actor_id
+Cohesion: 0.33
+Nodes (6): autoincrement, name, notNull, primaryKey, type, action
+
+### Community 341 - "Community 341"
+Cohesion: 0.29
+Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
 
 ### Community 342 - "Community 342"
 Cohesion: 0.33
-Nodes (6): updated_at, autoincrement, name, notNull, primaryKey, type
+Nodes (6): type, autoincrement, name, notNull, primaryKey, type
 
 ### Community 343 - "Community 343"
-Cohesion: 0.06
-Nodes (31): columns, autoincrement, name, notNull, primaryKey, type, autoincrement, name (+23 more)
+Cohesion: 0.33
+Nodes (6): autoincrement, name, notNull, primaryKey, type, board_id
+
+### Community 344 - "Community 344"
+Cohesion: 0.33
+Nodes (6): created_at, autoincrement, name, notNull, primaryKey, type
+
+### Community 345 - "Community 345"
+Cohesion: 0.33
+Nodes (6): created_by, autoincrement, name, notNull, primaryKey, type
 
 ### Community 346 - "Community 346"
 Cohesion: 0.33
-Nodes (6): request_id, autoincrement, name, notNull, primaryKey, type
+Nodes (6): id, autoincrement, name, notNull, primaryKey, type
 
-### Community 349 - "Community 349"
+### Community 347 - "Community 347"
 Cohesion: 0.33
-Nodes (6): subject, autoincrement, name, notNull, primaryKey, type
+Nodes (6): id, autoincrement, name, notNull, primaryKey, type
+
+### Community 348 - "Community 348"
+Cohesion: 0.33
+Nodes (6): type, autoincrement, name, notNull, primaryKey, type
+
+### Community 350 - "Community 350"
+Cohesion: 0.50
+Nodes (4): columns, isUnique, name, idx_activity_logs_board_created
 
 ### Community 351 - "Community 351"
 Cohesion: 0.33
-Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
+Nodes (6): list_id, autoincrement, name, notNull, primaryKey, type
+
+### Community 352 - "Community 352"
+Cohesion: 0.50
+Nodes (4): columns, isUnique, name, idx_activity_logs_actor_id
 
 ### Community 353 - "Community 353"
 Cohesion: 0.33
@@ -1899,7 +1944,7 @@ Nodes (6): id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 354 - "Community 354"
 Cohesion: 0.33
-Nodes (6): ip, autoincrement, name, notNull, primaryKey, type
+Nodes (6): metadata, autoincrement, name, notNull, primaryKey, type
 
 ### Community 355 - "Community 355"
 Cohesion: 0.33
@@ -1912,6 +1957,10 @@ Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
 ### Community 357 - "Community 357"
 Cohesion: 0.33
 Nodes (6): name, autoincrement, name, notNull, primaryKey, type
+
+### Community 358 - "Community 358"
+Cohesion: 0.33
+Nodes (6): storage_path, autoincrement, name, notNull, primaryKey, type
 
 ### Community 359 - "Community 359"
 Cohesion: 0.33
@@ -1931,7 +1980,7 @@ Nodes (6): created_by, autoincrement, name, notNull, primaryKey, type
 
 ### Community 363 - "Community 363"
 Cohesion: 0.33
-Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
+Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
 
 ### Community 364 - "Community 364"
 Cohesion: 0.33
@@ -1941,9 +1990,21 @@ Nodes (6): user_agent, autoincrement, name, notNull, primaryKey, type
 Cohesion: 0.33
 Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
 
+### Community 366 - "Community 366"
+Cohesion: 0.33
+Nodes (6): subject, autoincrement, name, notNull, primaryKey, type
+
+### Community 367 - "Community 367"
+Cohesion: 0.33
+Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
+
 ### Community 368 - "Community 368"
 Cohesion: 0.33
 Nodes (6): ip, autoincrement, name, notNull, primaryKey, type
+
+### Community 369 - "Community 369"
+Cohesion: 0.33
+Nodes (6): type, autoincrement, name, notNull, primaryKey, type
 
 ### Community 370 - "Community 370"
 Cohesion: 0.33
@@ -1961,13 +2022,17 @@ Nodes (6): request_id, autoincrement, name, notNull, primaryKey, type
 Cohesion: 0.33
 Nodes (6): target_id, autoincrement, name, notNull, primaryKey, type
 
+### Community 374 - "Community 374"
+Cohesion: 0.33
+Nodes (6): updated_at, autoincrement, name, notNull, primaryKey, type
+
 ### Community 375 - "Community 375"
 Cohesion: 0.33
 Nodes (6): user_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 376 - "Community 376"
 Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, body
+Nodes (6): autoincrement, name, notNull, primaryKey, type, audience
 
 ### Community 377 - "Community 377"
 Cohesion: 0.33
@@ -2017,13 +2082,17 @@ Nodes (6): target_id, autoincrement, name, notNull, primaryKey, type
 Cohesion: 0.33
 Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
 
+### Community 389 - "Community 389"
+Cohesion: 0.33
+Nodes (6): ip, autoincrement, name, notNull, primaryKey, type
+
 ### Community 390 - "Community 390"
 Cohesion: 0.33
 Nodes (6): type, autoincrement, name, notNull, primaryKey, type
 
 ### Community 391 - "Community 391"
 Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, board_id
+Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 392 - "Community 392"
 Cohesion: 0.33
@@ -2035,7 +2104,11 @@ Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
 
 ### Community 394 - "Community 394"
 Cohesion: 0.33
-Nodes (6): name, autoincrement, name, notNull, primaryKey, type
+Nodes (6): thread_reply_id, autoincrement, name, notNull, primaryKey, type
+
+### Community 395 - "Community 395"
+Cohesion: 0.33
+Nodes (6): created_at, autoincrement, name, notNull, primaryKey, type
 
 ### Community 396 - "Community 396"
 Cohesion: 0.33
@@ -2043,15 +2116,15 @@ Nodes (6): autoincrement, name, notNull, primaryKey, type, actor_id
 
 ### Community 397 - "Community 397"
 Cohesion: 0.33
-Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
+Nodes (6): list_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 398 - "Community 398"
 Cohesion: 0.33
 Nodes (6): ip, autoincrement, name, notNull, primaryKey, type
 
 ### Community 399 - "Community 399"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
+Cohesion: 0.33
+Nodes (6): thread_reply_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 400 - "Community 400"
 Cohesion: 0.33
@@ -2071,7 +2144,11 @@ Nodes (6): target_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 404 - "Community 404"
 Cohesion: 0.33
-Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
+Nodes (6): autoincrement, name, notNull, primaryKey, type, audience
+
+### Community 405 - "Community 405"
+Cohesion: 0.33
+Nodes (6): autoincrement, name, notNull, primaryKey, type, board_id
 
 ### Community 406 - "Community 406"
 Cohesion: 0.50
@@ -2079,7 +2156,7 @@ Nodes (4): columns, isUnique, name, idx_activity_logs_actor_id
 
 ### Community 407 - "Community 407"
 Cohesion: 0.33
-Nodes (6): user_id, autoincrement, name, notNull, primaryKey, type
+Nodes (6): created_at, autoincrement, name, notNull, primaryKey, type
 
 ### Community 408 - "Community 408"
 Cohesion: 0.33
@@ -2100,6 +2177,10 @@ Nodes (5): now, rawToken, token, tokenHash, userId
 ### Community 412 - "Community 412"
 Cohesion: 0.33
 Nodes (5): createdRoleId, memberRole, registerUser(), roleIds, roles
+
+### Community 413 - "Community 413"
+Cohesion: 0.33
+Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
 
 ### Community 414 - "Community 414"
 Cohesion: 0.40
@@ -2165,6 +2246,10 @@ Nodes (4): BugReportAdminListResponse, BugReportStatus, BugReportSummary, BugRep
 Cohesion: 0.50
 Nodes (4): clampRetentionMinutes(), getArchiveCountdownLabel(), splitRetentionMinutes(), toRetentionMinutes()
 
+### Community 430 - "Community 430"
+Cohesion: 0.40
+Nodes (5): indexes, columns, isUnique, name, idx_attachments_card_id
+
 ### Community 431 - "Community 431"
 Cohesion: 0.50
 Nodes (3): InviteLookup, InviteStatus, InviteSummary
@@ -2177,6 +2262,14 @@ Nodes (4): 10. Build the app and run migrations, code:bash (sudo -u flowstate ba
 Cohesion: 0.50
 Nodes (4): code:sshconfig (Host flowstate-vps), code:bash (ssh flowstate-vps), code:bash (sudo -i), Setup order we actually followed
 
+### Community 434 - "Community 434"
+Cohesion: 0.50
+Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
+
+### Community 435 - "Community 435"
+Cohesion: 0.50
+Nodes (4): columns, isUnique, name, idx_activity_logs_actor_id
+
 ### Community 436 - "Community 436"
 Cohesion: 0.50
 Nodes (4): columns, isUnique, name, idx_activity_logs_board_created
@@ -2188,10 +2281,6 @@ Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
 ### Community 442 - "Community 442"
 Cohesion: 0.50
 Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
-
-### Community 443 - "Community 443"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_board_created
 
 ### Community 444 - "Community 444"
 Cohesion: 0.50
@@ -2249,25 +2338,29 @@ Nodes (3): 5. Install Node 22 and Bun, code:bash (sudo -u flowstate bash -lc 'cu
 Cohesion: 0.67
 Nodes (3): 4. Base packages, firewall, and Fail2Ban, code:bash (apt update && apt upgrade -y), code:bash (ufw allow OpenSSH)
 
+### Community 470 - "Community 470"
+Cohesion: 0.20
+Nodes (8): registerUser(), reportId, assignRoles(), createBoardWithDefaults(), getRoleIdByName(), registerAndGetAuth(), registerUser(), Request
+
 ## Knowledge Gaps
-- **3309 isolated node(s):** `code`, `document`, `paper`, `image`, `video` (+3304 more)
+- **3316 isolated node(s):** `code`, `document`, `paper`, `image`, `video` (+3311 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **42 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **45 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `useAuthStore` connect `Community 32` to `Community 121`, `Community 3`, `Community 102`, `Community 45`, `Community 309`, `Community 313`, `Community 315`, `Community 190`, `Community 191`?**
+- **Why does `useAuthStore` connect `Community 32` to `Community 3`, `Community 102`, `Community 45`, `Community 309`, `Community 438`, `Community 437`, `Community 440`, `Community 121`, `Community 315`, `Community 349`, `Community 190`, `Community 191`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `useSocketStore` connect `Community 313` to `Community 33`, `Community 45`, `Community 102`?**
+- **Why does `useSocketStore` connect `Community 32` to `Community 33`, `Community 45`, `Community 102`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Why does `invalidateApiCacheByTag()` connect `Community 33` to `Community 44`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **Are the 87 inferred relationships involving `apiRequest()` (e.g. with `listActivityLogs()` and `getSessionToken()`) actually correct?**
   _`apiRequest()` has 87 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `code`, `document`, `paper` to the rest of the system?**
-  _3309 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _3316 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.05889724310776942 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.051715309779825906 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05827505827505827 - nodes in this community are weakly interconnected._

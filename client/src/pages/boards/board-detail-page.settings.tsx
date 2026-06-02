@@ -79,6 +79,7 @@ export function BoardSettingsSection({
   onOpenArchiveBoard: () => void;
   onOpenDeleteBoard: () => void;
 }): JSX.Element {
+  const retentionDisabled = retentionDays === 0 && retentionHours === 0 && retentionMinutesPart === 0;
   return (
     <Card className={boardGlassCard}>
       <CardHeader className="pb-3">
@@ -122,7 +123,11 @@ export function BoardSettingsSection({
           <div className={`space-y-3 rounded-lg p-3 ${boardGlassSubtle}`}>
             <div className="flex flex-wrap gap-1">
               <p className="text-sm font-medium">Done card retention</p>
-              <p className="text-xs text-muted-foreground">Set how long completed cards remain before cleanup.</p>
+              <p className="text-xs text-muted-foreground">
+                {retentionDisabled
+                  ? "Never auto-delete completed cards unless you set a duration."
+                  : "Set how long completed cards remain before cleanup."}
+              </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-3">
               <label className="space-y-1 text-xs text-muted-foreground">
@@ -186,6 +191,9 @@ export function BoardSettingsSection({
                 Delete attachments only
               </Button>
             </div>
+            {retentionDisabled && (
+              <p className="text-xs font-medium text-muted-foreground">Current cleanup timer: Never</p>
+            )}
           </div>
           <div className={`space-y-3 rounded-lg p-3 ${boardGlassSubtle}`}>
             <div className="flex flex-wrap gap-1">

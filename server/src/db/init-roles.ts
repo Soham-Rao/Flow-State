@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 
+import { eq } from "drizzle-orm";
+
 import { db, type DbTransaction } from "./connection.js";
 import {
   inviteRoleAssignments,
@@ -21,6 +23,11 @@ const GUEST_ROLE_PRIORITY = 1;
 const ADMIN_ROLE_COLOR = "#ef4444";
 const MEMBER_ROLE_COLOR = "#64748b";
 const GUEST_ROLE_COLOR = "#94a3b8";
+const DEPRECATED_THREAD_PERMISSIONS = new Set<RolePermission>([
+  "view_threads",
+  "create_threads",
+  "reply_threads"
+]);
 
 const MEMBER_ROLE_PERMISSIONS = [
   "view_boards",
@@ -40,9 +47,6 @@ const MEMBER_ROLE_PERMISSIONS = [
   "edit_comments",
   "react",
   "mention_users",
-  "view_threads",
-  "create_threads",
-  "reply_threads",
   "delete_threads",
   "pin_threads",
   "dm_read",
@@ -58,12 +62,7 @@ const MEMBER_ROLE_PERMISSIONS = [
   "view_settings"
 ] satisfies RolePermission[];
 
-const GUEST_ROLE_PERMISSIONS = [
-  "view_boards",
-  "view_activity_logs",
-  "dm_read",
-  "dm_write"
-] satisfies RolePermission[];
+const GUEST_ROLE_PERMISSIONS = [] satisfies RolePermission[];
 
 export async function ensureDefaultRoles(): Promise<{ adminRoleId: string; memberRoleId: string; guestRoleId: string }> {
   return db.transaction(async (tx: DbTransaction) => {
@@ -124,7 +123,9 @@ export async function ensureDefaultRoles(): Promise<{ adminRoleId: string; membe
         .execute();
     }
 
-    const adminPermissions = rolePermissions.map((permission) => ({
+    const adminPermissions = rolePermissions
+      .filter((permission) => !DEPRECATED_THREAD_PERMISSIONS.has(permission))
+      .map((permission) => ({
       roleId: adminRoleId,
       permission,
       createdAt: now
@@ -142,7 +143,10 @@ export async function ensureDefaultRoles(): Promise<{ adminRoleId: string; membe
 
     await tx.insert(rolePermissionsTable).ignore().values(adminPermissions).execute();
     await tx.insert(rolePermissionsTable).ignore().values(memberPermissions).execute();
-    await tx.insert(rolePermissionsTable).ignore().values(guestPermissions).execute();
+    await tx.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, guestRoleId)).execute();
+    if (guestPermissions.length > 0) {
+      await tx.insert(rolePermissionsTable).ignore().values(guestPermissions).execute();
+    }
 
     return { adminRoleId, memberRoleId, guestRoleId };
   });

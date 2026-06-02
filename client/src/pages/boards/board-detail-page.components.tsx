@@ -351,7 +351,7 @@ export function CardSummary({
                 {dueLabel}
               </span>
             )}
-            {card.doneEnteredAt && (
+            {card.doneEnteredAt && retentionMinutes > 0 && getTimeLeftLabel(card.doneEnteredAt, nowMs, retentionMinutes) && (
               <span className="rounded-full border badge-rose px-2 py-0.5 text-[11px]">
                 {getTimeLeftLabel(card.doneEnteredAt, nowMs, retentionMinutes)}
               </span>

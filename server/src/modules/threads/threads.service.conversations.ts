@@ -18,7 +18,7 @@ import {
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { sanitizeOptionalPlainText, sanitizeRequiredPlainText } from "../../utils/sanitize.js";
-import { assertPermission } from "../../utils/permissions.js";
+import { assertPermission, userHasPermission } from "../../utils/permissions.js";
 import type {
   ChannelConversationSummary,
   ChannelMemberSummary,
@@ -37,6 +37,33 @@ import { buildMessagePreview, getDmConversationRows, getThreadMessageMentionCoun
 import type { AddChannelMembersInput, CreateChannelInput, UpdateChannelInput, UpdateChannelMemberOverridesInput } from "./threads.schema.js";
 
 const CHANNEL_OVERRIDE_PERMISSIONS = new Set(["channel_read", "channel_write", "channel_edit", "channel_members_add", "channel_members_remove", "channel_manage_overrides", "channel_delete"]);
+
+async function canUseDmWithAdmins(userId: string): Promise<boolean> {
+  const user = await ensureUserExists(userId);
+  return user.role === "guest";
+}
+
+async function assertDmDiscoveryPermission(userId: string): Promise<"all" | "admins"> {
+  if (await userHasPermission(userId, "dm_read")) {
+    return "all";
+  }
+  if (await canUseDmWithAdmins(userId)) {
+    return "admins";
+  }
+  throw new ApiError(403, "You do not have permission to perform this action");
+}
+
+async function assertDmStartPermission(userId: string, otherUserId: string): Promise<ThreadUserSummary> {
+  const otherUser = await ensureUserExists(otherUserId);
+  if (await userHasPermission(userId, "dm_write")) {
+    return otherUser;
+  }
+  const user = await ensureUserExists(userId);
+  if (user.role === "guest" && otherUser.role === "admin") {
+    return otherUser;
+  }
+  throw new ApiError(403, "You do not have permission to perform this action");
+}
 
 function normalizeChannelOverrides(overrides?: ThreadPermissionOverride[]): ThreadPermissionOverride[] {
   if (!overrides || overrides.length === 0) return [];
@@ -67,7 +94,23 @@ async function setMemberOverrides(conversationId: string, userId: string, overri
 }
 
 export async function listDmUsers(userId: string): Promise<ThreadUserSummary[]> {
-  await assertPermission(userId, "dm_read");
+  const mode = await assertDmDiscoveryPermission(userId);
+  if (mode === "admins") {
+    return db
+      .select({
+        id: users.id,
+        name: users.name,
+        displayName: users.displayName,
+        username: users.username,
+        email: users.email,
+        bio: users.bio,
+        role: users.role
+      })
+      .from(users)
+      .where(eq(users.role, "admin"))
+      .orderBy(users.name);
+  }
+
   return db
     .select({
       id: users.id,
@@ -83,9 +126,14 @@ export async function listDmUsers(userId: string): Promise<ThreadUserSummary[]> 
 }
 
 export async function listDmConversations(userId: string): Promise<DmConversationSummary[]> {
-  await assertPermission(userId, "dm_read");
+  const mode = await assertDmDiscoveryPermission(userId);
 
-  const rows = await getDmConversationRows(userId);
+  const allRows = await getDmConversationRows(userId);
+  const rows = mode === "all"
+    ? allRows
+    : (await Promise.all(allRows.map(async (row) => (
+      await userHasConversationPermission(userId, row.id, "dm_read") ? row : null
+    )))).filter((row): row is (typeof allRows)[number] => row !== null);
 
   if (rows.length === 0) {
     return [];
@@ -164,8 +212,7 @@ export async function listDmConversations(userId: string): Promise<DmConversatio
 }
 
 export async function getOrCreateDmConversation(userId: string, otherUserId: string): Promise<DmConversationSummary> {
-  await assertPermission(userId, "dm_write");
-  const otherUser = await ensureUserExists(otherUserId);
+  const otherUser = await assertDmStartPermission(userId, otherUserId);
 
   const existingMemberships: Array<{ conversationId: string }> = await db
     .select({ conversationId: threadMembers.conversationId })

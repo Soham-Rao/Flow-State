@@ -237,6 +237,12 @@ Examples where deletion may make sense:
 
 If a card contains discussion, assignments, or historical value, archiving is often a safer choice.
 
+## Done-list cleanup
+
+Moving a card to a Done list can start an automatic cleanup countdown if the board has a cleanup timer configured.
+
+By default, the cleanup timer is set to Never. That means completed cards stay visible and no countdown badge appears until someone manually enables a retention period in the board settings.
+
 ## Archived lists and archived cards
 
 If you cannot find something, it may not be gone. It may be archived.

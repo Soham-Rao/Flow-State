@@ -484,8 +484,29 @@ export async function getThreadVoiceNoteDownloadInfo(
   };
 }
 
-export async function getThreadAttachmentDownloadInfo(attachmentId: string): Promise<{ filePath: string; originalName: string }> {
+export async function getThreadAttachmentDownloadInfo(userId: string, attachmentId: string): Promise<{ filePath: string; originalName: string }> {
   const attachment = await getThreadAttachmentRecord(attachmentId);
+  const messageRows = await db
+    .select({ conversationId: threadMessages.conversationId })
+    .from(threadMessages)
+    .where(eq(threadMessages.id, attachment.messageId))
+    .limit(1);
+
+  const message = messageRows[0];
+
+  if (!message) {
+    throw new ApiError(404, "Message not found");
+  }
+
+  const conversation = await getConversation(message.conversationId);
+  await assertConversationMember(userId, message.conversationId);
+
+  if (conversation.type === "dm") {
+    await assertConversationPermission(userId, message.conversationId, "dm_read");
+  } else {
+    await assertConversationPermission(userId, message.conversationId, "channel_read");
+  }
+
   return {
     filePath: resolveThreadAttachmentPath(attachment.storagePath),
     originalName: attachment.originalName

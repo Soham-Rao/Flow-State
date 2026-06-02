@@ -34,6 +34,7 @@ export async function cleanupExpiredCards(now: Date = new Date()): Promise<void>
   }>) {
     if (!row.doneEnteredAt) continue;
     const retentionMinutes = clampRetentionMinutes(row.retentionMinutes ?? DEFAULT_RETENTION_MINUTES);
+    if (retentionMinutes <= 0) continue;
     const expiresAt = row.doneEnteredAt.getTime() + retentionMinutes * 60 * 1000;
     if (nowMs < expiresAt) continue;
 

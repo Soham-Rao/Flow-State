@@ -9,7 +9,7 @@ const retentionModeSchema = z.enum(retentionModes);
 const labelColorSchema = z.enum(labelColors);
 const cardCoverColorSchema = z.enum(cardCoverColors);
 
-const retentionMinutesSchema = z.number().int().min(1).max(525600);
+const retentionMinutesSchema = z.number().int().min(0).max(525600);
 const archiveRetentionMinutesSchema = z.number().int().min(1).max(525600);
 
 export const createBoardSchema = z.object({
@@ -17,7 +17,7 @@ export const createBoardSchema = z.object({
   description: z.string().trim().max(500).optional(),
   background: boardBackgroundSchema.default("teal-gradient"),
   retentionMode: retentionModeSchema.default("card_and_attachments"),
-  retentionMinutes: retentionMinutesSchema.default(7 * 24 * 60),
+  retentionMinutes: retentionMinutesSchema.default(0),
   archiveRetentionMinutes: archiveRetentionMinutesSchema.default(7 * 24 * 60)
 });
 

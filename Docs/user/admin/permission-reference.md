@@ -72,16 +72,16 @@ That is why access can differ by location even when a user’s broad role stays 
 
 | Permission | Meaning | What it usually enables | Notes |
 | --- | --- | --- | --- |
-| `view_threads` | View threads area | Open thread surfaces | Broad threads visibility |
-| `create_threads` | Create threads | Start new thread conversations | Not identical to replying everywhere |
-| `reply_threads` | Reply in threads | Reply inside thread contexts | Needed for threaded discussion |
+| `view_threads` | Deprecated compatibility key | Older thread-surface visibility data | Use `dm_read` and `channel_read` instead |
+| `create_threads` | Deprecated compatibility key | Older conversation creation data | Use `dm_write` and `channel_write` instead |
+| `reply_threads` | Deprecated compatibility key | Older reply capability data | Use `dm_write` and `channel_write` instead |
 | `delete_threads` | Delete threads/messages broadly | Remove thread content | Strong moderation action |
 | `pin_threads` | Pin threads | Pin important threads | Organizational feature |
 | `dm_read` | Read DMs | Open direct message conversations | Direct-message visibility |
 | `dm_write` | Send DMs | Write in DMs | Needed for active DM participation |
 | `dm_encrypt` | Encrypt DMs | Use encrypted DM storage path | Mostly a protected capability flag |
 | `channel_read` | Read channels | View channel messages | Can be overridden per channel |
-| `channel_write` | Write in channels | Send channel messages | Can be overridden per channel |
+| `channel_write` | Write in channels | Send channel messages, replies, and reactions | Can be overridden per channel |
 | `channel_edit` | Edit channels | Rename channels and update descriptions | Channel-structure control |
 | `channel_members_add` | Add channel members | Add people to channels | Membership management |
 | `channel_members_remove` | Remove channel members | Remove people from channels | Membership management |
@@ -107,6 +107,8 @@ The channel override model can directly affect these permissions in one specific
 - `channel_delete`
 
 That means a user may be broadly unable to do something but allowed in one specific channel, or broadly allowed but denied in one sensitive channel.
+
+Channel write access also implies the practical collaboration actions inside that channel, including replies and reactions. For conflicting scoped overrides, a deny wins over an allow.
 
 ## Board-scoped override examples
 

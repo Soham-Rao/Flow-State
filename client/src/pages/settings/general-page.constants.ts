@@ -301,27 +301,6 @@ export const permissionGroups: PermissionGroup[] = [
     description: "Control access to threads, direct messages, and channels.",
     items: [
       {
-        permission: "view_threads",
-        title: "View threads",
-        description: "Open the threads area and browse conversations.",
-        enabledLabel: "Can view threads",
-        disabledLabel: "Cannot view threads"
-      },
-      {
-        permission: "create_threads",
-        title: "Create threads",
-        description: "Start new message threads.",
-        enabledLabel: "Can create threads",
-        disabledLabel: "Cannot create threads"
-      },
-      {
-        permission: "reply_threads",
-        title: "Reply in threads",
-        description: "Reply within existing threads.",
-        enabledLabel: "Can reply in threads",
-        disabledLabel: "Cannot reply in threads"
-      },
-      {
         permission: "delete_threads",
         title: "Delete threads",
         description: "Remove threads and their messages.",
