@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { isFocusAudioUnlocked, playFocusChime, unlockFocusAudio } from "@/lib/focus-timer";
 import { glassCardClass, glassInputClass, glassStrongClass, glassSubtleClass } from "@/pages/glassmorphism.styles";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -30,14 +31,6 @@ const PRESET_OPTIONS = [
   { label: "90 / 10 Deep Work", focus: 90, break: 10 },
   { label: "50 / 10 Sustained", focus: 50, break: 10 },
   { label: "25 / 5 Classic", focus: 25, break: 5 }
-];
-
-const FOCUS_EXIT_MESSAGES = [
-  "You are close enough to make this count.",
-  "The tab can wait. Your attention is the rare thing.",
-  "A tiny return now saves a messy restart later.",
-  "Stay with the work a little longer.",
-  "One clean block beats ten scattered almosts."
 ];
 
 const formatTime = (totalSeconds: number): string => {
@@ -68,17 +61,6 @@ const createId = (): string => {
   return `session_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 };
 
-const canUseFullscreen = (): boolean => (
-  typeof document !== "undefined" &&
-  Boolean(document.fullscreenEnabled && document.documentElement.requestFullscreen)
-);
-
-const getFullscreenExitMessage = (remainingSeconds: number): string => {
-  const minutesLeft = Math.max(1, Math.ceil(remainingSeconds / 60));
-  const message = FOCUS_EXIT_MESSAGES[Math.floor(Math.random() * FOCUS_EXIT_MESSAGES.length)];
-  return `${minutesLeft} min left. ${message}`;
-};
-
 export function FocusPage(): JSX.Element {
   const user = useAuthStore((state) => state.user);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -93,14 +75,10 @@ export function FocusPage(): JSX.Element {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [history, setHistory] = useState<FocusSessionEntry[]>([]);
   const [sessionId, setSessionId] = useState(() => createId());
-  const [fullscreenPromptMessage, setFullscreenPromptMessage] = useState<string | null>(null);
   const [alarmState, setAlarmState] = useState<AlarmState | null>(null);
   const lastRecordedSessionId = useRef<string | null>(null);
   const lastDurationKey = useRef<string>("focus:90-break:10-mode:focus");
-  const suppressFullscreenPauseRef = useRef(false);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const audioUnlockedRef = useRef(false);
   const alarmIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -206,27 +184,6 @@ export function FocusPage(): JSX.Element {
     window.localStorage.setItem(storageKey, payload);
   }, [storageKey]);
 
-  const requestFocusFullscreen = useCallback(async (): Promise<boolean> => {
-    if (mode !== "focus" || !canUseFullscreen()) return true;
-    if (document.fullscreenElement) return true;
-    try {
-      await document.documentElement.requestFullscreen();
-      return true;
-    } catch {
-      return false;
-    }
-  }, [mode]);
-
-  const exitFullscreenSilently = useCallback((): void => {
-    if (typeof document === "undefined" || !document.fullscreenElement) return;
-    suppressFullscreenPauseRef.current = true;
-    void document.exitFullscreen().finally(() => {
-      window.setTimeout(() => {
-        suppressFullscreenPauseRef.current = false;
-      }, 0);
-    });
-  }, []);
-
 
 
 
@@ -267,24 +224,9 @@ export function FocusPage(): JSX.Element {
     },
     [mode, remainingSeconds, sessionId, totalSeconds]
   );
-  const ensureAudioContext = useCallback(() => {
-    if (audioContextRef.current) return audioContextRef.current;
-    if (typeof window === "undefined") return null;
-    const AudioContextCtor = window.AudioContext;
-    if (!AudioContextCtor) return null;
-    const context = new AudioContextCtor();
-    audioContextRef.current = context;
-    return context;
-  }, []);
-
   const unlockAudio = useCallback(() => {
-    const context = ensureAudioContext();
-    if (!context) return;
-    if (context.state === "suspended") {
-      void context.resume();
-    }
-    audioUnlockedRef.current = true;
-  }, [ensureAudioContext]);
+    unlockFocusAudio();
+  }, []);
 
 useEffect(() => {
   const shouldResume = searchParams.get("resume") === "1";
@@ -295,26 +237,6 @@ useEffect(() => {
       setRemainingSeconds((mode === "focus" ? focusMinutes : breakMinutes) * 60);
     }
     unlockAudio();
-    if (mode === "focus" && canUseFullscreen() && !document.fullscreenElement) {
-      setHasStarted(true);
-      setFullscreenPromptMessage("Resume is ready. Return to fullscreen to keep this focus block clean.");
-      const nextRemaining = remainingSeconds <= 0
-        ? (mode === "focus" ? focusMinutes : breakMinutes) * 60
-        : remainingSeconds;
-      persistFocusState({
-        focusMinutes,
-        breakMinutes,
-        mode,
-        remainingSeconds: nextRemaining,
-        isRunning: false,
-        hasStarted: true,
-        history
-      });
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete("resume");
-      setSearchParams(nextParams, { replace: true });
-      return;
-    }
     setHasStarted(true);
     setIsRunning(true);
     const nextRemaining = remainingSeconds <= 0
@@ -336,32 +258,8 @@ useEffect(() => {
 }, [breakMinutes, focusMinutes, hasLoaded, history, isRunning, mode, remainingSeconds, searchParams, setSearchParams, unlockAudio, persistFocusState]);
 
   const playChime = useCallback(() => {
-    const context = ensureAudioContext();
-    if (!context) return;
-    if (context.state === "suspended") {
-      void context.resume();
-    }
-    const now = context.currentTime;
-    const gain = context.createGain();
-    gain.gain.value = 0.0001;
-    gain.connect(context.destination);
-
-    const beep = (time: number, frequency: number) => {
-      const osc = context.createOscillator();
-      osc.type = "sine";
-      osc.frequency.value = frequency;
-      osc.connect(gain);
-      osc.start(time);
-      osc.stop(time + 0.12);
-      gain.gain.setValueAtTime(0.0001, time);
-      gain.gain.exponentialRampToValueAtTime(0.2, time + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.12);
-    };
-
-    beep(now, 880);
-    beep(now + 0.2, 880);
-    beep(now + 0.4, 660);
-  }, [ensureAudioContext]);
+    playFocusChime();
+  }, []);
 
   const clearAlarmInterval = useCallback(() => {
     if (alarmIntervalRef.current !== null) {
@@ -376,7 +274,7 @@ useEffect(() => {
   }, [clearAlarmInterval]);
 
   const startSessionAlarm = useCallback((fromMode: SessionMode, nextMode: SessionMode) => {
-    if (!audioUnlockedRef.current) {
+    if (!isFocusAudioUnlocked()) {
       unlockAudio();
     }
     setAlarmState({ fromMode, nextMode });
@@ -415,9 +313,6 @@ useEffect(() => {
       if (options?.ringAlarm !== false) {
         startSessionAlarm(mode, nextMode);
       }
-      if (mode === "focus") {
-        exitFullscreenSilently();
-      }
       const nextRemaining = (nextMode === "focus" ? focusMinutes : breakMinutes) * 60;
       setMode(nextMode);
       setRemainingSeconds(nextRemaining);
@@ -435,30 +330,8 @@ useEffect(() => {
         history
       });
     },
-    [breakMinutes, exitFullscreenSilently, focusMinutes, history, mode, persistFocusState, recordSession, startSessionAlarm]
+    [breakMinutes, focusMinutes, history, mode, persistFocusState, recordSession, startSessionAlarm]
   );
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const handleFullscreenChange = () => {
-      if (suppressFullscreenPauseRef.current) return;
-      if (mode !== "focus" || !isRunning || !hasStarted) return;
-      if (document.fullscreenElement) return;
-      setIsRunning(false);
-      setFullscreenPromptMessage(getFullscreenExitMessage(remainingSeconds));
-      persistFocusState({
-        focusMinutes,
-        breakMinutes,
-        mode,
-        remainingSeconds,
-        isRunning: false,
-        hasStarted: true,
-        history
-      });
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, [breakMinutes, focusMinutes, hasStarted, history, isRunning, mode, persistFocusState, remainingSeconds]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -543,20 +416,11 @@ useEffect(() => {
     const nextIsRunning = !isRunning;
     const nextRemaining = !isRunning && remainingSeconds <= 0 ? totalSeconds : remainingSeconds;
 
-    if (nextIsRunning && mode === "focus") {
-      const fullscreenReady = await requestFocusFullscreen();
-      if (!fullscreenReady) {
-        setFullscreenPromptMessage("Fullscreen was blocked. Start from here again to enter focus mode.");
-        return;
-      }
-    }
-
     if (!isRunning && remainingSeconds <= 0) {
       setRemainingSeconds(nextRemaining);
     }
     if (nextIsRunning) {
       setHasStarted(true);
-      setFullscreenPromptMessage(null);
     }
     setIsRunning(nextIsRunning);
     persistFocusState({
@@ -566,23 +430,6 @@ useEffect(() => {
       remainingSeconds: nextRemaining,
       isRunning: nextIsRunning,
       hasStarted: nextIsRunning || hasStarted,
-      history
-    });
-  };
-
-  const resumeFromFullscreenPrompt = async (): Promise<void> => {
-    const fullscreenReady = await requestFocusFullscreen();
-    if (!fullscreenReady) return;
-    setFullscreenPromptMessage(null);
-    setHasStarted(true);
-    setIsRunning(true);
-    persistFocusState({
-      focusMinutes,
-      breakMinutes,
-      mode,
-      remainingSeconds,
-      isRunning: true,
-      hasStarted: true,
       history
     });
   };
@@ -598,17 +445,6 @@ useEffect(() => {
       overlayClassName="z-[70]"
       onConfirm={stopAlarm}
       onCancel={() => {}}
-    />
-    <ConfirmDialog
-      open={fullscreenPromptMessage !== null}
-      title="Return to focus?"
-      description={fullscreenPromptMessage ?? ""}
-      confirmLabel="Resume fullscreen"
-      cancelLabel="Stay paused"
-      onConfirm={() => {
-        void resumeFromFullscreenPrompt();
-      }}
-      onCancel={() => setFullscreenPromptMessage(null)}
     />
     <div className="space-y-6">
       <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 ${glassSubtleClass}`}>
@@ -689,8 +525,6 @@ useEffect(() => {
                     setIsRunning(false);
                     setRemainingSeconds(nextRemaining);
                     setHasStarted(false);
-                    setFullscreenPromptMessage(null);
-                    exitFullscreenSilently();
                     setSessionId(createId());
                     lastDurationKey.current = `focus:${focusMinutes}-break:${breakMinutes}-mode:${mode}`;
                     persistFocusState({

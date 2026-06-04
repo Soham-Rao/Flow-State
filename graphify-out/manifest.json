@@ -90,8 +90,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\components\\layout\\app-shell.tsx": {
-    "mtime": 1780408472.315037,
-    "ast_hash": "61f34618237936b94df31e8b3c1196b3",
+    "mtime": 1780580651.3510249,
+    "ast_hash": "24449d53e26f56ee2a9a9fa2c55a755d",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\components\\mentions\\mentions-input.tsx": {
@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\focus-page.tsx": {
-    "mtime": 1780411192.1088104,
-    "ast_hash": "a257313d655344da16cc9b5ac103952e",
+    "mtime": 1780580607.3467956,
+    "ast_hash": "a7b894362b122c56075fa1fcf0af3cec",
     "semantic_hash": ""
   },
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\pages\\glassmorphism.styles.ts": {
@@ -1757,6 +1757,16 @@
   "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\server\\tests\\notifications-calendar.test.ts": {
     "mtime": 1780416163.8187077,
     "ast_hash": "fefaea01fa9172114ce27f48fed78ab0",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\components\\focus\\focus-timer-alarm-manager.tsx": {
+    "mtime": 1780580638.9728384,
+    "ast_hash": "41577d9602830c3121cba42442200e6b",
+    "semantic_hash": ""
+  },
+  "D:\\all_files\\My_files\\MyInterests\\coding\\2026\\new\\FlowState\\client\\src\\lib\\focus-timer.ts": {
+    "mtime": 1780580579.8678308,
+    "ast_hash": "20200f23944284bac281ad9011bcbeee",
     "semantic_hash": ""
   }
 }

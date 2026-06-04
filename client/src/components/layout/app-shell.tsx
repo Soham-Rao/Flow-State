@@ -4,6 +4,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FocusTimerAlarmManager } from "@/components/focus/focus-timer-alarm-manager";
 import { hasUserPermission } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/auth-store";
 import { useThreadSettingsStore } from "@/stores/thread-settings-store";
@@ -247,6 +248,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
 
   return (
     <>
+      <FocusTimerAlarmManager />
       <ConfirmDialog
       open={permissionErrorMessage !== null}
       title="Permission denied"
