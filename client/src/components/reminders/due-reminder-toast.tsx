@@ -1,4 +1,4 @@
-import { CalendarClock, X } from "lucide-react";
+import { CalendarClock, CheckCheck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -100,15 +100,16 @@ export function DueReminderToasts({
     return () => window.removeEventListener("flowstate-due-reminder-dismissed", handleDismiss);
   }, []);
 
-  const visible = items
+  const activeItems = items
     .map((item) => ({ item, phase: getReminderPhase(item.dueDate, nowMs) }))
     .filter((entry): entry is { item: DueReminderItem; phase: "before" | "today" | "overdue" } => {
       if (!entry.phase) return false;
       const dismissKey = `${entry.item.id}:${entry.item.assignee.id}:${entry.phase}`;
       return (dismissals[dismissKey] ?? 0) <= nowMs;
     })
-    .sort((a, b) => new Date(a.item.dueDate).getTime() - new Date(b.item.dueDate).getTime())
-    .slice(0, 3);
+    .sort((a, b) => new Date(a.item.dueDate).getTime() - new Date(b.item.dueDate).getTime());
+
+  const visible = activeItems.slice(0, 3);
 
   useEffect(() => {
     if (!canUseBrowserNotifications() || Notification.permission !== "granted") return;
@@ -153,8 +154,38 @@ export function DueReminderToasts({
     window.dispatchEvent(new Event("flowstate-due-reminder-dismissed"));
   };
 
+  const dismissAll = (): void => {
+    const nextDismissals = { ...dismissals };
+    for (const { item, phase } of activeItems) {
+      const dismissKey = `${item.id}:${item.assignee.id}:${phase}`;
+      nextDismissals[dismissKey] = nowMs + getSnoozeMs(item, phase);
+    }
+    writeDismissals(storageKey, nextDismissals);
+    window.dispatchEvent(new Event("flowstate-due-reminder-dismissed"));
+  };
+
   return (
     <div className="fixed bottom-4 right-4 z-[60] w-[min(92vw,26rem)] space-y-2">
+      {activeItems.length > 1 && (
+        <div className="flex justify-between items-center bg-white/80 dark:bg-slate-950/80 border border-amber-200/50 dark:border-amber-200/20 backdrop-blur-xl rounded-lg p-2.5 px-3 text-xs shadow-lg transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
+          <span className="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
+            {activeItems.length} active reminders
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={dismissAll}
+            className="h-7 text-xs px-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 dark:hover:bg-amber-400/20 font-semibold rounded-md transition-all duration-200 flex items-center gap-1 border border-amber-500/20"
+          >
+            <CheckCheck className="h-3.5 w-3.5" />
+            Dismiss all
+          </Button>
+        </div>
+      )}
       {visible.map(({ item, phase }) => {
         const assigneeName = getAssigneeName(item);
         const dueLabel = new Date(item.dueDate).toLocaleString();
