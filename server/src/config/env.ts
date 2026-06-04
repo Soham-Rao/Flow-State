@@ -19,6 +19,14 @@ const DEFAULT_BACKUP_LOCAL_DIR = path.resolve(
   "../../backups"
 );
 
+const zBoolean = z.preprocess((val) => {
+  if (typeof val === "string") {
+    if (val.toLowerCase() === "true" || val === "1") return true;
+    if (val.toLowerCase() === "false" || val === "0") return false;
+  }
+  return val;
+}, z.boolean());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
@@ -35,7 +43,7 @@ const envSchema = z.object({
   ).default(DEFAULT_DM_KEY),
   PUBLIC_APP_URL: z.string().url().default(DEFAULT_CLIENT_ORIGIN),
   FLOWSTATE_UPLOADS_DIR: z.string().min(1).default(DEFAULT_UPLOADS_DIR),
-  PASSWORD_RESET_ENABLED: z.coerce.boolean().default(false),
+  PASSWORD_RESET_ENABLED: zBoolean.default(false),
   PASSWORD_RESET_TOKEN_TTL_MINUTES: z.coerce.number().int().min(5).max(24 * 60).default(60),
   AUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
@@ -49,8 +57,8 @@ const envSchema = z.object({
   SMTP_USER: z.string().trim().min(1).optional(),
   SMTP_PASS: z.string().trim().min(1).optional(),
   SMTP_FROM: z.string().trim().min(3).default("FlowState <no-reply@flo-state.in>"),
-  SMTP_SECURE: z.coerce.boolean().default(false),
-  REMINDER_EMAILS_ENABLED: z.coerce.boolean().default(false),
+  SMTP_SECURE: zBoolean.default(false),
+  REMINDER_EMAILS_ENABLED: zBoolean.default(false),
   REMINDER_EMAIL_TIMEZONE: z.string().trim().min(1).default("Asia/Kolkata"),
   REMINDER_EMAIL_MORNING_HOUR: z.coerce.number().int().min(0).max(23).default(9),
   REMINDER_EMAIL_AFTERNOON_HOUR: z.coerce.number().int().min(0).max(23).default(16),
@@ -58,7 +66,7 @@ const envSchema = z.object({
   OPS_ALERT_EMAIL_TO: z.string().trim().optional(),
   OPS_ALERT_EMAIL_FROM: z.string().trim().optional(),
   BACKUP_LOCAL_DIR: z.string().trim().min(1).default(DEFAULT_BACKUP_LOCAL_DIR),
-  BACKUP_ENCRYPTION_ENABLED: z.coerce.boolean().default(false),
+  BACKUP_ENCRYPTION_ENABLED: zBoolean.default(false),
   BACKUP_ENCRYPTION_KEY: z.string().trim().optional(),
   BACKUP_ENCRYPTION_KEY_ID: z.string().trim().optional(),
   BACKUP_VERIFY_SCRATCH_MYSQL_URL: z.string().url().optional(),
