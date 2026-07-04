@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronUp, Plus, Tag, Trash2 } from "lucide-react";
-import type React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { boardGlassCard, boardGlassInput, boardGlassPill, boardGlassSubtle } fro
 import { boardBackgroundPresets, type BoardBackgroundPreset } from "@/lib/board-backgrounds";
 import { labelColorStyles, labelColors, parseRetentionInput } from "@/pages/boards/board-detail-page.utils";
 import type { BoardBackground, BoardLabel, LabelColor, RetentionMode } from "@/types/board";
+import type { BoardMemberSummary } from "@/lib/boards-api";
 
 export function BoardSettingsSection({
   isSettingsOpen,
@@ -43,6 +44,12 @@ export function BoardSettingsSection({
   isAutosavingBoard,
   onOpenArchiveBoard,
   onOpenDeleteBoard,
+  workspaceUsers,
+  boardMembers,
+  onAddBoardMembers,
+  onUpdateBoardMemberOverride,
+  onRemoveBoardMember,
+  boardCreatorId,
 }: {
   isSettingsOpen: boolean;
   onToggleSettingsOpen: () => void;
@@ -78,7 +85,16 @@ export function BoardSettingsSection({
   isAutosavingBoard: boolean;
   onOpenArchiveBoard: () => void;
   onOpenDeleteBoard: () => void;
+  workspaceUsers?: Array<{ id: string; name: string; displayName: string | null; username: string; email: string }>;
+  boardMembers?: BoardMemberSummary[];
+  onAddBoardMembers?: (userIds: string[]) => void;
+  onUpdateBoardMemberOverride?: (memberId: string, permission: string, access: "allow" | "deny" | "none") => void;
+  onRemoveBoardMember?: (memberId: string) => void;
+  boardCreatorId?: string;
 }): JSX.Element {
+  const [selectedAddUserId, setSelectedAddUserId] = useState("");
+  const [permissionsOpenFor, setPermissionsOpenFor] = useState<string | null>(null);
+
   const retentionDisabled = retentionDays === 0 && retentionHours === 0 && retentionMinutesPart === 0;
   return (
     <Card className={boardGlassCard}>
@@ -120,6 +136,148 @@ export function BoardSettingsSection({
               </button>
             ))}
           </div>
+
+          {/* Members & Permissions Section */}
+          {boardMembers && workspaceUsers && (
+            <div className={`space-y-3 rounded-lg p-3 ${boardGlassSubtle}`}>
+              <p className="text-sm font-semibold uppercase tracking-[0.1em] text-muted-foreground">Members & permissions</p>
+              
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <select
+                  value={selectedAddUserId}
+                  onChange={(e) => setSelectedAddUserId(e.target.value)}
+                  className={`h-9 flex-1 rounded-md px-3 text-xs bg-background/50 border border-border/60 ${boardGlassInput}`}
+                >
+                  <option value="">Select workspace user to add...</option>
+                  {workspaceUsers
+                    .filter((u) => !boardMembers.some((m) => m.user.id === u.id))
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.displayName ?? u.name} (@{u.username})
+                      </option>
+                    ))}
+                </select>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={!selectedAddUserId}
+                  onClick={() => {
+                    if (onAddBoardMembers && selectedAddUserId) {
+                      onAddBoardMembers([selectedAddUserId]);
+                      setSelectedAddUserId("");
+                    }
+                  }}
+                  className={`gap-1 ${boardGlassPill}`}
+                >
+                  <Plus className="h-4 w-4" /> Add
+                </Button>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {boardMembers.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No members yet.</p>
+                )}
+                {boardMembers.map((member) => {
+                  const isCreator = member.user.id === boardCreatorId;
+                  const overridesByPermission = new Map(
+                    member.overrides.map((override) => [override.permission, override.access])
+                  );
+
+                  const resolveChecked = (permission: string, fallback: boolean) => {
+                    const override = overridesByPermission.get(permission);
+                    if (override === "allow") return true;
+                    if (override === "deny") return false;
+                    return fallback;
+                  };
+
+                  const permissionOptions: {
+                    key: string;
+                    label: string;
+                    fallback: boolean;
+                  }[] = [
+                    { key: "view_boards", label: "View board", fallback: member.effectivePermissions.view_boards },
+                    { key: "edit_boards", label: "Edit settings", fallback: member.effectivePermissions.edit_boards },
+                    { key: "delete_boards", label: "Delete board", fallback: member.effectivePermissions.delete_boards },
+                    { key: "manage_lists", label: "Manage lists", fallback: member.effectivePermissions.manage_lists },
+                    { key: "create_cards", label: "Create cards", fallback: member.effectivePermissions.create_cards },
+                    { key: "edit_cards", label: "Edit / move cards", fallback: member.effectivePermissions.edit_cards },
+                    { key: "comment", label: "Add comments", fallback: member.effectivePermissions.comment },
+                    { key: "manage_labels", label: "Manage labels", fallback: member.effectivePermissions.manage_labels },
+                    { key: "assign_members", label: "Assign card members", fallback: member.effectivePermissions.assign_members },
+                    { key: "set_due_dates", label: "Set due dates", fallback: member.effectivePermissions.set_due_dates }
+                  ];
+
+                  return (
+                    <div
+                      key={member.user.id}
+                      className="flex flex-col gap-2 rounded-lg border border-border/40 bg-background/50 p-2 text-xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-sm">
+                            {member.user.displayName ?? member.user.name}
+                            {isCreator && <span className="ml-2 text-[10px] text-primary/80 font-normal border border-primary/30 rounded px-1 py-0.5">Creator</span>}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">@{member.user.username}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPermissionsOpenFor((prev) => (prev === member.user.id ? null : member.user.id))
+                            }
+                            className="rounded-full border border-border/60 px-2 py-1 text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition"
+                          >
+                            Permissions
+                          </button>
+                          {!isCreator && onRemoveBoardMember && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onRemoveBoardMember(member.user.id)}
+                              className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {permissionsOpenFor === member.user.id && (
+                        <div className="mt-2 space-y-2 border-t border-border/40 pt-2 text-[11px] text-muted-foreground">
+                          {permissionOptions.map((option) => {
+                            const overrideVal = overridesByPermission.get(option.key) ?? "none";
+                            return (
+                              <div
+                                key={option.key}
+                                className="flex items-center justify-between gap-2 rounded px-1 py-0.5 hover:bg-muted/40"
+                              >
+                                <span className="font-medium">{option.label}</span>
+                                <select
+                                  value={overrideVal}
+                                  onChange={(e) => {
+                                    if (onUpdateBoardMemberOverride) {
+                                      onUpdateBoardMemberOverride(member.user.id, option.key, e.target.value as any);
+                                    }
+                                  }}
+                                  className="h-6 rounded border border-border/60 bg-background px-1 text-[10px]"
+                                >
+                                  <option value="none">Inherit ({option.fallback ? "Allow" : "Deny"})</option>
+                                  <option value="allow">Allow</option>
+                                  <option value="deny">Deny</option>
+                                </select>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className={`space-y-3 rounded-lg p-3 ${boardGlassSubtle}`}>
             <div className="flex flex-wrap gap-1">
               <p className="text-sm font-medium">Done card retention</p>

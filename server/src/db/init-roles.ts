@@ -11,6 +11,8 @@ import {
   roles,
   userRoleAssignments,
   users,
+  boardMembers,
+  boards,
   type RolePermission
 } from "./schema.js";
 
@@ -192,3 +194,22 @@ export async function ensureInviteRoleAssignments(
   });
 }
 
+export async function ensureExistingMembersOnAllBoards(): Promise<void> {
+  await db.transaction(async (tx: DbTransaction) => {
+    const allUsers = await tx.select({ id: users.id }).from(users);
+    const allBoards = await tx.select({ id: boards.id }).from(boards);
+
+    if (allUsers.length > 0 && allBoards.length > 0) {
+      const recordsToInsert = allBoards.flatMap((board) =>
+        allUsers.map((user) => ({
+          boardId: board.id,
+          userId: user.id,
+          role: "member",
+          createdAt: new Date()
+        }))
+      );
+      
+      await tx.insert(boardMembers).ignore().values(recordsToInsert).execute();
+    }
+  });
+}

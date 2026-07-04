@@ -59,7 +59,8 @@ export const rolePermissions = [
   "channel_delete",
   "view_settings",
   "send_announcements",
-  "view_all_due_date_reminders"
+  "view_all_due_date_reminders",
+  "view_all_boards"
 ] as const;
 export const roleScopeTypes = ["global", "board", "section", "card"] as const;
 export const roleScopeAccess = ["allow", "deny"] as const;
@@ -297,6 +298,37 @@ export const roleScopeOverrides = mysqlTable("role_scope_overrides", {
 }, (table: TableColumns) => ({
   pk: primaryKey({ columns: [table.roleId, table.scopeType, table.scopeId, table.permission] }),
   roleIdIdx: index("idx_role_scope_overrides_role_id").on(table.roleId)
+}));
+
+export const boardMembers = mysqlTable("board_members", {
+  boardId: char("board_id", { length: 36 })
+    .notNull()
+    .references(() => boards.id, { onDelete: "cascade" }),
+  userId: char("user_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: varchar("role", { length: 64 }).notNull().default("member"),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
+}, (table: TableColumns) => ({
+  pk: primaryKey({ columns: [table.boardId, table.userId] }),
+  boardIdx: index("idx_board_members_board_id").on(table.boardId),
+  userIdx: index("idx_board_members_user_id").on(table.userId)
+}));
+
+export const boardMemberPermissions = mysqlTable("board_member_permissions", {
+  boardId: char("board_id", { length: 36 })
+    .notNull()
+    .references(() => boards.id, { onDelete: "cascade" }),
+  userId: char("user_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  permission: mysqlEnum("permission", rolePermissions).notNull(),
+  access: mysqlEnum("access", roleScopeAccess).notNull(),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
+}, (table: TableColumns) => ({
+  pk: primaryKey({ columns: [table.boardId, table.userId, table.permission] }),
+  boardIdx: index("idx_board_member_permissions_board_id").on(table.boardId),
+  userIdx: index("idx_board_member_permissions_user_id").on(table.userId)
 }));
 
 export const boards = mysqlTable("boards", {
@@ -775,7 +807,9 @@ export const activityLogs = mysqlTable("activity_logs", {
 
 export const usersRelations = relations(users, ({ many }) => ({
   boards: many(boards),
-  cards: many(cards)
+  cards: many(cards),
+  boardMembers: many(boardMembers),
+  boardMemberPermissions: many(boardMemberPermissions)
 }));
 
 export const boardsRelations = relations(boards, ({ one, many }) => ({
@@ -783,7 +817,31 @@ export const boardsRelations = relations(boards, ({ one, many }) => ({
     fields: [boards.createdBy],
     references: [users.id]
   }),
-  lists: many(lists)
+  lists: many(lists),
+  boardMembers: many(boardMembers),
+  boardMemberPermissions: many(boardMemberPermissions)
+}));
+
+export const boardMembersRelations = relations(boardMembers, ({ one }) => ({
+  board: one(boards, {
+    fields: [boardMembers.boardId],
+    references: [boards.id]
+  }),
+  user: one(users, {
+    fields: [boardMembers.userId],
+    references: [users.id]
+  })
+}));
+
+export const boardMemberPermissionsRelations = relations(boardMemberPermissions, ({ one }) => ({
+  board: one(boards, {
+    fields: [boardMemberPermissions.boardId],
+    references: [boards.id]
+  }),
+  user: one(users, {
+    fields: [boardMemberPermissions.userId],
+    references: [users.id]
+  })
 }));
 
 export const listsRelations = relations(lists, ({ one, many }) => ({

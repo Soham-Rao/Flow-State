@@ -462,3 +462,60 @@ export function deleteComment(commentId: string): Promise<{ message: string }> {
     auth: true
   });
 }
+
+export interface BoardMemberSummary {
+  user: {
+    id: string;
+    name: string;
+    displayName: string | null;
+    username: string;
+    email: string;
+    role: string;
+  };
+  overrides: Array<{
+    permission: string;
+    access: "allow" | "deny";
+  }>;
+  effectivePermissions: Record<string, boolean>;
+}
+
+export function getWorkspaceUsers(): Promise<Array<{ id: string; name: string; displayName: string | null; username: string; email: string }>> {
+  return apiRequest<any>("/boards/users", {
+    method: "GET",
+    auth: true
+  });
+}
+
+export function getBoardMembersWithOverrides(boardId: string): Promise<BoardMemberSummary[]> {
+  return apiRequest<BoardMemberSummary[]>(`/boards/${boardId}/members`, {
+    method: "GET",
+    auth: true
+  });
+}
+
+export function addBoardMembers(boardId: string, userIds: string[]): Promise<any> {
+  return apiRequest<any>(`/boards/${boardId}/members`, {
+    method: "POST",
+    auth: true,
+    body: JSON.stringify({ userIds })
+  });
+}
+
+export function updateBoardMemberOverrides(
+  boardId: string,
+  memberId: string,
+  overrides: Array<{ permission: string; access: "allow" | "deny" | "none" }>
+): Promise<any> {
+  return apiRequest<any>(`/boards/${boardId}/members/${memberId}/overrides`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify({ overrides })
+  });
+}
+
+export function removeBoardMember(boardId: string, memberId: string): Promise<any> {
+  return apiRequest<any>(`/boards/${boardId}/members/${memberId}`, {
+    method: "DELETE",
+    auth: true
+  });
+}

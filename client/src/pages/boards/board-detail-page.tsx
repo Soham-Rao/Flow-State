@@ -4,7 +4,13 @@ import { getBoardBackgroundClass, getBoardSurfaceClass } from "@/lib/board-backg
 import { hasUserPermission } from "@/lib/permissions";
 import { DueReminderToasts, type DueReminderItem } from "@/components/reminders/due-reminder-toast";
 import {
-  getBoardById
+  getBoardById,
+  getWorkspaceUsers,
+  getBoardMembersWithOverrides,
+  addBoardMembers,
+  updateBoardMemberOverrides,
+  removeBoardMember,
+  type BoardMemberSummary
 } from "@/lib/boards-api";
 import type {
   ArchivedListEntry,
@@ -96,6 +102,8 @@ export function BoardDetailPage(): JSX.Element {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeleteBoardOpen, setIsDeleteBoardOpen] = useState(false);
   const [isArchiveBoardOpen, setIsArchiveBoardOpen] = useState(false);
+  const [workspaceUsers, setWorkspaceUsers] = useState<any[]>([]);
+  const [boardMembersWithOverrides, setBoardMembersWithOverrides] = useState<BoardMemberSummary[]>([]);
   const [listToDelete, setListToDelete] = useState<BoardList | null>(null);
   const [cardToDelete, setCardToDelete] = useState<BoardCard | null>(null);
   const [commentToDelete, setCommentToDelete] = useState<BoardComment | null>(null);
@@ -376,6 +384,61 @@ export function BoardDetailPage(): JSX.Element {
     setExpandedCardCommentGroups,
   });
 
+  const loadWorkspaceUsers = useCallback(async (): Promise<void> => {
+    try {
+      const data = await getWorkspaceUsers();
+      setWorkspaceUsers(data);
+    } catch (err) {
+      console.error("Failed to load workspace users", err);
+    }
+  }, []);
+
+  const loadBoardMembersWithOverrides = useCallback(async (): Promise<void> => {
+    if (!boardId) return;
+    try {
+      const data = await getBoardMembersWithOverrides(boardId);
+      setBoardMembersWithOverrides(data);
+    } catch (err) {
+      console.error("Failed to load board members with overrides", err);
+    }
+  }, [boardId]);
+
+  const handleAddBoardMembers = useCallback(async (userIds: string[]): Promise<void> => {
+    if (!boardId) return;
+    try {
+      await addBoardMembers(boardId, userIds);
+      await loadBoardMembersWithOverrides();
+    } catch (err) {
+      console.error("Failed to add board members", err);
+      setError(err instanceof Error ? err.message : "Failed to add board members");
+    }
+  }, [boardId, loadBoardMembersWithOverrides]);
+
+  const handleUpdateBoardMemberOverride = useCallback(
+    async (memberId: string, permission: string, access: "allow" | "deny" | "none"): Promise<void> => {
+      if (!boardId) return;
+      try {
+        await updateBoardMemberOverrides(boardId, memberId, [{ permission, access }]);
+        await loadBoardMembersWithOverrides();
+      } catch (err) {
+        console.error("Failed to update override", err);
+        setError(err instanceof Error ? err.message : "Failed to update override");
+      }
+    },
+    [boardId, loadBoardMembersWithOverrides]
+  );
+
+  const handleRemoveBoardMember = useCallback(async (memberId: string): Promise<void> => {
+    if (!boardId) return;
+    try {
+      await removeBoardMember(boardId, memberId);
+      await loadBoardMembersWithOverrides();
+    } catch (err) {
+      console.error("Failed to remove board member", err);
+      setError(err instanceof Error ? err.message : "Failed to remove board member");
+    }
+  }, [boardId, loadBoardMembersWithOverrides]);
+
   const loadBoard = useCallback(async (showLoading: boolean): Promise<void> => {
     if (!boardId) {
       if (showLoading) setLoading(false);
@@ -395,7 +458,8 @@ export function BoardDetailPage(): JSX.Element {
 
   const refreshBoardSilently = useCallback(async (): Promise<void> => {
     await loadBoard(false);
-  }, [loadBoard]);
+    await loadBoardMembersWithOverrides();
+  }, [loadBoard, loadBoardMembersWithOverrides]);
 
   useEffect(() => {
     if (!boardId) return;
@@ -500,7 +564,9 @@ export function BoardDetailPage(): JSX.Element {
 
   useEffect(() => {
     void loadBoard(true);
-  }, [loadBoard]);
+    void loadWorkspaceUsers();
+    void loadBoardMembersWithOverrides();
+  }, [loadBoard, loadWorkspaceUsers, loadBoardMembersWithOverrides]);
 
   useEffect(() => {
     if (!boardId) return;
@@ -625,7 +691,9 @@ export function BoardDetailPage(): JSX.Element {
     editingListId,
     listSavingIds,
     orderedLists,
-    boardMembers,
+    boardMembers: boardMembersWithOverrides,
+    workspaceUsers,
+    boardCreatorId: board?.createdBy,
     boardPresence,
     boardLabels,
     expandedCommentIds,
@@ -717,6 +785,9 @@ export function BoardDetailPage(): JSX.Element {
     onBoardDescriptionChange: setBoardDescription,
     onApplyBoardBackground: applyBoardBackground,
     onRetentionModeChange: setRetentionMode,
+    onAddBoardMembers: handleAddBoardMembers,
+    onUpdateBoardMemberOverride: handleUpdateBoardMemberOverride,
+    onRemoveBoardMember: handleRemoveBoardMember,
     applyRetentionParts,
     applyArchiveRetentionParts,
     onNewLabelNameChange: setNewLabelName,

@@ -6,6 +6,9 @@ import {
   roleScopeOverrides,
   roles,
   userRoleAssignments,
+  boards,
+  boardMembers,
+  boardMemberPermissions,
   type RolePermission,
   type RoleScopeType
 } from "../db/schema.js";
@@ -39,6 +42,35 @@ export async function getUserPermissions(userId: string, context?: PermissionCon
   const effective = new Set<RolePermission>(permissions.map((row) => row.permission));
 
   if (context?.scopeType && context.scopeId) {
+    if (context.scopeType === "board") {
+      const boardId = context.scopeId;
+      const isSystemAdmin = effective.has("view_all_boards");
+
+      if (!isSystemAdmin) {
+        // Fetch board creator
+        const [board] = await db
+          .select({ createdBy: boards.createdBy })
+          .from(boards)
+          .where(eq(boards.id, boardId))
+          .limit(1);
+
+        const isCreator = board?.createdBy === userId;
+
+        if (!isCreator) {
+          // Check if explicitly a member of the board
+          const [member] = await db
+            .select({ role: boardMembers.role })
+            .from(boardMembers)
+            .where(and(eq(boardMembers.boardId, boardId), eq(boardMembers.userId, userId)))
+            .limit(1);
+
+          if (!member) {
+            return new Set(); // Strictly block access (empty permission set)
+          }
+        }
+      }
+    }
+
     const overrides: Array<{ permission: RolePermission; access: "allow" | "deny" }> = await db
       .select({ permission: roleScopeOverrides.permission, access: roleScopeOverrides.access })
       .from(roleScopeOverrides)
@@ -57,6 +89,30 @@ export async function getUserPermissions(userId: string, context?: PermissionCon
         denied.add(override.permission);
       } else {
         allowed.add(override.permission);
+      }
+    }
+
+    // If context is board scope, also load board member specific overrides
+    if (context.scopeType === "board") {
+      const boardId = context.scopeId;
+      const boardMemberOverrides: Array<{ permission: RolePermission; access: "allow" | "deny" }> = await db
+        .select({ permission: boardMemberPermissions.permission, access: boardMemberPermissions.access })
+        .from(boardMemberPermissions)
+        .where(
+          and(
+            eq(boardMemberPermissions.boardId, boardId),
+            eq(boardMemberPermissions.userId, userId)
+          )
+        );
+
+      for (const override of boardMemberOverrides) {
+        if (override.access === "deny") {
+          denied.add(override.permission);
+          allowed.delete(override.permission);
+        } else {
+          allowed.add(override.permission);
+          denied.delete(override.permission);
+        }
       }
     }
 

@@ -12,7 +12,12 @@ import {
   getBoardById,
   getBoards,
   restoreBoard,
-  updateBoard
+  updateBoard,
+  getBoardMembers,
+  getBoardMembersWithOverrides,
+  addBoardMembers,
+  updateBoardMemberOverrides,
+  removeBoardMember
 } from "./boards.service.js";
 import {
   createBoardSchema,
@@ -25,7 +30,7 @@ export const boardsBaseRouter = Router();
 boardsBaseRouter.get("/", async (req, res, next) => {
   try {
     await assertPermission(req.auth!.userId, "view_boards");
-    const data = await getBoards();
+    const data = await getBoards(req.auth!.userId);
 
     res.status(200).json({
       success: true,
@@ -46,6 +51,16 @@ boardsBaseRouter.post("/", async (req, res, next) => {
       success: true,
       data
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsBaseRouter.get("/users", async (req, res, next) => {
+  try {
+    await assertPermission(req.auth!.userId, "view_boards");
+    const data = await getBoardMembers();
+    res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -147,6 +162,49 @@ boardsBaseRouter.delete("/:boardId", async (req, res, next) => {
       success: true,
       data
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+boardsBaseRouter.get("/:boardId/members", async (req, res, next) => {
+  try {
+    await assertBoardPermission(req.auth!.userId, "view_boards", req.params.boardId);
+    const data = await getBoardMembersWithOverrides(req.params.boardId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsBaseRouter.post("/:boardId/members", async (req, res, next) => {
+  try {
+    const data = await addBoardMembers(req.auth!.userId, req.params.boardId, req.body.userIds);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsBaseRouter.patch("/:boardId/members/:memberId/overrides", async (req, res, next) => {
+  try {
+    const data = await updateBoardMemberOverrides(
+      req.auth!.userId,
+      req.params.boardId,
+      req.params.memberId,
+      req.body.overrides
+    );
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+boardsBaseRouter.delete("/:boardId/members/:memberId", async (req, res, next) => {
+  try {
+    const data = await removeBoardMember(req.auth!.userId, req.params.boardId, req.params.memberId);
+    res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }

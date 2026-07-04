@@ -33,9 +33,16 @@ function getAssigneeName(item: DueReminderItem): string {
   return item.assignee.displayName || item.assignee.username || item.assignee.name || item.assignee.email;
 }
 
-function getReminderPhase(dueDate: string, nowMs: number): "before" | "today" | "overdue" | null {
+function getReminderPhase(dueDate: string, nowMs: number): "twenty_minutes" | "before" | "today" | "overdue" | null {
   const dueMs = new Date(dueDate).getTime();
   if (Number.isNaN(dueMs)) return null;
+
+  if (dueMs < nowMs) return "overdue";
+
+  const diffMs = dueMs - nowMs;
+  if (diffMs > 0 && diffMs <= 20 * 60 * 1000) {
+    return "twenty_minutes";
+  }
 
   const now = new Date(nowMs);
   const due = new Date(dueMs);
@@ -45,12 +52,14 @@ function getReminderPhase(dueDate: string, nowMs: number): "before" | "today" | 
     due.getDate() === now.getDate();
 
   if (sameLocalDay) return "today";
-  if (dueMs < nowMs) return "overdue";
-  if (dueMs - nowMs <= DAY_MS) return "before";
+  if (diffMs <= DAY_MS) return "before";
   return null;
 }
 
-function getSnoozeMs(item: DueReminderItem, phase: "before" | "today" | "overdue"): number {
+function getSnoozeMs(item: DueReminderItem, phase: "twenty_minutes" | "before" | "today" | "overdue"): number {
+  if (phase === "twenty_minutes") {
+    return 5 * 60 * 1000;
+  }
   if (!item.isAssignedToViewer) {
     return 8 * HOUR_MS;
   }
@@ -102,7 +111,7 @@ export function DueReminderToasts({
 
   const activeItems = items
     .map((item) => ({ item, phase: getReminderPhase(item.dueDate, nowMs) }))
-    .filter((entry): entry is { item: DueReminderItem; phase: "before" | "today" | "overdue" } => {
+    .filter((entry): entry is { item: DueReminderItem; phase: "twenty_minutes" | "before" | "today" | "overdue" } => {
       if (!entry.phase) return false;
       const dismissKey = `${entry.item.id}:${entry.item.assignee.id}:${entry.phase}`;
       return (dismissals[dismissKey] ?? 0) <= nowMs;
@@ -124,7 +133,14 @@ export function DueReminderToasts({
       if ((notified[notificationKey] ?? 0) > nowMs) continue;
 
       const assigneeName = getAssigneeName(item);
-      const phaseLabel = phase === "before" ? "Due in the next day" : phase === "today" ? "Due today" : "Overdue";
+      const phaseLabel =
+        phase === "twenty_minutes"
+          ? "Due in 20 minutes"
+          : phase === "before"
+          ? "Due in the next day"
+          : phase === "today"
+          ? "Due today"
+          : "Overdue";
       const body = item.isAssignedToViewer
         ? `${item.title} is assigned to you. ${item.boardName} / ${item.listName}`
         : `${assigneeName} has ${item.title}. ${item.boardName} / ${item.listName}`;
@@ -145,7 +161,7 @@ export function DueReminderToasts({
 
   if (visible.length === 0) return null;
 
-  const dismiss = (item: DueReminderItem, phase: "before" | "today" | "overdue"): void => {
+  const dismiss = (item: DueReminderItem, phase: "twenty_minutes" | "before" | "today" | "overdue"): void => {
     const dismissKey = `${item.id}:${item.assignee.id}:${phase}`;
     writeDismissals(storageKey, {
       ...dismissals,
@@ -189,7 +205,14 @@ export function DueReminderToasts({
       {visible.map(({ item, phase }) => {
         const assigneeName = getAssigneeName(item);
         const dueLabel = new Date(item.dueDate).toLocaleString();
-        const phaseLabel = phase === "before" ? "Due in the next day" : phase === "today" ? "Due today" : "Overdue";
+        const phaseLabel =
+          phase === "twenty_minutes"
+            ? "Due in 20 minutes"
+            : phase === "before"
+            ? "Due in the next day"
+            : phase === "today"
+            ? "Due today"
+            : "Overdue";
         const message = item.isAssignedToViewer
           ? `${item.title} is assigned to you.`
           : `${assigneeName} has ${item.title}.`;

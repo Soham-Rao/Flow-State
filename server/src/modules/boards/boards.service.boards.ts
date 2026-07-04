@@ -1,11 +1,12 @@
 import crypto from "node:crypto";
 
-import { and, asc, count, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, count, eq, isNotNull, isNull, or } from "drizzle-orm";
 
 import { db, type DbTransaction } from "../../db/connection.js";
 import { recordActivity } from "../activity/activity.service.js";
-import { boards, cards, lists, type RetentionMode } from "../../db/schema.js";
+import { boards, cards, lists, boardMembers, boardMemberPermissions, type RetentionMode } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { getUserPermissions } from "../../utils/permissions.js";
 import type {
   ArchivedListEntry,
   BoardCard,
@@ -25,8 +26,11 @@ import type { CreateBoardInput, UpdateBoardInput } from "./boards.schema.js";
 
 type ArchivedCardRow = CardRecord & { listName: string };
 
-export async function getBoards(): Promise<BoardSummary[]> {
-  const boardRows: Array<Omit<BoardSummary, "listCount">> = await db
+export async function getBoards(userId: string): Promise<BoardSummary[]> {
+  const permissions = await getUserPermissions(userId);
+  const isSystemAdmin = permissions.has("view_all_boards");
+
+  let query = db
     .select({
       id: boards.id,
       name: boards.name,
@@ -40,8 +44,20 @@ export async function getBoards(): Promise<BoardSummary[]> {
       createdAt: boards.createdAt,
       updatedAt: boards.updatedAt
     })
-    .from(boards)
-    .orderBy(asc(boards.name));
+    .from(boards);
+
+  if (!isSystemAdmin) {
+    query = query
+      .leftJoin(boardMembers, and(eq(boardMembers.boardId, boards.id), eq(boardMembers.userId, userId)))
+      .where(
+        or(
+          eq(boards.createdBy, userId),
+          isNotNull(boardMembers.userId)
+        )
+      ) as any;
+  }
+
+  const boardRows: Array<Omit<BoardSummary, "listCount">> = await query.orderBy(asc(boards.name));
 
   const countRows: Array<{ boardId: string; listCount: number }> = await db
     .select({
@@ -390,4 +406,110 @@ export async function restoreBoard(boardId: string, userId: string): Promise<Boa
   });
 
   return getBoardSummaryById(boardId);
+}
+
+async function assertCanManageBoardMembers(actorId: string, boardId: string): Promise<void> {
+  const permissions = await getUserPermissions(actorId);
+  const isSystemAdmin = permissions.has("view_all_boards");
+  if (isSystemAdmin) return;
+
+  const [board] = await db
+    .select({ createdBy: boards.createdBy })
+    .from(boards)
+    .where(eq(boards.id, boardId))
+    .limit(1);
+
+  if (!board) {
+    throw new ApiError(404, "Board not found");
+  }
+
+  if (board.createdBy !== actorId) {
+    throw new ApiError(403, "Only the board creator or an admin can manage board members");
+  }
+}
+
+export async function addBoardMembers(
+  actorId: string,
+  boardId: string,
+  userIds: string[]
+): Promise<void> {
+  await assertCanManageBoardMembers(actorId, boardId);
+
+  const now = new Date();
+  const records = userIds.map((userId) => ({
+    boardId,
+    userId,
+    role: "member" as const,
+    createdAt: now
+  }));
+
+  if (records.length > 0) {
+    await db.insert(boardMembers).ignore().values(records).execute();
+  }
+}
+
+export async function updateBoardMemberOverrides(
+  actorId: string,
+  boardId: string,
+  memberId: string,
+  overrides: Array<{ permission: string; access: "allow" | "deny" | "none" }>
+): Promise<void> {
+  await assertCanManageBoardMembers(actorId, boardId);
+
+  await db.transaction(async (tx) => {
+    for (const override of overrides) {
+      if (override.access === "none") {
+        await tx
+          .delete(boardMemberPermissions)
+          .where(
+            and(
+              eq(boardMemberPermissions.boardId, boardId),
+              eq(boardMemberPermissions.userId, memberId),
+              eq(boardMemberPermissions.permission, override.permission as any)
+            )
+          );
+      } else {
+        await tx
+          .insert(boardMemberPermissions)
+          .values({
+            boardId,
+            userId: memberId,
+            permission: override.permission as any,
+            access: override.access,
+            createdAt: new Date()
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              access: override.access
+            }
+          });
+      }
+    }
+  });
+}
+
+export async function removeBoardMember(
+  actorId: string,
+  boardId: string,
+  memberId: string
+): Promise<void> {
+  await assertCanManageBoardMembers(actorId, boardId);
+
+  const [board] = await db
+    .select({ createdBy: boards.createdBy })
+    .from(boards)
+    .where(eq(boards.id, boardId))
+    .limit(1);
+
+  if (board && board.createdBy === memberId) {
+    throw new ApiError(400, "The board creator cannot be removed from the board");
+  }
+
+  await db
+    .delete(boardMembers)
+    .where(and(eq(boardMembers.boardId, boardId), eq(boardMembers.userId, memberId)));
+
+  await db
+    .delete(boardMemberPermissions)
+    .where(and(eq(boardMemberPermissions.boardId, boardId), eq(boardMemberPermissions.userId, memberId)));
 }

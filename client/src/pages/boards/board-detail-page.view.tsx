@@ -29,6 +29,7 @@ import type {
 import type { PresenceUser } from "@/types/presence";
 import type { CardDraft } from "@/pages/boards/board-detail-page.utils";
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
+import type { BoardMemberSummary } from "@/lib/boards-api";
 
 export interface BoardDetailPageViewProps {
   state: {
@@ -67,7 +68,9 @@ export interface BoardDetailPageViewProps {
     editingListId: string | null;
     listSavingIds: Set<string>;
     orderedLists: BoardList[];
-    boardMembers: BoardMember[];
+    boardMembers: BoardMemberSummary[];
+    workspaceUsers?: Array<{ id: string; name: string; displayName: string | null; username: string; email: string }>;
+    boardCreatorId?: string;
     boardPresence: PresenceUser[];
     boardLabels: BoardLabel[];
     expandedCommentIds: Set<string>;
@@ -194,6 +197,9 @@ export interface BoardDetailPageViewProps {
     onDeleteLabel: () => Promise<void>;
     onDeleteList: () => Promise<void>;
     onDismissPermissionError: () => void;
+    onAddBoardMembers?: (userIds: string[]) => void;
+    onUpdateBoardMemberOverride?: (memberId: string, permission: string, access: "allow" | "deny" | "none") => void;
+    onRemoveBoardMember?: (memberId: string) => void;
   };
 }
 
@@ -234,7 +240,7 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
           newBoardComment={state.newBoardComment}
           onNewBoardCommentChange={actions.onNewBoardCommentChange}
           onCreateBoardComment={actions.onCreateBoardComment}
-          boardMembers={state.boardMembers}
+          boardMembers={state.boardMembers.map((m) => m.user as any)}
           onOpenArchivedLists={actions.onOpenArchivedLists}
           error={state.error}
         />
@@ -267,7 +273,7 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
           newListCommentDrafts={state.newListCommentDrafts}
           onListCommentDraftChange={actions.onListCommentDraftChange}
           onCreateListComment={actions.onCreateListComment}
-          boardMembers={state.boardMembers}
+          boardMembers={state.boardMembers.map((m) => m.user as any)}
           newCardTitles={state.newCardTitles}
           newCardDueDates={state.newCardDueDates}
           newCardAssigneeIds={state.newCardAssigneeIds}
@@ -322,6 +328,12 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
           isAutosavingBoard={state.isAutosavingBoard}
           onOpenArchiveBoard={actions.onOpenArchiveBoard}
           onOpenDeleteBoard={actions.onOpenDeleteBoard}
+          workspaceUsers={state.workspaceUsers}
+          boardMembers={state.boardMembers}
+          onAddBoardMembers={actions.onAddBoardMembers}
+          onUpdateBoardMemberOverride={actions.onUpdateBoardMemberOverride}
+          onRemoveBoardMember={actions.onRemoveBoardMember}
+          boardCreatorId={state.boardCreatorId}
         />
       </div>
       <BoardActivityPanel boardId={state.board.id} />
@@ -335,7 +347,7 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
         cardSaveStatus={state.cardSaveStatus}
         onCardDraftChange={actions.onCardDraftChange}
         boardLabels={state.boardLabels}
-        boardMembers={state.boardMembers}
+        boardMembers={state.boardMembers.map((m) => m.user as any)}
         onToggleCardLabel={actions.onToggleCardLabel}
         onToggleAssignee={actions.onToggleAssignee}
         attachmentInputRef={refs.attachmentInputRef}

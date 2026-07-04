@@ -8,3 +8,4 @@ export * from "./boards.service.cards.js";
 export * from "./boards.service.checklists.js";
 export * from "./boards.service.attachments.js";
 export * from "./boards.service.cleanup.js";
+export * from "./boards.service.members.js";

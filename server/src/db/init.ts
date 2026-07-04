@@ -1,7 +1,7 @@
 import type { RowDataPacket } from "mysql2/promise";
 
 import { pool } from "./connection.js";
-import { ensureDefaultRoles, ensureInviteRoleAssignments, ensureUserRoleAssignments } from "./init-roles.js";
+import { ensureDefaultRoles, ensureInviteRoleAssignments, ensureUserRoleAssignments, ensureExistingMembersOnAllBoards } from "./init-roles.js";
 import { runMigrations } from "./migrate.js";
 
 let migrationLock: Promise<void> = Promise.resolve();
@@ -16,6 +16,7 @@ async function seedRoles(): Promise<void> {
   const roleSeeds = await ensureDefaultRoles();
   await ensureUserRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
   await ensureInviteRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
+  await ensureExistingMembersOnAllBoards();
 }
 
 async function dropAllTables(): Promise<void> {
