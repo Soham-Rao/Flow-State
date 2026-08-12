@@ -7,6 +7,7 @@ const creationPassword = "owner-only-workspace-password";
 let app: import("express").Express;
 let clearDatabaseForTests: () => Promise<void>;
 let closePool: () => Promise<void>;
+let runMigrationPostchecks: () => Promise<void>;
 let env: typeof import("../src/config/env.js").env;
 
 async function register(name: string, email: string): Promise<{ id: string; token: string }> {
@@ -33,11 +34,13 @@ beforeAll(async () => {
   const appModule = await import("../src/app.js");
   const dbInitModule = await import("../src/db/init.js");
   const dbModule = await import("../src/db/connection.js");
+  const migrationGuardModule = await import("../src/db/migration-guard.js");
   const envModule = await import("../src/config/env.js");
 
   app = appModule.app;
   clearDatabaseForTests = dbInitModule.clearDatabaseForTests;
   closePool = dbModule.closePool;
+  runMigrationPostchecks = migrationGuardModule.runMigrationPostchecks;
   env = envModule.env;
   await dbInitModule.initializeDatabase();
 });
@@ -48,20 +51,15 @@ beforeEach(async () => {
 });
 
 describe("Workspace tenancy", () => {
-  it("places the first account in Dynamic Remedies as its workspace admin", async () => {
+  it("leaves a new account workspace-less until it explicitly creates or joins one", async () => {
     const user = await register("Existing User", "existing@example.com");
     const response = await request(app)
       .get("/api/workspaces")
       .set("Authorization", `Bearer ${user.token}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toHaveLength(1);
-    expect(response.body.data[0]).toMatchObject({
-      name: "Dynamic Remedies Marketing Workspace",
-      slug: "dynamic-remedies-marketing",
-      status: "active",
-      role: "admin"
-    });
+    expect(response.body.data).toEqual([]);
+    await expect(runMigrationPostchecks()).resolves.toBeUndefined();
   });
 
   it("allows any authenticated user with the private password to create a workspace", async () => {

@@ -12,7 +12,9 @@ FlowState uses:
 
 Important behavior:
 
-- first successful signup becomes the first admin
+- a normal signup starts without a workspace or role
+- an invited signup joins the invite's workspace with its assigned roles
+- a user who creates a workspace becomes that workspace's first admin
 - login/register are validated server-side
 - reset-password delivery is deferred until SMTP exists
 

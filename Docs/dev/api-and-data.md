@@ -32,7 +32,8 @@ Auth covers:
 
 Notable behavior:
 
-- first successful signup becomes admin
+- normal registration creates a workspace-less account
+- workspace membership and roles are added only by accepting an invite, joining with a workspace code, or creating a workspace
 - registration now requires legal consent flag on the request
 - password reset delivery is still SMTP-dependent future work
 

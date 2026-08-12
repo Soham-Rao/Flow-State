@@ -274,10 +274,6 @@ export async function runMigrationPostchecks(): Promise<void> {
 
   const integrityChecks: Array<{ label: string; sql: string }> = [
     {
-      label: "users without any workspace membership record",
-      sql: "SELECT COUNT(*) AS count FROM users u LEFT JOIN workspace_memberships wm ON wm.user_id = u.id WHERE wm.user_id IS NULL"
-    },
-    {
       label: "role assignments crossing workspaces",
       sql: "SELECT COUNT(*) AS count FROM user_roles ur INNER JOIN roles r ON r.id = ur.role_id WHERE ur.workspace_id <> r.workspace_id"
     },

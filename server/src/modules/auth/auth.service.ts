@@ -164,12 +164,12 @@ export async function registerUser(input: RegisterBody, context?: Partial<AuditC
   const totalUsers = totalRows[0]?.totalUsers ?? 0;
 
   const testImplicitWorkspace = env.NODE_ENV === "test" && process.env.TEST_EXPLICIT_WORKSPACES !== "true";
-  const workspaceId = invite?.workspaceId ?? (totalUsers === 0 || testImplicitWorkspace ? DEFAULT_WORKSPACE_ID : null);
+  const workspaceId = invite?.workspaceId ?? (testImplicitWorkspace ? DEFAULT_WORKSPACE_ID : null);
   let roleIds: string[] = [];
   let membershipRole: UserRole | null = null;
   if (workspaceId) {
     const { adminRoleId, guestRoleId } = await getSystemRoleIds(workspaceId);
-    roleIds = totalUsers === 0 && !invite ? [adminRoleId] : (invite?.roleIds ?? [guestRoleId]);
+    roleIds = testImplicitWorkspace && totalUsers === 0 && !invite ? [adminRoleId] : (invite?.roleIds ?? [guestRoleId]);
     membershipRole = await resolveLegacyRole(roleIds, workspaceId);
   }
   const passwordHash = await bcrypt.hash(input.password, 12);
