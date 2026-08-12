@@ -44,7 +44,6 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await clearDatabaseForTests();
-  env.PLATFORM_OWNER_USER_IDS = "";
   env.WORKSPACE_CREATION_PASSWORD_HASH = bcrypt.hashSync(creationPassword, 4);
 });
 
@@ -65,11 +64,9 @@ describe("Workspace tenancy", () => {
     });
   });
 
-  it("requires both the platform owner identity and the private password", async () => {
+  it("allows any authenticated user with the private password to create a workspace", async () => {
     const owner = await register("Owner", "owner@example.com");
     const other = await register("Other", "other@example.com");
-    env.PLATFORM_OWNER_USER_IDS = owner.id;
-
     const ownerCapabilities = await request(app)
       .get("/api/workspaces/capabilities")
       .set("Authorization", `Bearer ${owner.token}`);
@@ -77,7 +74,7 @@ describe("Workspace tenancy", () => {
       .get("/api/workspaces/capabilities")
       .set("Authorization", `Bearer ${other.token}`);
     expect(ownerCapabilities.body.data.canCreateWorkspace).toBe(true);
-    expect(otherCapabilities.body.data.canCreateWorkspace).toBe(false);
+    expect(otherCapabilities.body.data.canCreateWorkspace).toBe(true);
 
     const wrongPassword = await request(app)
       .post("/api/workspaces")
@@ -85,15 +82,9 @@ describe("Workspace tenancy", () => {
       .send({ name: "Second Workspace", joinCode: "members-only-code", password: "wrong" });
     expect(wrongPassword.status).toBe(403);
 
-    const nonOwner = await request(app)
-      .post("/api/workspaces")
-      .set("Authorization", `Bearer ${other.token}`)
-      .send({ name: "Second Workspace", joinCode: "members-only-code", password: creationPassword });
-    expect(nonOwner.status).toBe(403);
-
     const created = await request(app)
       .post("/api/workspaces")
-      .set("Authorization", `Bearer ${owner.token}`)
+      .set("Authorization", `Bearer ${other.token}`)
       .send({ name: "Second Workspace", joinCode: "members-only-code", password: creationPassword });
     expect(created.status).toBe(201);
     expect(created.body.data.name).toBe("Second Workspace");
@@ -103,8 +94,6 @@ describe("Workspace tenancy", () => {
   it("prevents a member of one workspace from addressing another workspace", async () => {
     const owner = await register("Owner", "owner@example.com");
     const isolatedUser = await register("Isolated", "isolated@example.com");
-    env.PLATFORM_OWNER_USER_IDS = owner.id;
-
     const workspaceResponse = await request(app)
       .post("/api/workspaces")
       .set("Authorization", `Bearer ${owner.token}`)

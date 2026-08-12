@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import { PasswordInput, PasswordStrengthMeter } from "@/components/auth/password-input";
 import { PublicPageLayout } from "@/components/public/public-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ export function RegisterPage(): JSX.Element {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptedLegalTerms, setAcceptedLegalTerms] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
@@ -75,7 +77,7 @@ export function RegisterPage(): JSX.Element {
     const normalizedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!normalizedName || !normalizedEmail || !password) {
+    if (!normalizedName || !normalizedEmail || !password || !confirmPassword) {
       setFormError("Please complete all required fields.");
       return;
     }
@@ -92,6 +94,11 @@ export function RegisterPage(): JSX.Element {
 
     if (password.length < 8) {
       setFormError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setFormError("Passwords do not match.");
       return;
     }
 
@@ -145,17 +152,32 @@ export function RegisterPage(): JSX.Element {
           autoComplete="email"
           required
         />
-        <Input
-          type="password"
-          placeholder="Password"
-          value={password}
+        <div className="space-y-2">
+          <PasswordInput
+            placeholder="Password"
+            value={password}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              clearLocalErrors();
+            }}
+            autoComplete="new-password"
+            minLength={8}
+            required
+            visibilityLabel="password"
+          />
+          <PasswordStrengthMeter password={password} />
+        </div>
+        <PasswordInput
+          placeholder="Confirm password"
+          value={confirmPassword}
           onChange={(event) => {
-            setPassword(event.target.value);
+            setConfirmPassword(event.target.value);
             clearLocalErrors();
           }}
           autoComplete="new-password"
           minLength={8}
           required
+          visibilityLabel="confirmed password"
         />
 
         {inviteToken && (
@@ -192,7 +214,7 @@ export function RegisterPage(): JSX.Element {
           </p>
         )}
 
-        <p className="text-xs text-muted-foreground">The first successful signup becomes the initial workspace administrator.</p>
+        <p className="text-xs text-muted-foreground">The person who creates a workspace becomes its first administrator.</p>
 
         <Button className="w-full" type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Creating account..." : "Create account"}

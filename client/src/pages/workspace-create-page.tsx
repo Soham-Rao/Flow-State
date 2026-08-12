@@ -48,7 +48,7 @@ export function WorkspaceCreatePage(): JSX.Element {
           </div>
           <CardTitle>Create a new workspace</CardTitle>
           <CardDescription>
-            Workspaces are completely separate. Creation requires the private platform-owner password.
+            Workspaces are completely separate. Creation requires the private workspace creation password.
           </CardDescription>
         </CardHeader>
         <CardContent>

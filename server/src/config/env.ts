@@ -36,7 +36,6 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().min(2).default("7d"),
   WORKSPACE_CREATION_PASSWORD_HASH: z.string().trim().min(20).optional(),
   DEFAULT_WORKSPACE_JOIN_CODE_HASH: z.string().trim().min(20).optional(),
-  PLATFORM_OWNER_USER_IDS: z.string().trim().optional(),
   MYSQL_URL: z.string().url().default(DEFAULT_MYSQL_URL),
   FLOWSTATE_DM_ENCRYPTION_KEY: z.string().refine(
     (val) =>
@@ -159,7 +158,6 @@ if (env.NODE_ENV === "production") {
   if (env.PUBLIC_APP_URL === DEFAULT_CLIENT_ORIGIN) missing.push("PUBLIC_APP_URL");
   if (!env.WORKSPACE_CREATION_PASSWORD_HASH) missing.push("WORKSPACE_CREATION_PASSWORD_HASH");
   if (!env.DEFAULT_WORKSPACE_JOIN_CODE_HASH) missing.push("DEFAULT_WORKSPACE_JOIN_CODE_HASH");
-  if (!env.PLATFORM_OWNER_USER_IDS) missing.push("PLATFORM_OWNER_USER_IDS");
 
   if (missing.length > 0) {
     throw new Error(`Missing production env overrides: ${missing.join(", ")}`);

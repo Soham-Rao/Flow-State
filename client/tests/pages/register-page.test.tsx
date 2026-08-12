@@ -42,12 +42,41 @@ describe("RegisterPage legal consent", () => {
     fireEvent.change(screen.getByPlaceholderText(/Full name/i), { target: { value: "Test User" } });
     fireEvent.change(screen.getByPlaceholderText(/Work email/i), { target: { value: "user@example.com" } });
     fireEvent.change(screen.getByPlaceholderText(/^Password$/i), { target: { value: "password123" } });
+    fireEvent.change(screen.getByPlaceholderText(/Confirm password/i), { target: { value: "password123" } });
 
     const form = screen.getByRole("button", { name: /Create account/i }).closest("form");
     expect(form).not.toBeNull();
     fireEvent.submit(form!);
 
     expect(await screen.findByText(/You must accept the Privacy Policy and Terms of Use/i)).toBeInTheDocument();
+  });
+
+  it("shows password strength and rejects a mismatched confirmation", async () => {
+    renderRegisterPage();
+
+    fireEvent.change(screen.getByPlaceholderText(/Full name/i), { target: { value: "Test User" } });
+    fireEvent.change(screen.getByPlaceholderText(/Work email/i), { target: { value: "user@example.com" } });
+    fireEvent.change(screen.getByPlaceholderText(/^Password$/i), { target: { value: "Password123!" } });
+    expect(screen.getByText(/Password strength:/i)).toHaveTextContent("Strong");
+
+    fireEvent.change(screen.getByPlaceholderText(/Confirm password/i), { target: { value: "Password123?" } });
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: /Create account/i }));
+
+    expect(await screen.findByText(/Passwords do not match/i)).toBeInTheDocument();
+  });
+
+  it("can reveal and hide both registration password fields", () => {
+    renderRegisterPage();
+
+    const password = screen.getByPlaceholderText(/^Password$/i);
+    expect(password).toHaveAttribute("type", "password");
+    fireEvent.click(screen.getByRole("button", { name: /Show password/i }));
+    expect(password).toHaveAttribute("type", "text");
+
+    const confirmation = screen.getByPlaceholderText(/Confirm password/i);
+    fireEvent.click(screen.getByRole("button", { name: /Show confirmed password/i }));
+    expect(confirmation).toHaveAttribute("type", "text");
   });
 });
 

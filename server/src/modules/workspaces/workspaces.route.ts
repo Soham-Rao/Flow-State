@@ -3,7 +3,7 @@ import { Router } from "express";
 import { requireAuth } from "../../middleware/require-auth.js";
 import { workspaceCreationRateLimiter } from "../../middleware/rate-limit.js";
 import { createWorkspaceSchema, joinWorkspaceSchema } from "./workspaces.schema.js";
-import { createWorkspace, isPlatformOwner, joinWorkspace, listUserWorkspaces } from "./workspaces.service.js";
+import { createWorkspace, isWorkspaceCreationEnabled, joinWorkspace, listUserWorkspaces } from "./workspaces.service.js";
 
 export const workspacesRouter = Router();
 
@@ -20,7 +20,7 @@ workspacesRouter.get("/", async (req, res, next) => {
 workspacesRouter.get("/capabilities", (req, res) => {
   res.status(200).json({
     success: true,
-    data: { canCreateWorkspace: isPlatformOwner(req.auth!.userId) }
+    data: { canCreateWorkspace: isWorkspaceCreationEnabled() }
   });
 });
 

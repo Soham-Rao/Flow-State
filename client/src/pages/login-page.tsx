@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import { PasswordInput } from "@/components/auth/password-input";
 import { PublicPageLayout } from "@/components/public/public-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,8 +93,7 @@ export function LoginPage(): JSX.Element {
           autoComplete="email"
           required
         />
-        <Input
-          type="password"
+        <PasswordInput
           placeholder="Password"
           value={password}
           onChange={(event) => {
@@ -103,6 +103,7 @@ export function LoginPage(): JSX.Element {
           autoComplete="current-password"
           minLength={8}
           required
+          visibilityLabel="password"
         />
 
         {(formError || apiError) && (

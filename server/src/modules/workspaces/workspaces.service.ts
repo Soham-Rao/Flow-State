@@ -86,22 +86,11 @@ export async function resolveWorkspaceForUser(userId: string, requestedIdOrSlug:
   return workspace;
 }
 
-export function isPlatformOwner(userId: string): boolean {
-  const allowedIds = (env.PLATFORM_OWNER_USER_IDS ?? "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-  return allowedIds.includes(userId);
-}
-
-function assertPlatformOwner(userId: string): void {
-  if (!isPlatformOwner(userId)) {
-    throw new ApiError(403, "Workspace creation is not available");
-  }
+export function isWorkspaceCreationEnabled(): boolean {
+  return Boolean(env.WORKSPACE_CREATION_PASSWORD_HASH?.trim());
 }
 
 export async function createWorkspace(userId: string, input: CreateWorkspaceInput): Promise<WorkspaceSummary> {
-  assertPlatformOwner(userId);
   const passwordHash = env.WORKSPACE_CREATION_PASSWORD_HASH?.trim();
   if (!passwordHash || !await bcrypt.compare(input.password, passwordHash)) {
     throw new ApiError(403, "Workspace creation is not available");
