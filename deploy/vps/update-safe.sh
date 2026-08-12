@@ -15,6 +15,30 @@ mkdir -p "$WORK_LOG_DIR"
 source_env
 
 step_count=0
+sudo_keepalive_pid=""
+
+stop_sudo_keepalive() {
+  if [[ -z "$sudo_keepalive_pid" ]]; then
+    return
+  fi
+
+  kill "$sudo_keepalive_pid" 2>/dev/null || true
+  wait "$sudo_keepalive_pid" 2>/dev/null || true
+  sudo_keepalive_pid=""
+}
+
+authenticate_sudo() {
+  printf '[info] Authenticate privileged deployment actions\n'
+  sudo -v
+
+  (
+    while sleep 60; do
+      sudo -n -v || exit 1
+    done
+  ) &
+  sudo_keepalive_pid=$!
+  printf '[ok] Privileged deployment authorization ready\n'
+}
 
 print_ok() {
   printf '[ok] %s\n' "$1"
@@ -66,6 +90,9 @@ show_summary() {
 }
 
 main() {
+  authenticate_sudo
+  trap stop_sudo_keepalive EXIT
+
   run_step "Change to app directory" bash -lc "cd '$APP_DIR'"
   cd "$APP_DIR"
 
@@ -82,6 +109,8 @@ main() {
   run_step "Check daily backup timer" sudo systemctl is-active --quiet flowstate-backup-daily.timer
   run_step "Check weekly backup timer" sudo systemctl is-active --quiet flowstate-backup-weekly.timer
 
+  stop_sudo_keepalive
+  trap - EXIT
   printf '[done] Safe deploy finished successfully\n'
 }
 

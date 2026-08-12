@@ -66,6 +66,8 @@ That lower-level script:
 - disables maintenance mode on success
 - attempts rollback on failure
 
+Before any deployment steps begin, `update-safe.sh` asks for sudo authorization and keeps that authorization alive for the duration of the backup, build, migration, restart, and health checks. This avoids a hidden or expired password prompt partway through a long deployment.
+
 ### Fast redeploy path
 
 Use this only when you intentionally want the simpler flow without maintenance mode and predeploy backup:
