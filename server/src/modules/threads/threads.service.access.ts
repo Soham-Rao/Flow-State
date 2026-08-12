@@ -6,10 +6,12 @@ import {
   threadMemberPermissions,
   threadMembers,
   users,
+  workspaceMemberships,
   type RolePermission
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { userHasPermission } from "../../utils/permissions.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import type { ThreadUserSummary } from "./threads.service.types.js";
 
 export async function getUserSummary(userId: string): Promise<ThreadUserSummary | null> {
@@ -21,10 +23,15 @@ export async function getUserSummary(userId: string): Promise<ThreadUserSummary 
       username: users.username,
       email: users.email,
       bio: users.bio,
-      role: users.role
+      role: workspaceMemberships.role
     })
-    .from(users)
-    .where(eq(users.id, userId))
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(
+      eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()),
+      eq(workspaceMemberships.userId, userId),
+      eq(workspaceMemberships.status, "active")
+    ))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -41,7 +48,7 @@ export async function getConversation(conversationId: string): Promise<{ id: str
   const rows = await db
     .select({ id: threadConversations.id, type: threadConversations.type, createdBy: threadConversations.createdBy })
     .from(threadConversations)
-    .where(eq(threadConversations.id, conversationId))
+    .where(and(eq(threadConversations.id, conversationId), eq(threadConversations.workspaceId, getCurrentWorkspaceId())))
     .limit(1);
   const conversation = rows[0];
   if (!conversation) {
@@ -51,6 +58,7 @@ export async function getConversation(conversationId: string): Promise<{ id: str
 }
 
 export async function assertConversationMember(userId: string, conversationId: string): Promise<void> {
+  await getConversation(conversationId);
   const rows = await db
     .select({ userId: threadMembers.userId })
     .from(threadMembers)
@@ -83,16 +91,23 @@ async function conversationHasAdminMember(conversationId: string): Promise<boole
     .select({ userId: users.id })
     .from(threadMembers)
     .innerJoin(users, eq(threadMembers.userId, users.id))
-    .where(and(eq(threadMembers.conversationId, conversationId), eq(users.role, "admin")))
+    .innerJoin(workspaceMemberships, and(
+      eq(workspaceMemberships.userId, users.id),
+      eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())
+    ))
+    .where(and(eq(threadMembers.conversationId, conversationId), eq(workspaceMemberships.role, "admin")))
     .limit(1);
   return Boolean(rows[0]);
 }
 
 async function userIsGuest(userId: string): Promise<boolean> {
   const rows = await db
-    .select({ role: users.role })
-    .from(users)
-    .where(eq(users.id, userId))
+    .select({ role: workspaceMemberships.role })
+    .from(workspaceMemberships)
+    .where(and(
+      eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()),
+      eq(workspaceMemberships.userId, userId)
+    ))
     .limit(1);
   return rows[0]?.role === "guest";
 }

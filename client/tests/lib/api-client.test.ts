@@ -6,7 +6,12 @@ import {
   clearApiCache,
   invalidateApiCacheByTag
 } from "@/lib/api-client";
-import { clearSessionToken, setSessionToken } from "@/lib/session";
+import {
+  clearActiveWorkspaceId,
+  clearSessionToken,
+  setActiveWorkspaceId,
+  setSessionToken
+} from "@/lib/session";
 import { useAppFeedbackStore } from "@/stores/app-feedback-store";
 import { usePermissionErrorStore } from "@/stores/permission-error-store";
 
@@ -14,6 +19,7 @@ describe("api client cache", () => {
   beforeEach(() => {
     clearApiCache();
     clearSessionToken();
+    clearActiveWorkspaceId();
     usePermissionErrorStore.getState().clear();
     useAppFeedbackStore.getState().clearDialog();
     __setMaintenanceRedirectHandlerForTests(null);
@@ -71,6 +77,45 @@ describe("api client cache", () => {
     expect(first).toEqual(["a", "b"]);
     expect(second).toEqual(["a", "b"]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the active workspace and keeps workspace caches separate", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { workspace: "one" } })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { workspace: "two" } })
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    setSessionToken("token-123");
+
+    setActiveWorkspaceId("workspace-one");
+    const first = await apiRequest<{ workspace: string }>("/boards", {
+      method: "GET",
+      auth: true,
+      cacheTtlMs: 10_000
+    });
+
+    setActiveWorkspaceId("workspace-two");
+    const second = await apiRequest<{ workspace: string }>("/boards", {
+      method: "GET",
+      auth: true,
+      cacheTtlMs: 10_000
+    });
+
+    expect(first.workspace).toBe("one");
+    expect(second.workspace).toBe("two");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[0]?.[1] as RequestInit).headers).toEqual(
+      expect.objectContaining({})
+    );
+    expect(((fetchMock.mock.calls[0]?.[1] as RequestInit).headers as Headers).get("X-Workspace-Id"))
+      .toBe("workspace-one");
+    expect(((fetchMock.mock.calls[1]?.[1] as RequestInit).headers as Headers).get("X-Workspace-Id"))
+      .toBe("workspace-two");
   });
 
   it("invalidates cache entries by tag after a mutation", async () => {

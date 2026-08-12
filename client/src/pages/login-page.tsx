@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { PublicPageLayout } from "@/components/public/public-page-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { acceptInvite } from "@/lib/invites-api";
 import { useAuthStore } from "@/stores/auth-store";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -19,6 +21,10 @@ export function LoginPage(): JSX.Element {
   const apiError = useAuthStore((state) => state.error);
   const login = useAuthStore((state) => state.login);
   const clearError = useAuthStore((state) => state.clearError);
+  const refreshWorkspaces = useWorkspaceStore((state) => state.refresh);
+  const switchWorkspace = useWorkspaceStore((state) => state.switchWorkspace);
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get("invite");
 
   const navigate = useNavigate();
   const isSubmitting = status === "loading";
@@ -50,7 +56,13 @@ export function LoginPage(): JSX.Element {
         email: normalizedEmail,
         password
       });
-      navigate("/");
+      if (inviteToken) {
+        const accepted = await acceptInvite(inviteToken);
+        await refreshWorkspaces();
+        switchWorkspace(accepted.workspaceId);
+        return;
+      }
+      navigate("/workspaces");
     } catch {
       // Error state is handled by the auth store.
     }
@@ -108,7 +120,7 @@ export function LoginPage(): JSX.Element {
 
       <p className="mt-4 text-sm text-muted-foreground">
         New here?{" "}
-        <Link className="font-medium text-primary hover:underline" to="/register">
+        <Link className="font-medium text-primary hover:underline" to={inviteToken ? `/register?invite=${encodeURIComponent(inviteToken)}` : "/register"}>
           Create an account
         </Link>
       </p>

@@ -1,7 +1,16 @@
 import type { RowDataPacket } from "mysql2/promise";
 
 import { pool } from "./connection.js";
-import { ensureDefaultRoles, ensureInviteRoleAssignments, ensureUserRoleAssignments, ensureExistingMembersOnAllBoards } from "./init-roles.js";
+import { ensureDefaultRoles, ensureInviteRoleAssignments, ensureUserRoleAssignments } from "./init-roles.js";
+import {
+  DEFAULT_WORKSPACE_ID,
+  DEFAULT_WORKSPACE_NAME,
+  DEFAULT_WORKSPACE_SLUG
+} from "../modules/workspaces/workspaces.constants.js";
+import { env } from "../config/env.js";
+import { db } from "./connection.js";
+import { and, eq, isNull } from "drizzle-orm";
+import { workspaces } from "./schema.js";
 import { runMigrations } from "./migrate.js";
 
 let migrationLock: Promise<void> = Promise.resolve();
@@ -13,10 +22,29 @@ async function withMigrationLock(task: () => Promise<void>): Promise<void> {
 }
 
 async function seedRoles(): Promise<void> {
-  const roleSeeds = await ensureDefaultRoles();
-  await ensureUserRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
-  await ensureInviteRoleAssignments(roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
-  await ensureExistingMembersOnAllBoards();
+  const now = new Date();
+  await db.insert(workspaces)
+    .values({
+      id: DEFAULT_WORKSPACE_ID,
+      name: DEFAULT_WORKSPACE_NAME,
+      slug: DEFAULT_WORKSPACE_SLUG,
+      status: "active",
+      createdBy: null,
+      createdAt: now,
+      updatedAt: now
+    })
+    .onDuplicateKeyUpdate({ set: { id: DEFAULT_WORKSPACE_ID } })
+    .execute();
+
+  if (env.DEFAULT_WORKSPACE_JOIN_CODE_HASH) {
+    await db.update(workspaces)
+      .set({ joinCodeHash: env.DEFAULT_WORKSPACE_JOIN_CODE_HASH, updatedAt: new Date() })
+      .where(and(eq(workspaces.id, DEFAULT_WORKSPACE_ID), isNull(workspaces.joinCodeHash)))
+      .execute();
+  }
+  const roleSeeds = await ensureDefaultRoles(DEFAULT_WORKSPACE_ID);
+  await ensureUserRoleAssignments(DEFAULT_WORKSPACE_ID, roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
+  await ensureInviteRoleAssignments(DEFAULT_WORKSPACE_ID, roleSeeds.adminRoleId, roleSeeds.memberRoleId, roleSeeds.guestRoleId);
 }
 
 async function dropAllTables(): Promise<void> {

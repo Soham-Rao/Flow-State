@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db, type DbTransaction } from "./connection.js";
 import {
@@ -10,11 +10,10 @@ import {
   rolePermissionsTable,
   roles,
   userRoleAssignments,
-  users,
-  boardMembers,
-  boards,
+  workspaceMemberships,
   type RolePermission
 } from "./schema.js";
+import { DEFAULT_WORKSPACE_ID } from "../modules/workspaces/workspaces.constants.js";
 
 const ADMIN_ROLE_NAME = "Admin";
 const MEMBER_ROLE_NAME = "Member";
@@ -66,10 +65,16 @@ const MEMBER_ROLE_PERMISSIONS = [
 
 const GUEST_ROLE_PERMISSIONS = [] satisfies RolePermission[];
 
-export async function ensureDefaultRoles(): Promise<{ adminRoleId: string; memberRoleId: string; guestRoleId: string }> {
-  return db.transaction(async (tx: DbTransaction) => {
+export async function seedDefaultRolesForWorkspace(
+  tx: DbTransaction,
+  workspaceId: string,
+  options?: { assignAdminUserId?: string }
+): Promise<{ adminRoleId: string; memberRoleId: string; guestRoleId: string }> {
     const now = new Date();
-    const existingRoles: Array<{ id: string; name: string }> = await tx.select({ id: roles.id, name: roles.name }).from(roles);
+    const existingRoles: Array<{ id: string; name: string }> = await tx
+      .select({ id: roles.id, name: roles.name })
+      .from(roles)
+      .where(eq(roles.workspaceId, workspaceId));
     let adminRoleId = existingRoles.find((role) => role.name === ADMIN_ROLE_NAME)?.id;
     let memberRoleId = existingRoles.find((role) => role.name === MEMBER_ROLE_NAME)?.id;
     let guestRoleId = existingRoles.find((role) => role.name === GUEST_ROLE_NAME)?.id;
@@ -80,6 +85,7 @@ export async function ensureDefaultRoles(): Promise<{ adminRoleId: string; membe
         .insert(roles)
         .values({
           id: adminRoleId,
+          workspaceId,
           name: ADMIN_ROLE_NAME,
           color: ADMIN_ROLE_COLOR,
           priority: ADMIN_ROLE_PRIORITY,
@@ -97,6 +103,7 @@ export async function ensureDefaultRoles(): Promise<{ adminRoleId: string; membe
         .insert(roles)
         .values({
           id: memberRoleId,
+          workspaceId,
           name: MEMBER_ROLE_NAME,
           color: MEMBER_ROLE_COLOR,
           priority: MEMBER_ROLE_PRIORITY,
@@ -114,6 +121,7 @@ export async function ensureDefaultRoles(): Promise<{ adminRoleId: string; membe
         .insert(roles)
         .values({
           id: guestRoleId,
+          workspaceId,
           name: GUEST_ROLE_NAME,
           color: GUEST_ROLE_COLOR,
           priority: GUEST_ROLE_PRIORITY,
@@ -150,19 +158,40 @@ export async function ensureDefaultRoles(): Promise<{ adminRoleId: string; membe
       await tx.insert(rolePermissionsTable).ignore().values(guestPermissions).execute();
     }
 
+    if (options?.assignAdminUserId) {
+      await tx.insert(userRoleAssignments).ignore().values({
+        workspaceId,
+        userId: options.assignAdminUserId,
+        roleId: adminRoleId,
+        createdAt: now
+      }).execute();
+    }
+
     return { adminRoleId, memberRoleId, guestRoleId };
+}
+
+export async function ensureDefaultRoles(
+  workspaceId = DEFAULT_WORKSPACE_ID
+): Promise<{ adminRoleId: string; memberRoleId: string; guestRoleId: string }> {
+  return db.transaction(async (tx: DbTransaction) => {
+    return seedDefaultRolesForWorkspace(tx, workspaceId);
   });
 }
 
 export async function ensureUserRoleAssignments(
+  workspaceId: string,
   adminRoleId: string,
   memberRoleId: string,
   guestRoleId: string
 ): Promise<void> {
   await db.transaction(async (tx: DbTransaction) => {
-    const usersRows: Array<{ id: string; role: string }> = await tx.select({ id: users.id, role: users.role }).from(users);
+    const usersRows: Array<{ id: string; role: string }> = await tx
+      .select({ id: workspaceMemberships.userId, role: workspaceMemberships.role })
+      .from(workspaceMemberships)
+      .where(and(eq(workspaceMemberships.workspaceId, workspaceId), eq(workspaceMemberships.status, "active")));
     const roleByLegacy: Record<string, string> = { admin: adminRoleId, member: memberRoleId, guest: guestRoleId };
     const assignments = usersRows.map((user) => ({
+      workspaceId,
       userId: user.id,
       roleId: roleByLegacy[user.role] ?? guestRoleId,
       createdAt: new Date()
@@ -175,12 +204,16 @@ export async function ensureUserRoleAssignments(
 }
 
 export async function ensureInviteRoleAssignments(
+  workspaceId: string,
   adminRoleId: string,
   memberRoleId: string,
   guestRoleId: string
 ): Promise<void> {
   await db.transaction(async (tx: DbTransaction) => {
-    const inviteRows: Array<{ id: string; role: string }> = await tx.select({ id: invites.id, role: invites.role }).from(invites);
+    const inviteRows: Array<{ id: string; role: string }> = await tx
+      .select({ id: invites.id, role: invites.role })
+      .from(invites)
+      .where(eq(invites.workspaceId, workspaceId));
     const roleByLegacy: Record<string, string> = { admin: adminRoleId, member: memberRoleId, guest: guestRoleId };
     const assignments = inviteRows.map((invite) => ({
       inviteId: invite.id,
@@ -190,26 +223,6 @@ export async function ensureInviteRoleAssignments(
 
     if (assignments.length > 0) {
       await tx.insert(inviteRoleAssignments).ignore().values(assignments).execute();
-    }
-  });
-}
-
-export async function ensureExistingMembersOnAllBoards(): Promise<void> {
-  await db.transaction(async (tx: DbTransaction) => {
-    const allUsers = await tx.select({ id: users.id }).from(users);
-    const allBoards = await tx.select({ id: boards.id }).from(boards);
-
-    if (allUsers.length > 0 && allBoards.length > 0) {
-      const recordsToInsert = allBoards.flatMap((board) =>
-        allUsers.map((user) => ({
-          boardId: board.id,
-          userId: user.id,
-          role: "member",
-          createdAt: new Date()
-        }))
-      );
-      
-      await tx.insert(boardMembers).ignore().values(recordsToInsert).execute();
     }
   });
 }

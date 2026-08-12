@@ -6,7 +6,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
+  role: UserRole | null;
   permissions: RolePermission[];
   assignedRoles?: Array<{ id: string; name: string; color: string }>;
   username: string | null;

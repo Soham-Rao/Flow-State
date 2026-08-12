@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { assertBoardExists } from "../boards/boards.service.lookups.js";
 import { assertPermission, userHasPermission } from "../../utils/permissions.js";
 import { setPrivateShortCache } from "../../utils/http-cache.js";
@@ -8,7 +9,7 @@ import { listActivityLogs } from "./activity.service.js";
 
 export const activityRouter = Router();
 
-activityRouter.use(requireAuth);
+activityRouter.use(requireAuth, requireWorkspace);
 
 activityRouter.get("/", async (req, res, next) => {
   try {

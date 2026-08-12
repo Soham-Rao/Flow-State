@@ -13,12 +13,14 @@ import {
   threadMessageDeletions,
   threadMessages,
   users,
+  workspaceMemberships,
   type UserRole,
   type ThreadMemberRole
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { sanitizeOptionalPlainText, sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import { assertPermission, userHasPermission } from "../../utils/permissions.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import type {
   ChannelConversationSummary,
   ChannelMemberSummary,
@@ -94,6 +96,7 @@ async function setMemberOverrides(conversationId: string, userId: string, overri
 }
 
 export async function listDmUsers(userId: string): Promise<ThreadUserSummary[]> {
+  const workspaceId = getCurrentWorkspaceId();
   const mode = await assertDmDiscoveryPermission(userId);
   if (mode === "admins") {
     return db
@@ -104,10 +107,15 @@ export async function listDmUsers(userId: string): Promise<ThreadUserSummary[]> 
         username: users.username,
         email: users.email,
         bio: users.bio,
-        role: users.role
+        role: workspaceMemberships.role
       })
-      .from(users)
-      .where(eq(users.role, "admin"))
+      .from(workspaceMemberships)
+      .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+      .where(and(
+        eq(workspaceMemberships.workspaceId, workspaceId),
+        eq(workspaceMemberships.status, "active"),
+        eq(workspaceMemberships.role, "admin")
+      ))
       .orderBy(users.name);
   }
 
@@ -119,9 +127,11 @@ export async function listDmUsers(userId: string): Promise<ThreadUserSummary[]> 
       username: users.username,
       email: users.email,
       bio: users.bio,
-      role: users.role
+      role: workspaceMemberships.role
     })
-    .from(users)
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(eq(workspaceMemberships.workspaceId, workspaceId), eq(workspaceMemberships.status, "active")))
     .orderBy(users.name);
 }
 
@@ -152,10 +162,15 @@ export async function listDmConversations(userId: string): Promise<DmConversatio
         username: users.username,
         email: users.email,
         bio: users.bio,
-        role: users.role
+        role: workspaceMemberships.role
       })
       .from(threadMembers)
       .innerJoin(users, eq(threadMembers.userId, users.id))
+      .innerJoin(workspaceMemberships, and(
+        eq(workspaceMemberships.userId, users.id),
+        eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()),
+        eq(workspaceMemberships.status, "active")
+      ))
       .where(and(eq(threadMembers.conversationId, row.id), ne(threadMembers.userId, userId)))
       .limit(1);
 
@@ -228,7 +243,7 @@ export async function getOrCreateDmConversation(userId: string, otherUserId: str
         const conversationRows = await db
           .select({ id: threadConversations.id })
           .from(threadConversations)
-          .where(and(eq(threadConversations.id, id), eq(threadConversations.type, "dm")))
+          .where(and(eq(threadConversations.id, id), eq(threadConversations.workspaceId, getCurrentWorkspaceId()), eq(threadConversations.type, "dm")))
           .limit(1);
         const conversation = conversationRows[0];
         if (!conversation) continue;
@@ -254,7 +269,7 @@ export async function getOrCreateDmConversation(userId: string, otherUserId: str
         const conversationRows = await db
           .select({ id: threadConversations.id })
           .from(threadConversations)
-          .where(and(eq(threadConversations.id, id), eq(threadConversations.type, "dm")))
+          .where(and(eq(threadConversations.id, id), eq(threadConversations.workspaceId, getCurrentWorkspaceId()), eq(threadConversations.type, "dm")))
           .limit(1);
         const conversation = conversationRows[0];
         if (!conversation) continue;
@@ -284,6 +299,7 @@ export async function getOrCreateDmConversation(userId: string, otherUserId: str
   await db.insert(threadConversations)
     .values({
       id: conversationId,
+      workspaceId: getCurrentWorkspaceId(),
       type: "dm",
       createdAt: now,
       updatedAt: now,
@@ -347,7 +363,11 @@ export async function listChannelConversations(userId: string): Promise<ChannelC
     })
     .from(threadMembers)
     .innerJoin(threadConversations, eq(threadMembers.conversationId, threadConversations.id))
-    .where(and(eq(threadMembers.userId, userId), eq(threadConversations.type, "channel")));
+    .where(and(
+      eq(threadMembers.userId, userId),
+      eq(threadConversations.workspaceId, getCurrentWorkspaceId()),
+      eq(threadConversations.type, "channel")
+    ));
 
   if (rows.length === 0) {
     return [];
@@ -434,6 +454,7 @@ export async function createChannelConversation(userId: string, input: CreateCha
   await db.insert(threadConversations)
     .values({
       id: conversationId,
+      workspaceId: getCurrentWorkspaceId(),
       type: "channel",
       name,
       description: normalizedDescription,
@@ -519,7 +540,7 @@ export async function updateChannelConversation(
     updates.updatedAt = new Date();
     await db.update(threadConversations)
       .set(updates)
-      .where(eq(threadConversations.id, conversationId))
+      .where(and(eq(threadConversations.id, conversationId), eq(threadConversations.workspaceId, getCurrentWorkspaceId())))
       .execute();
   }
 
@@ -567,7 +588,7 @@ export async function deleteChannelConversation(userId: string, conversationId: 
   void fs.rm(uploadsRoot, { recursive: true, force: true }).catch(() => {});
 
   await db.delete(threadConversations)
-    .where(eq(threadConversations.id, conversationId))
+    .where(and(eq(threadConversations.id, conversationId), eq(threadConversations.workspaceId, getCurrentWorkspaceId())))
     .execute();
 
   return { id: conversationId };
@@ -598,7 +619,7 @@ export async function listChannelMembers(userId: string, conversationId: string)
       username: users.username,
       email: users.email,
       bio: users.bio,
-      role: users.role,
+      role: workspaceMemberships.role,
       memberRole: threadMembers.role
     })
     .from(threadMembers)

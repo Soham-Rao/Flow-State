@@ -78,6 +78,20 @@
       "when": 1783128318895,
       "tag": "0010_married_puma",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1786492800000,
+      "tag": "0011_add_workspace_tenancy",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1786562341686,
+      "tag": "0012_workspace_tenancy_snapshot",
+      "breakpoints": true
     }
   ]
 }

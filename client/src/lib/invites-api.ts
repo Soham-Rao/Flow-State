@@ -29,6 +29,13 @@ export async function lookupInvite(token: string): Promise<InviteLookup> {
   });
 }
 
+export async function acceptInvite(token: string): Promise<{ workspaceId: string }> {
+  return apiRequest<{ workspaceId: string }>(`/invites/accept/${token}`, {
+    method: "POST",
+    auth: true
+  });
+}
+
 export async function updateInviteRoles(inviteId: string, roleIds: string[]): Promise<InviteSummary> {
   return apiRequest<InviteSummary>(`/invites/${inviteId}/roles`, {
     method: "PATCH",

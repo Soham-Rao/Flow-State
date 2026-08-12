@@ -14,12 +14,14 @@ import {
   threadReplyReactions,
   threadReplyVoiceNotes,
   users,
+  workspaceMemberships,
   type UserRole
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { sanitizePlainText } from "../../utils/sanitize.js";
 import { decryptDmBody, encryptDmBody } from "../../utils/encryption.js";
 import { assertPermission } from "../../utils/permissions.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import type {
   CreateThreadReplyInput,
   DeleteThreadReplyInput,
@@ -136,10 +138,11 @@ async function loadReplyContextMap(
       authorUsername: users.username,
       authorEmail: users.email,
       authorBio: users.bio,
-      authorRole: users.role
+      authorRole: workspaceMemberships.role
     })
     .from(threadReplies)
     .innerJoin(users, eq(threadReplies.authorId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(and(inArray(threadReplies.id, replyToReplyIds), eq(threadReplies.parentMessageId, messageId)));
 
   rows.forEach((row) => {
@@ -201,10 +204,11 @@ export async function listThreadReplies(
       authorUsername: users.username,
       authorEmail: users.email,
       authorBio: users.bio,
-      authorRole: users.role
+      authorRole: workspaceMemberships.role
     })
     .from(threadReplies)
     .innerJoin(users, eq(threadReplies.authorId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(and(...conditions))
     .orderBy(desc(threadReplies.createdAt))
     .limit(limit);
@@ -299,10 +303,11 @@ export async function listThreadReplyReactionDetails(userId: string, replyId: st
       username: users.username,
       email: users.email,
       bio: users.bio,
-      role: users.role
+      role: workspaceMemberships.role
     })
     .from(threadReplyReactions)
     .innerJoin(users, eq(threadReplyReactions.userId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(eq(threadReplyReactions.replyId, replyId));
 
   const map = new Map<string, ThreadUserSummary[]>();

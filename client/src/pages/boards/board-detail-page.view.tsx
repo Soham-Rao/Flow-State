@@ -226,7 +226,7 @@ export function BoardDetailPageView({ state, refs, actions }: BoardDetailPageVie
   const boardComments = state.board.comments ?? [];
   return (
     <>
-      <div className={`-mx-4 -my-4 space-y-6 px-4 py-4 lg:-mx-6 lg:-my-6 lg:px-6 lg:py-6 ${state.activeSurfaceClass}`}>
+      <div className={`-mx-4 -mb-1 -mt-1.5 min-w-0 space-y-6 px-4 py-4 lg:-mx-6 lg:-mb-2 lg:-mt-2 lg:px-6 lg:py-6 ${state.activeSurfaceClass}`}>
         <BoardHeaderSection
           activeBannerClass={state.activeBannerClass}
           boardName={state.boardName}

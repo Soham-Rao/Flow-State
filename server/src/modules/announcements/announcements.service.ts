@@ -8,11 +8,13 @@ import {
   announcements,
   roles,
   userRoleAssignments,
-  users
+  users,
+  workspaceMemberships
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { assertPermission } from "../../utils/permissions.js";
 import { sanitizeRequiredPlainText } from "../../utils/sanitize.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import type { AnnouncementAudienceInput, CreateAnnouncementInput } from "./announcements.schema.js";
 
 export interface AnnouncementAudienceOptions {
@@ -41,7 +43,7 @@ async function ensureRolesExist(roleIds: string[]): Promise<void> {
   const rows: Array<{ id: string }> = await db
     .select({ id: roles.id })
     .from(roles)
-    .where(inArray(roles.id, roleIds));
+    .where(and(eq(roles.workspaceId, getCurrentWorkspaceId()), inArray(roles.id, roleIds)));
   if (rows.length !== roleIds.length) {
     throw new ApiError(400, "One or more roles are invalid");
   }
@@ -51,8 +53,13 @@ async function ensureUsersExist(userIds: string[]): Promise<void> {
   if (userIds.length === 0) return;
   const rows: Array<{ id: string }> = await db
     .select({ id: users.id })
-    .from(users)
-    .where(inArray(users.id, userIds));
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(
+      eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()),
+      eq(workspaceMemberships.status, "active"),
+      inArray(users.id, userIds)
+    ));
   if (rows.length !== userIds.length) {
     throw new ApiError(400, "One or more users are invalid");
   }
@@ -63,7 +70,7 @@ async function getUserIdsForRoles(roleIds: string[]): Promise<string[]> {
   const rows: Array<{ userId: string }> = await db
     .select({ userId: userRoleAssignments.userId })
     .from(userRoleAssignments)
-    .where(inArray(userRoleAssignments.roleId, roleIds));
+    .where(and(eq(userRoleAssignments.workspaceId, getCurrentWorkspaceId()), inArray(userRoleAssignments.roleId, roleIds)));
   return rows.map((row) => row.userId);
 }
 
@@ -84,7 +91,11 @@ async function resolveRecipients(audience: AnnouncementAudienceInput): Promise<s
   const recipients = new Set<string>();
 
   if (sendToAll) {
-    const allUsers: Array<{ id: string }> = await db.select({ id: users.id }).from(users);
+    const allUsers: Array<{ id: string }> = await db
+      .select({ id: users.id })
+      .from(workspaceMemberships)
+      .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+      .where(and(eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()), eq(workspaceMemberships.status, "active")));
     allUsers.forEach((user) => recipients.add(user.id));
   } else {
     (await getUserIdsForRoles(includeRoleIds)).forEach((id) => recipients.add(id));
@@ -120,10 +131,13 @@ export async function listAnnouncementAudienceOptions(actorId: string): Promise<
   const rolesList = await db
     .select({ id: roles.id, name: roles.name, color: roles.color })
     .from(roles)
+    .where(eq(roles.workspaceId, getCurrentWorkspaceId()))
     .orderBy(desc(roles.priority), roles.name);
   const usersList = await db
-    .select({ id: users.id, name: users.name, displayName: users.displayName, username: users.username, email: users.email, role: users.role })
-    .from(users)
+    .select({ id: users.id, name: users.name, displayName: users.displayName, username: users.username, email: users.email, role: workspaceMemberships.role })
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()), eq(workspaceMemberships.status, "active")))
     .orderBy(desc(users.createdAt));
   return { roles: rolesList, users: usersList };
 }
@@ -141,6 +155,7 @@ export async function createAnnouncement(input: CreateAnnouncementInput, actorId
     await tx.insert(announcements)
       .values({
         id: announcementId,
+        workspaceId: getCurrentWorkspaceId(),
         subject,
         body,
         audience: serializeAudience(input.audience),
@@ -203,7 +218,7 @@ export async function listAnnouncements(userId: string): Promise<AnnouncementDet
     .from(announcementRecipients)
     .innerJoin(announcements, eq(announcementRecipients.announcementId, announcements.id))
     .innerJoin(users, eq(announcements.createdBy, users.id))
-    .where(eq(announcementRecipients.userId, userId))
+    .where(and(eq(announcements.workspaceId, getCurrentWorkspaceId()), eq(announcementRecipients.userId, userId)))
     .orderBy(desc(announcements.createdAt))
     .limit(50);
 
@@ -245,7 +260,11 @@ export async function listUnreadAnnouncements(userId: string): Promise<Announcem
     .from(announcementRecipients)
     .innerJoin(announcements, eq(announcementRecipients.announcementId, announcements.id))
     .innerJoin(users, eq(announcements.createdBy, users.id))
-    .where(and(eq(announcementRecipients.userId, userId), isNull(announcementRecipients.seenAt)))
+    .where(and(
+      eq(announcements.workspaceId, getCurrentWorkspaceId()),
+      eq(announcementRecipients.userId, userId),
+      isNull(announcementRecipients.seenAt)
+    ))
     .orderBy(desc(announcements.createdAt))
     .limit(30);
 

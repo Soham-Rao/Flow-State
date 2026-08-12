@@ -34,6 +34,9 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().trim().optional(),
   JWT_SECRET: z.string().min(16).default(DEFAULT_JWT_SECRET),
   JWT_EXPIRES_IN: z.string().min(2).default("7d"),
+  WORKSPACE_CREATION_PASSWORD_HASH: z.string().trim().min(20).optional(),
+  DEFAULT_WORKSPACE_JOIN_CODE_HASH: z.string().trim().min(20).optional(),
+  PLATFORM_OWNER_USER_IDS: z.string().trim().optional(),
   MYSQL_URL: z.string().url().default(DEFAULT_MYSQL_URL),
   FLOWSTATE_DM_ENCRYPTION_KEY: z.string().refine(
     (val) =>
@@ -116,6 +119,8 @@ const localOrigins = env.NODE_ENV === "production"
   : [
       "http://localhost:5173",
       "http://127.0.0.1:5173",
+      "http://localhost:5174",
+      "http://127.0.0.1:5174",
       "http://localhost:4173",
       "http://127.0.0.1:4173",
       "http://localhost:4000",
@@ -152,6 +157,9 @@ if (env.NODE_ENV === "production") {
   if (env.CLIENT_ORIGIN === DEFAULT_CLIENT_ORIGIN) missing.push("CLIENT_ORIGIN");
   if (env.FLOWSTATE_DM_ENCRYPTION_KEY === DEFAULT_DM_KEY) missing.push("FLOWSTATE_DM_ENCRYPTION_KEY");
   if (env.PUBLIC_APP_URL === DEFAULT_CLIENT_ORIGIN) missing.push("PUBLIC_APP_URL");
+  if (!env.WORKSPACE_CREATION_PASSWORD_HASH) missing.push("WORKSPACE_CREATION_PASSWORD_HASH");
+  if (!env.DEFAULT_WORKSPACE_JOIN_CODE_HASH) missing.push("DEFAULT_WORKSPACE_JOIN_CODE_HASH");
+  if (!env.PLATFORM_OWNER_USER_IDS) missing.push("PLATFORM_OWNER_USER_IDS");
 
   if (missing.length > 0) {
     throw new Error(`Missing production env overrides: ${missing.join(", ")}`);

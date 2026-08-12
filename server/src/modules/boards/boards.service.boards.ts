@@ -4,9 +4,10 @@ import { and, asc, count, eq, isNotNull, isNull, or } from "drizzle-orm";
 
 import { db, type DbTransaction } from "../../db/connection.js";
 import { recordActivity } from "../activity/activity.service.js";
-import { boards, cards, lists, boardMembers, boardMemberPermissions, type RetentionMode } from "../../db/schema.js";
+import { boards, cards, lists, boardMembers, boardMemberPermissions, type RetentionMode, type RolePermission } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { getUserPermissions } from "../../utils/permissions.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import type {
   ArchivedListEntry,
   BoardCard,
@@ -27,11 +28,11 @@ import type { CreateBoardInput, UpdateBoardInput } from "./boards.schema.js";
 type ArchivedCardRow = CardRecord & { listName: string };
 
 export async function getBoards(userId: string): Promise<BoardSummary[]> {
+  const workspaceId = getCurrentWorkspaceId();
   const permissions = await getUserPermissions(userId);
   const isSystemAdmin = permissions.has("view_all_boards");
 
-  let query = db
-    .select({
+  const selection = {
       id: boards.id,
       name: boards.name,
       description: boards.description,
@@ -43,21 +44,30 @@ export async function getBoards(userId: string): Promise<BoardSummary[]> {
       createdBy: boards.createdBy,
       createdAt: boards.createdAt,
       updatedAt: boards.updatedAt
-    })
-    .from(boards);
+  };
 
-  if (!isSystemAdmin) {
-    query = query
+  const boardRows: Array<Omit<BoardSummary, "listCount">> = isSystemAdmin
+    ? await db
+    .select({
+      ...selection
+    })
+    .from(boards)
+    .where(eq(boards.workspaceId, workspaceId))
+    .orderBy(asc(boards.name))
+    : await db
+      .select({ ...selection })
+      .from(boards)
       .leftJoin(boardMembers, and(eq(boardMembers.boardId, boards.id), eq(boardMembers.userId, userId)))
       .where(
-        or(
-          eq(boards.createdBy, userId),
-          isNotNull(boardMembers.userId)
+        and(
+          eq(boards.workspaceId, workspaceId),
+          or(
+            eq(boards.createdBy, userId),
+            isNotNull(boardMembers.userId)
+          )
         )
-      ) as any;
-  }
-
-  const boardRows: Array<Omit<BoardSummary, "listCount">> = await query.orderBy(asc(boards.name));
+      )
+      .orderBy(asc(boards.name));
 
   const countRows: Array<{ boardId: string; listCount: number }> = await db
     .select({
@@ -77,6 +87,7 @@ export async function getBoards(userId: string): Promise<BoardSummary[]> {
 }
 
 export async function getBoardById(boardId: string): Promise<BoardDetail> {
+  const workspaceId = getCurrentWorkspaceId();
   const boardRows: Array<Omit<BoardSummary, "listCount">> = await db
     .select({
       id: boards.id,
@@ -92,7 +103,7 @@ export async function getBoardById(boardId: string): Promise<BoardDetail> {
       updatedAt: boards.updatedAt
     })
     .from(boards)
-    .where(eq(boards.id, boardId))
+    .where(and(eq(boards.id, boardId), eq(boards.workspaceId, workspaceId)))
     .limit(1);
 
   const board = boardRows[0];
@@ -243,6 +254,7 @@ export async function getArchivedLists(boardId: string): Promise<ArchivedListEnt
 }
 
 export async function createBoard(input: CreateBoardInput, userId: string): Promise<BoardDetail> {
+  const workspaceId = getCurrentWorkspaceId();
   const now = new Date();
   const boardId = crypto.randomUUID();
   const trimmedName = normalizeRequiredName(input.name, "Board name", 2, 120);
@@ -258,6 +270,7 @@ export async function createBoard(input: CreateBoardInput, userId: string): Prom
     await tx.insert(boards)
       .values({
         id: boardId,
+        workspaceId,
         name: trimmedName,
         description: normalizeOptionalDescription(input.description),
         background: input.background,
@@ -338,7 +351,7 @@ export async function updateBoard(boardId: string, input: UpdateBoardInput, user
     updatePayload.archiveRetentionMinutes = clampArchiveRetentionMinutes(input.archiveRetentionMinutes);
   }
 
-  await db.update(boards).set(updatePayload).where(eq(boards.id, boardId)).execute();
+  await db.update(boards).set(updatePayload).where(and(eq(boards.id, boardId), eq(boards.workspaceId, getCurrentWorkspaceId()))).execute();
 
   const updated = await getBoardById(boardId);
   await recordActivity({
@@ -352,7 +365,7 @@ export async function updateBoard(boardId: string, input: UpdateBoardInput, user
 
 export async function deleteBoard(boardId: string, userId: string): Promise<void> {
   const board = await getBoardRecord(boardId);
-  const [result] = await db.delete(boards).where(eq(boards.id, boardId)).execute();
+  const [result] = await db.delete(boards).where(and(eq(boards.id, boardId), eq(boards.workspaceId, getCurrentWorkspaceId()))).execute();
 
   if (result.affectedRows === 0) {
     throw new ApiError(404, "Board not found");
@@ -452,7 +465,7 @@ export async function updateBoardMemberOverrides(
   actorId: string,
   boardId: string,
   memberId: string,
-  overrides: Array<{ permission: string; access: "allow" | "deny" | "none" }>
+  overrides: Array<{ permission: RolePermission; access: "allow" | "deny" | "none" }>
 ): Promise<void> {
   await assertCanManageBoardMembers(actorId, boardId);
 
@@ -465,7 +478,7 @@ export async function updateBoardMemberOverrides(
             and(
               eq(boardMemberPermissions.boardId, boardId),
               eq(boardMemberPermissions.userId, memberId),
-              eq(boardMemberPermissions.permission, override.permission as any)
+              eq(boardMemberPermissions.permission, override.permission)
             )
           );
       } else {
@@ -474,7 +487,7 @@ export async function updateBoardMemberOverrides(
           .values({
             boardId,
             userId: memberId,
-            permission: override.permission as any,
+            permission: override.permission,
             access: override.access,
             createdAt: new Date()
           })

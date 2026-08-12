@@ -1,12 +1,18 @@
-import type { UserRole } from "../db/schema.js";
-
 declare global {
   namespace Express {
     interface Request {
       auth?: {
         userId: string;
         email: string;
-        role: UserRole;
+      };
+      workspace?: {
+        id: string;
+        name: string;
+        slug: string;
+        status: "active" | "archived";
+        role: "admin" | "member" | "guest";
+        joinedAt: Date;
+        lastAccessedAt: Date | null;
       };
       requestId?: string;
     }

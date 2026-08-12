@@ -1,12 +1,16 @@
 import type { Server as HttpServer } from "node:http";
 
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { Server, type Socket } from "socket.io";
 
 import { isAllowedOrigin } from "../config/env.js";
 import { db } from "../db/connection.js";
-import { users } from "../db/schema.js";
+import { users, workspaceMemberships } from "../db/schema.js";
 import { verifyAccessToken } from "../utils/jwt.js";
+import { resolveWorkspaceForUser } from "../modules/workspaces/workspaces.service.js";
+import { userHasPermission } from "../utils/permissions.js";
+import { assertConversationMember } from "../modules/threads/threads.service.access.js";
+import { getOptionalWorkspaceId, runWithWorkspaceContext } from "../utils/workspace-context.js";
 
 export type PresenceStatus = "online" | "afk";
 
@@ -31,8 +35,7 @@ export interface ThreadEventPayload {
   data?: Record<string, unknown>;
 }
 
-const WORKSPACE_ID = "default";
-const WORKSPACE_ROOM = `workspace:${WORKSPACE_ID}`;
+const workspaceRoom = (workspaceId: string) => `workspace:${workspaceId}`;
 const boardRoom = (boardId: string) => `board:${boardId}`;
 const threadRoom = (conversationId: string) => `thread:${conversationId}`;
 
@@ -41,12 +44,12 @@ let io: Server | null = null;
 type SocketNext = (err?: Error) => void;
 
 const userSockets = new Map<string, Set<string>>();
-const socketUsers = new Map<string, string>();
+const socketUsers = new Map<string, { userId: string; workspaceId: string }>();
 const boardPresence = new Map<string, Map<string, number>>();
 const userStatus = new Map<string, PresenceStatus>();
 const userLastSeen = new Map<string, number>();
 
-async function getPresenceUsers(userIds: string[], statusByUserId?: Map<string, PresenceStatus>): Promise<PresenceUser[]> {
+async function getPresenceUsers(workspaceId: string, userIds: string[], statusByUserId?: Map<string, PresenceStatus>): Promise<PresenceUser[]> {
   if (userIds.length === 0) {
     return [];
   }
@@ -65,10 +68,11 @@ async function getPresenceUsers(userIds: string[], statusByUserId?: Map<string, 
       displayName: users.displayName,
       username: users.username,
       email: users.email,
-      role: users.role
+      role: workspaceMemberships.role
     })
-    .from(users)
-    .where(inArray(users.id, userIds));
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(eq(workspaceMemberships.workspaceId, workspaceId), inArray(users.id, userIds)));
 
   const byId = new Map(rows.map((row) => [row.id, row]));
   return userIds
@@ -85,19 +89,27 @@ async function getPresenceUsers(userIds: string[], statusByUserId?: Map<string, 
     }));
 }
 
-async function emitWorkspacePresence(): Promise<void> {
+const workspaceUserKey = (workspaceId: string, userId: string) => `${workspaceId}:${userId}`;
+
+async function emitWorkspacePresence(workspaceId: string): Promise<void> {
   if (!io) return;
-  const userIds = Array.from(userSockets.keys());
-  const usersList = await getPresenceUsers(userIds, userStatus);
-  const lastSeenByUserId = Object.fromEntries(userLastSeen);
-  io.to(WORKSPACE_ROOM).emit("presence:workspace", { users: usersList, lastSeenByUserId });
+  const prefix = `${workspaceId}:`;
+  const keys = Array.from(userSockets.keys()).filter((key) => key.startsWith(prefix));
+  const userIds = keys.map((key) => key.slice(prefix.length));
+  const statusByUserId = new Map(userIds.map((userId) => [userId, userStatus.get(workspaceUserKey(workspaceId, userId)) ?? "online"]));
+  const usersList = await getPresenceUsers(workspaceId, userIds, statusByUserId);
+  const lastSeenByUserId = Object.fromEntries(userIds.flatMap((userId) => {
+    const value = userLastSeen.get(workspaceUserKey(workspaceId, userId));
+    return value === undefined ? [] : [[userId, value]];
+  }));
+  io.to(workspaceRoom(workspaceId)).emit("presence:workspace", { users: usersList, lastSeenByUserId });
 }
 
-async function emitBoardPresence(boardId: string): Promise<void> {
+async function emitBoardPresence(workspaceId: string, boardId: string): Promise<void> {
   if (!io) return;
   const entries = boardPresence.get(boardId);
   const userIds = entries ? Array.from(entries.keys()) : [];
-  const usersList = await getPresenceUsers(userIds, userStatus);
+  const usersList = await getPresenceUsers(workspaceId, userIds, userStatus);
   io.to(boardRoom(boardId)).emit("presence:board", { boardId, users: usersList });
 }
 
@@ -153,7 +165,7 @@ export function initSocket(server: HttpServer): Server {
     }
   });
 
-  io.use((socket: Socket, next: SocketNext) => {
+  io.use(async (socket: Socket, next: SocketNext) => {
     const token = typeof socket.handshake.auth?.token === "string"
       ? socket.handshake.auth.token
       : null;
@@ -164,7 +176,12 @@ export function initSocket(server: HttpServer): Server {
 
     try {
       const payload = verifyAccessToken(token);
+      const requestedWorkspace = typeof socket.handshake.auth?.workspaceId === "string"
+        ? socket.handshake.auth.workspaceId.trim()
+        : null;
+      const workspace = await resolveWorkspaceForUser(payload.sub, requestedWorkspace);
       socket.data.userId = payload.sub;
+      socket.data.workspaceId = workspace.id;
       return next();
     } catch (error) {
       return next(error instanceof Error ? error : new Error("Unauthorized"));
@@ -173,23 +190,29 @@ export function initSocket(server: HttpServer): Server {
 
   io.on("connection", (socket) => {
     const userId = socket.data.userId as string;
-    socketUsers.set(socket.id, userId);
-    addUserSocket(userId, socket.id);
-    userLastSeen.delete(userId);
-    userStatus.set(userId, userStatus.get(userId) ?? "online");
+    const workspaceId = socket.data.workspaceId as string;
+    const userKey = workspaceUserKey(workspaceId, userId);
+    socketUsers.set(socket.id, { userId, workspaceId });
+    addUserSocket(userKey, socket.id);
+    userLastSeen.delete(userKey);
+    userStatus.set(userKey, userStatus.get(userKey) ?? "online");
 
-    socket.join(WORKSPACE_ROOM);
-    void emitWorkspacePresence();
+    socket.join(workspaceRoom(workspaceId));
+    void emitWorkspacePresence(workspaceId);
 
     const joinedBoards = new Set<string>();
 
-    socket.on("board:join", (payload: { boardId?: string }) => {
+    socket.on("board:join", async (payload: { boardId?: string }) => {
       const boardId = payload?.boardId;
       if (!boardId) return;
+      const allowed = await runWithWorkspaceContext({ workspaceId, userId }, () => (
+        userHasPermission(userId, "view_boards", { scopeType: "board", scopeId: boardId })
+      ));
+      if (!allowed) return;
       socket.join(boardRoom(boardId));
       joinedBoards.add(boardId);
       incrementBoardPresence(boardId, userId);
-      void emitBoardPresence(boardId);
+      void emitBoardPresence(workspaceId, boardId);
     });
 
     socket.on("board:leave", (payload: { boardId?: string }) => {
@@ -198,12 +221,17 @@ export function initSocket(server: HttpServer): Server {
       socket.leave(boardRoom(boardId));
       joinedBoards.delete(boardId);
       decrementBoardPresence(boardId, userId);
-      void emitBoardPresence(boardId);
+      void emitBoardPresence(workspaceId, boardId);
     });
 
-    socket.on("thread:join", (payload: { conversationId?: string }) => {
+    socket.on("thread:join", async (payload: { conversationId?: string }) => {
       const conversationId = payload?.conversationId;
       if (!conversationId) return;
+      try {
+        await runWithWorkspaceContext({ workspaceId, userId }, () => assertConversationMember(userId, conversationId));
+      } catch {
+        return;
+      }
       socket.join(threadRoom(conversationId));
     });
 
@@ -216,9 +244,9 @@ export function initSocket(server: HttpServer): Server {
     socket.on("presence:set", (payload: { status?: PresenceStatus }) => {
       const status = payload?.status;
       if (status !== "online" && status !== "afk") return;
-      userStatus.set(userId, status);
-      void emitWorkspacePresence();
-      joinedBoards.forEach((boardId) => void emitBoardPresence(boardId));
+      userStatus.set(userKey, status);
+      void emitWorkspacePresence(workspaceId);
+      joinedBoards.forEach((boardId) => void emitBoardPresence(workspaceId, boardId));
     });
 
     socket.on("presence:ping", () => {
@@ -227,16 +255,16 @@ export function initSocket(server: HttpServer): Server {
 
     socket.on("disconnect", () => {
       socketUsers.delete(socket.id);
-      const stillOnline = removeUserSocket(userId, socket.id);
+      const stillOnline = removeUserSocket(userKey, socket.id);
       if (!stillOnline) {
-        userStatus.delete(userId);
-        userLastSeen.set(userId, Date.now());
+        userStatus.delete(userKey);
+        userLastSeen.set(userKey, Date.now());
       }
-      void emitWorkspacePresence();
+      void emitWorkspacePresence(workspaceId);
 
       joinedBoards.forEach((boardId) => {
         decrementBoardPresence(boardId, userId);
-        void emitBoardPresence(boardId);
+        void emitBoardPresence(workspaceId, boardId);
       });
     });
   });
@@ -274,9 +302,9 @@ export function emitBoardEvent(boardId: string, payload: BoardEventPayload): voi
   io.to(boardRoom(boardId)).emit("board:event", payload);
 }
 
-export function emitActivityEvent(payload: Record<string, unknown>): void {
+export function emitActivityEvent(workspaceId: string, payload: Record<string, unknown>): void {
   if (!io) return;
-  io.to(WORKSPACE_ROOM).emit("activity:new", payload);
+  io.to(workspaceRoom(workspaceId)).emit("activity:new", payload);
   if (typeof payload.boardId === "string") {
     io.to(boardRoom(payload.boardId)).emit("activity:new", payload);
   }
@@ -285,5 +313,8 @@ export function emitActivityEvent(payload: Record<string, unknown>): void {
 export function emitThreadEvent(conversationId: string, event: string, payload: ThreadEventPayload): void {
   if (!io) return;
   io.to(threadRoom(conversationId)).emit(event, payload);
-  io.to(WORKSPACE_ROOM).emit(event, payload);
+  const workspaceId = getOptionalWorkspaceId();
+  if (workspaceId) {
+    io.to(workspaceRoom(workspaceId)).emit(event, payload);
+  }
 }

@@ -2,12 +2,13 @@ import { Router } from "express";
 
 import { inviteLookupRateLimiter } from "../../middleware/rate-limit.js";
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { buildSecurityRequestContext } from "../../utils/request-context.js";
 import { assertPermission } from "../../utils/permissions.js";
 import { hashAuditValue, recordAuditLog } from "../security/audit.service.js";
 import { updateInviteRolesSchema } from "../roles/roles.schema.js";
 import { createInviteSchema } from "./invites.schema.js";
-import { createInvite, listInvites, lookupInvite, revokeInvite, updateInviteRoles } from "./invites.service.js";
+import { acceptInviteForExistingUser, createInvite, listInvites, lookupInvite, revokeInvite, updateInviteRoles } from "./invites.service.js";
 
 export const invitesRouter = Router();
 
@@ -50,7 +51,18 @@ invitesRouter.get("/lookup/:token", inviteLookupRateLimiter, async (req, res, ne
   }
 });
 
-invitesRouter.use(requireAuth);
+invitesRouter.post("/accept/:token", requireAuth, inviteLookupRateLimiter, async (req, res, next) => {
+  try {
+    res.status(200).json({
+      success: true,
+      data: await acceptInviteForExistingUser(req.params.token, req.auth!.userId)
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+invitesRouter.use(requireAuth, requireWorkspace);
 
 invitesRouter.get("/", async (req, res, next) => {
   try {

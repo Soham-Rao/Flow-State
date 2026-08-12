@@ -15,6 +15,7 @@ import {
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { userHasPermission } from "../../utils/permissions.js";
+import { getCurrentWorkspaceId, runWithWorkspaceContext } from "../../utils/workspace-context.js";
 import type { DueReminderItem } from "../notifications/notifications.service.js";
 
 export interface CalendarFeedSummary {
@@ -30,6 +31,7 @@ export interface CalendarFeedsResponse {
 
 interface CalendarFeedRecord {
   id: string;
+  workspaceId: string;
   userId: string;
   feedType: CalendarFeedType;
   token: string;
@@ -65,6 +67,7 @@ async function getActiveFeedToken(userId: string, feedType: CalendarFeedType): P
   const rows = await db
     .select({
       id: calendarFeedTokens.id,
+      workspaceId: calendarFeedTokens.workspaceId,
       userId: calendarFeedTokens.userId,
       feedType: calendarFeedTokens.feedType,
       token: calendarFeedTokens.token,
@@ -74,6 +77,7 @@ async function getActiveFeedToken(userId: string, feedType: CalendarFeedType): P
     .from(calendarFeedTokens)
     .where(and(
       eq(calendarFeedTokens.userId, userId),
+      eq(calendarFeedTokens.workspaceId, getCurrentWorkspaceId()),
       eq(calendarFeedTokens.feedType, feedType),
       isNull(calendarFeedTokens.revokedAt)
     ))
@@ -87,6 +91,7 @@ async function createFeedToken(userId: string, feedType: CalendarFeedType): Prom
   const now = new Date();
   const record = {
     id: crypto.randomUUID(),
+    workspaceId: getCurrentWorkspaceId(),
     userId,
     feedType,
     token: makeToken(),
@@ -131,6 +136,7 @@ export async function regenerateCalendarFeed(userId: string, rawType: string): P
     .set({ revokedAt: now })
     .where(and(
       eq(calendarFeedTokens.userId, userId),
+      eq(calendarFeedTokens.workspaceId, getCurrentWorkspaceId()),
       eq(calendarFeedTokens.feedType, feedType),
       isNull(calendarFeedTokens.revokedAt)
     ))
@@ -143,6 +149,7 @@ async function getTokenRecord(token: string): Promise<CalendarFeedRecord> {
   const rows = await db
     .select({
       id: calendarFeedTokens.id,
+      workspaceId: calendarFeedTokens.workspaceId,
       userId: calendarFeedTokens.userId,
       feedType: calendarFeedTokens.feedType,
       token: calendarFeedTokens.token,
@@ -158,11 +165,10 @@ async function getTokenRecord(token: string): Promise<CalendarFeedRecord> {
     throw new ApiError(404, "Calendar feed not found");
   }
 
-  await assertCanUseFeed(record.userId, record.feedType);
   return record;
 }
 
-async function listCalendarDueItems(): Promise<DueReminderItem[]> {
+async function listCalendarDueItems(workspaceId: string): Promise<DueReminderItem[]> {
   const rows = await db
     .select({
       cardId: cards.id,
@@ -183,6 +189,7 @@ async function listCalendarDueItems(): Promise<DueReminderItem[]> {
     .innerJoin(users, eq(cardAssignees.userId, users.id))
     .where(and(
       isNotNull(cards.dueDate),
+      eq(boards.workspaceId, workspaceId),
       isNull(cards.archivedAt),
       isNull(lists.archivedAt),
       isNull(boards.archivedAt),
@@ -194,7 +201,7 @@ async function listCalendarDueItems(): Promise<DueReminderItem[]> {
 }
 
 async function filterFeedItems(record: CalendarFeedRecord): Promise<DueReminderItem[]> {
-  const allItems = await listCalendarDueItems();
+  const allItems = await listCalendarDueItems(record.workspaceId);
   const ownedItems = record.feedType === "personal_due_dates"
     ? allItems.filter((item) => item.assigneeId === record.userId)
     : allItems;
@@ -274,6 +281,8 @@ function eventLines(item: DueReminderItem, feedType: CalendarFeedType, generated
 
 export async function buildCalendarFeed(token: string): Promise<string> {
   const record = await getTokenRecord(token);
+  return runWithWorkspaceContext({ workspaceId: record.workspaceId, userId: record.userId }, async () => {
+  await assertCanUseFeed(record.userId, record.feedType);
   const items = await filterFeedItems(record);
   const generatedAt = new Date();
   const lines = [
@@ -288,4 +297,5 @@ export async function buildCalendarFeed(token: string): Promise<string> {
   ];
 
   return `${lines.map(foldIcsLine).join("\r\n")}\r\n`;
+  });
 }

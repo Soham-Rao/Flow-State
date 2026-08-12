@@ -12,6 +12,8 @@ import {
   lists,
   userNotificationPreferences,
   users,
+  workspaces,
+  workspaceMemberships,
   type EmailNotificationKind,
   type EmailNotificationWindow
 } from "../../db/schema.js";
@@ -19,6 +21,7 @@ import { ApiError } from "../../utils/api-error.js";
 import { isMailConfigured, sendMail, type MailMessage } from "../../utils/mail.js";
 import { userHasPermission } from "../../utils/permissions.js";
 import { logger } from "../../utils/logger.js";
+import { getCurrentWorkspaceId, getOptionalWorkspaceId, runWithWorkspaceContext } from "../../utils/workspace-context.js";
 
 export interface NotificationPreferences {
   dueEmailEnabled: boolean;
@@ -310,6 +313,7 @@ export async function listActiveDueReminderItems(start: Date, end: Date): Promis
     .innerJoin(cardAssignees, eq(cards.id, cardAssignees.cardId))
     .innerJoin(users, eq(cardAssignees.userId, users.id))
     .where(and(
+      eq(boards.workspaceId, getCurrentWorkspaceId()),
       isNull(cards.archivedAt),
       isNull(lists.archivedAt),
       isNull(boards.archivedAt),
@@ -345,6 +349,7 @@ async function hasDelivery(target: DigestTarget): Promise<boolean> {
     .select({ id: emailNotificationDeliveries.id })
     .from(emailNotificationDeliveries)
     .where(and(
+      eq(emailNotificationDeliveries.workspaceId, getCurrentWorkspaceId()),
       eq(emailNotificationDeliveries.userId, target.userId),
       eq(emailNotificationDeliveries.kind, target.kind),
       eq(emailNotificationDeliveries.digestDate, target.digestDate),
@@ -360,6 +365,7 @@ async function sentCountForDigestDate(digestDate: string): Promise<number> {
     .select({ total: count(emailNotificationDeliveries.id) })
     .from(emailNotificationDeliveries)
     .where(and(
+      eq(emailNotificationDeliveries.workspaceId, getCurrentWorkspaceId()),
       eq(emailNotificationDeliveries.digestDate, digestDate),
       eq(emailNotificationDeliveries.status, "sent")
     ));
@@ -375,6 +381,7 @@ async function recordDelivery(
   await db.insert(emailNotificationDeliveries)
     .values({
       id: crypto.randomUUID(),
+      workspaceId: getCurrentWorkspaceId(),
       userId: target.userId,
       kind: target.kind,
       digestDate: target.digestDate,
@@ -432,7 +439,14 @@ async function buildManagerTargets(items: DueReminderItem[], window: EmailNotifi
     return [];
   }
 
-  const userRows = await db.select({ id: users.id, name: users.name, email: users.email }).from(users);
+  const userRows = await db
+    .select({ id: users.id, name: users.name, email: users.email })
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(
+      eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()),
+      eq(workspaceMemberships.status, "active")
+    ));
   const managerRows = [];
 
   for (const user of userRows) {
@@ -474,6 +488,22 @@ export async function runDueEmailReminderJob(options: RunDueEmailReminderOptions
   skipped: number;
   failed: number;
 }> {
+  if (!getOptionalWorkspaceId()) {
+    const activeWorkspaces = await db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.status, "active"));
+    const total = { attempted: 0, sent: 0, skipped: 0, failed: 0 };
+    for (const workspace of activeWorkspaces) {
+      const result = await runWithWorkspaceContext(
+        { workspaceId: workspace.id, userId: "system" },
+        () => runDueEmailReminderJob(options)
+      );
+      total.attempted += result.attempted;
+      total.sent += result.sent;
+      total.skipped += result.skipped;
+      total.failed += result.failed;
+    }
+    return total;
+  }
+
   if (!env.REMINDER_EMAILS_ENABLED) {
     return { attempted: 0, sent: 0, skipped: 0, failed: 0 };
   }

@@ -1,12 +1,13 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { setPrivateShortCache } from "../../utils/http-cache.js";
 import { getDashboardSummary } from "./dashboard.service.js";
 
 export const dashboardRouter = Router();
 
-dashboardRouter.use(requireAuth);
+dashboardRouter.use(requireAuth, requireWorkspace);
 
 dashboardRouter.get("/summary", async (req, res, next) => {
   try {

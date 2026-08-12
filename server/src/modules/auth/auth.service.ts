@@ -5,22 +5,25 @@ import { and, count, eq, isNull, ne } from "drizzle-orm";
 
 import { env } from "../../config/env.js";
 import { db } from "../../db/connection.js";
-import { passwordResetTokens, roles, userRoleAssignments, users, type RolePermission, type UserRole } from "../../db/schema.js";
+import { passwordResetTokens, roles, userRoleAssignments, users, workspaceMemberships, type RolePermission, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { SecurityRequestContext } from "../../utils/request-context.js";
 import { getUserPermissions } from "../../utils/permissions.js";
 import { sanitizeOptionalPlainText, sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import { signAccessToken } from "../../utils/jwt.js";
+import { getOptionalWorkspaceId, runWithWorkspaceContext } from "../../utils/workspace-context.js";
 import { consumeInvite, validateInviteForRegistration } from "../invites/invites.service.js";
 import { hashAuditValue, recordAuditLog } from "../security/audit.service.js";
 import { getSystemRoleIds, resolveLegacyRole, setUserRoles } from "../roles/roles.service.js";
+import { DEFAULT_WORKSPACE_ID } from "../workspaces/workspaces.constants.js";
+import { listUserWorkspaces } from "../workspaces/workspaces.service.js";
 import type { ForgotPasswordBody, LoginBody, RegisterBody, ResetPasswordBody, UpdateProfileBody } from "./auth.schema.js";
 
 interface PublicUser {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
+  role: UserRole | null;
   permissions: RolePermission[];
   assignedRoles: Array<{ id: string; name: string; color: string }>;
   username: string | null;
@@ -57,7 +60,7 @@ function buildAuditContext(context?: Partial<AuditContext>): AuditContext {
   };
 }
 
-async function getAssignedRoles(userId: string): Promise<Array<{ id: string; name: string; color: string }>> {
+async function getAssignedRoles(userId: string, workspaceId: string): Promise<Array<{ id: string; name: string; color: string }>> {
   return db
     .select({
       id: roles.id,
@@ -66,14 +69,38 @@ async function getAssignedRoles(userId: string): Promise<Array<{ id: string; nam
     })
     .from(userRoleAssignments)
     .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
-    .where(eq(userRoleAssignments.userId, userId));
+    .where(and(eq(userRoleAssignments.workspaceId, workspaceId), eq(userRoleAssignments.userId, userId)));
+}
+
+async function workspaceIdForUser(userId: string, preferredWorkspaceId?: string): Promise<string> {
+  const memberships = await listUserWorkspaces(userId);
+  const workspace = preferredWorkspaceId
+    ? memberships.find((entry) => entry.id === preferredWorkspaceId)
+    : memberships[0];
+  if (!workspace) {
+    throw new ApiError(403, "User does not belong to an active workspace");
+  }
+  return workspace.id;
+}
+
+async function hydrateWorkspaceAuthorization<T extends {
+  id: string;
+  role: UserRole | null;
+  permissions: RolePermission[];
+  assignedRoles: Array<{ id: string; name: string; color: string }>;
+}>(user: Omit<T, "permissions" | "assignedRoles">, workspaceId: string): Promise<T> {
+  return runWithWorkspaceContext({ workspaceId, userId: user.id }, async () => ({
+    ...user,
+    permissions: Array.from(await getUserPermissions(user.id)).sort(),
+    assignedRoles: await getAssignedRoles(user.id, workspaceId)
+  })) as Promise<T>;
 }
 
 function toPublicUser(user: {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
+  role: UserRole | null;
   permissions: RolePermission[];
   assignedRoles: Array<{ id: string; name: string; color: string }>;
   username: string | null;
@@ -97,6 +124,10 @@ function toPublicUser(user: {
     dateOfBirth: user.dateOfBirth,
     createdAt: user.createdAt
   };
+}
+
+function toAccountUser(user: Omit<PublicUser, "role" | "permissions" | "assignedRoles">): PublicUser {
+  return toPublicUser({ ...user, role: null, permissions: [], assignedRoles: [] });
 }
 
 export async function registerUser(input: RegisterBody, context?: Partial<AuditContext>): Promise<AuthResponse> {
@@ -132,9 +163,15 @@ export async function registerUser(input: RegisterBody, context?: Partial<AuditC
     .from(users);
   const totalUsers = totalRows[0]?.totalUsers ?? 0;
 
-  const { adminRoleId, guestRoleId } = await getSystemRoleIds();
-  const roleIds = totalUsers === 0 ? [adminRoleId] : (invite?.roleIds ?? [guestRoleId]);
-  const role: UserRole = await resolveLegacyRole(roleIds);
+  const testImplicitWorkspace = env.NODE_ENV === "test" && process.env.TEST_EXPLICIT_WORKSPACES !== "true";
+  const workspaceId = invite?.workspaceId ?? (totalUsers === 0 || testImplicitWorkspace ? DEFAULT_WORKSPACE_ID : null);
+  let roleIds: string[] = [];
+  let membershipRole: UserRole | null = null;
+  if (workspaceId) {
+    const { adminRoleId, guestRoleId } = await getSystemRoleIds(workspaceId);
+    roleIds = totalUsers === 0 && !invite ? [adminRoleId] : (invite?.roleIds ?? [guestRoleId]);
+    membershipRole = await resolveLegacyRole(roleIds, workspaceId);
+  }
   const passwordHash = await bcrypt.hash(input.password, 12);
   const now = new Date();
   const userId = crypto.randomUUID();
@@ -146,20 +183,30 @@ export async function registerUser(input: RegisterBody, context?: Partial<AuditC
       name: safeName,
       email,
       passwordHash,
-      role,
+      role: "guest",
       createdAt: now,
       updatedAt: now
     })
     .execute();
 
-  await setUserRoles(userId, roleIds);
+  if (!invite && workspaceId && membershipRole) {
+    await db.insert(workspaceMemberships).values({
+      workspaceId,
+      userId,
+      status: "active",
+      role: membershipRole,
+      joinedAt: now,
+      createdAt: now,
+      updatedAt: now
+    }).execute();
+    await setUserRoles(userId, roleIds, workspaceId);
+  }
 
   const createdRows = await db
     .select({
       id: users.id,
       name: users.name,
       email: users.email,
-      role: users.role,
       username: users.username,
       displayName: users.displayName,
       bio: users.bio,
@@ -177,8 +224,9 @@ export async function registerUser(input: RegisterBody, context?: Partial<AuditC
     throw new ApiError(500, "Failed to create user");
   }
 
-  if (invite) {
+  if (invite && workspaceId) {
     await consumeInvite(invite.inviteId, userId);
+    await setUserRoles(userId, roleIds, workspaceId);
   }
 
   await recordAuditLog({
@@ -191,7 +239,7 @@ export async function registerUser(input: RegisterBody, context?: Partial<AuditC
     requestId: auditContext.requestId,
     metadata: {
       emailHash,
-      role: created.role,
+      role: membershipRole,
       firstUser: totalUsers === 0,
       invited: Boolean(invite)
     }
@@ -199,13 +247,12 @@ export async function registerUser(input: RegisterBody, context?: Partial<AuditC
 
   const token = signAccessToken({
     sub: created.id,
-    email: created.email,
-    role: created.role
+    email: created.email
   });
 
   return {
     token,
-    user: toPublicUser({ ...created, permissions: Array.from(await getUserPermissions(created.id)).sort(), assignedRoles: await getAssignedRoles(created.id) })
+    user: toAccountUser(created)
   };
 }
 
@@ -276,13 +323,12 @@ export async function loginUser(input: LoginBody, context?: Partial<AuditContext
 
   const token = signAccessToken({
     sub: user.id,
-    email: user.email,
-    role: user.role
+    email: user.email
   });
 
   return {
     token,
-    user: toPublicUser({ ...user, permissions: Array.from(await getUserPermissions(user.id)).sort(), assignedRoles: await getAssignedRoles(user.id) })
+    user: toAccountUser(user)
   };
 }
 
@@ -419,12 +465,13 @@ export async function resetPassword(
 }
 
 export async function getCurrentUser(userId: string): Promise<PublicUser> {
+  const workspaceId = await workspaceIdForUser(userId, getOptionalWorkspaceId() ?? undefined);
   const userRows = await db
     .select({
       id: users.id,
       name: users.name,
       email: users.email,
-      role: users.role,
+      role: workspaceMemberships.role,
       username: users.username,
       displayName: users.displayName,
       bio: users.bio,
@@ -432,8 +479,9 @@ export async function getCurrentUser(userId: string): Promise<PublicUser> {
       dateOfBirth: users.dateOfBirth,
       createdAt: users.createdAt
     })
-    .from(users)
-    .where(eq(users.id, userId))
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(eq(users.id, userId), eq(workspaceMemberships.workspaceId, workspaceId)))
     .limit(1);
 
   const user = userRows[0];
@@ -442,7 +490,7 @@ export async function getCurrentUser(userId: string): Promise<PublicUser> {
     throw new ApiError(404, "User not found");
   }
 
-  return toPublicUser({ ...user, permissions: Array.from(await getUserPermissions(user.id)).sort(), assignedRoles: await getAssignedRoles(user.id) });
+  return toPublicUser(await hydrateWorkspaceAuthorization({ ...user }, workspaceId));
 }
 
 export async function updateProfile(userId: string, input: UpdateProfileBody): Promise<PublicUser> {
@@ -494,12 +542,40 @@ export async function updateProfile(userId: string, input: UpdateProfileBody): P
 
   await db.update(users).set(updates).where(eq(users.id, userId)).execute();
 
+  const workspaceId = await workspaceIdForUser(userId, getOptionalWorkspaceId() ?? undefined);
   const userRows = await db
     .select({
       id: users.id,
       name: users.name,
       email: users.email,
-      role: users.role,
+      role: workspaceMemberships.role,
+      username: users.username,
+      displayName: users.displayName,
+      bio: users.bio,
+      age: users.age,
+      dateOfBirth: users.dateOfBirth,
+      createdAt: users.createdAt
+    })
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(eq(users.id, userId), eq(workspaceMemberships.workspaceId, workspaceId)))
+    .limit(1);
+
+  const user = userRows[0];
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return toPublicUser(await hydrateWorkspaceAuthorization({ ...user }, workspaceId));
+}
+
+export async function getAccountUser(userId: string): Promise<PublicUser> {
+  const rows = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
       username: users.username,
       displayName: users.displayName,
       bio: users.bio,
@@ -510,14 +586,9 @@ export async function updateProfile(userId: string, input: UpdateProfileBody): P
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
-
-  const user = userRows[0];
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  return toPublicUser({ ...user, permissions: Array.from(await getUserPermissions(user.id)).sort(), assignedRoles: await getAssignedRoles(user.id) });
+  const user = rows[0];
+  if (!user) throw new ApiError(404, "User not found");
+  return toAccountUser(user);
 }
 
 

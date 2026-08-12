@@ -1,16 +1,16 @@
-# Graph Report - FlowState  (2026-07-04)
+# Graph Report - FlowState  (2026-08-12)
 
 ## Corpus Check
-- 351 files · ~225,355 words
+- 367 files · ~240,476 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 5971 nodes · 8210 edges · 559 communities (514 shown, 45 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 200 edges (avg confidence: 0.8)
+- 5937 nodes · 5706 edges · 3294 communities (199 shown, 3095 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 400 edges (avg confidence: 0.79)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6c8a712c`
+- Built from commit: `5708e2b0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -172,7 +172,6 @@
 - [[_COMMUNITY_Community 154|Community 154]]
 - [[_COMMUNITY_Community 155|Community 155]]
 - [[_COMMUNITY_Community 156|Community 156]]
-- [[_COMMUNITY_Community 157|Community 157]]
 - [[_COMMUNITY_Community 158|Community 158]]
 - [[_COMMUNITY_Community 159|Community 159]]
 - [[_COMMUNITY_Community 160|Community 160]]
@@ -206,7 +205,6 @@
 - [[_COMMUNITY_Community 188|Community 188]]
 - [[_COMMUNITY_Community 189|Community 189]]
 - [[_COMMUNITY_Community 190|Community 190]]
-- [[_COMMUNITY_Community 191|Community 191]]
 - [[_COMMUNITY_Community 192|Community 192]]
 - [[_COMMUNITY_Community 193|Community 193]]
 - [[_COMMUNITY_Community 194|Community 194]]
@@ -294,7 +292,6 @@
 - [[_COMMUNITY_Community 276|Community 276]]
 - [[_COMMUNITY_Community 277|Community 277]]
 - [[_COMMUNITY_Community 278|Community 278]]
-- [[_COMMUNITY_Community 279|Community 279]]
 - [[_COMMUNITY_Community 280|Community 280]]
 - [[_COMMUNITY_Community 281|Community 281]]
 - [[_COMMUNITY_Community 282|Community 282]]
@@ -364,7 +361,6 @@
 - [[_COMMUNITY_Community 346|Community 346]]
 - [[_COMMUNITY_Community 347|Community 347]]
 - [[_COMMUNITY_Community 348|Community 348]]
-- [[_COMMUNITY_Community 349|Community 349]]
 - [[_COMMUNITY_Community 350|Community 350]]
 - [[_COMMUNITY_Community 351|Community 351]]
 - [[_COMMUNITY_Community 352|Community 352]]
@@ -427,7 +423,6 @@
 - [[_COMMUNITY_Community 409|Community 409]]
 - [[_COMMUNITY_Community 410|Community 410]]
 - [[_COMMUNITY_Community 411|Community 411]]
-- [[_COMMUNITY_Community 412|Community 412]]
 - [[_COMMUNITY_Community 413|Community 413]]
 - [[_COMMUNITY_Community 414|Community 414]]
 - [[_COMMUNITY_Community 415|Community 415]]
@@ -442,7 +437,6 @@
 - [[_COMMUNITY_Community 424|Community 424]]
 - [[_COMMUNITY_Community 425|Community 425]]
 - [[_COMMUNITY_Community 426|Community 426]]
-- [[_COMMUNITY_Community 427|Community 427]]
 - [[_COMMUNITY_Community 428|Community 428]]
 - [[_COMMUNITY_Community 429|Community 429]]
 - [[_COMMUNITY_Community 430|Community 430]]
@@ -463,13 +457,12 @@
 - [[_COMMUNITY_Community 445|Community 445]]
 - [[_COMMUNITY_Community 446|Community 446]]
 - [[_COMMUNITY_Community 447|Community 447]]
-- [[_COMMUNITY_Community 448|Community 448]]
 - [[_COMMUNITY_Community 449|Community 449]]
 - [[_COMMUNITY_Community 450|Community 450]]
 - [[_COMMUNITY_Community 451|Community 451]]
 - [[_COMMUNITY_Community 452|Community 452]]
+- [[_COMMUNITY_Community 453|Community 453]]
 - [[_COMMUNITY_Community 454|Community 454]]
-- [[_COMMUNITY_Community 455|Community 455]]
 - [[_COMMUNITY_Community 456|Community 456]]
 - [[_COMMUNITY_Community 457|Community 457]]
 - [[_COMMUNITY_Community 458|Community 458]]
@@ -483,43 +476,31 @@
 - [[_COMMUNITY_Community 466|Community 466]]
 - [[_COMMUNITY_Community 467|Community 467]]
 - [[_COMMUNITY_Community 468|Community 468]]
-- [[_COMMUNITY_Community 469|Community 469]]
 - [[_COMMUNITY_Community 470|Community 470]]
 - [[_COMMUNITY_Community 471|Community 471]]
 - [[_COMMUNITY_Community 472|Community 472]]
 - [[_COMMUNITY_Community 473|Community 473]]
+- [[_COMMUNITY_Community 474|Community 474]]
 - [[_COMMUNITY_Community 475|Community 475]]
+- [[_COMMUNITY_Community 477|Community 477]]
 - [[_COMMUNITY_Community 479|Community 479]]
 - [[_COMMUNITY_Community 480|Community 480]]
-- [[_COMMUNITY_Community 482|Community 482]]
-- [[_COMMUNITY_Community 483|Community 483]]
-- [[_COMMUNITY_Community 484|Community 484]]
-- [[_COMMUNITY_Community 485|Community 485]]
-- [[_COMMUNITY_Community 486|Community 486]]
-- [[_COMMUNITY_Community 487|Community 487]]
 - [[_COMMUNITY_Community 488|Community 488]]
 - [[_COMMUNITY_Community 489|Community 489]]
 - [[_COMMUNITY_Community 490|Community 490]]
-- [[_COMMUNITY_Community 491|Community 491]]
-- [[_COMMUNITY_Community 492|Community 492]]
-- [[_COMMUNITY_Community 493|Community 493]]
 - [[_COMMUNITY_Community 494|Community 494]]
-- [[_COMMUNITY_Community 496|Community 496]]
-- [[_COMMUNITY_Community 497|Community 497]]
-- [[_COMMUNITY_Community 498|Community 498]]
-- [[_COMMUNITY_Community 499|Community 499]]
 - [[_COMMUNITY_Community 501|Community 501]]
-- [[_COMMUNITY_Community 502|Community 502]]
 - [[_COMMUNITY_Community 503|Community 503]]
-- [[_COMMUNITY_Community 504|Community 504]]
-- [[_COMMUNITY_Community 505|Community 505]]
+- [[_COMMUNITY_Community 506|Community 506]]
+- [[_COMMUNITY_Community 509|Community 509]]
+- [[_COMMUNITY_Community 511|Community 511]]
 - [[_COMMUNITY_Community 516|Community 516]]
 - [[_COMMUNITY_Community 517|Community 517]]
 - [[_COMMUNITY_Community 518|Community 518]]
 - [[_COMMUNITY_Community 519|Community 519]]
 - [[_COMMUNITY_Community 520|Community 520]]
-- [[_COMMUNITY_Community 521|Community 521]]
 - [[_COMMUNITY_Community 522|Community 522]]
+- [[_COMMUNITY_Community 523|Community 523]]
 - [[_COMMUNITY_Community 524|Community 524]]
 - [[_COMMUNITY_Community 525|Community 525]]
 - [[_COMMUNITY_Community 526|Community 526]]
@@ -544,7 +525,6 @@
 - [[_COMMUNITY_Community 545|Community 545]]
 - [[_COMMUNITY_Community 546|Community 546]]
 - [[_COMMUNITY_Community 547|Community 547]]
-- [[_COMMUNITY_Community 548|Community 548]]
 - [[_COMMUNITY_Community 549|Community 549]]
 - [[_COMMUNITY_Community 550|Community 550]]
 - [[_COMMUNITY_Community 551|Community 551]]
@@ -555,56 +535,2761 @@
 - [[_COMMUNITY_Community 556|Community 556]]
 - [[_COMMUNITY_Community 557|Community 557]]
 - [[_COMMUNITY_Community 558|Community 558]]
+- [[_COMMUNITY_stored|stored]]
+- [[_COMMUNITY_first|first]]
+- [[_COMMUNITY_redirectSpy|redirectSpy]]
+- [[_COMMUNITY_refreshed|refreshed]]
+- [[_COMMUNITY_result|result]]
+- [[_COMMUNITY_second|second]]
+- [[_COMMUNITY_filtered|filtered]]
+- [[_COMMUNITY_ids|ids]]
+- [[_COMMUNITY_info|info]]
+- [[_COMMUNITY_result|result]]
+- [[_COMMUNITY_boardWithComments|boardWithComments]]
+- [[_COMMUNITY_boardWithLabel|boardWithLabel]]
+- [[_COMMUNITY_listScope|listScope]]
+- [[_COMMUNITY_recentSection|recentSection]]
+- [[_COMMUNITY_baseSummary|baseSummary]]
+- [[_COMMUNITY_form|form]]
+- [[_COMMUNITY_PreToolUse|PreToolUse]]
+- [[_COMMUNITY_codeblock1 (Think → Plan phase (use instructions.md for notes if needed))|code:block1 (Think → Plan phase (use instructions.md for notes if needed))]]
+- [[_COMMUNITY_codeblock2 (WorkspaceTeam (single instance per deployment))|code:block2 (Workspace/Team (single instance per deployment))]]
+- [[_COMMUNITY_codebash (ssh flowstate-vps)|code:bash (ssh flowstate-vps)]]
+- [[_COMMUNITY_codebash (bun run --cwd server build)|code:bash (bun run --cwd server build)]]
+- [[_COMMUNITY_codebash (systemctl status flowstate --no-pager)|code:bash (systemctl status flowstate --no-pager)]]
+- [[_COMMUNITY_codebash (bun install)|code:bash (bun install)]]
+- [[_COMMUNITY_codebash (bun run --cwd client dev)|code:bash (bun run --cwd client dev)]]
+- [[_COMMUNITY_codebash (bun run --cwd server dev)|code:bash (bun run --cwd server dev)]]
+- [[_COMMUNITY_codebash (ssh flowstate-vps)|code:bash (ssh flowstate-vps)]]
+- [[_COMMUNITY_codebash (curl http127.0.0.14000apihealthready)|code:bash (curl http://127.0.0.1:4000/api/health/ready)]]
+- [[_COMMUNITY_codebash (cd optflowstateapp)|code:bash (cd /opt/flowstate/app)]]
+- [[_COMMUNITY_codebash (bash -x deployvpsdeploy-safe.sh)|code:bash (bash -x deploy/vps/deploy-safe.sh)]]
+- [[_COMMUNITY_codebash (cd optflowstateapp)|code:bash (cd /opt/flowstate/app)]]
+- [[_COMMUNITY_codebash (cd optflowstateapp)|code:bash (cd /opt/flowstate/app)]]
+- [[_COMMUNITY_codebash (bash deployvpsrestore-verify.sh varlibflowstatebackups)|code:bash (bash deploy/vps/restore-verify.sh /var/lib/flowstate/backups)]]
+- [[_COMMUNITY_codebash (cd optflowstateapp)|code:bash (cd /opt/flowstate/app)]]
+- [[_COMMUNITY_codebash (bash deployvpsrollback.sh abc1234 varlibflowstatebacku)|code:bash (bash deploy/vps/rollback.sh abc1234 /var/lib/flowstate/backu)]]
+- [[_COMMUNITY_codebash (bash deployvpsdeploy-safe.sh)|code:bash (bash deploy/vps/deploy-safe.sh)]]
+- [[_COMMUNITY_codebash (systemctl status flowstate --no-pager)|code:bash (systemctl status flowstate --no-pager)]]
+- [[_COMMUNITY_codebash (systemctl status flowstate-backup-daily.timer --no-pager)|code:bash (systemctl status flowstate-backup-daily.timer --no-pager)]]
+- [[_COMMUNITY_codeenv (SMTP_HOST=smtp.example.com)|code:env (SMTP_HOST=smtp.example.com)]]
+- [[_COMMUNITY_codebash (cd optflowstateapp)|code:bash (cd /opt/flowstate/app)]]
+- [[_COMMUNITY_codeenv (BACKUP_LOCAL_DIR=varlibflowstatebackups)|code:env (BACKUP_LOCAL_DIR=/var/lib/flowstate/backups)]]
+- [[_COMMUNITY_codebash (cd optflowstateapp)|code:bash (cd /opt/flowstate/app)]]
+- [[_COMMUNITY_codebash (ps -ef  grep -E backup-nowbackup-manifest-clibunnodemy)|code:bash (ps -ef | grep -E "backup-now|backup-manifest-cli|bun|node|my)]]
+- [[_COMMUNITY_codebash (install -d -m 0755 -o flowstate -g flowstate optflowstate)|code:bash (install -d -m 0755 -o flowstate -g flowstate /opt/flowstate)]]
+- [[_COMMUNITY_codebash (sudo -u flowstate git clone YOUR_REPO_URL optflowstatea)|code:bash (sudo -u flowstate git clone <YOUR_REPO_URL> /opt/flowstate/a)]]
+- [[_COMMUNITY_codebash (cd optflowstateinfra)|code:bash (cd /opt/flowstate/infra)]]
+- [[_COMMUNITY_codebash (chown rootflowstate etcflowstateflowstate.env)|code:bash (chown root:flowstate /etc/flowstate/flowstate.env)]]
+- [[_COMMUNITY_codebash (curl http127.0.0.14000apihealth)|code:bash (curl http://127.0.0.1:4000/api/health)]]
+- [[_COMMUNITY_codebash (ssh-keygen -t ed25519 -C flowstate-vps)|code:bash (ssh-keygen -t ed25519 -C "flowstate-vps")]]
+- [[_COMMUNITY_codebash (cp optflowstateappdeployvpsflowstate.service etcsyst)|code:bash (cp /opt/flowstate/app/deploy/vps/flowstate.service /etc/syst)]]
+- [[_COMMUNITY_codebash (certbot --nginx -d flo-state.in -d www.flo-state.in)|code:bash (certbot --nginx -d flo-state.in -d www.flo-state.in)]]
+- [[_COMMUNITY_codebash (cd optflowstateapp)|code:bash (cd /opt/flowstate/app)]]
+- [[_COMMUNITY_codebash (sudo -i)|code:bash (sudo -i)]]
+- [[_COMMUNITY_codebash (docker compose -f docker-compose.prod.yml down -v)|code:bash (docker compose -f docker-compose.prod.yml down -v)]]
+- [[_COMMUNITY_codebash (sudo apt install -y certbot python3-certbot-nginx)|code:bash (sudo apt install -y certbot python3-certbot-nginx)]]
+- [[_COMMUNITY_codebash (ssh flowstate-vps)|code:bash (ssh flowstate-vps)]]
+- [[_COMMUNITY_codebash (systemctl status flowstate --no-pager)|code:bash (systemctl status flowstate --no-pager)]]
+- [[_COMMUNITY_codebash (ssh flowstate@YOUR_SERVER_IP)|code:bash (ssh flowstate@YOUR_SERVER_IP)]]
+- [[_COMMUNITY_codebash (ufw allow OpenSSH)|code:bash (ufw allow OpenSSH)]]
+- [[_COMMUNITY_codebash (curl -fsSL httpsdeb.nodesource.comsetup_22.x  bash -)|code:bash (curl -fsSL https://deb.nodesource.com/setup_22.x | bash -)]]
+- [[_COMMUNITY_code|code]]
+- [[_COMMUNITY_document|document]]
+- [[_COMMUNITY_image|image]]
+- [[_COMMUNITY_paper|paper]]
+- [[_COMMUNITY_video|video]]
+- [[_COMMUNITY_graphifyignore_patterns|graphifyignore_patterns]]
+- [[_COMMUNITY_needs_graph|needs_graph]]
+- [[_COMMUNITY_scan_root|scan_root]]
+- [[_COMMUNITY_skipped_sensitive|skipped_sensitive]]
+- [[_COMMUNITY_total_files|total_files]]
+- [[_COMMUNITY_total_words|total_words]]
+- [[_COMMUNITY_warning|warning]]
+- [[_COMMUNITY_@dnd-kitcore|@dnd-kit/core]]
+- [[_COMMUNITY_@dnd-kitsortable|@dnd-kit/sortable]]
+- [[_COMMUNITY_@dnd-kitutilities|@dnd-kit/utilities]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_private|private]]
+- [[_COMMUNITY_scripts|scripts]]
+- [[_COMMUNITY_build|build]]
+- [[_COMMUNITY_dbmigrateprod|db:migrate:prod]]
+- [[_COMMUNITY_dev|dev]]
+- [[_COMMUNITY_lint|lint]]
+- [[_COMMUNITY_start|start]]
+- [[_COMMUNITY_test|test]]
+- [[_COMMUNITY_codebash (bun run dev)|code:bash (bun run dev)]]
+- [[_COMMUNITY_codetext (client   Frontend (Vite + React))|code:text (client/   Frontend (Vite + React))]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_columnsFrom|columnsFrom]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_columnsFrom|columnsFrom]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_actor_id|actor_id]]
+- [[_COMMUNITY_announcement_id|announcement_id]]
+- [[_COMMUNITY_archive_retention_minutes|archive_retention_minutes]]
+- [[_COMMUNITY_archived_at|archived_at]]
+- [[_COMMUNITY_audience|audience]]
+- [[_COMMUNITY_background|background]]
+- [[_COMMUNITY_board_id|board_id]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_card_id|card_id]]
+- [[_COMMUNITY_created_at|created_at]]
+- [[_COMMUNITY_description|description]]
+- [[_COMMUNITY_list_id|list_id]]
+- [[_COMMUNITY_metadata|metadata]]
+- [[_COMMUNITY_mime_type|mime_type]]
+- [[_COMMUNITY_original_name|original_name]]
+- [[_COMMUNITY_storage_path|storage_path]]
+- [[_COMMUNITY_user_id|user_id]]
+- [[_COMMUNITY_activity_logs_id|activity_logs_id]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_user_id_pk|announcement_recipients_announcement_id_user_id_pk]]
+- [[_COMMUNITY_announcements_id|announcements_id]]
+- [[_COMMUNITY_attachments_id|attachments_id]]
+- [[_COMMUNITY_boards_id|boards_id]]
+- [[_COMMUNITY_card_assignees_card_id_user_id_pk|card_assignees_card_id_user_id_pk]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_dialect|dialect]]
+- [[_COMMUNITY_activity_logs_actor_id_users_id_fk|activity_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_board_id_boards_id_fk|activity_logs_board_id_boards_id_fk]]
+- [[_COMMUNITY_activity_logs_card_id_cards_id_fk|activity_logs_card_id_cards_id_fk]]
+- [[_COMMUNITY_activity_logs_list_id_lists_id_fk|activity_logs_list_id_lists_id_fk]]
+- [[_COMMUNITY_activity_logs_mentioned_user_id_users_id_fk|activity_logs_mentioned_user_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_conversation_id_thread_conversations_id_fk|activity_logs_thread_conversation_id_thread_conversations_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_message_id_thread_messages_id_fk|activity_logs_thread_message_id_thread_messages_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_reply_id_thread_replies_id_fk|activity_logs_thread_reply_id_thread_replies_id_fk]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_announcements_id_fk|announcement_recipients_announcement_id_announcements_id_fk]]
+- [[_COMMUNITY_announcement_recipients_user_id_users_id_fk|announcement_recipients_user_id_users_id_fk]]
+- [[_COMMUNITY_announcements_created_by_users_id_fk|announcements_created_by_users_id_fk]]
+- [[_COMMUNITY_attachments_card_id_cards_id_fk|attachments_card_id_cards_id_fk]]
+- [[_COMMUNITY_boards_created_by_users_id_fk|boards_created_by_users_id_fk]]
+- [[_COMMUNITY_card_assignees_card_id_cards_id_fk|card_assignees_card_id_cards_id_fk]]
+- [[_COMMUNITY_card_assignees_user_id_users_id_fk|card_assignees_user_id_users_id_fk]]
+- [[_COMMUNITY_id|id]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_idx_activity_logs_actor_id|idx_activity_logs_actor_id]]
+- [[_COMMUNITY_idx_activity_logs_board_id|idx_activity_logs_board_id]]
+- [[_COMMUNITY_idx_activity_logs_created_at|idx_activity_logs_created_at]]
+- [[_COMMUNITY_idx_activity_logs_thread_conversation_id|idx_activity_logs_thread_conversation_id]]
+- [[_COMMUNITY_idx_attachments_card_id|idx_attachments_card_id]]
+- [[_COMMUNITY_idx_boards_name_unique|idx_boards_name_unique]]
+- [[_COMMUNITY_idx_card_assignees_card_id|idx_card_assignees_card_id]]
+- [[_COMMUNITY_idx_card_assignees_user_id|idx_card_assignees_user_id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_prevId|prevId]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_tables|tables]]
+- [[_COMMUNITY_activity_logs|activity_logs]]
+- [[_COMMUNITY_announcement_recipients|announcement_recipients]]
+- [[_COMMUNITY_announcements|announcements]]
+- [[_COMMUNITY_attachments|attachments]]
+- [[_COMMUNITY_boards|boards]]
+- [[_COMMUNITY_card_assignees|card_assignees]]
+- [[_COMMUNITY_card_labels|card_labels]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_version|version]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsFrom|columnsFrom]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_actor_id|actor_id]]
+- [[_COMMUNITY_announcement_id|announcement_id]]
+- [[_COMMUNITY_archive_retention_minutes|archive_retention_minutes]]
+- [[_COMMUNITY_archived_at|archived_at]]
+- [[_COMMUNITY_audience|audience]]
+- [[_COMMUNITY_background|background]]
+- [[_COMMUNITY_board_id|board_id]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_card_id|card_id]]
+- [[_COMMUNITY_created_at|created_at]]
+- [[_COMMUNITY_description|description]]
+- [[_COMMUNITY_list_id|list_id]]
+- [[_COMMUNITY_metadata|metadata]]
+- [[_COMMUNITY_mime_type|mime_type]]
+- [[_COMMUNITY_original_name|original_name]]
+- [[_COMMUNITY_storage_path|storage_path]]
+- [[_COMMUNITY_user_id|user_id]]
+- [[_COMMUNITY_activity_logs_id|activity_logs_id]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_user_id_pk|announcement_recipients_announcement_id_user_id_pk]]
+- [[_COMMUNITY_announcements_id|announcements_id]]
+- [[_COMMUNITY_attachments_id|attachments_id]]
+- [[_COMMUNITY_boards_id|boards_id]]
+- [[_COMMUNITY_card_assignees_card_id_user_id_pk|card_assignees_card_id_user_id_pk]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_dialect|dialect]]
+- [[_COMMUNITY_activity_logs_actor_id_users_id_fk|activity_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_board_id_boards_id_fk|activity_logs_board_id_boards_id_fk]]
+- [[_COMMUNITY_activity_logs_card_id_cards_id_fk|activity_logs_card_id_cards_id_fk]]
+- [[_COMMUNITY_activity_logs_list_id_lists_id_fk|activity_logs_list_id_lists_id_fk]]
+- [[_COMMUNITY_activity_logs_mentioned_user_id_users_id_fk|activity_logs_mentioned_user_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_conversation_id_thread_conversations_id_fk|activity_logs_thread_conversation_id_thread_conversations_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_message_id_thread_messages_id_fk|activity_logs_thread_message_id_thread_messages_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_reply_id_thread_replies_id_fk|activity_logs_thread_reply_id_thread_replies_id_fk]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_announcements_id_fk|announcement_recipients_announcement_id_announcements_id_fk]]
+- [[_COMMUNITY_announcement_recipients_user_id_users_id_fk|announcement_recipients_user_id_users_id_fk]]
+- [[_COMMUNITY_announcements_created_by_users_id_fk|announcements_created_by_users_id_fk]]
+- [[_COMMUNITY_attachments_card_id_cards_id_fk|attachments_card_id_cards_id_fk]]
+- [[_COMMUNITY_boards_created_by_users_id_fk|boards_created_by_users_id_fk]]
+- [[_COMMUNITY_card_assignees_card_id_cards_id_fk|card_assignees_card_id_cards_id_fk]]
+- [[_COMMUNITY_card_assignees_user_id_users_id_fk|card_assignees_user_id_users_id_fk]]
+- [[_COMMUNITY_id|id]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_idx_activity_logs_actor_id|idx_activity_logs_actor_id]]
+- [[_COMMUNITY_idx_activity_logs_board_id|idx_activity_logs_board_id]]
+- [[_COMMUNITY_idx_activity_logs_created_at|idx_activity_logs_created_at]]
+- [[_COMMUNITY_idx_activity_logs_thread_conversation_id|idx_activity_logs_thread_conversation_id]]
+- [[_COMMUNITY_idx_attachments_card_id|idx_attachments_card_id]]
+- [[_COMMUNITY_idx_boards_name_unique|idx_boards_name_unique]]
+- [[_COMMUNITY_idx_card_assignees_card_id|idx_card_assignees_card_id]]
+- [[_COMMUNITY_idx_card_assignees_user_id|idx_card_assignees_user_id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_prevId|prevId]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_tables|tables]]
+- [[_COMMUNITY_activity_logs|activity_logs]]
+- [[_COMMUNITY_announcement_recipients|announcement_recipients]]
+- [[_COMMUNITY_announcements|announcements]]
+- [[_COMMUNITY_attachments|attachments]]
+- [[_COMMUNITY_boards|boards]]
+- [[_COMMUNITY_card_assignees|card_assignees]]
+- [[_COMMUNITY_card_labels|card_labels]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_version|version]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_action|action]]
+- [[_COMMUNITY_actor_id|actor_id]]
+- [[_COMMUNITY_announcement_id|announcement_id]]
+- [[_COMMUNITY_archive_retention_minutes|archive_retention_minutes]]
+- [[_COMMUNITY_archived_at|archived_at]]
+- [[_COMMUNITY_audience|audience]]
+- [[_COMMUNITY_background|background]]
+- [[_COMMUNITY_board_id|board_id]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_card_id|card_id]]
+- [[_COMMUNITY_created_at|created_at]]
+- [[_COMMUNITY_ip|ip]]
+- [[_COMMUNITY_mentioned_user_id|mentioned_user_id]]
+- [[_COMMUNITY_metadata|metadata]]
+- [[_COMMUNITY_mime_type|mime_type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_request_id|request_id]]
+- [[_COMMUNITY_seen_at|seen_at]]
+- [[_COMMUNITY_size|size]]
+- [[_COMMUNITY_subject|subject]]
+- [[_COMMUNITY_target_id|target_id]]
+- [[_COMMUNITY_thread_reply_id|thread_reply_id]]
+- [[_COMMUNITY_user_id|user_id]]
+- [[_COMMUNITY_activity_logs_id|activity_logs_id]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_user_id_pk|announcement_recipients_announcement_id_user_id_pk]]
+- [[_COMMUNITY_announcements_id|announcements_id]]
+- [[_COMMUNITY_attachments_id|attachments_id]]
+- [[_COMMUNITY_audit_logs_id|audit_logs_id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_activity_logs_actor_id_users_id_fk|activity_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_board_id_boards_id_fk|activity_logs_board_id_boards_id_fk]]
+- [[_COMMUNITY_activity_logs_card_id_cards_id_fk|activity_logs_card_id_cards_id_fk]]
+- [[_COMMUNITY_activity_logs_list_id_lists_id_fk|activity_logs_list_id_lists_id_fk]]
+- [[_COMMUNITY_activity_logs_mentioned_user_id_users_id_fk|activity_logs_mentioned_user_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_conversation_id_thread_conversations_id_fk|activity_logs_thread_conversation_id_thread_conversations_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_message_id_thread_messages_id_fk|activity_logs_thread_message_id_thread_messages_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_reply_id_thread_replies_id_fk|activity_logs_thread_reply_id_thread_replies_id_fk]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_announcements_id_fk|announcement_recipients_announcement_id_announcements_id_fk]]
+- [[_COMMUNITY_announcement_recipients_user_id_users_id_fk|announcement_recipients_user_id_users_id_fk]]
+- [[_COMMUNITY_announcements_created_by_users_id_fk|announcements_created_by_users_id_fk]]
+- [[_COMMUNITY_attachments_card_id_cards_id_fk|attachments_card_id_cards_id_fk]]
+- [[_COMMUNITY_audit_logs_actor_id_users_id_fk|audit_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_idx_activity_logs_actor_id|idx_activity_logs_actor_id]]
+- [[_COMMUNITY_idx_activity_logs_board_id|idx_activity_logs_board_id]]
+- [[_COMMUNITY_idx_activity_logs_created_at|idx_activity_logs_created_at]]
+- [[_COMMUNITY_idx_activity_logs_thread_conversation_id|idx_activity_logs_thread_conversation_id]]
+- [[_COMMUNITY_idx_attachments_card_id|idx_attachments_card_id]]
+- [[_COMMUNITY_idx_audit_logs_action|idx_audit_logs_action]]
+- [[_COMMUNITY_idx_audit_logs_actor_id|idx_audit_logs_actor_id]]
+- [[_COMMUNITY_idx_audit_logs_created_at|idx_audit_logs_created_at]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_prevId|prevId]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_tables|tables]]
+- [[_COMMUNITY_activity_logs|activity_logs]]
+- [[_COMMUNITY_announcement_recipients|announcement_recipients]]
+- [[_COMMUNITY_announcements|announcements]]
+- [[_COMMUNITY_attachments|attachments]]
+- [[_COMMUNITY_audit_logs|audit_logs]]
+- [[_COMMUNITY_boards|boards]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_version|version]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_action|action]]
+- [[_COMMUNITY_actor_id|actor_id]]
+- [[_COMMUNITY_announcement_id|announcement_id]]
+- [[_COMMUNITY_archive_retention_minutes|archive_retention_minutes]]
+- [[_COMMUNITY_archived_at|archived_at]]
+- [[_COMMUNITY_audience|audience]]
+- [[_COMMUNITY_background|background]]
+- [[_COMMUNITY_board_id|board_id]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_card_id|card_id]]
+- [[_COMMUNITY_created_at|created_at]]
+- [[_COMMUNITY_description|description]]
+- [[_COMMUNITY_id|id]]
+- [[_COMMUNITY_list_id|list_id]]
+- [[_COMMUNITY_original_name|original_name]]
+- [[_COMMUNITY_seen_at|seen_at]]
+- [[_COMMUNITY_storage_path|storage_path]]
+- [[_COMMUNITY_subject|subject]]
+- [[_COMMUNITY_target_type|target_type]]
+- [[_COMMUNITY_thread_reply_id|thread_reply_id]]
+- [[_COMMUNITY_user_agent|user_agent]]
+- [[_COMMUNITY_activity_logs_id|activity_logs_id]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_user_id_pk|announcement_recipients_announcement_id_user_id_pk]]
+- [[_COMMUNITY_announcements_id|announcements_id]]
+- [[_COMMUNITY_attachments_id|attachments_id]]
+- [[_COMMUNITY_audit_logs_id|audit_logs_id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_dialect|dialect]]
+- [[_COMMUNITY_activity_logs_actor_id_users_id_fk|activity_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_board_id_boards_id_fk|activity_logs_board_id_boards_id_fk]]
+- [[_COMMUNITY_activity_logs_card_id_cards_id_fk|activity_logs_card_id_cards_id_fk]]
+- [[_COMMUNITY_activity_logs_list_id_lists_id_fk|activity_logs_list_id_lists_id_fk]]
+- [[_COMMUNITY_activity_logs_mentioned_user_id_users_id_fk|activity_logs_mentioned_user_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_conversation_id_thread_conversations_id_fk|activity_logs_thread_conversation_id_thread_conversations_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_message_id_thread_messages_id_fk|activity_logs_thread_message_id_thread_messages_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_reply_id_thread_replies_id_fk|activity_logs_thread_reply_id_thread_replies_id_fk]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_announcements_id_fk|announcement_recipients_announcement_id_announcements_id_fk]]
+- [[_COMMUNITY_announcement_recipients_user_id_users_id_fk|announcement_recipients_user_id_users_id_fk]]
+- [[_COMMUNITY_announcements_created_by_users_id_fk|announcements_created_by_users_id_fk]]
+- [[_COMMUNITY_attachments_card_id_cards_id_fk|attachments_card_id_cards_id_fk]]
+- [[_COMMUNITY_audit_logs_actor_id_users_id_fk|audit_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_idx_activity_logs_actor_id|idx_activity_logs_actor_id]]
+- [[_COMMUNITY_idx_activity_logs_board_created|idx_activity_logs_board_created]]
+- [[_COMMUNITY_idx_activity_logs_board_id|idx_activity_logs_board_id]]
+- [[_COMMUNITY_idx_activity_logs_created_at|idx_activity_logs_created_at]]
+- [[_COMMUNITY_idx_activity_logs_thread_conversation_id|idx_activity_logs_thread_conversation_id]]
+- [[_COMMUNITY_idx_activity_logs_type_created|idx_activity_logs_type_created]]
+- [[_COMMUNITY_idx_announcement_recipients_user_seen_created|idx_announcement_recipients_user_seen_created]]
+- [[_COMMUNITY_idx_attachments_card_id|idx_attachments_card_id]]
+- [[_COMMUNITY_idx_audit_logs_action|idx_audit_logs_action]]
+- [[_COMMUNITY_idx_audit_logs_actor_id|idx_audit_logs_actor_id]]
+- [[_COMMUNITY_idx_audit_logs_created_at|idx_audit_logs_created_at]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_prevId|prevId]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_tables|tables]]
+- [[_COMMUNITY_activity_logs|activity_logs]]
+- [[_COMMUNITY_announcement_recipients|announcement_recipients]]
+- [[_COMMUNITY_announcements|announcements]]
+- [[_COMMUNITY_attachments|attachments]]
+- [[_COMMUNITY_audit_logs|audit_logs]]
+- [[_COMMUNITY_boards|boards]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_version|version]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_action|action]]
+- [[_COMMUNITY_actor_id|actor_id]]
+- [[_COMMUNITY_announcement_id|announcement_id]]
+- [[_COMMUNITY_archive_retention_minutes|archive_retention_minutes]]
+- [[_COMMUNITY_archived_at|archived_at]]
+- [[_COMMUNITY_audience|audience]]
+- [[_COMMUNITY_background|background]]
+- [[_COMMUNITY_board_id|board_id]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_card_id|card_id]]
+- [[_COMMUNITY_description|description]]
+- [[_COMMUNITY_list_id|list_id]]
+- [[_COMMUNITY_original_name|original_name]]
+- [[_COMMUNITY_seen_at|seen_at]]
+- [[_COMMUNITY_storage_path|storage_path]]
+- [[_COMMUNITY_subject|subject]]
+- [[_COMMUNITY_target_type|target_type]]
+- [[_COMMUNITY_thread_reply_id|thread_reply_id]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_user_agent|user_agent]]
+- [[_COMMUNITY_user_id|user_id]]
+- [[_COMMUNITY_activity_logs_id|activity_logs_id]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_user_id_pk|announcement_recipients_announcement_id_user_id_pk]]
+- [[_COMMUNITY_announcements_id|announcements_id]]
+- [[_COMMUNITY_attachments_id|attachments_id]]
+- [[_COMMUNITY_audit_logs_id|audit_logs_id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_dialect|dialect]]
+- [[_COMMUNITY_activity_logs_actor_id_users_id_fk|activity_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_board_id_boards_id_fk|activity_logs_board_id_boards_id_fk]]
+- [[_COMMUNITY_activity_logs_card_id_cards_id_fk|activity_logs_card_id_cards_id_fk]]
+- [[_COMMUNITY_activity_logs_list_id_lists_id_fk|activity_logs_list_id_lists_id_fk]]
+- [[_COMMUNITY_activity_logs_mentioned_user_id_users_id_fk|activity_logs_mentioned_user_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_conversation_id_thread_conversations_id_fk|activity_logs_thread_conversation_id_thread_conversations_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_message_id_thread_messages_id_fk|activity_logs_thread_message_id_thread_messages_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_reply_id_thread_replies_id_fk|activity_logs_thread_reply_id_thread_replies_id_fk]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_announcements_id_fk|announcement_recipients_announcement_id_announcements_id_fk]]
+- [[_COMMUNITY_announcement_recipients_user_id_users_id_fk|announcement_recipients_user_id_users_id_fk]]
+- [[_COMMUNITY_announcements_created_by_users_id_fk|announcements_created_by_users_id_fk]]
+- [[_COMMUNITY_attachments_card_id_cards_id_fk|attachments_card_id_cards_id_fk]]
+- [[_COMMUNITY_audit_logs_actor_id_users_id_fk|audit_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_id|id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_idx_activity_logs_actor_id|idx_activity_logs_actor_id]]
+- [[_COMMUNITY_idx_activity_logs_board_created|idx_activity_logs_board_created]]
+- [[_COMMUNITY_idx_activity_logs_board_id|idx_activity_logs_board_id]]
+- [[_COMMUNITY_idx_activity_logs_created_at|idx_activity_logs_created_at]]
+- [[_COMMUNITY_idx_activity_logs_thread_conversation_id|idx_activity_logs_thread_conversation_id]]
+- [[_COMMUNITY_idx_activity_logs_type_created|idx_activity_logs_type_created]]
+- [[_COMMUNITY_idx_announcement_recipients_user_seen_created|idx_announcement_recipients_user_seen_created]]
+- [[_COMMUNITY_idx_attachments_card_id|idx_attachments_card_id]]
+- [[_COMMUNITY_idx_audit_logs_action|idx_audit_logs_action]]
+- [[_COMMUNITY_idx_audit_logs_actor_id|idx_audit_logs_actor_id]]
+- [[_COMMUNITY_idx_audit_logs_created_at|idx_audit_logs_created_at]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_prevId|prevId]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_tables|tables]]
+- [[_COMMUNITY_activity_logs|activity_logs]]
+- [[_COMMUNITY_announcement_recipients|announcement_recipients]]
+- [[_COMMUNITY_announcements|announcements]]
+- [[_COMMUNITY_attachments|attachments]]
+- [[_COMMUNITY_audit_logs|audit_logs]]
+- [[_COMMUNITY_boards|boards]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_version|version]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_action|action]]
+- [[_COMMUNITY_actor_id|actor_id]]
+- [[_COMMUNITY_announcement_id|announcement_id]]
+- [[_COMMUNITY_archive_retention_minutes|archive_retention_minutes]]
+- [[_COMMUNITY_archived_at|archived_at]]
+- [[_COMMUNITY_audience|audience]]
+- [[_COMMUNITY_background|background]]
+- [[_COMMUNITY_board_id|board_id]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_card_id|card_id]]
+- [[_COMMUNITY_description|description]]
+- [[_COMMUNITY_id|id]]
+- [[_COMMUNITY_mentioned_user_id|mentioned_user_id]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_original_name|original_name]]
+- [[_COMMUNITY_retention_minutes|retention_minutes]]
+- [[_COMMUNITY_retention_mode|retention_mode]]
+- [[_COMMUNITY_seen_at|seen_at]]
+- [[_COMMUNITY_storage_path|storage_path]]
+- [[_COMMUNITY_subject|subject]]
+- [[_COMMUNITY_target_type|target_type]]
+- [[_COMMUNITY_thread_conversation_id|thread_conversation_id]]
+- [[_COMMUNITY_thread_message_id|thread_message_id]]
+- [[_COMMUNITY_user_agent|user_agent]]
+- [[_COMMUNITY_user_id|user_id]]
+- [[_COMMUNITY_activity_logs_id|activity_logs_id]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_user_id_pk|announcement_recipients_announcement_id_user_id_pk]]
+- [[_COMMUNITY_announcements_id|announcements_id]]
+- [[_COMMUNITY_attachments_id|attachments_id]]
+- [[_COMMUNITY_audit_logs_id|audit_logs_id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_dialect|dialect]]
+- [[_COMMUNITY_activity_logs_actor_id_users_id_fk|activity_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_board_id_boards_id_fk|activity_logs_board_id_boards_id_fk]]
+- [[_COMMUNITY_activity_logs_card_id_cards_id_fk|activity_logs_card_id_cards_id_fk]]
+- [[_COMMUNITY_activity_logs_list_id_lists_id_fk|activity_logs_list_id_lists_id_fk]]
+- [[_COMMUNITY_activity_logs_mentioned_user_id_users_id_fk|activity_logs_mentioned_user_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_conversation_id_thread_conversations_id_fk|activity_logs_thread_conversation_id_thread_conversations_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_message_id_thread_messages_id_fk|activity_logs_thread_message_id_thread_messages_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_reply_id_thread_replies_id_fk|activity_logs_thread_reply_id_thread_replies_id_fk]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_announcements_id_fk|announcement_recipients_announcement_id_announcements_id_fk]]
+- [[_COMMUNITY_announcement_recipients_user_id_users_id_fk|announcement_recipients_user_id_users_id_fk]]
+- [[_COMMUNITY_announcements_created_by_users_id_fk|announcements_created_by_users_id_fk]]
+- [[_COMMUNITY_attachments_card_id_cards_id_fk|attachments_card_id_cards_id_fk]]
+- [[_COMMUNITY_audit_logs_actor_id_users_id_fk|audit_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_idx_activity_logs_actor_id|idx_activity_logs_actor_id]]
+- [[_COMMUNITY_idx_activity_logs_board_created|idx_activity_logs_board_created]]
+- [[_COMMUNITY_idx_activity_logs_board_id|idx_activity_logs_board_id]]
+- [[_COMMUNITY_idx_activity_logs_created_at|idx_activity_logs_created_at]]
+- [[_COMMUNITY_idx_activity_logs_thread_conversation_id|idx_activity_logs_thread_conversation_id]]
+- [[_COMMUNITY_idx_activity_logs_type_created|idx_activity_logs_type_created]]
+- [[_COMMUNITY_idx_announcement_recipients_user_seen_created|idx_announcement_recipients_user_seen_created]]
+- [[_COMMUNITY_idx_attachments_card_id|idx_attachments_card_id]]
+- [[_COMMUNITY_idx_audit_logs_action|idx_audit_logs_action]]
+- [[_COMMUNITY_idx_audit_logs_actor_id|idx_audit_logs_actor_id]]
+- [[_COMMUNITY_idx_audit_logs_created_at|idx_audit_logs_created_at]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_prevId|prevId]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_tables|tables]]
+- [[_COMMUNITY_activity_logs|activity_logs]]
+- [[_COMMUNITY_announcement_recipients|announcement_recipients]]
+- [[_COMMUNITY_announcements|announcements]]
+- [[_COMMUNITY_attachments|attachments]]
+- [[_COMMUNITY_audit_logs|audit_logs]]
+- [[_COMMUNITY_boards|boards]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_version|version]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_indexes|indexes]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_checkConstraint|checkConstraint]]
+- [[_COMMUNITY_compositePrimaryKeys|compositePrimaryKeys]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableFrom|tableFrom]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_uniqueConstraints|uniqueConstraints]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_columnsFrom|columnsFrom]]
+- [[_COMMUNITY_columnsTo|columnsTo]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_onDelete|onDelete]]
+- [[_COMMUNITY_onUpdate|onUpdate]]
+- [[_COMMUNITY_tableTo|tableTo]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_foreignKeys|foreignKeys]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_access|access]]
+- [[_COMMUNITY_action|action]]
+- [[_COMMUNITY_actor_id|actor_id]]
+- [[_COMMUNITY_announcement_id|announcement_id]]
+- [[_COMMUNITY_audience|audience]]
+- [[_COMMUNITY_board_id|board_id]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_card_id|card_id]]
+- [[_COMMUNITY_created_at|created_at]]
+- [[_COMMUNITY_created_by|created_by]]
+- [[_COMMUNITY_mime_type|mime_type]]
+- [[_COMMUNITY_original_name|original_name]]
+- [[_COMMUNITY_permission|permission]]
+- [[_COMMUNITY_seen_at|seen_at]]
+- [[_COMMUNITY_size|size]]
+- [[_COMMUNITY_subject|subject]]
+- [[_COMMUNITY_target_type|target_type]]
+- [[_COMMUNITY_thread_conversation_id|thread_conversation_id]]
+- [[_COMMUNITY_user_agent|user_agent]]
+- [[_COMMUNITY_activity_logs_id|activity_logs_id]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_user_id_pk|announcement_recipients_announcement_id_user_id_pk]]
+- [[_COMMUNITY_announcements_id|announcements_id]]
+- [[_COMMUNITY_attachments_id|attachments_id]]
+- [[_COMMUNITY_audit_logs_id|audit_logs_id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_activity_logs_actor_id_users_id_fk|activity_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_board_id_boards_id_fk|activity_logs_board_id_boards_id_fk]]
+- [[_COMMUNITY_activity_logs_card_id_cards_id_fk|activity_logs_card_id_cards_id_fk]]
+- [[_COMMUNITY_activity_logs_list_id_lists_id_fk|activity_logs_list_id_lists_id_fk]]
+- [[_COMMUNITY_activity_logs_mentioned_user_id_users_id_fk|activity_logs_mentioned_user_id_users_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_conversation_id_thread_conversations_id_fk|activity_logs_thread_conversation_id_thread_conversations_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_message_id_thread_messages_id_fk|activity_logs_thread_message_id_thread_messages_id_fk]]
+- [[_COMMUNITY_activity_logs_thread_reply_id_thread_replies_id_fk|activity_logs_thread_reply_id_thread_replies_id_fk]]
+- [[_COMMUNITY_announcement_recipients_announcement_id_announcements_id_fk|announcement_recipients_announcement_id_announcements_id_fk]]
+- [[_COMMUNITY_announcement_recipients_user_id_users_id_fk|announcement_recipients_user_id_users_id_fk]]
+- [[_COMMUNITY_announcements_created_by_users_id_fk|announcements_created_by_users_id_fk]]
+- [[_COMMUNITY_attachments_card_id_cards_id_fk|attachments_card_id_cards_id_fk]]
+- [[_COMMUNITY_audit_logs_actor_id_users_id_fk|audit_logs_actor_id_users_id_fk]]
+- [[_COMMUNITY_board_member_permissions_board_id_boards_id_fk|board_member_permissions_board_id_boards_id_fk]]
+- [[_COMMUNITY_id|id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_columns|columns]]
+- [[_COMMUNITY_isUnique|isUnique]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_idx_activity_logs_actor_id|idx_activity_logs_actor_id]]
+- [[_COMMUNITY_idx_activity_logs_board_created|idx_activity_logs_board_created]]
+- [[_COMMUNITY_idx_activity_logs_board_id|idx_activity_logs_board_id]]
+- [[_COMMUNITY_idx_activity_logs_created_at|idx_activity_logs_created_at]]
+- [[_COMMUNITY_idx_activity_logs_thread_conversation_id|idx_activity_logs_thread_conversation_id]]
+- [[_COMMUNITY_idx_activity_logs_type_created|idx_activity_logs_type_created]]
+- [[_COMMUNITY_idx_announcement_recipients_user_seen_created|idx_announcement_recipients_user_seen_created]]
+- [[_COMMUNITY_idx_attachments_card_id|idx_attachments_card_id]]
+- [[_COMMUNITY_idx_audit_logs_action|idx_audit_logs_action]]
+- [[_COMMUNITY_idx_audit_logs_actor_id|idx_audit_logs_actor_id]]
+- [[_COMMUNITY_idx_audit_logs_created_at|idx_audit_logs_created_at]]
+- [[_COMMUNITY_idx_board_member_permissions_board_id|idx_board_member_permissions_board_id]]
+- [[_COMMUNITY_idx_board_member_permissions_user_id|idx_board_member_permissions_user_id]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_prevId|prevId]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_default|default]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_tables|tables]]
+- [[_COMMUNITY_activity_logs|activity_logs]]
+- [[_COMMUNITY_announcement_recipients|announcement_recipients]]
+- [[_COMMUNITY_announcements|announcements]]
+- [[_COMMUNITY_attachments|attachments]]
+- [[_COMMUNITY_audit_logs|audit_logs]]
+- [[_COMMUNITY_board_member_permissions|board_member_permissions]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_autoincrement|autoincrement]]
+- [[_COMMUNITY_name|name]]
+- [[_COMMUNITY_notNull|notNull]]
+- [[_COMMUNITY_primaryKey|primaryKey]]
+- [[_COMMUNITY_type|type]]
+- [[_COMMUNITY_version|version]]
+- [[_COMMUNITY_entries|entries]]
+- [[_COMMUNITY_version|version]]
+- [[_COMMUNITY_missing|missing]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_context|context]]
+- [[_COMMUNITY_files|files]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_context|context]]
+- [[_COMMUNITY_query|query]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_context|context]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_context|context]]
+- [[_COMMUNITY_body|body]]
+- [[_COMMUNITY_durationSec|durationSec]]
+- [[_COMMUNITY_files|files]]
+- [[_COMMUNITY_params|params]]
+- [[_COMMUNITY_manifest|manifest]]
+- [[_COMMUNITY_migrationRows|[migrationRows]]]
+- [[_COMMUNITY_missingTables|missingTables]]
+- [[_COMMUNITY_rows|[rows]]]
+- [[_COMMUNITY_tableSet|tableSet]]
+- [[_COMMUNITY_attachment|attachment]]
+- [[_COMMUNITY_card|card]]
+- [[_COMMUNITY_cardAfter|cardAfter]]
+- [[_COMMUNITY_cardId|cardId]]
+- [[_COMMUNITY_todoList|todoList]]
+- [[_COMMUNITY_todoListAfter|todoListAfter]]
+- [[_COMMUNITY_rawToken|rawToken]]
+- [[_COMMUNITY_token|token]]
+- [[_COMMUNITY_tokenHash|tokenHash]]
+- [[_COMMUNITY_userId|userId]]
+- [[_COMMUNITY_boardId|boardId]]
+- [[_COMMUNITY_listIds|listIds]]
+- [[_COMMUNITY_reordered|reordered]]
+- [[_COMMUNITY_reportId|reportId]]
+- [[_COMMUNITY_firstCardId|firstCardId]]
+- [[_COMMUNITY_guestRoleRows|[guestRoleRows]]]
+- [[_COMMUNITY_movedBackCard|movedBackCard]]
+- [[_COMMUNITY_rows|[rows]]]
+- [[_COMMUNITY_secondCardId|secondCardId]]
+- [[_COMMUNITY_todo|todo]]
+- [[_COMMUNITY_card|card]]
+- [[_COMMUNITY_cardId|cardId]]
+- [[_COMMUNITY_checklistId|checklistId]]
+- [[_COMMUNITY_itemId|itemId]]
+- [[_COMMUNITY_list|list]]
+- [[_COMMUNITY_inviteUrl|inviteUrl]]
+- [[_COMMUNITY_updated|updated]]
+- [[_COMMUNITY_redacted|redacted]]
+- [[_COMMUNITY_analysis|analysis]]
+- [[_COMMUNITY_messages|messages]]
+- [[_COMMUNITY_backupId|backupId]]
+- [[_COMMUNITY_base64|base64]]
+- [[_COMMUNITY_createdAt|createdAt]]
+- [[_COMMUNITY_dir|dir]]
+- [[_COMMUNITY_encryptedPath|encryptedPath]]
+- [[_COMMUNITY_filePath|filePath]]
+- [[_COMMUNITY_manifest|manifest]]
+- [[_COMMUNITY_result|result]]
+- [[_COMMUNITY_createdRoleId|createdRoleId]]
+- [[_COMMUNITY_memberRole|memberRole]]
+- [[_COMMUNITY_roleIds|roleIds]]
+- [[_COMMUNITY_roles|roles]]
+- [[_COMMUNITY_attachmentId|attachmentId]]
+- [[_COMMUNITY_boardId|boardId]]
+- [[_COMMUNITY_channelIds|channelIds]]
+- [[_COMMUNITY_commentId|commentId]]
+- [[_COMMUNITY_conversationId|conversationId]]
+- [[_COMMUNITY_dmUserIds|dmUserIds]]
+- [[_COMMUNITY_firstReplyId|firstReplyId]]
+- [[_COMMUNITY_guestRoles|[guestRoles]]]
+- [[_COMMUNITY_memberRoles|[memberRoles]]]
+- [[_COMMUNITY_messageId|messageId]]
+- [[_COMMUNITY_nestedReply|nestedReply]]
+- [[_COMMUNITY_rows|[rows]]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `apiRequest()` - 108 edges
-2. `db` - 40 edges
-3. `recordActivity()` - 34 edges
-4. `ApiError` - 34 edges
-5. `getConversation()` - 33 edges
-6. `assertConversationMember()` - 32 edges
-7. `assertConversationPermission()` - 32 edges
-8. `assertPermission()` - 29 edges
-9. `users` - 24 edges
-10. `userHasPermission()` - 21 edges
+1. `apiRequest()` - 120 edges
+2. `getCurrentWorkspaceId()` - 98 edges
+3. `db` - 42 edges
+4. `recordActivity()` - 37 edges
+5. `ApiError` - 37 edges
+6. `getConversation()` - 35 edges
+7. `assertConversationMember()` - 35 edges
+8. `assertConversationPermission()` - 32 edges
+9. `useThreadsController()` - 31 edges
+10. `useBoardDetailCardHandlers()` - 29 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `listActivityLogs()` --calls--> `apiRequest()`  [INFERRED]
-  client/src/lib/activity-api.ts → client/src/lib/api-client.ts
-- `register()` --calls--> `apiRequest()`  [INFERRED]
-  client/src/lib/auth-api.ts → client/src/lib/api-client.ts
-- `login()` --calls--> `apiRequest()`  [INFERRED]
-  client/src/lib/auth-api.ts → client/src/lib/api-client.ts
-- `logout()` --calls--> `apiRequest()`  [INFERRED]
+- `getAccountUser()` --calls--> `apiRequest()`  [INFERRED]
   client/src/lib/auth-api.ts → client/src/lib/api-client.ts
 - `getCurrentUser()` --calls--> `apiRequest()`  [INFERRED]
   client/src/lib/auth-api.ts → client/src/lib/api-client.ts
+- `updateInviteRoles()` --calls--> `apiRequest()`  [INFERRED]
+  client/src/lib/invites-api.ts → client/src/lib/api-client.ts
+- `getUnreadMentions()` --calls--> `apiRequest()`  [INFERRED]
+  client/src/lib/mentions-api.ts → client/src/lib/api-client.ts
+- `BoardDetailPage()` --calls--> `getBoardSurfaceClass()`  [INFERRED]
+  client/src/pages/boards/board-detail-page.tsx → client/src/lib/board-backgrounds.ts
 
-## Communities (559 total, 45 thin omitted)
+## Import Cycles
+- None detected.
+
+## Communities (3294 total, 3095 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.05
-Nodes (67): createAnnouncement(), deleteAnnouncements(), getAnnouncementCapabilities(), listAnnouncementAudienceOptions(), markAnnouncementsSeen(), apiRequest(), addBoardMembers(), archiveBoard() (+59 more)
+Cohesion: 0.06
+Nodes (67): listActivityLogs(), apiRequest(), addBoardMembers(), archiveBoard(), archiveCard(), archiveList(), assignLabelToCard(), assignMemberToCard() (+59 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.06
-Nodes (38): BoardBackground, boardBackgrounds, body, archiveRetentionMinutesSchema, assignAssigneeSchema, AssignLabelInput, assignLabelSchema, boardBackgroundSchema (+30 more)
+Cohesion: 0.07
+Nodes (31): BoardBackground, boardBackgrounds, archiveRetentionMinutesSchema, AssignAssigneeInput, assignAssigneeSchema, boardBackgroundSchema, cardCoverColorSchema, cardPrioritySchema (+23 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.14
-Nodes (29): body, addBoardMembers(), archiveBoard(), ArchivedCardRow, assertCanManageBoardMembers(), createBoard(), deleteBoard(), getBoardById() (+21 more)
+Cohesion: 0.22
+Nodes (19): createAttachments(), deleteAttachment(), getAttachmentDownloadInfo(), createBoard(), updateBoard(), deleteAttachmentsForCard(), cleanupArchivedBoards(), cleanupArchivedCards() (+11 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.14
-Nodes (25): PermissionToggleRow(), SettingsModal(), FontOption, fontOptions, PermissionGroup, permissionGroups, PermissionItem, RoleDraft (+17 more)
+Cohesion: 0.08
+Nodes (42): getCalendarFeeds(), regenerateCalendarFeed(), getNotificationPreferences(), updateNotificationPreferences(), createRole(), deleteRole(), listRoleAssignments(), listRoles() (+34 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.32
-Nodes (15): body, AssignAssigneeInput, assignMemberToCard(), removeMemberFromCard(), getCardById(), assignLabelToCard(), createLabel(), deleteLabel() (+7 more)
+Cohesion: 0.22
+Nodes (20): cardLabels, LabelColor, AssignLabelInput, assignLabelSchema, CreateLabelInput, createLabelSchema, UpdateLabelInput, updateLabelSchema (+12 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.05
-Nodes (41): 10. Progress Tracker, 11. Notes, 12. Key Decisions Log, 13. Updates, 1. My Role, 2. Project Overview, 3. Feature List (Grouped by Inspiration Source), 4. User's Specific UX Rules (+33 more)
+Nodes (39): 10. Progress Tracker, 11. Notes, 12. Key Decisions Log, 13. Updates, 1. My Role, 2. Project Overview, 3. Feature List (Grouped by Inspiration Source), 4. User's Specific UX Rules (+31 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.05
@@ -612,98 +3297,82 @@ Nodes (40): dependencies, class-variance-authority, clsx, lucide-react, react, r
 
 ### Community 7 - "Community 7"
 Cohesion: 0.05
-Nodes (40): archiveBoardMock, archiveCardMock, archiveListMock, baseAuthor, baseBoard, baseBoardSummary, baseCard, baseLabel (+32 more)
+Nodes (37): archiveBoardMock, archiveCardMock, archiveListMock, baseAuthor, baseBoard, baseBoardSummary, baseCard, baseLabel (+29 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.17
-Nodes (22): body, CreateListInput, createListSchema, ReorderListsInput, reorderListsSchema, UpdateListInput, updateListSchema, getCardsForList() (+14 more)
+Cohesion: 0.15
+Nodes (33): DbTransaction, cardAssignees, recordActivity(), CreateCardInput, MoveCardInput, UpdateCardInput, getArchivedLists(), archiveCard() (+25 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.05
 Nodes (38): addChannelMembers, createChannel, createThreadMessage, createThreadMessageAttachments, createThreadReply, createThreadReplyAttachments, createThreadReplyVoiceNote, createThreadVoiceNote (+30 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.07
-Nodes (37): createAttachments(), downloadAttachment(), getSessionToken(), addChannelMembers(), createChannel(), createThreadMessage(), createThreadMessageAttachments(), createThreadReply() (+29 more)
+Cohesion: 0.06
+Nodes (62): createAttachments(), downloadAttachment(), getSessionToken(), addChannelMembers(), createChannel(), createThreadMessage(), createThreadMessageAttachments(), createThreadReply() (+54 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.05
 Nodes (37): Common Workflows and End-to-End Tutorials, Step 1: Go to Settings > Advanced, Step 1: Make sure the work object is clear, Step 1: Read the request fully, Step 1: Review dashboard signals first, Step 1: Sign in or create your account, Step 1: Start in the first appropriate list, Step 2: Add enough detail early (+29 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.32
-Nodes (7): ActivityActor, ActivityLogEntry, createActivityLog(), listActivityLogs(), mapActivityRow(), parseMetadata(), activityLogs
+Cohesion: 0.10
+Nodes (27): env, auditLogs, errorHandler(), buildRateLimitResponse(), createJsonRateLimiter(), forgotPasswordRateLimiter, healthRateLimiter, inviteLookupRateLimiter (+19 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.07
-Nodes (30): cn(), MentionsField(), MentionsFieldProps, Card, CardContent(), CardDescription(), CardHeader(), CardTitle() (+22 more)
+Cohesion: 0.06
+Nodes (37): MentionsField(), MentionsFieldProps, Card, CardContent(), CardDescription(), CardHeader(), CardTitle(), FormField() (+29 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.11
-Nodes (29): getArchivedLists(), attachChecklistsToCards(), CardAssigneeRow, CardLabelRow, ChecklistRow, getAssigneesForCards(), getAttachmentsForCards(), getCardByIdIncludingArchived() (+21 more)
+Cohesion: 0.09
+Nodes (44): db, instrumentPoolMethod(), normalizeSqlForLogs(), attachments, boardMemberPermissions, boardMembers, boards, CardCoverColor (+36 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.07
-Nodes (51): authRouter, body, context, ForgotPasswordBody, forgotPasswordBodySchema, LoginBody, loginBodySchema, nullableDate (+43 more)
+Cohesion: 0.10
+Nodes (37): loginRateLimiter, registerRateLimiter, resetPasswordRateLimiter, ForgotPasswordBody, forgotPasswordBodySchema, LoginBody, loginBodySchema, nullableDate (+29 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.17
-Nodes (26): threadConversations, threadMemberPermissions, conversationHasAdminMember(), ensureUserExists(), getConversationPermissionOverride(), getUserSummary(), userHasConversationPermission(), userIsGuest() (+18 more)
+Cohesion: 0.12
+Nodes (38): threadConversations, threadMemberPermissions, threadMembers, workspaceMemberships, storeCommentMentions(), buildManagerTargets(), filterItemsForUserBoardAccess(), AddChannelMembersInput (+30 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.18
-Nodes (25): recordActivity(), body, createChecklistItemSchema, createChecklistSchema, updateChecklistItemSchema, updateChecklistSchema, createChecklist(), createChecklistItem() (+17 more)
+Cohesion: 0.17
+Nodes (22): checklistItems, createChecklistItemSchema, createChecklistSchema, updateChecklistItemSchema, updateChecklistSchema, createChecklist(), createChecklistItem(), getChecklistById() (+14 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.07
 Nodes (31): AnnouncementAudience, AnnouncementAudienceOptions, AnnouncementDetail, ArchivedListEntry, BoardAttachment, BoardBackground, BoardCard, BoardComment (+23 more)
 
-### Community 19 - "Community 19"
-Cohesion: 0.08
-Nodes (25): columns, autoincrement, name, notNull, primaryKey, type, autoincrement, name (+17 more)
-
-### Community 20 - "Community 20"
-Cohesion: 0.08
-Nodes (24): autoincrement, name, notNull, primaryKey, type, columnsFrom, columnsTo, name (+16 more)
-
 ### Community 21 - "Community 21"
-Cohesion: 0.11
-Nodes (27): body, bugReportsRouter, context, query, CreateBugReportInput, createBugReportSchema, ListBugReportsQuery, listBugReportsQuerySchema (+19 more)
+Cohesion: 0.15
+Nodes (23): bugReports, BugReportStatus, bugReportStatuses, CreateBugReportInput, createBugReportSchema, ListBugReportsQuery, listBugReportsQuerySchema, UpdateBugReportStatusInput (+15 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.07
-Nodes (55): rolePermissions, users, seed(), body, context, invitesRouter, CreateInviteInput, createInviteSchema (+47 more)
+Cohesion: 0.10
+Nodes (39): RolePermission, rolePermissionsTable, roles, RoleScopeType, userRoleAssignments, seed(), PublicUser, CreateRoleInput (+31 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.08
-Nodes (15): BoardDraft, buildCardDraft(), CardDraft, coverColorClasses, coverColors, coverColorSurfaceClasses, formatDateTimeLocalValue(), formatDueDateForInput() (+7 more)
-
-### Community 24 - "Community 24"
-Cohesion: 0.07
-Nodes (28): dependencies, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, @fontsource/fraunces, @fontsource/ibm-plex-sans, @fontsource/merriweather, @fontsource/space-grotesk (+20 more)
+Cohesion: 0.11
+Nodes (24): BoardDraft, buildCardDraft(), CardDraft, clampRetentionMinutes(), coverColorClasses, coverColors, coverColorSurfaceClasses, formatDateTimeLocalValue() (+16 more)
 
 ### Community 25 - "Community 25"
-Cohesion: 0.05
-Nodes (60): assertCanUseFeed(), buildCalendarFeed(), CalendarFeedRecord, CalendarFeedsResponse, CalendarFeedSummary, cardUrl(), createFeedToken(), escapeIcs() (+52 more)
+Cohesion: 0.12
+Nodes (30): emailNotificationDeliveries, EmailNotificationKind, EmailNotificationWindow, userNotificationPreferences, addLocalDays(), buildAssigneeTargets(), buildDigestMessage(), cardUrl() (+22 more)
 
 ### Community 26 - "Community 26"
-Cohesion: 0.11
-Nodes (16): BoardEventPayload, boardPresence, boardRoom(), emitActivityEvent(), emitBoardPresence(), emitWorkspacePresence(), getPresenceUsers(), PresenceStatus (+8 more)
+Cohesion: 0.14
+Nodes (23): addUserSocket(), BoardEventPayload, boardPresence, boardRoom(), decrementBoardPresence(), emitActivityEvent(), emitBoardPresence(), emitWorkspacePresence() (+15 more)
 
 ### Community 27 - "Community 27"
-Cohesion: 0.13
-Nodes (18): boardsRouter, boardsAttachmentsRouter, files, upload, boardsBaseRouter, boardsCardsRouter, boardsChecklistsRouter, boardsCommentsRouter (+10 more)
-
-### Community 28 - "Community 28"
-Cohesion: 0.11
-Nodes (20): autoincrement, name, notNull, primaryKey, type, columns, columns, announcement_id (+12 more)
+Cohesion: 0.12
+Nodes (22): boardsRouter, boardsAttachmentsRouter, upload, boardsBaseRouter, boardsCardsRouter, boardsChecklistsRouter, boardsCommentsRouter, boardsLabelsRouter (+14 more)
 
 ### Community 29 - "Community 29"
-Cohesion: 0.07
+Cohesion: 0.08
 Nodes (26): Ask for a specific outcome, Channels or shared conversations, Common mistakes, Direct messages, DMs, Channels, Replies, Mentions, and Media, Forwarding and sharing messages, Good communication habits in FlowState, If you cannot send a message (+18 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.07
+Cohesion: 0.08
 Nodes (26): A simple good-card checklist, Archived lists and archived cards, Archiving a card, Assigning people, Cards, Checklists, Labels, Files, and Retention, Checklists, Comments, Common mistakes people make (+18 more)
 
 ### Community 31 - "Community 31"
@@ -711,79 +3380,47 @@ Cohesion: 0.08
 Nodes (25): A simple recovery checklist, First question: what kind of problem is this, Frequently asked questions, I can see a board but cannot change it, I cannot find a board or channel someone mentioned, I cannot register, I cannot sign in, I got a permission dialog (+17 more)
 
 ### Community 32 - "Community 32"
-Cohesion: 0.07
-Nodes (24): BoardListsSection(), LIST_TINT_OPTIONS, AppShell(), hasUserPermission(), HomePage(), LoginPage(), RegisterPage(), HomeEntry() (+16 more)
+Cohesion: 0.06
+Nodes (33): getAccountUser(), getCurrentUser(), login(), LoginInput, register(), RegisterInput, updateProfile(), UpdateProfileInput (+25 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.09
-Nodes (18): invalidateApiCacheByTag(), activityQueue, BoardEventPayload, BoardEventsListener, boardListeners, boardQueue, enqueueActivity(), enqueueThreadEvent() (+10 more)
-
-### Community 34 - "Community 34"
 Cohesion: 0.10
-Nodes (20): columns, autoincrement, name, notNull, primaryKey, type, card_id, mime_type (+12 more)
+Nodes (21): invalidateApiCacheByTag(), activityQueue, BoardEventPayload, BoardEventsListener, boardListeners, boardQueue, enqueueActivity(), enqueueBoardEvent() (+13 more)
 
 ### Community 35 - "Community 35"
-Cohesion: 0.15
+Cohesion: 0.17
 Nodes (19): acquireMigrationLock(), analyzeMigrationRisk(), detectRiskyMigration(), extractRiskAcknowledgement(), getAppliedMigrationCount(), getPendingMigrationInventory(), hasBroadTableWideUpdate(), listSqlMigrationFiles() (+11 more)
 
-### Community 36 - "Community 36"
-Cohesion: 0.10
-Nodes (20): columns, mime_type, original_name, size, autoincrement, name, notNull, primaryKey (+12 more)
-
 ### Community 37 - "Community 37"
-Cohesion: 0.04
-Nodes (126): threadAttachments, threadMessageDeletions, threadMessageReactions, threadReplyAttachments, threadReplyDeletions, threadReplyReactions, threadReplyVoiceNotes, threadVoiceNotes (+118 more)
-
-### Community 38 - "Community 38"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_announcement_id_announcements_id_fk
+Cohesion: 0.15
+Nodes (37): assertConversationMember(), assertConversationPermission(), getConversation(), addChannelMembers(), leaveChannelConversation(), listChannelMembers(), removeChannelMember(), updateChannelMemberOverrides() (+29 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (21): Admin controls, Basic idea: role first, override second, Bug report permissions, Common permission scenarios, How to change permissions safely, If you need the exact permission-by-permission list, Overrides, Permissions (+13 more)
 
 ### Community 40 - "Community 40"
-Cohesion: 0.09
-Nodes (4): PriorityStyle, priorityStyles, SortLabels, TaskSortState
+Cohesion: 0.12
+Nodes (17): BoardDetailDialogs(), getCommentSnippet(), AnnouncementsCard(), BoardMentionsCard(), buildThreadLink(), formatAnnouncementTime(), formatJoinerDate(), formatMentionLocation() (+9 more)
 
 ### Community 41 - "Community 41"
 Cohesion: 0.06
-Nodes (44): PublicUser, db, DbTransaction, DEPRECATED_THREAD_PERMISSIONS, attachmentsRelations, boardMemberPermissions, boardMemberPermissionsRelations, boardMembers (+36 more)
+Nodes (37): activityLogs, attachmentsRelations, boardMemberPermissionsRelations, boardMembersRelations, boardsRelations, calendarFeedTypes, cardCoverColors, cardsRelations (+29 more)
 
 ### Community 42 - "Community 42"
 Cohesion: 0.16
-Nodes (21): CommentReactionInput, CreateCommentInput, createBoardComment(), createCardComment(), attachCommentRelations(), createCommentRecord(), getCommentById(), getCommentMentionsForComments() (+13 more)
-
-### Community 43 - "Community 43"
-Cohesion: 0.14
-Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
+Nodes (22): commentMentions, commentReactions, comments, CommentReactionInput, CreateCommentInput, createBoardComment(), createCardComment(), createListComment() (+14 more)
 
 ### Community 44 - "Community 44"
-Cohesion: 0.11
-Nodes (15): ApiErrorPayload, buildCacheKey(), CacheEntry, classifyAndPresentError(), getCacheEntry(), inFlightRequests, invalidateApiCacheByKey(), normalizeTags() (+7 more)
-
-### Community 45 - "Community 45"
-Cohesion: 0.10
-Nodes (13): BoardDetailAutosaveParams, useBoardDetailAutosave(), BoardDetailBoardHandlersParams, useBoardDetailBoardHandlers(), BoardDetailPage(), BoardDetailCardHandlersParams, useBoardDetailCardHandlers(), useBoardDragAndDrop() (+5 more)
-
-### Community 46 - "Community 46"
-Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, action, target_type (+11 more)
+Cohesion: 0.12
+Nodes (18): ApiErrorPayload, CacheEntry, classifyAndPresentError(), clearApiCache(), getBestErrorMessage(), getCacheEntry(), inFlightRequests, invalidateApiCacheByKey() (+10 more)
 
 ### Community 47 - "Community 47"
 Cohesion: 0.10
-Nodes (13): AdvancedSettingsPage, BoardDetailPage, BoardsPage, FocusPage, GeneralSettingsPage, HelpDocsPage, HomePage, LoginPage (+5 more)
-
-### Community 48 - "Community 48"
-Cohesion: 0.11
-Nodes (20): autoincrement, name, notNull, primaryKey, type, columns, columns, announcement_id (+12 more)
-
-### Community 49 - "Community 49"
-Cohesion: 0.09
-Nodes (22): autoincrement, default, name, notNull, primaryKey, type, autoincrement, name (+14 more)
+Nodes (15): AdvancedSettingsPage, BoardDetailPage, BoardsPage, FocusPage, GeneralSettingsPage, HelpDocsPage, HomePage, LoginPage (+7 more)
 
 ### Community 50 - "Community 50"
-Cohesion: 0.10
+Cohesion: 0.11
 Nodes (19): Boards, `client/`, Core product surfaces, `deploy/`, `Docs/`, Feature-to-folder orientation, How the app is split conceptually, Legal/public auth (+11 more)
 
 ### Community 51 - "Community 51"
@@ -795,160 +3432,44 @@ Cohesion: 0.11
 Nodes (18): 1. Board header, 2. Lists, 3. Cards, 4. Supporting dialogs and panels, Archiving a board versus deleting work, Boards: The Big Picture, Common real-life ways to use boards, Creating a board (+10 more)
 
 ### Community 53 - "Community 53"
-Cohesion: 0.23
-Nodes (10): requestLogger(), redacted, JsonObject, JsonValue, logHttpRequest(), LogLevel, redactForLogs(), serializeError() (+2 more)
+Cohesion: 0.27
+Nodes (9): requestLogger(), JsonObject, JsonValue, logHttpRequest(), LogLevel, redactForLogs(), serializeError(), truncateString() (+1 more)
 
 ### Community 54 - "Community 54"
 Cohesion: 0.11
 Nodes (18): Activity and recency, Announcement sending and audience controls, Announcements, Assigned work, created work, and summaries, Common mistakes on the dashboard, Confusing summaries with the work itself, Good beginner habit, Home Dashboard and Announcements (+10 more)
-
-### Community 55 - "Community 55"
-Cohesion: 0.11
-Nodes (19): columns, mime_type, original_name, storage_path, autoincrement, name, notNull, primaryKey (+11 more)
-
-### Community 56 - "Community 56"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, actor_id, id (+11 more)
-
-### Community 57 - "Community 57"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, actor_id
-
-### Community 58 - "Community 58"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, body, created_at (+11 more)
-
-### Community 59 - "Community 59"
-Cohesion: 0.11
-Nodes (19): columns, mentioned_user_id, metadata, thread_reply_id, autoincrement, name, notNull, primaryKey (+11 more)
-
-### Community 60 - "Community 60"
-Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, announcement_id, seen_at (+11 more)
-
-### Community 61 - "Community 61"
-Cohesion: 0.14
-Nodes (14): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+6 more)
-
-### Community 62 - "Community 62"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, audience, id (+11 more)
-
-### Community 63 - "Community 63"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, card_id, original_name (+11 more)
-
-### Community 64 - "Community 64"
-Cohesion: 0.33
-Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 65 - "Community 65"
-Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, action, target_type (+11 more)
-
-### Community 66 - "Community 66"
-Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, announcement_id, seen_at (+11 more)
-
-### Community 67 - "Community 67"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, audience, id (+11 more)
-
-### Community 68 - "Community 68"
-Cohesion: 0.11
-Nodes (19): columns, list_id, thread_reply_id, type, autoincrement, name, notNull, primaryKey (+11 more)
-
-### Community 69 - "Community 69"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, card_id, original_name (+11 more)
-
-### Community 70 - "Community 70"
-Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, action, target_type (+11 more)
-
-### Community 71 - "Community 71"
-Cohesion: 0.11
-Nodes (19): columns, created_at, seen_at, user_id, autoincrement, name, notNull, primaryKey (+11 more)
-
-### Community 72 - "Community 72"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, audience, id (+11 more)
-
-### Community 73 - "Community 73"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, card_id, original_name (+11 more)
-
-### Community 74 - "Community 74"
-Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, action, target_type (+11 more)
-
-### Community 75 - "Community 75"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, board_id
 
 ### Community 76 - "Community 76"
 Cohesion: 0.11
 Nodes (19): devDependencies, drizzle-kit, eslint, supertest, tsx, @types/bcryptjs, @types/cors, @types/express (+11 more)
 
 ### Community 77 - "Community 77"
-Cohesion: 0.11
-Nodes (18): buildBackupManifest(), archivePath, archiveSha256, backupEncryptionEnabled, backupEncryptionKeyId, backupId, bunLockHash, currentSha (+10 more)
+Cohesion: 0.06
+Nodes (44): BACKUP_MAGIC, BackupEncryptionConfig, BackupEncryptionResult, computeFileSha256(), encryptBackupArchive(), getBackupArchiveExtension(), isBase64Key(), isHexKey() (+36 more)
 
 ### Community 78 - "Community 78"
 Cohesion: 0.11
 Nodes (17): compilerOptions, allowImportingTsExtensions, isolatedModules, jsx, lib, module, moduleResolution, noEmit (+9 more)
 
 ### Community 79 - "Community 79"
-Cohesion: 0.11
+Cohesion: 0.12
 Nodes (17): 10. First-account rule in a fresh environment, 11. Email address expectations, 12. Username, display name, and full name, 13. Privacy and what your browser stores, 14. Safety rules for shared workspaces, 15. If something looks suspicious, 16. Quick checklist, 1. What the login and register pages are for (+9 more)
 
-### Community 80 - "Community 80"
-Cohesion: 0.11
-Nodes (18): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+10 more)
-
-### Community 81 - "Community 81"
-Cohesion: 0.14
-Nodes (16): BackupKind, buildArchiveFileName(), buildBackupId(), buildManifestFileName(), selectEntriesToPrune(), shouldRestoreDatabase(), archivePath, backupId (+8 more)
-
 ### Community 82 - "Community 82"
-Cohesion: 0.12
-Nodes (16): 10. Documentation contract, 1. Common commands, 2. Local development mental model, 3. Test caveat, 4. Good debugging order, 5. Common issue entrypoints, 6. Build and runtime separation, 7. Logging and observability shortcuts (+8 more)
+Cohesion: 0.17
+Nodes (11): 10. Documentation contract, 1. Common commands, 2. Local development mental model, 3. Test caveat, 4. Good debugging order, 5. Common issue entrypoints, 6. Build and runtime separation, 7. Logging and observability shortcuts (+3 more)
 
 ### Community 83 - "Community 83"
-Cohesion: 0.12
+Cohesion: 0.11
 Nodes (16): 10. Dialogs, banners, and notices, 11. Settings structure, 12. How Threads uses state, 13. Maintenance behavior, 14. Keyboard and focus basics, 15. A safe way to explore the UI, 1. The big picture, 2. Main navigation items (+8 more)
 
 ### Community 84 - "Community 84"
-Cohesion: 0.14
-Nodes (8): DocEntry, DocTreeNode, MarkdownBlock, rawDocs, RawDocsModule, renderBlock(), renderHeading(), renderInline()
-
-### Community 85 - "Community 85"
-Cohesion: 0.12
-Nodes (17): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, name, uniqueConstraints, columnsFrom (+9 more)
-
-### Community 86 - "Community 86"
-Cohesion: 0.12
-Nodes (17): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, name, uniqueConstraints, columnsFrom (+9 more)
-
-### Community 87 - "Community 87"
-Cohesion: 0.12
-Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, checkConstraint (+9 more)
-
-### Community 88 - "Community 88"
-Cohesion: 0.12
-Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, checkConstraint (+9 more)
-
-### Community 89 - "Community 89"
-Cohesion: 0.12
-Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, checkConstraint (+9 more)
-
-### Community 90 - "Community 90"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, audit_logs_id (+1 more)
+Cohesion: 0.19
+Nodes (16): buildDocs(), buildDocTree(), DocEntry, DocTreeNode, friendlySectionName(), HelpDocsPage(), insertIntoTree(), MarkdownBlock (+8 more)
 
 ### Community 91 - "Community 91"
 Cohesion: 0.12
-Nodes (9): ActivitySectionKey, BoardActivityPanel(), BoardActivityPanelProps, EMPTY_ACTIVITY_EVENTS, SECTION_TITLES, ActivityStatus, ActivityStoreState, seenIds (+1 more)
+Nodes (19): formatActivityLabel(), formatActivityTime(), getActivitySnippet(), getActorName(), getMetadataString(), ActivitySectionKey, BoardActivityPanel(), BoardActivityPanelProps (+11 more)
 
 ### Community 92 - "Community 92"
 Cohesion: 0.12
@@ -959,55 +3480,31 @@ Cohesion: 0.12
 Nodes (15): 10. Data handling notes, 1. API families, 2. Auth API, 3. Boards API, 4. Threads API, 5. Roles and permission API, 6. Dashboard, activity, mentions, and announcements, 7. Bug reports API (+7 more)
 
 ### Community 94 - "Community 94"
-Cohesion: 0.12
-Nodes (15): 11. Install the systemd service, 13. Point DNS and enable SSL, 14. First production smoke test, 15. Routine redeploy flow, 6. Prepare directories, 7. Clone the repo on the server, code:bash (install -d -m 0755 -o flowstate -g flowstate /opt/flowstate), code:bash (sudo -u flowstate git clone <YOUR_REPO_URL> /opt/flowstate/a) (+7 more)
-
-### Community 95 - "Community 95"
-Cohesion: 0.12
-Nodes (16): autoincrement, default, name, notNull, primaryKey, type, name, columns (+8 more)
-
-### Community 96 - "Community 96"
-Cohesion: 0.33
-Nodes (6): name, autoincrement, name, notNull, primaryKey, type
-
-### Community 97 - "Community 97"
-Cohesion: 0.05
-Nodes (43): autoincrement, default, name, notNull, primaryKey, type, name, autoincrement (+35 more)
+Cohesion: 0.08
+Nodes (26): 10. Build the app and run migrations, 11. Install the systemd service, 12. Install a temporary HTTP-only Nginx site config, 13. Point DNS and enable SSL, 14. First production smoke test, 15. Routine redeploy flow, 1. Create an SSH key locally, 2. First login as root and create the non-root user (+18 more)
 
 ### Community 98 - "Community 98"
-Cohesion: 0.17
-Nodes (13): THREAD_REACTION_CHOICES, resolveChunkEnd(), splitLongText(), ThreadExpandableText(), ThreadExpandableTextProps, DeleteConfirmState, ThreadMessageList(), ThreadMessageListProps (+5 more)
+Cohesion: 0.12
+Nodes (32): ChannelPermissionKey, isLengthError(), ThreadComposer(), ThreadComposerProps, AUDIO_EXTENSIONS, FORCE_FILE_EXTENSIONS, IMAGE_EXTENSIONS, THREAD_REACTION_CHOICES (+24 more)
 
 ### Community 99 - "Community 99"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (14): Beginner-friendly workflow, Choosing the right task, Combining focus mode with the rest of FlowState, Common mistakes, Focus Mode and Timers, Ignoring new urgent reality, Never closing the loop, Pomodoro-style usage (+6 more)
 
-### Community 100 - "Community 100"
-Cohesion: 0.13
-Nodes (14): autoincrement, name, notNull, primaryKey, type, columns, name, card_id (+6 more)
-
-### Community 101 - "Community 101"
-Cohesion: 0.13
-Nodes (10): CompressedReplyPage, CompressionStreamImpl, DecompressionStreamImpl, ForwardTarget, RefreshConversationsResult, textDecoder, textEncoder, ThreadActionsParams (+2 more)
-
-### Community 102 - "Community 102"
-Cohesion: 0.15
-Nodes (11): useThreadActions(), CompressedMessagePage, CompressionStreamImpl, DecompressionStreamImpl, useThreadMedia(), RefreshConversationsResult, textDecoder, textEncoder (+3 more)
-
 ### Community 103 - "Community 103"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (14): Browser runtime, Bun server runtime, Client build path, Environment boundaries, Important commands mental model, Local development versus production, Mental checklist when debugging, MySQL runtime (+6 more)
 
 ### Community 104 - "Community 104"
-Cohesion: 0.18
-Nodes (12): BACKUP_MAGIC, BackupEncryptionConfig, BackupEncryptionResult, encryptBackupArchive(), getBackupArchiveExtension(), isBase64Key(), isHexKey(), parseBackupEncryptionEnv() (+4 more)
+Cohesion: 0.11
+Nodes (27): threadAttachments, threadMessageReactions, threadMessages, threadReplies, threadReplyAttachments, threadReplyReactions, threadReplyVoiceNotes, threadVoiceNotes (+19 more)
 
 ### Community 105 - "Community 105"
 Cohesion: 0.20
-Nodes (9): ops-common.sh script, ensure_server_dist_entries(), flowstate_log(), load_mysql_env(), local_keep_count(), remote_keep_count(), require_command(), source_env() (+1 more)
+Nodes (9): ensure_server_dist_entries(), flowstate_log(), load_mysql_env(), local_keep_count(), remote_keep_count(), require_command(), ops-common.sh script, source_env() (+1 more)
 
 ### Community 106 - "Community 106"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (13): API layer, App shell, Boards surface, Developer advice, Error handling model, Frontend Architecture, Main entry points, Public pages (+5 more)
 
 ### Community 107 - "Community 107"
@@ -1015,163 +3512,47 @@ Cohesion: 0.14
 Nodes (13): 1. Top-level folders, 2. Frontend map, 3. Backend map, 4. Deploy and ops map, 5. Where to look first by problem type, API and shared frontend helpers, App setup and shared utilities, Codebase Guide (+5 more)
 
 ### Community 108 - "Community 108"
-Cohesion: 0.14
-Nodes (13): 1) Resume Snapshot, 2) Current Phase Status, 3) Canonical References, 4) Production Update Workflow, 5) Important Production Notes, 6) Working Rules, 7) Suggested Next Step, 8) Command Pack (+5 more)
-
-### Community 109 - "Community 109"
-Cohesion: 0.14
-Nodes (13): files, code, document, image, paper, video, graphifyignore_patterns, needs_graph (+5 more)
-
-### Community 110 - "Community 110"
-Cohesion: 0.14
-Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
-
-### Community 111 - "Community 111"
-Cohesion: 0.14
-Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
-
-### Community 112 - "Community 112"
-Cohesion: 0.14
-Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
-
-### Community 113 - "Community 113"
-Cohesion: 0.14
-Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
+Cohesion: 0.22
+Nodes (9): 1) Resume Snapshot, 2) Current Phase Status, 3) Canonical References, 4) Production Update Workflow, 5) Important Production Notes, 6) Working Rules, 7) Suggested Next Step, 8) Command Pack (+1 more)
 
 ### Community 114 - "Community 114"
-Cohesion: 0.13
-Nodes (15): AlarmState, FocusTimerAlarmManager(), getAlarmDescription(), completeFocusTimerSession(), createFocusId(), FocusCompletion, FocusSessionEntry, getAudioContext() (+7 more)
-
-### Community 115 - "Community 115"
-Cohesion: 0.14
-Nodes (14): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+6 more)
-
-### Community 116 - "Community 116"
-Cohesion: 0.14
-Nodes (14): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+6 more)
-
-### Community 117 - "Community 117"
-Cohesion: 0.12
-Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, checkConstraint (+9 more)
-
-### Community 118 - "Community 118"
-Cohesion: 0.14
-Nodes (14): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+6 more)
-
-### Community 119 - "Community 119"
-Cohesion: 0.18
-Nodes (8): AuthContext, cardId, firstCardId, [guestRoleRows], movedBackCard, [rows], secondCardId, todo
+Cohesion: 0.11
+Nodes (25): AlarmState, FocusTimerAlarmManager(), getAlarmDescription(), completeFocusTimerSession(), createFocusId(), FocusCompletion, FocusSessionEntry, getAudioContext() (+17 more)
 
 ### Community 120 - "Community 120"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (13): Age and date of birth, Bio, Display name, Full name, Good profile habits, Hover cards and identity, Profile and Personal Settings, Saving and unsaved changes (+5 more)
 
 ### Community 121 - "Community 121"
-Cohesion: 0.19
-Nodes (10): COMMENT_REACTION_CHOICES, CommentNote(), dismissedMentionCache, isCommentMentionUnread(), readDismissedMentions(), renderMentionBody(), SortableListContainer(), writeDismissedMention() (+2 more)
+Cohesion: 0.24
+Nodes (9): markCommentMentionsSeen(), COMMENT_REACTION_CHOICES, CommentNote(), dismissedMentionCache, isCommentMentionUnread(), readDismissedMentions(), renderMentionBody(), writeDismissedMention() (+1 more)
 
 ### Community 122 - "Community 122"
-Cohesion: 0.15
-Nodes (12): Backup Commands, Cloudflare R2 Setup Checklist, code:bash (cd /opt/flowstate/app), code:env (SMTP_HOST=smtp.example.com), code:env (BACKUP_LOCAL_DIR=/var/lib/flowstate/backups), code:bash (cd /opt/flowstate/app), Current Limitations, Current Production Shape (+4 more)
-
-### Community 123 - "Community 123"
-Cohesion: 0.15
-Nodes (12): code:bash (bun install), code:bash (bun run dev), code:text (client/   Frontend (Vite + React)), Common Commands, Documentation, FlowState, Highlights, Local URLs (+4 more)
-
-### Community 124 - "Community 124"
-Cohesion: 0.15
-Nodes (13): autoincrement, name, notNull, primaryKey, type, columns, archived_at, description (+5 more)
-
-### Community 125 - "Community 125"
-Cohesion: 0.15
-Nodes (13): columns, autoincrement, name, notNull, primaryKey, type, autoincrement, name (+5 more)
-
-### Community 126 - "Community 126"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 127 - "Community 127"
-Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, announcement_id, created_at (+11 more)
-
-### Community 128 - "Community 128"
-Cohesion: 0.11
-Nodes (19): columns, mime_type, original_name, storage_path, autoincrement, name, notNull, primaryKey (+11 more)
-
-### Community 129 - "Community 129"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcements_created_by_users_id_fk
-
-### Community 130 - "Community 130"
-Cohesion: 0.15
-Nodes (13): autoincrement, name, notNull, primaryKey, type, columns, archived_at, description (+5 more)
-
-### Community 131 - "Community 131"
-Cohesion: 0.15
-Nodes (13): columns, autoincrement, name, notNull, primaryKey, type, autoincrement, name (+5 more)
-
-### Community 132 - "Community 132"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 133 - "Community 133"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 134 - "Community 134"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 135 - "Community 135"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 136 - "Community 136"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 137 - "Community 137"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 138 - "Community 138"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 139 - "Community 139"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 140 - "Community 140"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
+Cohesion: 0.07
+Nodes (29): App health, Audit log retention, Backup Commands, Backup timer checks, Cloudflare R2 Setup Checklist, Current Limitations, Current Production Shape, Deploy Paths (+21 more)
 
 ### Community 141 - "Community 141"
-Cohesion: 0.22
-Nodes (9): ChannelPermissionKey, ThreadsForwardModal(), ThreadsForwardModalProps, MediaPreview, ThreadMediaPreviews(), ThreadMediaPreviewsProps, ThreadsSidebar(), ThreadsSidebarProps (+1 more)
+Cohesion: 0.13
+Nodes (27): threadReplyDeletions, threadReplyMentions, users, DeleteThreadReplyInput, getThreadAttachmentsForReplies(), getThreadReplyDeletionSet(), getThreadReplyReactions(), getThreadVoiceNotesForReplies() (+19 more)
 
 ### Community 142 - "Community 142"
-Cohesion: 0.23
-Nodes (9): AUDIO_EXTENSIONS, FORCE_FILE_EXTENSIONS, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, RefreshConversationsResult, ThreadMediaParams, ThreadMediaState, getAttachmentKind() (+1 more)
-
-### Community 143 - "Community 143"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, boards_created_by_users_id_fk
+Cohesion: 0.07
+Nodes (28): dependencies, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, @fontsource/fraunces, @fontsource/ibm-plex-sans, @fontsource/merriweather, @fontsource/space-grotesk (+20 more)
 
 ### Community 144 - "Community 144"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (11): Board-scoped override examples, Boards and lists, Cards, Channel-specific override permissions, Comments and mentions, Complete Permission Reference, How permissions work in practice, Practical advice for admins (+3 more)
 
 ### Community 145 - "Community 145"
-Cohesion: 0.25
-Nodes (3): DueReminderItem, DueReminderToasts(), readDismissals()
+Cohesion: 0.39
+Nodes (8): canUseBrowserNotifications(), DueReminderItem, DueReminderToasts(), getAssigneeName(), getReminderPhase(), getSnoozeMs(), readDismissals(), writeDismissals()
 
 ### Community 146 - "Community 146"
 Cohesion: 0.17
 Nodes (11): 10. Tests that matter most, 1. Authentication model, 2. Base roles, 3. Permission model, 4. Effective access is not just one role, 5. Scoped overrides, 6. Channel-specific permission behavior, 7. Access helper centralization (+3 more)
 
 ### Community 147 - "Community 147"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (11): 1. Deployment model, 2. Official runbooks, 3. Environments, 4. Production scripts, 5. Safe deploy expectations, 6. Rollback expectations, 7. Environment and secret categories, 8. Production safety rules (+3 more)
 
 ### Community 148 - "Community 148"
@@ -1179,20 +3560,16 @@ Cohesion: 0.17
 Nodes (12): scripts, build, db:generate, db:migrate, db:migrate:prod, db:reset, db:seed:test, dev (+4 more)
 
 ### Community 149 - "Community 149"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (11): Before changing anything here, Personal controls that can still appear on the general page, Role management as separate workflows, Spacing, Theme, Thread counters, Typical workspace-level concerns, Typography (+3 more)
 
 ### Community 150 - "Community 150"
-Cohesion: 0.18
+Cohesion: 0.20
 Nodes (10): Authentication model, Authorization model, Bug report access model, Data, Auth, Permissions, and Overrides, Data model at a conceptual level, Legal signup consent, Migration and data safety implications, Overrides (+2 more)
 
-### Community 151 - "Community 151"
-Cohesion: 0.22
-Nodes (7): applyThemePreference(), handleSystemChange(), media, normalizeStoredTheme(), resolveTheme(), storedFont, storedTheme
-
 ### Community 152 - "Community 152"
-Cohesion: 0.18
-Nodes (10): baseSummary, createAnnouncement, createInvite, getAnnouncementCapabilities, getDashboardSummary, listActivityLogs, listAnnouncementAudienceOptions, listInvites (+2 more)
+Cohesion: 0.20
+Nodes (9): createAnnouncement, createInvite, getAnnouncementCapabilities, getDashboardSummary, listActivityLogs, listAnnouncementAudienceOptions, listInvites, markAnnouncementsSeen (+1 more)
 
 ### Community 153 - "Community 153"
 Cohesion: 0.18
@@ -1203,652 +3580,132 @@ Cohesion: 0.18
 Nodes (10): 1. High-level shape, 2. Runtime architecture, 3. Client architecture, 4. Server architecture, 5. Realtime model, 6. Persistence model, 7. Security model, 8. Deploy model (+2 more)
 
 ### Community 155 - "Community 155"
-Cohesion: 0.18
+Cohesion: 0.20
 Nodes (10): Architecture, Canonical documents, Documentation contract, Documentation map, FlowState Developer Documentation, Operations, Project orientation, Quality (+2 more)
 
 ### Community 156 - "Community 156"
-Cohesion: 0.18
-Nodes (10): Backups, Deploy, Backup, Restore, and Rollback Operations, Maintenance behavior, Migration guardrails in operations, Primary production command, Restore verification, Rollback, Safe deploy path (+2 more)
-
-### Community 157 - "Community 157"
-Cohesion: 0.14
-Nodes (12): attachmentId, boardId, channelIds, commentId, conversationId, dmUserIds, firstReplyId, [guestRoles] (+4 more)
+Cohesion: 0.13
+Nodes (12): Backups, Deploy, Backup, Restore, and Rollback Operations, Maintenance behavior, Migration guardrails in operations, Primary production command, Restore verification, Rollback, Safe deploy path (+4 more)
 
 ### Community 158 - "Community 158"
-Cohesion: 0.25
-Nodes (8): computeFileSha256(), BackupManifest, archivePathArg, encryptedArchivePathArg, manifest, manifestPath, isRemoteBackupPath(), verifyBackupArtifacts()
+Cohesion: 0.14
+Nodes (25): calendarFeedTokens, CalendarFeedType, assertCanUseFeed(), buildCalendarFeed(), CalendarFeedRecord, CalendarFeedsResponse, CalendarFeedSummary, cardUrl() (+17 more)
 
 ### Community 159 - "Community 159"
 Cohesion: 0.18
 Nodes (10): compilerOptions, allowSyntheticDefaultImports, esModuleInterop, module, moduleResolution, noEmit, target, types (+2 more)
 
 ### Community 160 - "Community 160"
-Cohesion: 0.18
+Cohesion: 0.20
 Nodes (10): Access and administration, Documentation map, Features, FlowState User Documentation, Fundamentals, Help, How to use this documentation, Important note (+2 more)
 
 ### Community 161 - "Community 161"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (9): Backend Architecture, Backend pitfalls to watch, Bug report module as a recent example, Logging strategy, Module structure, Operational code inside the server tree, Route-to-service flow, Server entry and configuration (+1 more)
 
-### Community 163 - "Community 163"
-Cohesion: 0.20
-Nodes (10): Cheat Sheet, code:conf (PermitRootLogin no), code:bash (docker compose -f docker-compose.prod.yml down -v), code:bash (sudo apt install -y certbot python3-certbot-nginx), code:bash (ssh flowstate-vps), code:bash (systemctl status flowstate --no-pager), Minimal command checklist, Points to remember (+2 more)
-
-### Community 164 - "Community 164"
-Cohesion: 0.20
-Nodes (10): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+2 more)
-
-### Community 165 - "Community 165"
-Cohesion: 0.11
-Nodes (18): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+10 more)
-
-### Community 166 - "Community 166"
-Cohesion: 0.20
-Nodes (10): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+2 more)
-
-### Community 167 - "Community 167"
-Cohesion: 0.20
-Nodes (10): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+2 more)
-
-### Community 168 - "Community 168"
-Cohesion: 0.20
-Nodes (10): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+2 more)
-
-### Community 169 - "Community 169"
-Cohesion: 0.20
-Nodes (10): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+2 more)
-
-### Community 170 - "Community 170"
-Cohesion: 0.20
-Nodes (10): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+2 more)
-
-### Community 171 - "Community 171"
-Cohesion: 0.20
-Nodes (10): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+2 more)
-
-### Community 172 - "Community 172"
-Cohesion: 0.20
-Nodes (9): attachment, AuthContext, card, cardAfter, cardId, createBoardWithDefaults(), registerAndGetAuth(), todoList (+1 more)
+### Community 162 - "Community 162"
+Cohesion: 0.16
+Nodes (17): createAnnouncement(), deleteAnnouncements(), getAnnouncementCapabilities(), listAnnouncementAudienceOptions(), markAnnouncementsSeen(), createInvite(), listInvites(), revokeInvite() (+9 more)
 
 ### Community 173 - "Community 173"
-Cohesion: 0.22
-Nodes (8): getCurrentUser(), login(), LoginInput, logout(), register(), RegisterInput, updateProfile(), UpdateProfileInput
+Cohesion: 0.11
+Nodes (16): buildCacheKey(), logout(), clearActiveWorkspaceId(), getActiveWorkspaceId(), setActiveWorkspaceId(), createWorkspace(), getWorkspaceCapabilities(), joinWorkspace() (+8 more)
 
 ### Community 174 - "Community 174"
-Cohesion: 0.22
-Nodes (3): getUnreadMentions(), listUnreadCommentMentions(), listUnreadThreadMentions()
-
-### Community 175 - "Community 175"
-Cohesion: 0.22
-Nodes (9): code:bash (cd /opt/flowstate/app), code:bash (cd /opt/flowstate/app), code:bash (bash deploy/vps/restore-verify.sh /var/lib/flowstate/backups), code:bash (cd /opt/flowstate/app), code:bash (bash deploy/vps/rollback.sh abc1234 /var/lib/flowstate/backu), Restore a local DB archive, Restore and Rollback, Restore verification drill (+1 more)
-
-### Community 176 - "Community 176"
-Cohesion: 0.22
-Nodes (9): code:bash (cd /opt/flowstate/app), code:bash (cd /opt/flowstate/app), code:bash (bash -x deploy/vps/deploy-safe.sh), code:bash (cd /opt/flowstate/app), code:bash (ps -ef | grep -E "backup-now|backup-manifest-cli|bun|node|my), If `update-safe.sh` hangs, If you need more verbose output, Manual finish path when code is already latest and migrations are clean (+1 more)
+Cohesion: 0.10
+Nodes (16): BoardBackgroundPreset, boardBackgroundPresets, getBoardBackgroundClass(), getBoardSurfaceClass(), legacyBackgroundClasses, legacySurfaceClasses, createBoard(), getBoards() (+8 more)
 
 ### Community 177 - "Community 177"
-Cohesion: 0.22
-Nodes (8): Broad testing split, Build verification, Client tests, Debugging by layer, High-value local commands, Regression mindset, Server tests, Testing, Debugging, and Developer Cheat Sheet
-
-### Community 178 - "Community 178"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, activity_logs_id (+1 more)
-
-### Community 179 - "Community 179"
-Cohesion: 0.22
-Nodes (9): indexes, columns, isUnique, name, columns, isUnique, name, idx_card_assignees_card_id (+1 more)
-
-### Community 180 - "Community 180"
-Cohesion: 0.13
-Nodes (14): autoincrement, name, notNull, primaryKey, type, columns, name, card_id (+6 more)
-
-### Community 181 - "Community 181"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, activity_logs_id (+1 more)
+Cohesion: 0.18
+Nodes (9): Quality, Broad testing split, Build verification, Client tests, Debugging by layer, High-value local commands, Regression mindset, Server tests (+1 more)
 
 ### Community 182 - "Community 182"
-Cohesion: 0.33
-Nodes (4): accountItems, AppShellProps, navItems, settingsItems
-
-### Community 183 - "Community 183"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, audit_logs_id (+1 more)
-
-### Community 184 - "Community 184"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, activity_logs_id (+1 more)
-
-### Community 185 - "Community 185"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, activity_logs_id (+1 more)
-
-### Community 186 - "Community 186"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, activity_logs_id (+1 more)
-
-### Community 187 - "Community 187"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, activity_logs_id (+1 more)
-
-### Community 188 - "Community 188"
-Cohesion: 0.22
-Nodes (8): AuthContext, card, cardId, checklistId, createBoardWithDefaults(), itemId, list, registerAndGetAuth()
+Cohesion: 0.07
+Nodes (23): accountItems, AppShell(), AppShellProps, getInitials(), navItems, settingsItems, listChannelConversations(), listDmConversations() (+15 more)
 
 ### Community 189 - "Community 189"
 Cohesion: 0.22
 Nodes (8): compilerOptions, declaration, noEmit, outDir, rootDir, sourceMap, extends, include
 
 ### Community 190 - "Community 190"
-Cohesion: 0.25
-Nodes (5): AuthState, AuthStatus, LoginInput, RegisterInput, UpdateProfileInput
-
-### Community 191 - "Community 191"
-Cohesion: 0.20
-Nodes (8): AlarmState, FOCUS_EXIT_MESSAGES, FocusPage(), FocusSessionEntry, formatDuration(), formatTime(), PRESET_OPTIONS, SessionMode
-
-### Community 192 - "Community 192"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, actor_id, list_id (+11 more)
-
-### Community 193 - "Community 193"
-Cohesion: 0.29
-Nodes (7): retention_mode, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 194 - "Community 194"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_actor_id_users_id_fk
-
-### Community 195 - "Community 195"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_board_id_boards_id_fk
-
-### Community 196 - "Community 196"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_card_id_cards_id_fk
-
-### Community 197 - "Community 197"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_reply_id_thread_replies_id_fk
-
-### Community 198 - "Community 198"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_list_id_lists_id_fk
-
-### Community 199 - "Community 199"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_mentioned_user_id_users_id_fk
-
-### Community 200 - "Community 200"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_conversation_id_thread_conversations_id_fk
-
-### Community 201 - "Community 201"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_message_id_thread_messages_id_fk
+Cohesion: 0.16
+Nodes (19): DEPRECATED_THREAD_PERMISSIONS, ensureDefaultRoles(), seedDefaultRolesForWorkspace(), inviteRoleAssignments, invites, rolePermissions, CreateWorkspaceInput, createWorkspaceSchema (+11 more)
 
 ### Community 202 - "Community 202"
-Cohesion: 0.05
-Nodes (40): activityRouter, announcementsRouter, BoardMember, calendarRouter, allowedOrigins, cspConnectSources, DEFAULT_BACKUP_LOCAL_DIR, DEFAULT_UPLOADS_DIR (+32 more)
+Cohesion: 0.07
+Nodes (36): clientDistDir, currentDir, hasClientBuild, origin(), allowedOrigins, cspConnectSources, DEFAULT_BACKUP_LOCAL_DIR, DEFAULT_UPLOADS_DIR (+28 more)
 
 ### Community 203 - "Community 203"
-Cohesion: 0.07
-Nodes (47): AnnouncementDetail, listAnnouncements(), DashboardActivityHighlight, DashboardCardSummary, DashboardDueReminder, DashboardDueReminderAssignee, DashboardMetricsSummary, DashboardNewJoiner (+39 more)
-
-### Community 204 - "Community 204"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_announcement_id_announcements_id_fk
+Cohesion: 0.18
+Nodes (18): cardPriorities, AnnouncementDetail, listAnnouncements(), DashboardActivityHighlight, DashboardCardSummary, DashboardDueReminder, DashboardDueReminderAssignee, DashboardMetricsSummary (+10 more)
 
 ### Community 205 - "Community 205"
-Cohesion: 0.21
-Nodes (13): pool, clearDatabaseForTests(), initializeDatabase(), migrationLock, ensureDefaultRoles(), ensureExistingMembersOnAllBoards(), ensureInviteRoleAssignments(), ensureUserRoleAssignments() (+5 more)
-
-### Community 206 - "Community 206"
-Cohesion: 0.22
-Nodes (9): indexes, columns, isUnique, name, columns, isUnique, name, idx_card_assignees_card_id (+1 more)
-
-### Community 207 - "Community 207"
 Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_actor_id_users_id_fk
-
-### Community 208 - "Community 208"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_board_id_boards_id_fk
-
-### Community 209 - "Community 209"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_card_id_cards_id_fk
-
-### Community 210 - "Community 210"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_reply_id_thread_replies_id_fk
-
-### Community 211 - "Community 211"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_list_id_lists_id_fk
-
-### Community 212 - "Community 212"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_mentioned_user_id_users_id_fk
-
-### Community 213 - "Community 213"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_conversation_id_thread_conversations_id_fk
-
-### Community 214 - "Community 214"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_message_id_thread_messages_id_fk
-
-### Community 215 - "Community 215"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, board_id
+Nodes (13): pool, clearDatabaseForTests(), dropAllTables(), initializeDatabase(), migrationLock, ensureInviteRoleAssignments(), ensureUserRoleAssignments(), seedRoles() (+5 more)
 
 ### Community 216 - "Community 216"
-Cohesion: 0.13
-Nodes (24): body, AnnouncementAudienceInput, audienceSchema, CreateAnnouncementInput, createAnnouncementSchema, DeleteAnnouncementsInput, deleteAnnouncementsSchema, MarkAnnouncementsSeenInput (+16 more)
-
-### Community 217 - "Community 217"
-Cohesion: 0.33
-Nodes (6): subject, autoincrement, name, notNull, primaryKey, type
-
-### Community 218 - "Community 218"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_user_id_users_id_fk
-
-### Community 219 - "Community 219"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_user_id_users_id_fk
-
-### Community 220 - "Community 220"
-Cohesion: 0.29
-Nodes (7): retention_minutes, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 221 - "Community 221"
-Cohesion: 0.12
-Nodes (17): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, checkConstraint (+9 more)
-
-### Community 222 - "Community 222"
-Cohesion: 0.33
-Nodes (5): dialect, id, prevId, tables, version
-
-### Community 223 - "Community 223"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_actor_id_users_id_fk
-
-### Community 224 - "Community 224"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_board_id_boards_id_fk
-
-### Community 225 - "Community 225"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_card_id_cards_id_fk
-
-### Community 226 - "Community 226"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_reply_id_thread_replies_id_fk
-
-### Community 227 - "Community 227"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_list_id_lists_id_fk
-
-### Community 228 - "Community 228"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_mentioned_user_id_users_id_fk
-
-### Community 229 - "Community 229"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_conversation_id_thread_conversations_id_fk
-
-### Community 230 - "Community 230"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_message_id_thread_messages_id_fk
-
-### Community 231 - "Community 231"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, attachments_card_id_cards_id_fk
-
-### Community 232 - "Community 232"
 Cohesion: 0.14
-Nodes (14): columns, name, checkConstraint, compositePrimaryKeys, foreignKeys, indexes, name, uniqueConstraints (+6 more)
+Nodes (23): announcementRecipients, announcements, AnnouncementAudienceInput, audienceSchema, CreateAnnouncementInput, createAnnouncementSchema, DeleteAnnouncementsInput, deleteAnnouncementsSchema (+15 more)
 
 ### Community 233 - "Community 233"
-Cohesion: 0.18
-Nodes (20): CreateCardInput, MoveCardInput, UpdateCardInput, createAttachments(), deleteAttachment(), getAttachmentDownloadInfo(), createCard(), moveCard() (+12 more)
-
-### Community 234 - "Community 234"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcements_created_by_users_id_fk
-
-### Community 235 - "Community 235"
-Cohesion: 0.25
-Nodes (7): name, dialect, id, prevId, tables, boards, version
-
-### Community 236 - "Community 236"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_actor_id_users_id_fk
-
-### Community 237 - "Community 237"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_card_id_cards_id_fk
-
-### Community 238 - "Community 238"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_list_id_lists_id_fk
-
-### Community 239 - "Community 239"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_board_id_boards_id_fk
-
-### Community 240 - "Community 240"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_mentioned_user_id_users_id_fk
-
-### Community 241 - "Community 241"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_conversation_id_thread_conversations_id_fk
-
-### Community 242 - "Community 242"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_message_id_thread_messages_id_fk
-
-### Community 243 - "Community 243"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_reply_id_thread_replies_id_fk
-
-### Community 244 - "Community 244"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_actor_id_users_id_fk
-
-### Community 245 - "Community 245"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_card_id_cards_id_fk
-
-### Community 246 - "Community 246"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_list_id_lists_id_fk
-
-### Community 247 - "Community 247"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_board_id_boards_id_fk
-
-### Community 248 - "Community 248"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_mentioned_user_id_users_id_fk
-
-### Community 249 - "Community 249"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_conversation_id_thread_conversations_id_fk
-
-### Community 250 - "Community 250"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_message_id_thread_messages_id_fk
-
-### Community 251 - "Community 251"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_reply_id_thread_replies_id_fk
+Cohesion: 0.16
+Nodes (22): UserRole, CreateInviteInput, createInviteSchema, buildInviteUrl(), createInvite(), getInviteById(), getInviteByToken(), getInviteRoleIds() (+14 more)
 
 ### Community 252 - "Community 252"
-Cohesion: 0.36
-Nodes (8): closePool(), closeSocketServer(), initSocket(), app, registerProcessGuards(), runCleanup(), shutdown(), startServer()
-
-### Community 253 - "Community 253"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 254 - "Community 254"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_user_id_users_id_fk
-
-### Community 255 - "Community 255"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcements_created_by_users_id_fk
-
-### Community 256 - "Community 256"
-Cohesion: 0.25
-Nodes (7): name, dialect, id, prevId, tables, boards, version
-
-### Community 257 - "Community 257"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_actor_id_users_id_fk
-
-### Community 258 - "Community 258"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_card_id_cards_id_fk
-
-### Community 259 - "Community 259"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_list_id_lists_id_fk
-
-### Community 260 - "Community 260"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_board_id_boards_id_fk
-
-### Community 261 - "Community 261"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_mentioned_user_id_users_id_fk
-
-### Community 262 - "Community 262"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_conversation_id_thread_conversations_id_fk
-
-### Community 263 - "Community 263"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_message_id_thread_messages_id_fk
-
-### Community 264 - "Community 264"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_reply_id_thread_replies_id_fk
-
-### Community 265 - "Community 265"
-Cohesion: 0.15
-Nodes (13): indexes, columns, isUnique, name, columns, isUnique, name, columns (+5 more)
-
-### Community 266 - "Community 266"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_announcement_id_announcements_id_fk
-
-### Community 267 - "Community 267"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_user_id_users_id_fk
-
-### Community 268 - "Community 268"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcements_created_by_users_id_fk
-
-### Community 269 - "Community 269"
-Cohesion: 0.25
-Nodes (7): name, dialect, id, prevId, tables, boards, version
+Cohesion: 0.39
+Nodes (8): app, closePool(), registerProcessGuards(), runCleanup(), runDueEmailReminders(), shutdown(), startServer(), closeSocketServer()
 
 ### Community 270 - "Community 270"
-Cohesion: 0.25
-Nodes (7): 12.4, 12.6, API, DB, and Feature Map, DB attention areas, Important recent capability milestones, Major backend feature areas, Major client feature areas
-
-### Community 271 - "Community 271"
 Cohesion: 0.20
-Nodes (10): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, indexes, name, uniqueConstraints (+2 more)
+Nodes (8): 12.4, 12.6, API, DB, and Feature Map, DB attention areas, Important recent capability milestones, Major backend feature areas, Major client feature areas, Reference
 
 ### Community 272 - "Community 272"
 Cohesion: 0.46
-Nodes (7): update-safe.sh script, ensure_system_tools(), main(), print_fail(), print_ok(), run_step(), show_summary()
+Nodes (7): ensure_system_tools(), main(), print_fail(), print_ok(), run_step(), update-safe.sh script, show_summary()
 
 ### Community 273 - "Community 273"
-Cohesion: 0.29
-Nodes (4): BoardBackgroundPreset, boardBackgroundPresets, legacyBackgroundClasses, legacySurfaceClasses
+Cohesion: 0.17
+Nodes (19): threadMentions, threadMessageDeletions, CreateThreadMessageInput, DeleteThreadMessageInput, ThreadMessageListParams, UpdateThreadMessageInput, getThreadAttachmentsForMessages(), getThreadMessageDeletionSet() (+11 more)
 
 ### Community 274 - "Community 274"
-Cohesion: 0.29
-Nodes (5): createRole(), listRoleAssignments(), listRoles(), updateRole(), updateUserRoles()
-
-### Community 275 - "Community 275"
-Cohesion: 0.29
-Nodes (6): fetchMock, first, redirectSpy, refreshed, result, second
-
-### Community 276 - "Community 276"
-Cohesion: 0.29
-Nodes (7): App health, Backup timer checks, code:bash (curl http://127.0.0.1:4000/api/health/live), code:bash (systemctl status flowstate --no-pager), code:bash (systemctl status flowstate-backup-daily.timer --no-pager), Health and Verification, Service checks
-
-### Community 277 - "Community 277"
-Cohesion: 0.29
-Nodes (7): code:bash (ssh flowstate-vps), code:bash (bash deploy/vps/deploy-safe.sh), code:bash (ssh flowstate-vps), Deploy Paths, Fast redeploy path, Preferred one-command update path, Safe deploy engine
+Cohesion: 0.18
+Nodes (17): upload, addChannelMembersSchema, channelMemberInputSchema, channelMemberOverrideSchema, createChannelSchema, createThreadMessageSchema, CreateThreadReplyInput, createThreadReplySchema (+9 more)
 
 ### Community 278 - "Community 278"
-Cohesion: 0.29
-Nodes (6): compilerOptions, forceConsistentCasingInFileNames, resolveJsonModule, skipLibCheck, strict, target
-
-### Community 279 - "Community 279"
-Cohesion: 0.33
-Nodes (3): escapeRegex(), extractMentionIds(), MentionQuery
-
-### Community 280 - "Community 280"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, activity_logs_id (+1 more)
-
-### Community 281 - "Community 281"
-Cohesion: 0.29
-Nodes (7): autoincrement, default, name, notNull, primaryKey, type, archive_retention_minutes
-
-### Community 282 - "Community 282"
-Cohesion: 0.29
-Nodes (7): autoincrement, default, name, notNull, primaryKey, type, background
-
-### Community 283 - "Community 283"
-Cohesion: 0.29
-Nodes (7): retention_minutes, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 284 - "Community 284"
-Cohesion: 0.29
-Nodes (7): retention_mode, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 285 - "Community 285"
-Cohesion: 0.29
-Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 286 - "Community 286"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_announcement_id_announcements_id_fk
-
-### Community 287 - "Community 287"
-Cohesion: 0.29
-Nodes (7): autoincrement, default, name, notNull, primaryKey, type, background
-
-### Community 288 - "Community 288"
-Cohesion: 0.29
-Nodes (7): retention_minutes, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 289 - "Community 289"
-Cohesion: 0.22
-Nodes (9): checkConstraint, compositePrimaryKeys, foreignKeys, columns, name, name, uniqueConstraints, audit_logs_id (+1 more)
-
-### Community 290 - "Community 290"
-Cohesion: 0.33
-Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
-
-### Community 291 - "Community 291"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, attachments_card_id_cards_id_fk
-
-### Community 292 - "Community 292"
-Cohesion: 0.22
-Nodes (9): indexes, columns, isUnique, name, columns, isUnique, name, idx_board_member_permissions_board_id (+1 more)
-
-### Community 293 - "Community 293"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcements_created_by_users_id_fk
-
-### Community 294 - "Community 294"
-Cohesion: 0.29
-Nodes (7): retention_mode, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 295 - "Community 295"
-Cohesion: 0.29
-Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 296 - "Community 296"
-Cohesion: 0.29
-Nodes (7): autoincrement, default, name, notNull, primaryKey, type, background
-
-### Community 297 - "Community 297"
-Cohesion: 0.29
-Nodes (7): retention_minutes, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 298 - "Community 298"
-Cohesion: 0.29
-Nodes (7): retention_mode, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 299 - "Community 299"
-Cohesion: 0.29
-Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 300 - "Community 300"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, boards_created_by_users_id_fk
+Cohesion: 0.15
+Nodes (15): MarkCommentMentionsInput, markCommentMentionsSchema, MarkThreadMentionsInput, markThreadMentionsSchema, MarkThreadMessageMentionsInput, markThreadMessageMentionsSchema, MarkThreadReplyMentionIdsInput, markThreadReplyMentionIdsSchema (+7 more)
 
 ### Community 301 - "Community 301"
-Cohesion: 0.32
-Nodes (6): AcceptedMemberEntry, AssignRolesModal(), AssignRolesModalProps, getInitials(), RoleAssignmentEditor(), RoleAssignmentEditorProps
-
-### Community 302 - "Community 302"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_announcement_id_announcements_id_fk
-
-### Community 303 - "Community 303"
-Cohesion: 0.29
-Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 304 - "Community 304"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, attachments_card_id_cards_id_fk
-
-### Community 305 - "Community 305"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, card_assignees_card_id_cards_id_fk
-
-### Community 306 - "Community 306"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, attachments_card_id_cards_id_fk
-
-### Community 307 - "Community 307"
-Cohesion: 0.29
-Nodes (5): [migrationRows], missingTables, requiredTables, [rows], tableSet
+Cohesion: 0.26
+Nodes (12): roleScopeOverrides, cleanupInvalidCommentMentions(), cleanupInvalidThreadMentions(), CommentMentionDetail, getAccessibleBoardIds(), getUnreadMentions(), listCommentMentions(), listUnreadThreadMentions() (+4 more)
 
 ### Community 308 - "Community 308"
-Cohesion: 0.29
+Cohesion: 0.33
 Nodes (6): Advanced Settings and Bug Reporting, Current main purpose, What admins can do, What regular users can do, What this page is not, Writing helpful bug reports
 
 ### Community 309 - "Community 309"
-Cohesion: 0.40
-Nodes (6): CardSummary(), formatDueDateLabel(), getPriorityBadgeClass(), getPriorityLabel(), getTimeLeftLabel(), renderTaskRow()
-
-### Community 310 - "Community 310"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, card_assignees_card_id_cards_id_fk
+Cohesion: 0.22
+Nodes (10): CardDetailModal(), CardSummary(), formatDueDateLabel(), formatFileSize(), getChecklistProgress(), getInitials(), getPriorityBadgeClass(), getPriorityLabel() (+2 more)
 
 ### Community 311 - "Community 311"
-Cohesion: 0.33
-Nodes (5): createBugReport(), getBugReportSummary(), listAdminBugReports(), listMyBugReports(), updateBugReportStatus()
+Cohesion: 0.29
+Nodes (9): createBugReport(), getBugReportSummary(), listAdminBugReports(), listMyBugReports(), updateBugReportStatus(), ADMIN_FILTERS, AdvancedSettingsPage(), formatTimestamp() (+1 more)
 
 ### Community 312 - "Community 312"
-Cohesion: 0.33
-Nodes (4): createInvite(), listInvites(), lookupInvite(), updateInviteRoles()
-
-### Community 313 - "Community 313"
-Cohesion: 0.33
-Nodes (6): thread_reply_id, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.20
+Nodes (9): Common Commands, Documentation, FlowState, Highlights, Local URLs, Production Notes, Quickstart, Repo Layout (+1 more)
 
 ### Community 314 - "Community 314"
-Cohesion: 0.33
-Nodes (3): BoardsPage(), MentionStoreState, useMentionStore
+Cohesion: 0.38
+Nodes (6): moveCard(), reorderLists(), useBoardDragAndDrop(), fromListDragId(), isListDragId(), normalizeDragOverId()
 
 ### Community 315 - "Community 315"
-Cohesion: 0.33
-Nodes (3): emptyForm, ProfileFormState, ProfileSettingsPage()
+Cohesion: 0.29
+Nodes (6): compilerOptions, forceConsistentCasingInFileNames, resolveJsonModule, skipLibCheck, strict, target
 
 ### Community 316 - "Community 316"
-Cohesion: 0.40
-Nodes (4): FocusMode, FocusSnapshot, FocusTimerCard(), formatTimer()
-
-### Community 317 - "Community 317"
-Cohesion: 0.33
-Nodes (5): filtered, ids, info, members, result
+Cohesion: 0.47
+Nodes (5): FocusMode, FocusSnapshot, FocusTimerCard(), formatTimer(), getFocusSnapshot()
 
 ### Community 318 - "Community 318"
 Cohesion: 0.33
@@ -1859,372 +3716,16 @@ Cohesion: 0.47
 Nodes (3): AnnouncementViewModal(), formatAnnouncementTime(), getAnnouncementAuthorLabel()
 
 ### Community 321 - "Community 321"
-Cohesion: 0.53
-Nodes (4): formatActivityLabel(), getActivitySnippet(), getActorName(), getMetadataString()
-
-### Community 322 - "Community 322"
-Cohesion: 0.33
-Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 323 - "Community 323"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, board_id
-
-### Community 324 - "Community 324"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, actor_id
-
-### Community 325 - "Community 325"
-Cohesion: 0.29
-Nodes (7): autoincrement, default, name, notNull, primaryKey, type, archive_retention_minutes
-
-### Community 326 - "Community 326"
-Cohesion: 0.33
-Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 327 - "Community 327"
-Cohesion: 0.33
-Nodes (6): updated_at, autoincrement, name, notNull, primaryKey, type
-
-### Community 328 - "Community 328"
-Cohesion: 0.29
-Nodes (7): size, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 329 - "Community 329"
-Cohesion: 0.33
-Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 330 - "Community 330"
-Cohesion: 0.33
-Nodes (6): created_by, autoincrement, name, notNull, primaryKey, type
-
-### Community 331 - "Community 331"
-Cohesion: 0.33
-Nodes (6): id, autoincrement, name, notNull, primaryKey, type
-
-### Community 332 - "Community 332"
-Cohesion: 0.33
-Nodes (6): name, autoincrement, name, notNull, primaryKey, type
+Cohesion: 0.40
+Nodes (5): SortableListContainer(), BoardListsSection(), LIST_TINT_OPTIONS, clampYearInDateInput(), toListDragId()
 
 ### Community 333 - "Community 333"
 Cohesion: 0.32
 Nodes (5): message, subject, isOpsAlertConfigured(), sendOpsAlert(), logger
 
-### Community 334 - "Community 334"
-Cohesion: 0.33
-Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 335 - "Community 335"
-Cohesion: 0.12
-Nodes (16): autoincrement, default, name, notNull, primaryKey, type, name, columns (+8 more)
-
-### Community 336 - "Community 336"
-Cohesion: 0.33
-Nodes (6): name, autoincrement, name, notNull, primaryKey, type
-
-### Community 337 - "Community 337"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_announcement_id_announcements_id_fk
-
-### Community 338 - "Community 338"
-Cohesion: 0.33
-Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 339 - "Community 339"
-Cohesion: 0.33
-Nodes (6): thread_reply_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 340 - "Community 340"
-Cohesion: 0.29
-Nodes (7): autoincrement, default, name, notNull, primaryKey, type, background
-
-### Community 341 - "Community 341"
-Cohesion: 0.29
-Nodes (7): retention_minutes, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 342 - "Community 342"
-Cohesion: 0.33
-Nodes (6): type, autoincrement, name, notNull, primaryKey, type
-
-### Community 343 - "Community 343"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, board_id, list_id (+11 more)
-
-### Community 344 - "Community 344"
-Cohesion: 0.29
-Nodes (7): retention_mode, autoincrement, default, name, notNull, primaryKey, type
-
-### Community 345 - "Community 345"
-Cohesion: 0.33
-Nodes (6): created_by, autoincrement, name, notNull, primaryKey, type
-
-### Community 346 - "Community 346"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcements_created_by_users_id_fk
-
-### Community 347 - "Community 347"
-Cohesion: 0.33
-Nodes (6): id, autoincrement, name, notNull, primaryKey, type
-
-### Community 348 - "Community 348"
-Cohesion: 0.11
-Nodes (19): autoincrement, name, notNull, primaryKey, type, columns, announcement_id, created_at (+11 more)
-
-### Community 350 - "Community 350"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_board_created
-
-### Community 351 - "Community 351"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, audit_logs_actor_id_users_id_fk
-
-### Community 352 - "Community 352"
-Cohesion: 0.33
-Nodes (6): seen_at, autoincrement, name, notNull, primaryKey, type
-
-### Community 353 - "Community 353"
-Cohesion: 0.33
-Nodes (6): id, autoincrement, name, notNull, primaryKey, type
-
-### Community 354 - "Community 354"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, audit_logs_actor_id_users_id_fk
-
-### Community 355 - "Community 355"
-Cohesion: 0.33
-Nodes (6): list_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 356 - "Community 356"
-Cohesion: 0.33
-Nodes (6): description, autoincrement, name, notNull, primaryKey, type
-
-### Community 357 - "Community 357"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_actor_id_users_id_fk
-
-### Community 358 - "Community 358"
-Cohesion: 0.11
-Nodes (19): columns, autoincrement, name, notNull, primaryKey, type, board_id, list_id (+11 more)
-
-### Community 359 - "Community 359"
-Cohesion: 0.08
-Nodes (25): autoincrement, name, notNull, primaryKey, type, columns, action, ip (+17 more)
-
-### Community 360 - "Community 360"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_board_id_boards_id_fk
-
-### Community 361 - "Community 361"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_card_id_cards_id_fk
-
-### Community 362 - "Community 362"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_list_id_lists_id_fk
-
-### Community 363 - "Community 363"
-Cohesion: 0.33
-Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
-
-### Community 364 - "Community 364"
-Cohesion: 0.33
-Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 365 - "Community 365"
-Cohesion: 0.33
-Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 366 - "Community 366"
-Cohesion: 0.33
-Nodes (6): subject, autoincrement, name, notNull, primaryKey, type
-
-### Community 367 - "Community 367"
-Cohesion: 0.33
-Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 368 - "Community 368"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_mentioned_user_id_users_id_fk
-
-### Community 369 - "Community 369"
-Cohesion: 0.33
-Nodes (6): seen_at, autoincrement, name, notNull, primaryKey, type
-
-### Community 370 - "Community 370"
-Cohesion: 0.33
-Nodes (6): metadata, autoincrement, name, notNull, primaryKey, type
-
-### Community 371 - "Community 371"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_conversation_id_thread_conversations_id_fk
-
-### Community 372 - "Community 372"
-Cohesion: 0.33
-Nodes (6): request_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 373 - "Community 373"
-Cohesion: 0.33
-Nodes (6): target_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 374 - "Community 374"
-Cohesion: 0.33
-Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
-
-### Community 375 - "Community 375"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_message_id_thread_messages_id_fk
-
-### Community 376 - "Community 376"
-Cohesion: 0.33
-Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 377 - "Community 377"
-Cohesion: 0.33
-Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
-
-### Community 378 - "Community 378"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, actor_id
-
-### Community 379 - "Community 379"
-Cohesion: 0.33
-Nodes (6): name, autoincrement, name, notNull, primaryKey, type
-
-### Community 380 - "Community 380"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, activity_logs_thread_reply_id_thread_replies_id_fk
-
-### Community 381 - "Community 381"
-Cohesion: 0.33
-Nodes (6): user_agent, autoincrement, name, notNull, primaryKey, type
-
-### Community 382 - "Community 382"
-Cohesion: 0.33
-Nodes (6): original_name, autoincrement, name, notNull, primaryKey, type
-
-### Community 383 - "Community 383"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, actor_id
-
-### Community 384 - "Community 384"
-Cohesion: 0.33
-Nodes (6): metadata, autoincrement, name, notNull, primaryKey, type
-
-### Community 385 - "Community 385"
-Cohesion: 0.33
-Nodes (6): mime_type, autoincrement, name, notNull, primaryKey, type
-
-### Community 386 - "Community 386"
-Cohesion: 0.33
-Nodes (6): request_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 387 - "Community 387"
-Cohesion: 0.33
-Nodes (6): target_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 388 - "Community 388"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_announcement_id_announcements_id_fk
-
-### Community 389 - "Community 389"
-Cohesion: 0.33
-Nodes (6): target_type, autoincrement, name, notNull, primaryKey, type
-
-### Community 390 - "Community 390"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, body
-
-### Community 391 - "Community 391"
-Cohesion: 0.33
-Nodes (6): thread_conversation_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 392 - "Community 392"
-Cohesion: 0.33
-Nodes (6): created_by, autoincrement, name, notNull, primaryKey, type
-
-### Community 393 - "Community 393"
-Cohesion: 0.33
-Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
-
-### Community 394 - "Community 394"
-Cohesion: 0.33
-Nodes (6): type, autoincrement, name, notNull, primaryKey, type
-
-### Community 395 - "Community 395"
-Cohesion: 0.11
-Nodes (19): columns, mentioned_user_id, thread_conversation_id, thread_message_id, autoincrement, name, notNull, primaryKey (+11 more)
-
-### Community 396 - "Community 396"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, actor_id
-
-### Community 397 - "Community 397"
-Cohesion: 0.33
-Nodes (6): created_by, autoincrement, name, notNull, primaryKey, type
-
-### Community 398 - "Community 398"
-Cohesion: 0.33
-Nodes (6): ip, autoincrement, name, notNull, primaryKey, type
-
-### Community 399 - "Community 399"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcement_recipients_user_id_users_id_fk
-
-### Community 400 - "Community 400"
-Cohesion: 0.33
-Nodes (6): metadata, autoincrement, name, notNull, primaryKey, type
-
-### Community 401 - "Community 401"
-Cohesion: 0.33
-Nodes (6): mime_type, autoincrement, name, notNull, primaryKey, type
-
-### Community 402 - "Community 402"
-Cohesion: 0.33
-Nodes (6): request_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 403 - "Community 403"
-Cohesion: 0.33
-Nodes (6): target_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 404 - "Community 404"
-Cohesion: 0.33
-Nodes (6): ip, autoincrement, name, notNull, primaryKey, type
-
-### Community 405 - "Community 405"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, announcements_created_by_users_id_fk
-
-### Community 406 - "Community 406"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, body
-
-### Community 407 - "Community 407"
-Cohesion: 0.33
-Nodes (6): ip, autoincrement, name, notNull, primaryKey, type
-
-### Community 408 - "Community 408"
-Cohesion: 0.33
-Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
-
-### Community 409 - "Community 409"
-Cohesion: 0.25
-Nodes (8): columnsFrom, columnsTo, name, onDelete, onUpdate, tableFrom, tableTo, audit_logs_actor_id_users_id_fk
-
 ### Community 410 - "Community 410"
 Cohesion: 0.33
 Nodes (5): High-value env categories, Important filesystem locations, Important service-level checks, Production model, VPS and Environment Reference
-
-### Community 411 - "Community 411"
-Cohesion: 0.33
-Nodes (5): now, rawToken, token, tokenHash, userId
-
-### Community 412 - "Community 412"
-Cohesion: 0.33
-Nodes (5): createdRoleId, memberRole, registerUser(), roleIds, roles
-
-### Community 413 - "Community 413"
-Cohesion: 0.33
-Nodes (6): created_by, autoincrement, name, notNull, primaryKey, type
 
 ### Community 414 - "Community 414"
 Cohesion: 0.40
@@ -2232,135 +3733,27 @@ Nodes (4): RolePermission, rolePermissions, RoleSummary, UserRoleAssignment
 
 ### Community 415 - "Community 415"
 Cohesion: 0.60
-Nodes (3): backup-now.sh script, prune_local(), upload_and_prune_remote()
-
-### Community 416 - "Community 416"
-Cohesion: 0.40
-Nodes (5): Audit log retention, code:bash (journalctl --disk-usage), Host log retention, Logging and Retention, Password reset status
-
-### Community 417 - "Community 417"
-Cohesion: 0.40
-Nodes (5): 1. Create an SSH key locally, code:powershell (ssh-keygen -t ed25519 -C "flowstate-vps"), code:bash (ssh-keygen -t ed25519 -C "flowstate-vps"), macOS / Linux, Windows PowerShell
+Nodes (3): prune_local(), backup-now.sh script, upload_and_prune_remote()
 
 ### Community 418 - "Community 418"
-Cohesion: 0.40
+Cohesion: 0.50
 Nodes (4): FlowState Documentation, For developers, For end users, Start Here
 
-### Community 419 - "Community 419"
-Cohesion: 0.40
-Nodes (3): renderBoardPage(), form, renderRegisterPage()
-
-### Community 420 - "Community 420"
-Cohesion: 0.33
-Nodes (6): mime_type, autoincrement, name, notNull, primaryKey, type
-
 ### Community 421 - "Community 421"
-Cohesion: 0.40
-Nodes (4): Goal, I Want to Onboard a New Person Into the Workspace, Important caution, Suggested onboarding flow
-
-### Community 422 - "Community 422"
-Cohesion: 0.40
-Nodes (4): Goal, I Want to Report, Track, and Confirm a Bug, Status meaning, Suggested reporting flow
-
-### Community 423 - "Community 423"
-Cohesion: 0.40
-Nodes (4): Goal, I Want to Run a Project From Idea to Done, Key rule, Suggested project flow
-
-### Community 424 - "Community 424"
-Cohesion: 0.40
-Nodes (4): Goal, I Want to Stay on Top of My Work Every Day, Suggested daily loop, Why this works
-
-### Community 425 - "Community 425"
-Cohesion: 0.50
-Nodes (4): isLengthError(), ThreadComposer(), ThreadComposerProps, formatDuration()
+Cohesion: 0.09
+Nodes (17): Outcome-Based Tutorials, Goal, I Want to Onboard a New Person Into the Workspace, Important caution, Suggested onboarding flow, Goal, I Want to Report, Track, and Confirm a Bug, Status meaning (+9 more)
 
 ### Community 426 - "Community 426"
 Cohesion: 0.40
 Nodes (4): name, private, type, version
 
-### Community 427 - "Community 427"
-Cohesion: 0.40
-Nodes (4): boardId, listIds, registerAndGetToken(), reordered
-
 ### Community 428 - "Community 428"
 Cohesion: 0.40
 Nodes (4): BugReportAdminListResponse, BugReportStatus, BugReportSummary, BugReportSummaryResponse
 
-### Community 429 - "Community 429"
-Cohesion: 0.50
-Nodes (4): clampRetentionMinutes(), getArchiveCountdownLabel(), splitRetentionMinutes(), toRetentionMinutes()
-
-### Community 430 - "Community 430"
-Cohesion: 0.33
-Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
-
 ### Community 431 - "Community 431"
 Cohesion: 0.50
 Nodes (3): InviteLookup, InviteStatus, InviteSummary
-
-### Community 432 - "Community 432"
-Cohesion: 0.50
-Nodes (4): 10. Build the app and run migrations, code:bash (sudo -u flowstate bash -lc 'cd /opt/flowstate/app && ~/.bun/), code:bash (cd /opt/flowstate/app), code:bash (curl http://127.0.0.1:4000/api/health)
-
-### Community 433 - "Community 433"
-Cohesion: 0.50
-Nodes (4): code:sshconfig (Host flowstate-vps), code:bash (ssh flowstate-vps), code:bash (sudo -i), Setup order we actually followed
-
-### Community 434 - "Community 434"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
-
-### Community 435 - "Community 435"
-Cohesion: 0.33
-Nodes (6): user_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 436 - "Community 436"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_board_created
-
-### Community 437 - "Community 437"
-Cohesion: 0.29
-Nodes (7): autoincrement, default, name, notNull, primaryKey, type, background
-
-### Community 438 - "Community 438"
-Cohesion: 0.33
-Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 439 - "Community 439"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
-
-### Community 440 - "Community 440"
-Cohesion: 0.33
-Nodes (6): type, autoincrement, name, notNull, primaryKey, type
-
-### Community 441 - "Community 441"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, body
-
-### Community 442 - "Community 442"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
-
-### Community 443 - "Community 443"
-Cohesion: 0.33
-Nodes (6): type, autoincrement, name, notNull, primaryKey, type
-
-### Community 444 - "Community 444"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_created_at
-
-### Community 445 - "Community 445"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
-
-### Community 447 - "Community 447"
-Cohesion: 0.50
-Nodes (3): dialect, entries, version
-
-### Community 448 - "Community 448"
-Cohesion: 0.50
-Nodes (3): inviteUrl, registerAdmin(), updated
 
 ### Community 449 - "Community 449"
 Cohesion: 0.50
@@ -2374,213 +3767,33 @@ Nodes (3): PresenceState, PresenceStatus, PresenceUser
 Cohesion: 0.50
 Nodes (3): Button, ButtonProps, buttonVariants
 
-### Community 457 - "Community 457"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, board_id
-
-### Community 462 - "Community 462"
-Cohesion: 0.67
-Nodes (3): code:bash (sudo apt update), code:bash (cd /opt/flowstate/app), Phase 12.3 VPS Prerequisites
-
-### Community 463 - "Community 463"
-Cohesion: 0.67
-Nodes (3): 2. First login as root and create the non-root user, code:bash (adduser flowstate), code:bash (ssh flowstate@YOUR_SERVER_IP)
-
-### Community 464 - "Community 464"
-Cohesion: 0.67
-Nodes (3): 3. Harden SSH, code:conf (PermitRootLogin no), code:bash (systemctl restart ssh)
-
-### Community 465 - "Community 465"
-Cohesion: 0.67
-Nodes (3): 8. Start production MySQL in Docker, code:bash (cp /opt/flowstate/app/deploy/vps/mysql.env.example /opt/flow), code:bash (cd /opt/flowstate/infra)
-
-### Community 466 - "Community 466"
-Cohesion: 0.67
-Nodes (3): 9. Create the app env file, code:bash (cp /opt/flowstate/app/server/.env.production.example /etc/fl), code:bash (chown root:flowstate /etc/flowstate/flowstate.env)
-
-### Community 467 - "Community 467"
-Cohesion: 0.67
-Nodes (3): 5. Install Node 22 and Bun, code:bash (sudo -u flowstate bash -lc 'curl -fsSL https://bun.sh/instal), code:bash (curl -fsSL https://deb.nodesource.com/setup_22.x | bash -)
-
-### Community 468 - "Community 468"
-Cohesion: 0.67
-Nodes (3): 4. Base packages, firewall, and Fail2Ban, code:bash (apt update && apt upgrade -y), code:bash (ufw allow OpenSSH)
-
-### Community 470 - "Community 470"
-Cohesion: 0.20
-Nodes (8): registerUser(), reportId, assignRoles(), createBoardWithDefaults(), getRoleIdByName(), registerAndGetAuth(), registerUser(), Request
+### Community 490 - "Community 490"
+Cohesion: 0.14
+Nodes (7): Administration, Boards, Dashboard and Focus, Settings, Threads and Messaging, Help, Tutorials
 
 ### Community 517 - "Community 517"
 Cohesion: 0.50
 Nodes (3): CalendarFeedsResponse, CalendarFeedSummary, CalendarFeedType
 
-### Community 518 - "Community 518"
-Cohesion: 0.33
-Nodes (6): updated_at, autoincrement, name, notNull, primaryKey, type
-
-### Community 519 - "Community 519"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, audience
-
-### Community 520 - "Community 520"
-Cohesion: 0.33
-Nodes (6): created_by, autoincrement, name, notNull, primaryKey, type
-
-### Community 525 - "Community 525"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_created_at
-
-### Community 526 - "Community 526"
-Cohesion: 0.33
-Nodes (6): storage_path, autoincrement, name, notNull, primaryKey, type
-
-### Community 527 - "Community 527"
-Cohesion: 0.33
-Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 528 - "Community 528"
-Cohesion: 0.33
-Nodes (6): type, autoincrement, name, notNull, primaryKey, type
-
-### Community 529 - "Community 529"
-Cohesion: 0.33
-Nodes (6): created_at, autoincrement, name, notNull, primaryKey, type
-
-### Community 530 - "Community 530"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, announcement_id
-
-### Community 531 - "Community 531"
-Cohesion: 0.33
-Nodes (6): list_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 532 - "Community 532"
-Cohesion: 0.33
-Nodes (6): thread_reply_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 533 - "Community 533"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, access
-
-### Community 534 - "Community 534"
-Cohesion: 0.33
-Nodes (6): autoincrement, name, notNull, primaryKey, type, card_id
-
-### Community 535 - "Community 535"
-Cohesion: 0.33
-Nodes (6): ip, autoincrement, name, notNull, primaryKey, type
-
-### Community 536 - "Community 536"
-Cohesion: 0.33
-Nodes (6): list_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 537 - "Community 537"
-Cohesion: 0.33
-Nodes (6): mentioned_user_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 538 - "Community 538"
-Cohesion: 0.33
-Nodes (6): metadata, autoincrement, name, notNull, primaryKey, type
-
-### Community 539 - "Community 539"
-Cohesion: 0.33
-Nodes (6): request_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 540 - "Community 540"
-Cohesion: 0.33
-Nodes (6): storage_path, autoincrement, name, notNull, primaryKey, type
-
-### Community 541 - "Community 541"
-Cohesion: 0.33
-Nodes (6): stored_name, autoincrement, name, notNull, primaryKey, type
-
-### Community 542 - "Community 542"
-Cohesion: 0.33
-Nodes (6): target_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 543 - "Community 543"
-Cohesion: 0.33
-Nodes (6): thread_message_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 544 - "Community 544"
-Cohesion: 0.33
-Nodes (6): thread_reply_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 545 - "Community 545"
-Cohesion: 0.33
-Nodes (6): type, autoincrement, name, notNull, primaryKey, type
-
-### Community 546 - "Community 546"
-Cohesion: 0.33
-Nodes (6): user_id, autoincrement, name, notNull, primaryKey, type
-
-### Community 547 - "Community 547"
-Cohesion: 0.33
-Nodes (5): dialect, id, prevId, tables, version
-
-### Community 548 - "Community 548"
-Cohesion: 0.50
-Nodes (4): getInitialBadgeMode(), normalizeThreadBadgeMode(), ThreadBadgeMode, ThreadSettingsState
-
-### Community 549 - "Community 549"
-Cohesion: 0.40
-Nodes (5): indexes, columns, isUnique, name, idx_attachments_card_id
-
-### Community 550 - "Community 550"
-Cohesion: 0.40
-Nodes (5): indexes, columns, isUnique, name, idx_attachments_card_id
-
-### Community 551 - "Community 551"
-Cohesion: 0.40
-Nodes (5): indexes, columns, isUnique, name, idx_attachments_card_id
-
-### Community 552 - "Community 552"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_actor_id
-
-### Community 553 - "Community 553"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
-
-### Community 554 - "Community 554"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_created_at
-
-### Community 555 - "Community 555"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_board_created
-
-### Community 556 - "Community 556"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_board_created
-
-### Community 557 - "Community 557"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_created_at
-
-### Community 558 - "Community 558"
-Cohesion: 0.50
-Nodes (4): columns, isUnique, name, idx_activity_logs_thread_conversation_id
-
 ## Knowledge Gaps
-- **3667 isolated node(s):** `code`, `document`, `paper`, `image`, `video` (+3662 more)
+- **4233 isolated node(s):** `name`, `private`, `version`, `type`, `dev` (+4228 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **45 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **3095 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Request` connect `Community 470` to `Community 448`, `Community 202`, `Community 427`, `Community 172`, `Community 25`, `Community 188`, `Community 412`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `UserRole` connect `Community 202` to `Community 37`, `Community 41`, `Community 14`, `Community 15`, `Community 16`, `Community 22`, `Community 470`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `useAuthStore` connect `Community 32` to `Community 102`, `Community 45`, `Community 114`, `Community 309`, `Community 121`, `Community 315`, `Community 349`, `Community 190`, `Community 191`?**
+- **Why does `useAuthStore` connect `Community 32` to `Community 0`, `Community 321`, `Community 162`, `Community 3`, `Community 10`, `Community 173`, `Community 114`, `Community 309`, `Community 182`, `Community 311`, `Community 121`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
-- **Are the 96 inferred relationships involving `apiRequest()` (e.g. with `listActivityLogs()` and `getSessionToken()`) actually correct?**
-  _`apiRequest()` has 96 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `code`, `document`, `paper` to the rest of the system?**
-  _3667 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `getCurrentWorkspaceId()` connect `Community 16` to `Community 2`, `Community 8`, `Community 12`, `Community 141`, `Community 14`, `Community 273`, `Community 21`, `Community 278`, `Community 22`, `Community 25`, `Community 27`, `Community 158`, `Community 37`, `Community 41`, `Community 42`, `Community 301`, `Community 203`, `Community 216`, `Community 104`, `Community 233`?**
+  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+- **Why does `useThreadsController()` connect `Community 10` to `Community 32`, `Community 98`, `Community 182`, `Community 174`?**
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **Are the 102 inferred relationships involving `apiRequest()` (e.g. with `listActivityLogs()` and `getActiveWorkspaceId()`) actually correct?**
+  _`apiRequest()` has 102 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `name`, `private`, `version` to the rest of the system?**
+  _4233 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.0494458653026428 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.055534987041836355 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.05731707317073171 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07130124777183601 - nodes in this community are weakly interconnected._

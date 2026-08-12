@@ -4,9 +4,10 @@ import { and, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 
 import { env } from "../../config/env.js";
 import { db, type DbTransaction } from "../../db/connection.js";
-import { inviteRoleAssignments, invites, roles, users, type UserRole } from "../../db/schema.js";
+import { inviteRoleAssignments, invites, roles, userRoleAssignments, users, workspaceMemberships, workspaces, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { assertRoleHierarchy } from "../../utils/permissions.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import { getSystemRoleIds, resolveLegacyRole } from "../roles/roles.service.js";
 import type { CreateInviteInput } from "./invites.schema.js";
 
@@ -16,6 +17,7 @@ type InviteStatus = "pending" | "accepted" | "revoked" | "expired";
 
 type InviteRow = {
   id: string;
+  workspaceId: string;
   token: string;
   email: string | null;
   role: UserRole;
@@ -30,6 +32,7 @@ type InviteRow = {
 
 export interface InviteSummary {
   id: string;
+  workspaceId: string;
   email: string | null;
   role: UserRole;
   roleIds: string[];
@@ -45,6 +48,8 @@ export interface InviteSummary {
 }
 
 export interface InviteLookup {
+  workspaceId: string;
+  workspaceName: string;
   email: string | null;
   expiresAt: Date;
   status: InviteStatus;
@@ -68,6 +73,7 @@ function getInviteStatus(row: { acceptedAt: Date | null; revokedAt: Date | null;
 
 function toInviteSummary(row: {
   id: string;
+  workspaceId: string;
   token: string;
   email: string | null;
   role: UserRole;
@@ -82,6 +88,7 @@ function toInviteSummary(row: {
   const now = new Date();
   return {
     id: row.id,
+    workspaceId: row.workspaceId,
     email: row.email ?? null,
     role: row.role,
     roleIds,
@@ -101,6 +108,7 @@ async function getInviteByToken(token: string): Promise<InviteRow> {
   const rows: InviteRow[] = await db
     .select({
       id: invites.id,
+      workspaceId: invites.workspaceId,
       token: invites.token,
       email: invites.email,
       role: invites.role,
@@ -126,9 +134,11 @@ async function getInviteByToken(token: string): Promise<InviteRow> {
 }
 
 async function getInviteById(inviteId: string): Promise<InviteRow> {
+  const workspaceId = getCurrentWorkspaceId();
   const rows: InviteRow[] = await db
     .select({
       id: invites.id,
+      workspaceId: invites.workspaceId,
       token: invites.token,
       email: invites.email,
       role: invites.role,
@@ -141,7 +151,7 @@ async function getInviteById(inviteId: string): Promise<InviteRow> {
       revokedAt: invites.revokedAt
     })
     .from(invites)
-    .where(eq(invites.id, inviteId))
+    .where(and(eq(invites.id, inviteId), eq(invites.workspaceId, workspaceId)))
     .limit(1);
 
   const row = rows[0];
@@ -181,9 +191,11 @@ async function replaceInviteRoles(inviteId: string, roleIds: string[]): Promise<
 }
 
 export async function listInvites(): Promise<InviteSummary[]> {
+  const workspaceId = getCurrentWorkspaceId();
   const rows: InviteRow[] = await db
     .select({
       id: invites.id,
+      workspaceId: invites.workspaceId,
       token: invites.token,
       email: invites.email,
       role: invites.role,
@@ -196,6 +208,7 @@ export async function listInvites(): Promise<InviteSummary[]> {
       revokedAt: invites.revokedAt
     })
     .from(invites)
+    .where(eq(invites.workspaceId, workspaceId))
     .orderBy(desc(invites.createdAt));
 
   const roleMap = await getInviteRoleIds(rows.map((row) => row.id));
@@ -204,6 +217,7 @@ export async function listInvites(): Promise<InviteSummary[]> {
 }
 
 export async function createInvite(input: CreateInviteInput, creatorId: string): Promise<InviteSummary> {
+  const workspaceId = getCurrentWorkspaceId();
   const email = input.email ? normalizeEmail(input.email) : null;
 
   if (email) {
@@ -220,6 +234,7 @@ export async function createInvite(input: CreateInviteInput, creatorId: string):
     const existingInviteRows: InviteRow[] = await db
       .select({
         id: invites.id,
+        workspaceId: invites.workspaceId,
         token: invites.token,
         email: invites.email,
         role: invites.role,
@@ -235,6 +250,7 @@ export async function createInvite(input: CreateInviteInput, creatorId: string):
       .where(
         and(
           eq(invites.email, email),
+          eq(invites.workspaceId, workspaceId),
           isNull(invites.acceptedAt),
           isNull(invites.revokedAt),
           gt(invites.expiresAt, new Date())
@@ -258,6 +274,7 @@ export async function createInvite(input: CreateInviteInput, creatorId: string):
   await db.insert(invites)
     .values({
       id: inviteId,
+      workspaceId,
       token,
       email,
       role: "guest",
@@ -268,12 +285,13 @@ export async function createInvite(input: CreateInviteInput, creatorId: string):
     })
     .execute();
 
-  const { guestRoleId } = await getSystemRoleIds();
+  const { guestRoleId } = await getSystemRoleIds(workspaceId);
   await replaceInviteRoles(inviteId, [guestRoleId]);
 
   const createdRows: InviteRow[] = await db
     .select({
       id: invites.id,
+      workspaceId: invites.workspaceId,
       token: invites.token,
       email: invites.email,
       role: invites.role,
@@ -299,10 +317,11 @@ export async function createInvite(input: CreateInviteInput, creatorId: string):
 }
 
 export async function revokeInvite(inviteId: string): Promise<void> {
+  const workspaceId = getCurrentWorkspaceId();
   const [result] = await db
     .update(invites)
     .set({ revokedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(invites.id, inviteId), isNull(invites.revokedAt)))
+    .where(and(eq(invites.id, inviteId), eq(invites.workspaceId, workspaceId), isNull(invites.revokedAt)))
     .execute();
 
   if (result.affectedRows === 0) {
@@ -312,17 +331,22 @@ export async function revokeInvite(inviteId: string): Promise<void> {
 
 export async function lookupInvite(token: string): Promise<InviteLookup> {
   const invite = await getInviteByToken(token);
+  const workspaceRows = await db.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.id, invite.workspaceId)).limit(1);
+  const workspaceName = workspaceRows[0]?.name;
+  if (!workspaceName) throw new ApiError(410, "Invite workspace is no longer available");
   const now = new Date();
   const status = getInviteStatus(invite, now);
 
   return {
+    workspaceId: invite.workspaceId,
+    workspaceName,
     email: invite.email ?? null,
     expiresAt: invite.expiresAt,
     status
   };
 }
 
-export async function validateInviteForRegistration(token: string, email: string): Promise<{ inviteId: string; roleIds: string[] }> {
+export async function validateInviteForRegistration(token: string, email: string): Promise<{ inviteId: string; workspaceId: string; roleIds: string[] }> {
   const invite = await getInviteByToken(token);
   const now = new Date();
   const status = getInviteStatus(invite, now);
@@ -338,26 +362,103 @@ export async function validateInviteForRegistration(token: string, email: string
   const roleMap = await getInviteRoleIds([invite.id]);
   const roleIds = roleMap.get(invite.id) ?? [];
   if (roleIds.length === 0) {
-    const { guestRoleId } = await getSystemRoleIds();
-    return { inviteId: invite.id, roleIds: [guestRoleId] };
+    const { guestRoleId } = await getSystemRoleIds(invite.workspaceId);
+    return { inviteId: invite.id, workspaceId: invite.workspaceId, roleIds: [guestRoleId] };
   }
 
-  return { inviteId: invite.id, roleIds };
+  const validRoles = await db
+    .select({ id: roles.id })
+    .from(roles)
+    .where(and(eq(roles.workspaceId, invite.workspaceId), inArray(roles.id, roleIds)));
+  if (validRoles.length !== roleIds.length) {
+    throw new ApiError(409, "Invite roles do not belong to the invite workspace");
+  }
+
+  return { inviteId: invite.id, workspaceId: invite.workspaceId, roleIds };
 }
 
 export async function consumeInvite(inviteId: string, userId: string): Promise<void> {
-  const [result] = await db
-    .update(invites)
-    .set({ acceptedAt: new Date(), acceptedBy: userId, updatedAt: new Date() })
-    .where(and(eq(invites.id, inviteId), isNull(invites.acceptedAt), isNull(invites.revokedAt)))
-    .execute();
+  await db.transaction(async (tx: DbTransaction) => {
+    const rows = await tx.select({ workspaceId: invites.workspaceId, role: invites.role }).from(invites).where(eq(invites.id, inviteId)).limit(1);
+    const workspaceId = rows[0]?.workspaceId;
+    if (!workspaceId) throw new ApiError(404, "Invite not found");
+    const now = new Date();
+    const [result] = await tx
+      .update(invites)
+      .set({ acceptedAt: now, acceptedBy: userId, updatedAt: now })
+      .where(and(eq(invites.id, inviteId), isNull(invites.acceptedAt), isNull(invites.revokedAt)))
+      .execute();
 
-  if (result.affectedRows === 0) {
-    throw new ApiError(409, "Invite has already been used");
-  }
+    if (result.affectedRows === 0) {
+      throw new ApiError(409, "Invite has already been used");
+    }
+
+    await tx.insert(workspaceMemberships).ignore().values({
+      workspaceId,
+      userId,
+      status: "active",
+      role: rows[0]!.role,
+      joinedAt: now,
+      createdAt: now,
+      updatedAt: now
+    }).execute();
+    await tx.update(workspaceMemberships)
+      .set({ status: "active", role: rows[0]!.role, updatedAt: now })
+      .where(and(eq(workspaceMemberships.workspaceId, workspaceId), eq(workspaceMemberships.userId, userId)))
+      .execute();
+  });
+}
+
+export async function acceptInviteForExistingUser(token: string, userId: string): Promise<{ workspaceId: string }> {
+  const userRows = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  const user = userRows[0];
+  if (!user) throw new ApiError(404, "User not found");
+
+  const validated = await validateInviteForRegistration(token, user.email);
+  const legacyRole = await resolveLegacyRole(validated.roleIds, validated.workspaceId);
+  await db.transaction(async (tx: DbTransaction) => {
+    const now = new Date();
+    const [accepted] = await tx.update(invites)
+      .set({ acceptedAt: now, acceptedBy: userId, updatedAt: now })
+      .where(and(
+        eq(invites.id, validated.inviteId),
+        isNull(invites.acceptedAt),
+        isNull(invites.revokedAt)
+      ))
+      .execute();
+    if (accepted.affectedRows === 0) throw new ApiError(409, "Invite has already been used");
+    await tx.insert(workspaceMemberships).ignore().values({
+      workspaceId: validated.workspaceId,
+      userId,
+      status: "active",
+      role: legacyRole,
+      joinedAt: now,
+      createdAt: now,
+      updatedAt: now
+    }).execute();
+    await tx.update(workspaceMemberships)
+      .set({ status: "active", role: legacyRole, updatedAt: now })
+      .where(and(
+        eq(workspaceMemberships.workspaceId, validated.workspaceId),
+        eq(workspaceMemberships.userId, userId)
+      ))
+      .execute();
+    await tx.delete(userRoleAssignments).where(and(
+      eq(userRoleAssignments.workspaceId, validated.workspaceId),
+      eq(userRoleAssignments.userId, userId)
+    )).execute();
+    await tx.insert(userRoleAssignments).values(validated.roleIds.map((roleId) => ({
+      workspaceId: validated.workspaceId,
+      userId,
+      roleId,
+      createdAt: now
+    }))).execute();
+  });
+  return { workspaceId: validated.workspaceId };
 }
 
 export async function updateInviteRoles(inviteId: string, roleIds: string[], actorId: string): Promise<InviteSummary> {
+  const workspaceId = getCurrentWorkspaceId();
   const uniqueRoleIds = Array.from(new Set(roleIds));
   if (uniqueRoleIds.length === 0) {
     throw new ApiError(400, "At least one role is required");
@@ -373,7 +474,7 @@ export async function updateInviteRoles(inviteId: string, roleIds: string[], act
   const rolesRows = await db
     .select({ id: roles.id, priority: roles.priority })
     .from(roles)
-    .where(inArray(roles.id, uniqueRoleIds));
+    .where(and(eq(roles.workspaceId, workspaceId), inArray(roles.id, uniqueRoleIds)));
 
   if (rolesRows.length !== uniqueRoleIds.length) {
     throw new ApiError(400, "One or more roles are invalid");
@@ -385,9 +486,9 @@ export async function updateInviteRoles(inviteId: string, roleIds: string[], act
 
   await replaceInviteRoles(inviteId, uniqueRoleIds);
 
-  const legacyRole: UserRole = await resolveLegacyRole(uniqueRoleIds);
+  const legacyRole: UserRole = await resolveLegacyRole(uniqueRoleIds, workspaceId);
 
-  await db.update(invites).set({ role: legacyRole, updatedAt: new Date() }).where(eq(invites.id, inviteId)).execute();
+  await db.update(invites).set({ role: legacyRole, updatedAt: new Date() }).where(and(eq(invites.id, inviteId), eq(invites.workspaceId, workspaceId))).execute();
 
   const refreshed = await getInviteById(inviteId);
   return toInviteSummary(refreshed, uniqueRoleIds);

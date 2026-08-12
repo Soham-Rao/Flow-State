@@ -8,12 +8,15 @@ import {
   roles,
   userRoleAssignments,
   users,
+  workspaceMemberships,
   type RolePermission,
   type UserRole
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import { assertRoleHierarchy } from "../../utils/permissions.js";
+import { getOptionalWorkspaceId } from "../../utils/workspace-context.js";
+import { DEFAULT_WORKSPACE_ID } from "../workspaces/workspaces.constants.js";
 import type { CreateRoleInput, UpdateRoleInput } from "./roles.schema.js";
 
 type RoleRow = typeof roles.$inferSelect;
@@ -21,6 +24,10 @@ type RoleRow = typeof roles.$inferSelect;
 const ADMIN_ROLE_NAME = "Admin";
 const MEMBER_ROLE_NAME = "Member";
 const GUEST_ROLE_NAME = "Guest";
+
+function activeWorkspaceId(explicit?: string): string {
+  return explicit ?? getOptionalWorkspaceId() ?? DEFAULT_WORKSPACE_ID;
+}
 
 export interface RoleSummary {
   id: string;
@@ -46,7 +53,7 @@ function normalizeRoleIds(roleIds: string[]): string[] {
   return Array.from(new Set(roleIds));
 }
 
-async function getSystemRoles(): Promise<{
+async function getSystemRoles(workspaceId = activeWorkspaceId()): Promise<{
   admin: typeof roles.$inferSelect;
   member: typeof roles.$inferSelect;
   guest: typeof roles.$inferSelect;
@@ -54,7 +61,10 @@ async function getSystemRoles(): Promise<{
   const rows: RoleRow[] = await db
     .select()
     .from(roles)
-    .where(inArray(roles.name, [ADMIN_ROLE_NAME, MEMBER_ROLE_NAME, GUEST_ROLE_NAME]));
+    .where(and(
+      eq(roles.workspaceId, workspaceId),
+      inArray(roles.name, [ADMIN_ROLE_NAME, MEMBER_ROLE_NAME, GUEST_ROLE_NAME])
+    ));
 
   const admin = rows.find((row) => row.name === ADMIN_ROLE_NAME);
   const member = rows.find((row) => row.name === MEMBER_ROLE_NAME);
@@ -67,13 +77,13 @@ async function getSystemRoles(): Promise<{
   return { admin, member, guest };
 }
 
-export async function getSystemRoleIds(): Promise<{ adminRoleId: string; memberRoleId: string; guestRoleId: string }> {
-  const { admin, member, guest } = await getSystemRoles();
+export async function getSystemRoleIds(workspaceId = activeWorkspaceId()): Promise<{ adminRoleId: string; memberRoleId: string; guestRoleId: string }> {
+  const { admin, member, guest } = await getSystemRoles(workspaceId);
   return { adminRoleId: admin.id, memberRoleId: member.id, guestRoleId: guest.id };
 }
 
-export async function resolveLegacyRole(roleIds: string[]): Promise<UserRole> {
-  const { adminRoleId, memberRoleId, guestRoleId } = await getSystemRoleIds();
+export async function resolveLegacyRole(roleIds: string[], workspaceId = activeWorkspaceId()): Promise<UserRole> {
+  const { adminRoleId, memberRoleId, guestRoleId } = await getSystemRoleIds(workspaceId);
   if (roleIds.includes(adminRoleId)) {
     return "admin";
   }
@@ -107,10 +117,11 @@ async function getPermissionsForRoles(roleIds: string[]): Promise<Map<string, Ro
 }
 
 async function getMaxPriorityBelow(limit: number): Promise<number> {
+  const workspaceId = activeWorkspaceId();
   const rows = await db
     .select({ maxPriority: sql<number | null>`max(${roles.priority})` })
     .from(roles)
-    .where(lt(roles.priority, limit))
+    .where(and(eq(roles.workspaceId, workspaceId), lt(roles.priority, limit)))
     .limit(1);
 
   const maxPriority = rows[0]?.maxPriority ?? limit - 1;
@@ -124,9 +135,11 @@ function isReservedRoleName(name: string): boolean {
 }
 
 export async function listRoles(): Promise<RoleSummary[]> {
+  const workspaceId = activeWorkspaceId();
   const rows: RoleRow[] = await db
     .select()
     .from(roles)
+    .where(eq(roles.workspaceId, workspaceId))
     .orderBy(desc(roles.priority), roles.name);
 
   const permissionsMap = await getPermissionsForRoles(rows.map((row) => row.id));
@@ -143,6 +156,7 @@ export async function listRoles(): Promise<RoleSummary[]> {
 }
 
 export async function createRole(input: CreateRoleInput, actorId: string): Promise<RoleSummary> {
+  const workspaceId = activeWorkspaceId();
   const name = sanitizeRequiredPlainText(input.name, { field: "Role name", min: 2, max: 50 });
   if (isReservedRoleName(name)) {
     throw new ApiError(409, "That role name is reserved");
@@ -151,7 +165,7 @@ export async function createRole(input: CreateRoleInput, actorId: string): Promi
   const existingRows = await db
     .select({ id: roles.id })
     .from(roles)
-    .where(eq(roles.name, name))
+    .where(and(eq(roles.workspaceId, workspaceId), eq(roles.name, name)))
     .limit(1);
   if (existingRows[0]) {
     throw new ApiError(409, "Role name already exists");
@@ -161,7 +175,7 @@ export async function createRole(input: CreateRoleInput, actorId: string): Promi
     .select({ priority: roles.priority })
     .from(userRoleAssignments)
     .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
-    .where(eq(userRoleAssignments.userId, actorId))
+    .where(and(eq(userRoleAssignments.workspaceId, workspaceId), eq(userRoleAssignments.userId, actorId)))
     .orderBy(desc(roles.priority))
     .limit(1);
 
@@ -181,6 +195,7 @@ export async function createRole(input: CreateRoleInput, actorId: string): Promi
     await tx.insert(roles)
       .values({
         id: roleId,
+        workspaceId,
         name,
         color: input.color,
         priority,
@@ -208,7 +223,8 @@ export async function createRole(input: CreateRoleInput, actorId: string): Promi
 }
 
 export async function updateRole(roleId: string, input: UpdateRoleInput, actorId: string): Promise<RoleSummary> {
-  const roleRows: RoleRow[] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+  const workspaceId = activeWorkspaceId();
+  const roleRows: RoleRow[] = await db.select().from(roles).where(and(eq(roles.id, roleId), eq(roles.workspaceId, workspaceId))).limit(1);
   const role = roleRows[0];
   if (!role) {
     throw new ApiError(404, "Role not found");
@@ -231,7 +247,7 @@ export async function updateRole(roleId: string, input: UpdateRoleInput, actorId
     const existingRows = await db
       .select({ id: roles.id })
       .from(roles)
-      .where(and(eq(roles.name, nextName), ne(roles.id, roleId)))
+      .where(and(eq(roles.workspaceId, workspaceId), eq(roles.name, nextName), ne(roles.id, roleId)))
       .limit(1);
 
     if (existingRows[0]) {
@@ -253,7 +269,7 @@ export async function updateRole(roleId: string, input: UpdateRoleInput, actorId
         mentionable: input.mentionable ?? role.mentionable,
         updatedAt: now
       })
-      .where(eq(roles.id, roleId))
+      .where(and(eq(roles.id, roleId), eq(roles.workspaceId, workspaceId)))
       .execute();
 
     if (input.permissions) {
@@ -278,7 +294,8 @@ export async function updateRole(roleId: string, input: UpdateRoleInput, actorId
 }
 
 export async function deleteRole(roleId: string, actorId: string): Promise<void> {
-  const roleRows: RoleRow[] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+  const workspaceId = activeWorkspaceId();
+  const roleRows: RoleRow[] = await db.select().from(roles).where(and(eq(roles.id, roleId), eq(roles.workspaceId, workspaceId))).limit(1);
   const role = roleRows[0];
   if (!role) {
     throw new ApiError(404, "Role not found");
@@ -289,10 +306,11 @@ export async function deleteRole(roleId: string, actorId: string): Promise<void>
 
   await assertRoleHierarchy(actorId, role.priority, { allowEqual: true });
 
-  await db.delete(roles).where(eq(roles.id, roleId)).execute();
+  await db.delete(roles).where(and(eq(roles.id, roleId), eq(roles.workspaceId, workspaceId))).execute();
 }
 
 export async function listRoleAssignments(): Promise<UserRoleAssignment[]> {
+  const workspaceId = activeWorkspaceId();
   const usersRows = await db
     .select({
       id: users.id,
@@ -300,14 +318,17 @@ export async function listRoleAssignments(): Promise<UserRoleAssignment[]> {
       email: users.email,
       username: users.username,
       displayName: users.displayName,
-      role: users.role
+      role: workspaceMemberships.role
     })
-    .from(users)
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(eq(workspaceMemberships.workspaceId, workspaceId), eq(workspaceMemberships.status, "active")))
     .orderBy(desc(users.createdAt));
 
   const assignments = await db
     .select({ userId: userRoleAssignments.userId, roleId: userRoleAssignments.roleId })
-    .from(userRoleAssignments);
+    .from(userRoleAssignments)
+    .where(eq(userRoleAssignments.workspaceId, workspaceId));
 
   const map = new Map<string, string[]>();
   for (const row of assignments) {
@@ -319,7 +340,7 @@ export async function listRoleAssignments(): Promise<UserRoleAssignment[]> {
   const results: UserRoleAssignment[] = [];
   for (const user of usersRows) {
     const roleIds = normalizeRoleIds(map.get(user.id) ?? []);
-    const legacyRole = roleIds.length > 0 ? await resolveLegacyRole(roleIds) : user.role;
+    const legacyRole = roleIds.length > 0 ? await resolveLegacyRole(roleIds, workspaceId) : user.role;
     results.push({
       id: user.id,
       name: user.name,
@@ -335,6 +356,7 @@ export async function listRoleAssignments(): Promise<UserRoleAssignment[]> {
 }
 
 export async function updateUserRoles(userId: string, roleIds: string[], actorId: string): Promise<UserRoleAssignment> {
+  const workspaceId = activeWorkspaceId();
   const uniqueRoleIds = normalizeRoleIds(roleIds);
   if (uniqueRoleIds.length === 0) {
     throw new ApiError(400, "At least one role is required");
@@ -347,10 +369,15 @@ export async function updateUserRoles(userId: string, roleIds: string[], actorId
       email: users.email,
       username: users.username,
       displayName: users.displayName,
-      role: users.role
+      role: workspaceMemberships.role
     })
-    .from(users)
-    .where(eq(users.id, userId))
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(
+      eq(workspaceMemberships.workspaceId, workspaceId),
+      eq(workspaceMemberships.userId, userId),
+      eq(workspaceMemberships.status, "active")
+    ))
     .limit(1);
 
   const user = userRows[0];
@@ -362,7 +389,7 @@ export async function updateUserRoles(userId: string, roleIds: string[], actorId
   const rolesRows: Array<{ id: string; priority: number }> = await db
     .select({ id: roles.id, priority: roles.priority })
     .from(roles)
-    .where(inArray(roles.id, uniqueRoleIds));
+    .where(and(eq(roles.workspaceId, workspaceId), inArray(roles.id, uniqueRoleIds)));
 
   if (rolesRows.length !== uniqueRoleIds.length) {
     throw new ApiError(400, "One or more roles are invalid");
@@ -374,13 +401,16 @@ export async function updateUserRoles(userId: string, roleIds: string[], actorId
 
   const now = new Date();
   await db.transaction(async (tx: DbTransaction) => {
-    await tx.delete(userRoleAssignments).where(eq(userRoleAssignments.userId, userId)).execute();
+    await tx.delete(userRoleAssignments).where(and(eq(userRoleAssignments.workspaceId, workspaceId), eq(userRoleAssignments.userId, userId))).execute();
     await tx.insert(userRoleAssignments)
-      .values(uniqueRoleIds.map((roleId) => ({ userId, roleId, createdAt: now })))
+      .values(uniqueRoleIds.map((roleId) => ({ workspaceId, userId, roleId, createdAt: now })))
       .execute();
 
-    const legacyRole = await resolveLegacyRole(uniqueRoleIds);
-    await tx.update(users).set({ role: legacyRole, updatedAt: now }).where(eq(users.id, userId)).execute();
+    const legacyRole = await resolveLegacyRole(uniqueRoleIds, workspaceId);
+    await tx.update(workspaceMemberships)
+      .set({ role: legacyRole, updatedAt: now })
+      .where(and(eq(workspaceMemberships.workspaceId, workspaceId), eq(workspaceMemberships.userId, userId)))
+      .execute();
   });
 
   return {
@@ -389,12 +419,12 @@ export async function updateUserRoles(userId: string, roleIds: string[], actorId
     email: user.email,
     username: user.username ?? null,
     displayName: user.displayName ?? null,
-    role: await resolveLegacyRole(uniqueRoleIds),
+    role: await resolveLegacyRole(uniqueRoleIds, workspaceId),
     roleIds: uniqueRoleIds
   };
 }
 
-export async function setUserRoles(userId: string, roleIds: string[]): Promise<void> {
+export async function setUserRoles(userId: string, roleIds: string[], workspaceId = activeWorkspaceId()): Promise<void> {
   const uniqueRoleIds = normalizeRoleIds(roleIds);
   if (uniqueRoleIds.length === 0) {
     throw new ApiError(400, "At least one role is required");
@@ -403,7 +433,7 @@ export async function setUserRoles(userId: string, roleIds: string[]): Promise<v
   const rolesRows = await db
     .select({ id: roles.id })
     .from(roles)
-    .where(inArray(roles.id, uniqueRoleIds));
+    .where(and(eq(roles.workspaceId, workspaceId), inArray(roles.id, uniqueRoleIds)));
 
   if (rolesRows.length !== uniqueRoleIds.length) {
     throw new ApiError(400, "One or more roles are invalid");
@@ -411,12 +441,15 @@ export async function setUserRoles(userId: string, roleIds: string[]): Promise<v
 
   const now = new Date();
   await db.transaction(async (tx: DbTransaction) => {
-    await tx.delete(userRoleAssignments).where(eq(userRoleAssignments.userId, userId)).execute();
+    await tx.delete(userRoleAssignments).where(and(eq(userRoleAssignments.workspaceId, workspaceId), eq(userRoleAssignments.userId, userId))).execute();
     await tx.insert(userRoleAssignments)
-      .values(uniqueRoleIds.map((roleId) => ({ userId, roleId, createdAt: now })))
+      .values(uniqueRoleIds.map((roleId) => ({ workspaceId, userId, roleId, createdAt: now })))
       .execute();
 
-    const legacyRole = await resolveLegacyRole(uniqueRoleIds);
-    await tx.update(users).set({ role: legacyRole, updatedAt: now }).where(eq(users.id, userId)).execute();
+    const legacyRole = await resolveLegacyRole(uniqueRoleIds, workspaceId);
+    await tx.update(workspaceMemberships)
+      .set({ role: legacyRole, updatedAt: now })
+      .where(and(eq(workspaceMemberships.workspaceId, workspaceId), eq(workspaceMemberships.userId, userId)))
+      .execute();
   });
 }

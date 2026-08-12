@@ -10,6 +10,7 @@ import { useActivityStore } from "@/stores/activity-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAppFeedbackStore } from "@/stores/app-feedback-store";
 import { useSocketStore } from "@/stores/socket-store";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 import type { AnnouncementAudience, AnnouncementAudienceOptions, AnnouncementDetail } from "@/types/announcements";
 import type { DashboardCardSummary, DashboardSummary } from "@/types/dashboard";
 import type { CommentMentionDetail } from "@/types/mentions";
@@ -103,6 +104,7 @@ const mergeBoardMentions = (
 
 export function HomePage(): JSX.Element {
   const user = useAuthStore((state) => state.user);
+  const canCreateWorkspace = useWorkspaceStore((state) => state.canCreateWorkspace);
   const isAdmin = user?.role === "admin";
   const socketStatus = useSocketStore((state) => state.status);
   const openFeedbackDialog = useAppFeedbackStore((state) => state.openDialog);
@@ -491,7 +493,7 @@ export function HomePage(): JSX.Element {
 
   return (
     <div className="min-h-[calc(100vh-5.25rem)] space-y-6 bg-transparent p-6 text-slate-900 [&_.text-foreground]:text-slate-900 [&_.text-muted-foreground]:text-slate-600 dark:text-white/90 dark:[&_.text-foreground]:text-white dark:[&_.text-muted-foreground]:text-white/70">
-      <DashboardHeader email={user?.email} />
+      <DashboardHeader email={user?.email} canCreateWorkspace={canCreateWorkspace} />
 
       {summaryError && (
         <PageErrorState

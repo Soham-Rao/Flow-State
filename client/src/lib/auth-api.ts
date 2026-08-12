@@ -50,6 +50,13 @@ export function getCurrentUser(): Promise<AuthUser> {
   });
 }
 
+export function getAccountUser(): Promise<AuthUser> {
+  return apiRequest<AuthUser>("/auth/account", {
+    method: "GET",
+    auth: true
+  });
+}
+
 export function updateProfile(input: UpdateProfileInput): Promise<AuthUser> {
   return apiRequest<AuthUser>("/auth/me", {
     method: "PATCH",

@@ -2,6 +2,7 @@
 import multer from "multer";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { setPrivateShortCache } from "../../utils/http-cache.js";
 import {
   addChannelMembersSchema,
@@ -56,7 +57,7 @@ export const threadsRouter = Router();
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
 
-threadsRouter.use(requireAuth);
+threadsRouter.use(requireAuth, requireWorkspace);
 
 threadsRouter.get("/dms/users", async (req, res, next) => {
   try {

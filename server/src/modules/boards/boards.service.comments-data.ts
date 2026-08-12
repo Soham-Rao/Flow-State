@@ -4,10 +4,11 @@ import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
 import { recordActivity } from "../activity/activity.service.js";
-import { commentMentions, commentReactions, comments, users } from "../../db/schema.js";
+import { commentMentions, commentReactions, comments, users, workspaceMemberships } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { userHasPermission } from "../../utils/permissions.js";
 import { clipAuditText, sanitizeRequiredPlainText } from "../../utils/sanitize.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import type { CreateCommentInput } from "./boards.schema.js";
 import type { BoardComment, BoardMember, CommentReaction, CommentRow } from "./boards.service.types.js";
 
@@ -54,11 +55,12 @@ export async function getCommentMentionsForComments(commentIds: string[]): Promi
       username: users.username,
       email: users.email,
       bio: users.bio,
-      role: users.role,
+      role: workspaceMemberships.role,
       createdAt: users.createdAt
     })
     .from(commentMentions)
     .innerJoin(users, eq(commentMentions.userId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(inArray(commentMentions.commentId, commentIds));
 
   const mentionsByCommentId = new Map<string, BoardMember[]>();
@@ -124,11 +126,12 @@ export async function getCommentsForBoard(boardId: string): Promise<BoardComment
       authorUsername: users.username,
       authorEmail: users.email,
       authorBio: users.bio,
-      authorRole: users.role,
+      authorRole: workspaceMemberships.role,
       authorCreatedAt: users.createdAt
     })
     .from(comments)
     .innerJoin(users, eq(comments.authorId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(and(eq(comments.boardId, boardId), isNull(comments.listId), isNull(comments.cardId)))
     .orderBy(asc(comments.createdAt));
 
@@ -155,11 +158,12 @@ export async function getCommentsForLists(listIds: string[]): Promise<Map<string
       authorUsername: users.username,
       authorEmail: users.email,
       authorBio: users.bio,
-      authorRole: users.role,
+      authorRole: workspaceMemberships.role,
       authorCreatedAt: users.createdAt
     })
     .from(comments)
     .innerJoin(users, eq(comments.authorId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(and(inArray(comments.listId, listIds), isNull(comments.cardId)))
     .orderBy(asc(comments.createdAt));
 
@@ -194,11 +198,12 @@ export async function getCommentsForCards(cardIds: string[]): Promise<Map<string
       authorUsername: users.username,
       authorEmail: users.email,
       authorBio: users.bio,
-      authorRole: users.role,
+      authorRole: workspaceMemberships.role,
       authorCreatedAt: users.createdAt
     })
     .from(comments)
     .innerJoin(users, eq(comments.authorId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(inArray(comments.cardId, cardIds))
     .orderBy(asc(comments.createdAt));
 
@@ -229,11 +234,12 @@ export async function getCommentById(commentId: string): Promise<BoardComment> {
       authorUsername: users.username,
       authorEmail: users.email,
       authorBio: users.bio,
-      authorRole: users.role,
+      authorRole: workspaceMemberships.role,
       authorCreatedAt: users.createdAt
     })
     .from(comments)
     .innerJoin(users, eq(comments.authorId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(eq(comments.id, commentId))
     .limit(1);
 
@@ -257,8 +263,9 @@ export async function storeCommentMentions(
   const uniqueMentions = Array.from(new Set(mentions)).filter((mentionId) => mentionId !== authorId);
   const existingUsers = await db
     .select({ id: users.id })
-    .from(users)
-    .where(inArray(users.id, uniqueMentions));
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()), inArray(users.id, uniqueMentions)));
 
   if (uniqueMentions.length === 0) {
     return [];

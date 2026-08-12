@@ -13,6 +13,7 @@ import {
   type RoleScopeType
 } from "../db/schema.js";
 import { ApiError } from "./api-error.js";
+import { getCurrentWorkspaceId } from "./workspace-context.js";
 
 export interface PermissionContext {
   scopeType?: RoleScopeType;
@@ -20,15 +21,17 @@ export interface PermissionContext {
 }
 
 export async function getUserRoleIds(userId: string): Promise<string[]> {
+  const workspaceId = getCurrentWorkspaceId();
   const rows: Array<{ roleId: string }> = await db
     .select({ roleId: userRoleAssignments.roleId })
     .from(userRoleAssignments)
-    .where(eq(userRoleAssignments.userId, userId));
+    .where(and(eq(userRoleAssignments.workspaceId, workspaceId), eq(userRoleAssignments.userId, userId)));
 
   return rows.map((row) => row.roleId);
 }
 
 export async function getUserPermissions(userId: string, context?: PermissionContext): Promise<Set<RolePermission>> {
+  const workspaceId = getCurrentWorkspaceId();
   const roleIds = await getUserRoleIds(userId);
   if (roleIds.length === 0) {
     return new Set();
@@ -51,7 +54,7 @@ export async function getUserPermissions(userId: string, context?: PermissionCon
         const [board] = await db
           .select({ createdBy: boards.createdBy })
           .from(boards)
-          .where(eq(boards.id, boardId))
+          .where(and(eq(boards.id, boardId), eq(boards.workspaceId, workspaceId)))
           .limit(1);
 
         const isCreator = board?.createdBy === userId;
@@ -169,7 +172,7 @@ export async function getUserHighestRole(
     .select({ id: roles.id, name: roles.name, priority: roles.priority })
     .from(userRoleAssignments)
     .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
-    .where(eq(userRoleAssignments.userId, userId))
+    .where(and(eq(userRoleAssignments.workspaceId, getCurrentWorkspaceId()), eq(userRoleAssignments.userId, userId)))
     .orderBy(desc(roles.priority))
     .limit(1);
 

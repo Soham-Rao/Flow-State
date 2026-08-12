@@ -21,6 +21,7 @@ import {
 import { ApiError } from "../../utils/api-error.js";
 import { decryptDmBody } from "../../utils/encryption.js";
 import { getUserRoleIds } from "../../utils/permissions.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 
 export interface MentionUnreadCounts {
   total: number;
@@ -109,7 +110,8 @@ async function cleanupInvalidCommentMentions(userId: string): Promise<void> {
     .select({ commentId: commentMentions.commentId, boardId: comments.boardId })
     .from(commentMentions)
     .innerJoin(comments, eq(commentMentions.commentId, comments.id))
-    .where(eq(commentMentions.userId, userId));
+    .innerJoin(boards, eq(comments.boardId, boards.id))
+    .where(and(eq(commentMentions.userId, userId), eq(boards.workspaceId, getCurrentWorkspaceId())));
 
   if (rows.length === 0) {
     return;
@@ -171,9 +173,11 @@ export async function getUnreadMentions(userId: string): Promise<MentionUnreadCo
     .select({ count: sql<number>`count(*)` })
     .from(commentMentions)
     .innerJoin(comments, eq(commentMentions.commentId, comments.id))
+    .innerJoin(boards, eq(comments.boardId, boards.id))
     .where(
       and(
         eq(commentMentions.userId, userId),
+        eq(boards.workspaceId, getCurrentWorkspaceId()),
         isNull(commentMentions.seenAt),
         ne(comments.authorId, commentMentions.userId)
       )
@@ -183,10 +187,13 @@ export async function getUnreadMentions(userId: string): Promise<MentionUnreadCo
     .select({ count: sql<number>`count(*)` })
     .from(threadMentions)
     .innerJoin(threadMessages, eq(threadMentions.messageId, threadMessages.id))
+    .innerJoin(threadConversations, eq(threadMessages.conversationId, threadConversations.id))
     .innerJoin(threadMembers, and(eq(threadMembers.conversationId, threadMessages.conversationId), eq(threadMembers.userId, threadMentions.mentionedUserId)))
     .where(
       and(
         eq(threadMentions.mentionedUserId, userId),
+        eq(threadConversations.workspaceId, getCurrentWorkspaceId()),
+        eq(threadConversations.workspaceId, getCurrentWorkspaceId()),
         isNull(threadMentions.seenAt),
         ne(threadMessages.authorId, threadMentions.mentionedUserId)
       )
@@ -197,10 +204,13 @@ export async function getUnreadMentions(userId: string): Promise<MentionUnreadCo
     .from(threadReplyMentions)
     .innerJoin(threadReplies, eq(threadReplyMentions.replyId, threadReplies.id))
     .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
+    .innerJoin(threadConversations, eq(threadMessages.conversationId, threadConversations.id))
     .innerJoin(threadMembers, and(eq(threadMembers.conversationId, threadMessages.conversationId), eq(threadMembers.userId, threadReplyMentions.mentionedUserId)))
     .where(
       and(
         eq(threadReplyMentions.mentionedUserId, userId),
+        eq(threadConversations.workspaceId, getCurrentWorkspaceId()),
+        eq(threadConversations.workspaceId, getCurrentWorkspaceId()),
         isNull(threadReplyMentions.seenAt),
         ne(threadReplies.authorId, threadReplyMentions.mentionedUserId)
       )
@@ -215,7 +225,7 @@ export async function getUnreadMentions(userId: string): Promise<MentionUnreadCo
     .innerJoin(cards, eq(cardAssignees.cardId, cards.id))
     .innerJoin(lists, eq(cards.listId, lists.id))
     .innerJoin(boards, eq(lists.boardId, boards.id))
-    .where(eq(cardAssignees.userId, userId));
+    .where(and(eq(cardAssignees.userId, userId), eq(boards.workspaceId, getCurrentWorkspaceId())));
 
   const assignedBoardIds = Array.from(new Set(assignedBoardRows.map((row) => row.boardId)));
   const accessibleAssignedBoards = await getAccessibleBoardIds(userId, assignedBoardIds);
@@ -265,7 +275,12 @@ export async function markThreadMentionsSeen(userId: string, conversationId: str
   const membershipRows = await db
     .select({ userId: threadMembers.userId })
     .from(threadMembers)
-    .where(and(eq(threadMembers.conversationId, conversationId), eq(threadMembers.userId, userId)))
+    .innerJoin(threadConversations, eq(threadMembers.conversationId, threadConversations.id))
+    .where(and(
+      eq(threadMembers.conversationId, conversationId),
+      eq(threadMembers.userId, userId),
+      eq(threadConversations.workspaceId, getCurrentWorkspaceId())
+    ))
     .limit(1);
 
   if (!membershipRows[0]) {
@@ -574,6 +589,7 @@ export async function listUnreadCommentMentions(userId: string): Promise<Comment
     .where(
       and(
         eq(commentMentions.userId, userId),
+        eq(boards.workspaceId, getCurrentWorkspaceId()),
         isNull(commentMentions.seenAt),
         ne(comments.authorId, userId)
       )
@@ -592,7 +608,13 @@ export async function listCommentMentions(userId: string): Promise<Array<{ comme
   return db
     .select({ commentId: commentMentions.commentId })
     .from(commentMentions)
-    .where(and(eq(commentMentions.userId, userId), isNull(commentMentions.seenAt)));
+    .innerJoin(comments, eq(commentMentions.commentId, comments.id))
+    .innerJoin(boards, eq(comments.boardId, boards.id))
+    .where(and(
+      eq(commentMentions.userId, userId),
+      eq(boards.workspaceId, getCurrentWorkspaceId()),
+      isNull(commentMentions.seenAt)
+    ));
 }
 
 

@@ -2,8 +2,9 @@ import { create } from "zustand";
 
 import * as authApi from "@/lib/auth-api";
 import { clearApiCache, invalidateApiCacheByTag } from "@/lib/api-client";
-import { clearSessionToken, getSessionToken, setSessionToken } from "@/lib/session";
+import { clearActiveWorkspaceId, clearSessionToken, getSessionToken, setSessionToken } from "@/lib/session";
 import type { AuthUser } from "@/types/auth";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 
 type AuthStatus = "idle" | "loading" | "authenticated" | "unauthenticated";
 
@@ -80,11 +81,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ status: "loading", error: null });
 
     try {
-      const user = await authApi.getCurrentUser();
+      await useWorkspaceStore.getState().hydrate();
+      const user = useWorkspaceStore.getState().active
+        ? await authApi.getCurrentUser()
+        : await authApi.getAccountUser();
       set({ ...setAuthenticated(user), hydrated: true });
     } catch {
       clearSessionToken();
       clearApiCache();
+      useWorkspaceStore.getState().clear();
       set({ ...setUnauthenticated(), hydrated: true });
     }
   },
@@ -95,7 +100,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authApi.register(input);
       setSessionToken(response.token);
+      clearActiveWorkspaceId();
       clearApiCache();
+      await useWorkspaceStore.getState().hydrate();
       set(setAuthenticated(response.user));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to register";
@@ -110,7 +117,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authApi.login(input);
       setSessionToken(response.token);
+      clearActiveWorkspaceId();
       clearApiCache();
+      await useWorkspaceStore.getState().hydrate();
       set(setAuthenticated(response.user));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to login";
@@ -142,6 +151,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     clearSessionToken();
     clearApiCache();
+    useWorkspaceStore.getState().clear();
     set(setUnauthenticated());
   },
 
@@ -157,6 +167,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       clearSessionToken();
       clearApiCache();
+      useWorkspaceStore.getState().clear();
       set((state) => ({ ...setUnauthenticated(), hydrated: state.hydrated }));
     }
   },

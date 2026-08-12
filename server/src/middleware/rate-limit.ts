@@ -94,3 +94,11 @@ export const healthRateLimiter = createJsonRateLimiter({
   max: env.HEALTH_RATE_LIMIT_MAX,
   targetType: "health"
 });
+
+export const workspaceCreationRateLimiter = createJsonRateLimiter({
+  action: "workspace.create",
+  message: "Too many workspace creation attempts. Please try again later.",
+  windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
+  max: Math.min(env.AUTH_RATE_LIMIT_MAX, 5),
+  targetType: "workspace"
+});

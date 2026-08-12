@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bell, ChevronDown, Command, LayoutDashboard, ListTodo, LogOut, MessageCircle, MessageSquareText, Settings, Sliders, Timer, User } from "lucide-react";
+import { Bell, Building2, Check, ChevronDown, Command, LayoutDashboard, ListTodo, LogOut, MessageCircle, MessageSquareText, Settings, Sliders, Timer, User } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useAppFeedbackStore } from "@/stores/app-feedback-store";
 import { getBugReportSummary } from "@/lib/bug-reports-api";
 import { listChannelConversations, listDmConversations } from "@/lib/threads-api";
 import type { PresenceUser } from "@/types/presence";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -65,6 +66,9 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const clearPermissionError = usePermissionErrorStore((state) => state.clear);
   const feedbackDialog = useAppFeedbackStore((state) => state.dialog);
   const clearFeedbackDialog = useAppFeedbackStore((state) => state.clearDialog);
+  const workspaces = useWorkspaceStore((state) => state.workspaces);
+  const activeWorkspace = useWorkspaceStore((state) => state.active);
+  const switchWorkspace = useWorkspaceStore((state) => state.switchWorkspace);
 
 
   const refreshThreadCounts = useCallback(async (): Promise<void> => {
@@ -193,7 +197,9 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   }), [canViewBoards, user?.role]);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const workspaceMenuRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [threadsOpen, setThreadsOpen] = useState(true);
 
   const displayName = useMemo(() => {
@@ -216,7 +222,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
   const isThreadsPath = location.pathname === "/threads";
 
   useEffect(() => {
-    if (!menuOpen) {
+    if (!menuOpen && !workspaceMenuOpen) {
       return;
     }
 
@@ -225,11 +231,15 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
       if (!target || !menuRef.current?.contains(target)) {
         setMenuOpen(false);
       }
+      if (!target || !workspaceMenuRef.current?.contains(target)) {
+        setWorkspaceMenuOpen(false);
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMenuOpen(false);
+        setWorkspaceMenuOpen(false);
       }
     };
 
@@ -239,7 +249,7 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [menuOpen]);
+  }, [menuOpen, workspaceMenuOpen]);
 
   const onLogout = async (): Promise<void> => {
     await logout();
@@ -452,6 +462,58 @@ export function AppShell({ children }: AppShellProps): JSX.Element {
             </div>
 
             <div className="flex items-center gap-3">
+              {activeWorkspace && (
+                <div ref={workspaceMenuRef} className="relative">
+                  <button
+                    type="button"
+                    aria-label={`Active workspace: ${activeWorkspace.name}`}
+                    aria-haspopup="menu"
+                    aria-expanded={workspaceMenuOpen}
+                    onClick={() => setWorkspaceMenuOpen((open) => !open)}
+                    className="flex max-w-64 items-center gap-2 rounded-lg border border-white/35 bg-white/30 px-3 py-1.5 text-left text-slate-900 backdrop-blur-xl transition hover:border-white/60 hover:bg-white/40 dark:border-white/16 dark:bg-black/30 dark:text-white/90 dark:hover:bg-black/40"
+                  >
+                    <Building2 className="h-4 w-4 shrink-0 text-slate-500 dark:text-white/70" />
+                    <span className="truncate text-sm font-medium leading-tight">{activeWorkspace.name}</span>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition dark:text-white/70 ${workspaceMenuOpen ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {workspaceMenuOpen && (
+                    <div
+                      role="menu"
+                      aria-label="Switch workspace"
+                      className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-white/45 bg-white/45 p-2 text-slate-900 shadow-xl backdrop-blur-2xl dark:border-white/16 dark:bg-black/40 dark:text-white/95"
+                    >
+                      <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-white/55">
+                        Workspaces
+                      </p>
+                      {workspaces.map((workspace) => {
+                        const isActive = workspace.id === activeWorkspace.id;
+                        return (
+                          <button
+                            key={workspace.id}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={isActive}
+                            className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition ${
+                              isActive
+                                ? "bg-black/5 text-slate-950 dark:bg-white/10 dark:text-white"
+                                : "hover:bg-black/5 dark:hover:bg-white/10"
+                            }`}
+                            onClick={() => {
+                              setWorkspaceMenuOpen(false);
+                              if (!isActive) switchWorkspace(workspace.id);
+                            }}
+                          >
+                            <Building2 className="h-4 w-4 shrink-0 text-slate-500 dark:text-white/65" />
+                            <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
+                            {isActive && <Check className="h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
               {workspacePresence.length > 0 && (
                 <div className="flex items-center gap-2">
                   <div className="flex -space-x-2">

@@ -16,12 +16,14 @@ import {
   threadMentions,
   threadVoiceNotes,
   users,
+  workspaceMemberships,
   type UserRole
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { sanitizePlainText } from "../../utils/sanitize.js";
 import { decryptDmBody, encryptDmBody } from "../../utils/encryption.js";
 import { assertPermission } from "../../utils/permissions.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import type {
   CreateThreadMessageInput,
   DeleteThreadMessageInput,
@@ -141,10 +143,11 @@ const loadReplyContextMaps = async (
         authorUsername: users.username,
         authorEmail: users.email,
         authorBio: users.bio,
-        authorRole: users.role
+        authorRole: workspaceMemberships.role
       })
       .from(threadMessages)
       .innerJoin(users, eq(threadMessages.authorId, users.id))
+      .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
       .where(and(inArray(threadMessages.id, replyToMessageIds), eq(threadMessages.conversationId, conversationId)));
 
     rows.forEach((row) => {
@@ -167,11 +170,12 @@ const loadReplyContextMaps = async (
         authorUsername: users.username,
         authorEmail: users.email,
         authorBio: users.bio,
-        authorRole: users.role
+        authorRole: workspaceMemberships.role
       })
       .from(threadReplies)
       .innerJoin(threadMessages, eq(threadReplies.parentMessageId, threadMessages.id))
       .innerJoin(users, eq(threadReplies.authorId, users.id))
+      .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
       .where(and(inArray(threadReplies.id, replyToReplyIds), eq(threadMessages.conversationId, conversationId)));
 
     rows.forEach((row) => {
@@ -221,10 +225,11 @@ export async function listThreadMessages(
       authorUsername: users.username,
       authorEmail: users.email,
       authorBio: users.bio,
-      authorRole: users.role
+      authorRole: workspaceMemberships.role
     })
     .from(threadMessages)
     .innerJoin(users, eq(threadMessages.authorId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(and(...conditions))
     .orderBy(desc(threadMessages.createdAt))
     .limit(limit);
@@ -349,10 +354,11 @@ export async function listThreadMessageReactionDetails(userId: string, messageId
       username: users.username,
       email: users.email,
       bio: users.bio,
-      role: users.role
+      role: workspaceMemberships.role
     })
     .from(threadMessageReactions)
     .innerJoin(users, eq(threadMessageReactions.userId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(eq(threadMessageReactions.messageId, messageId));
 
   const map = new Map<string, ThreadUserSummary[]>();

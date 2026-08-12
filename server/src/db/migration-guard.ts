@@ -8,7 +8,8 @@ import { pool } from "./connection.js";
 import { logger } from "../utils/logger.js";
 
 const MIGRATION_LOCK_NAME = "flowstate:migrations";
-const REQUIRED_TABLES = ["users", "roles", "boards", "__drizzle_migrations"];
+const WORKSPACE_TENANCY_MIGRATION = "0011_add_workspace_tenancy.sql";
+const REQUIRED_TABLES = ["users", "workspaces", "workspace_memberships", "roles", "boards", "__drizzle_migrations"];
 const RISK_ACK_PATTERN = /^\s*--\s*@flowstate-risk-ack:\s*(.+)$/im;
 const RISK_RULES = [
   { code: "drop_table", pattern: /\bdrop\s+table\b/i },
@@ -45,6 +46,22 @@ export interface MigrationInventory {
   pendingMigrations: PendingMigrationInfo[];
   riskyMigrations: PendingMigrationInfo[];
   acknowledgedRiskyMigrations: PendingMigrationInfo[];
+}
+
+let preWorkspaceMigrationRowCounts: Map<string, number> | null = null;
+
+async function snapshotExistingTableRowCounts(): Promise<Map<string, number>> {
+  const [tables] = await pool.query<Array<RowDataPacket & { tableName: string }>>(
+    "SELECT table_name AS tableName FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE' AND table_name <> '__drizzle_migrations'"
+  );
+  const counts = new Map<string, number>();
+  for (const { tableName } of tables) {
+    const [rows] = await pool.query<Array<RowDataPacket & { count: number }>>(
+      `SELECT COUNT(*) AS count FROM \`${tableName.replace(/`/g, "``")}\``
+    );
+    counts.set(tableName, Number(rows[0]?.count ?? 0));
+  }
+  return counts;
 }
 
 function stripComments(sqlText: string): string {
@@ -164,6 +181,11 @@ export async function prepareMigrationRun(migrationsFolder: string): Promise<Mig
   try {
     await pool.query("SELECT 1");
     const inventory = await getPendingMigrationInventory(migrationsFolder);
+    preWorkspaceMigrationRowCounts = inventory.pendingMigrations.some(
+      (migration) => migration.fileName === WORKSPACE_TENANCY_MIGRATION
+    )
+      ? await snapshotExistingTableRowCounts()
+      : null;
     const unacknowledgedRisky = inventory.riskyMigrations.filter((migration) => !migration.acknowledged);
 
     if (unacknowledgedRisky.length > 0) {
@@ -202,8 +224,9 @@ export async function prepareMigrationRun(migrationsFolder: string): Promise<Mig
 }
 
 export async function runMigrationPostchecks(): Promise<void> {
+  const placeholders = REQUIRED_TABLES.map(() => "?").join(", ");
   const [rows] = await pool.query<Array<RowDataPacket & { tableName: string }>>(
-    "SELECT table_name AS tableName FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN (?, ?, ?, ?)",
+    `SELECT table_name AS tableName FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN (${placeholders})`,
     REQUIRED_TABLES
   );
 
@@ -211,6 +234,72 @@ export async function runMigrationPostchecks(): Promise<void> {
   const missing = REQUIRED_TABLES.filter((tableName) => !tableSet.has(tableName));
   if (missing.length > 0) {
     throw new Error(`Migration postcheck failed. Missing required tables: ${missing.join(", ")}`);
+  }
+
+  if (preWorkspaceMigrationRowCounts) {
+    for (const [tableName, beforeCount] of preWorkspaceMigrationRowCounts) {
+      const [countRows] = await pool.query<Array<RowDataPacket & { count: number }>>(
+        `SELECT COUNT(*) AS count FROM \`${tableName.replace(/`/g, "``")}\``
+      );
+      const afterCount = Number(countRows[0]?.count ?? 0);
+      if (afterCount < beforeCount) {
+        throw new Error(
+          `Workspace migration row-preservation check failed for ${tableName}: before=${beforeCount}, after=${afterCount}`
+        );
+      }
+    }
+    preWorkspaceMigrationRowCounts = null;
+  }
+
+  const tenantTables = [
+    "invites",
+    "email_notification_deliveries",
+    "calendar_feed_tokens",
+    "bug_reports",
+    "roles",
+    "user_roles",
+    "boards",
+    "announcements",
+    "thread_conversations",
+    "activity_logs"
+  ];
+  for (const tableName of tenantTables) {
+    const [nullRows] = await pool.query<Array<RowDataPacket & { count: number }>>(
+      `SELECT COUNT(*) AS count FROM \`${tableName}\` WHERE workspace_id IS NULL`
+    );
+    if (Number(nullRows[0]?.count ?? 0) !== 0) {
+      throw new Error(`Migration postcheck failed. ${tableName} contains rows without a workspace`);
+    }
+  }
+
+  const integrityChecks: Array<{ label: string; sql: string }> = [
+    {
+      label: "users without any workspace membership record",
+      sql: "SELECT COUNT(*) AS count FROM users u LEFT JOIN workspace_memberships wm ON wm.user_id = u.id WHERE wm.user_id IS NULL"
+    },
+    {
+      label: "role assignments crossing workspaces",
+      sql: "SELECT COUNT(*) AS count FROM user_roles ur INNER JOIN roles r ON r.id = ur.role_id WHERE ur.workspace_id <> r.workspace_id"
+    },
+    {
+      label: "role assignments without a membership",
+      sql: "SELECT COUNT(*) AS count FROM user_roles ur LEFT JOIN workspace_memberships wm ON wm.workspace_id = ur.workspace_id AND wm.user_id = ur.user_id WHERE wm.user_id IS NULL"
+    },
+    {
+      label: "board members outside the board workspace",
+      sql: "SELECT COUNT(*) AS count FROM board_members bm INNER JOIN boards b ON b.id = bm.board_id LEFT JOIN workspace_memberships wm ON wm.workspace_id = b.workspace_id AND wm.user_id = bm.user_id WHERE wm.user_id IS NULL"
+    },
+    {
+      label: "thread members outside the conversation workspace",
+      sql: "SELECT COUNT(*) AS count FROM thread_members tm INNER JOIN thread_conversations tc ON tc.id = tm.conversation_id LEFT JOIN workspace_memberships wm ON wm.workspace_id = tc.workspace_id AND wm.user_id = tm.user_id WHERE wm.user_id IS NULL"
+    }
+  ];
+
+  for (const check of integrityChecks) {
+    const [checkRows] = await pool.query<Array<RowDataPacket & { count: number }>>(check.sql);
+    if (Number(checkRows[0]?.count ?? 0) !== 0) {
+      throw new Error(`Migration postcheck failed. Found ${check.label}`);
+    }
   }
 }
 

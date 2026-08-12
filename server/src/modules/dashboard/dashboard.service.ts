@@ -8,9 +8,11 @@ import {
   cardPriorities,
   cards,
   lists,
-  users
+  users,
+  workspaceMemberships
 } from "../../db/schema.js";
 import { userHasPermission } from "../../utils/permissions.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import { listUnreadCommentMentions, listUnreadThreadMentions } from "../mentions/mentions.service.js";
 import { listAnnouncements, type AnnouncementDetail } from "../announcements/announcements.service.js";
 
@@ -332,7 +334,8 @@ async function getMetricsForRange(accessibleBoardIds: string[], startDate: Date)
 }
 
 export async function getDashboardSummary(userId: string): Promise<DashboardSummary> {
-  const boardsList: Array<{ id: string }> = await db.select({ id: boards.id }).from(boards);
+  const workspaceId = getCurrentWorkspaceId();
+  const boardsList: Array<{ id: string }> = await db.select({ id: boards.id }).from(boards).where(eq(boards.workspaceId, workspaceId));
   const accessibleBoardIds = await getAccessibleBoardIds(
     userId,
     boardsList.map((board) => board.id)
@@ -371,12 +374,17 @@ export async function getDashboardSummary(userId: string): Promise<DashboardSumm
       id: users.id,
       name: users.name,
       displayName: users.displayName,
-      role: users.role,
-      createdAt: users.createdAt
+      role: workspaceMemberships.role,
+      createdAt: workspaceMemberships.joinedAt
     })
-    .from(users)
-    .where(gte(users.createdAt, monthlyStart))
-    .orderBy(desc(users.createdAt))
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(
+      eq(workspaceMemberships.workspaceId, workspaceId),
+      eq(workspaceMemberships.status, "active"),
+      gte(workspaceMemberships.joinedAt, monthlyStart)
+    ))
+    .orderBy(desc(workspaceMemberships.joinedAt))
     .limit(6);
 
   return {

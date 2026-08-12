@@ -7,6 +7,7 @@ import {
   resetPasswordRateLimiter
 } from "../../middleware/rate-limit.js";
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { buildSecurityRequestContext } from "../../utils/request-context.js";
 import {
   forgotPasswordBodySchema,
@@ -17,6 +18,7 @@ import {
 } from "./auth.schema.js";
 import {
   getCurrentUser,
+  getAccountUser,
   loginUser,
   registerUser,
   requestPasswordReset,
@@ -95,7 +97,7 @@ authRouter.post("/logout", requireAuth, (_req, res) => {
   });
 });
 
-authRouter.get("/me", requireAuth, async (req, res, next) => {
+authRouter.get("/me", requireAuth, requireWorkspace, async (req, res, next) => {
   try {
     const data = await getCurrentUser(req.auth!.userId);
 
@@ -108,7 +110,15 @@ authRouter.get("/me", requireAuth, async (req, res, next) => {
   }
 });
 
-authRouter.patch("/me", requireAuth, async (req, res, next) => {
+authRouter.get("/account", requireAuth, async (req, res, next) => {
+  try {
+    res.status(200).json({ success: true, data: await getAccountUser(req.auth!.userId) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.patch("/me", requireAuth, requireWorkspace, async (req, res, next) => {
   try {
     const body = updateProfileSchema.parse(req.body);
     const data = await updateProfile(req.auth!.userId, body);

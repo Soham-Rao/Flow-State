@@ -18,8 +18,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
 
     req.auth = {
       userId: payload.sub,
-      email: payload.email,
-      role: payload.role
+      email: payload.email
     };
 
     next();

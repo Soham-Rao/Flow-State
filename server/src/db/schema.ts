@@ -64,6 +64,8 @@ export const rolePermissions = [
 ] as const;
 export const roleScopeTypes = ["global", "board", "section", "card"] as const;
 export const roleScopeAccess = ["allow", "deny"] as const;
+export const workspaceStatuses = ["active", "archived"] as const;
+export const workspaceMembershipStatuses = ["active", "suspended", "removed"] as const;
 export const threadConversationTypes = ["dm", "channel"] as const;
 export const threadMemberRoles = ["member", "admin"] as const;
 export const cardPriorities = ["low", "medium", "high", "urgent"] as const;
@@ -118,8 +120,45 @@ export const users = mysqlTable("users", {
   usernameUnique: uniqueIndex("idx_users_username_unique").on(table.username)
 }));
 
+export const workspaces = mysqlTable("workspaces", {
+  id: char("id", { length: 36 }).primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 120 }).notNull(),
+  status: mysqlEnum("status", workspaceStatuses).notNull().default("active"),
+  joinCodeHash: varchar("join_code_hash", { length: 255 }),
+  createdBy: char("created_by", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: createdAt("updated_at").notNull().$defaultFn(() => new Date())
+}, (table: TableColumns) => ({
+  slugUnique: uniqueIndex("idx_workspaces_slug_unique").on(table.slug),
+  nameUnique: uniqueIndex("idx_workspaces_name_unique").on(table.name),
+  statusIdx: index("idx_workspaces_status").on(table.status)
+}));
+
+export const workspaceMemberships = mysqlTable("workspace_memberships", {
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  userId: char("user_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  status: mysqlEnum("status", workspaceMembershipStatuses).notNull().default("active"),
+  role: mysqlEnum("role", userRoles).notNull().default("guest"),
+  joinedAt: createdAt("joined_at").notNull().$defaultFn(() => new Date()),
+  lastAccessedAt: createdAt("last_accessed_at"),
+  createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date()),
+  updatedAt: createdAt("updated_at").notNull().$defaultFn(() => new Date())
+}, (table: TableColumns) => ({
+  pk: primaryKey({ columns: [table.workspaceId, table.userId] }),
+  userStatusIdx: index("idx_workspace_memberships_user_status").on(table.userId, table.status),
+  workspaceStatusIdx: index("idx_workspace_memberships_workspace_status").on(table.workspaceId, table.status)
+}));
+
 export const invites = mysqlTable("invites", {
   id: char("id", { length: 36 }).primaryKey(),
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   token: varchar("token", { length: 255 }).notNull().unique(),
   email: varchar("email", { length: 255 }),
   role: mysqlEnum("role", userRoles).notNull().default("guest"),
@@ -162,6 +201,9 @@ export const userNotificationPreferences = mysqlTable("user_notification_prefere
 
 export const emailNotificationDeliveries = mysqlTable("email_notification_deliveries", {
   id: char("id", { length: 36 }).primaryKey(),
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   userId: char("user_id", { length: 36 })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -176,6 +218,7 @@ export const emailNotificationDeliveries = mysqlTable("email_notification_delive
   createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
 }, (table: TableColumns) => ({
   userDigestUnique: uniqueIndex("idx_email_deliveries_user_digest_unique").on(
+    table.workspaceId,
     table.userId,
     table.kind,
     table.digestDate,
@@ -187,6 +230,9 @@ export const emailNotificationDeliveries = mysqlTable("email_notification_delive
 
 export const calendarFeedTokens = mysqlTable("calendar_feed_tokens", {
   id: char("id", { length: 36 }).primaryKey(),
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   userId: char("user_id", { length: 36 })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -196,11 +242,18 @@ export const calendarFeedTokens = mysqlTable("calendar_feed_tokens", {
   createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
 }, (table: TableColumns) => ({
   tokenIdx: uniqueIndex("idx_calendar_feed_tokens_token").on(table.token),
-  userFeedIdx: index("idx_calendar_feed_tokens_user_feed").on(table.userId, table.feedType, table.revokedAt)
+  userFeedIdx: index("idx_calendar_feed_tokens_user_feed").on(table.userId, table.feedType, table.revokedAt),
+  workspaceUserFeedIdx: index("idx_calendar_feed_tokens_workspace_user_feed").on(
+    table.workspaceId,
+    table.userId,
+    table.feedType,
+    table.revokedAt
+  )
 }));
 
 export const auditLogs = mysqlTable("audit_logs", {
   id: char("id", { length: 36 }).primaryKey(),
+  workspaceId: char("workspace_id", { length: 36 }).references(() => workspaces.id, { onDelete: "set null" }),
   actorId: char("actor_id", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
   action: varchar("action", { length: 255 }).notNull(),
   targetType: varchar("target_type", { length: 64 }),
@@ -218,6 +271,9 @@ export const auditLogs = mysqlTable("audit_logs", {
 
 export const bugReports = mysqlTable("bug_reports", {
   id: char("id", { length: 36 }).primaryKey(),
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   reporterId: char("reporter_id", { length: 36 })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -236,7 +292,10 @@ export const bugReports = mysqlTable("bug_reports", {
 
 export const roles = mysqlTable("roles", {
   id: char("id", { length: 36 }).primaryKey(),
-  name: varchar("name", { length: 255 }).notNull().unique(),
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
   color: varchar("color", { length: 32 }).notNull(),
   priority: int("priority").notNull().default(1),
   mentionable: boolean("mentionable").notNull().default(false),
@@ -244,7 +303,8 @@ export const roles = mysqlTable("roles", {
   createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date()),
   updatedAt: createdAt("updated_at").notNull().$defaultFn(() => new Date())
 }, (table: TableColumns) => ({
-  priorityIdx: index("idx_roles_priority").on(table.priority)
+  priorityIdx: index("idx_roles_priority").on(table.workspaceId, table.priority),
+  workspaceNameUnique: uniqueIndex("idx_roles_workspace_name_unique").on(table.workspaceId, table.name)
 }));
 
 export const rolePermissionsTable = mysqlTable("role_permissions", {
@@ -259,6 +319,9 @@ export const rolePermissionsTable = mysqlTable("role_permissions", {
 }));
 
 export const userRoleAssignments = mysqlTable("user_roles", {
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   userId: char("user_id", { length: 36 })
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -267,8 +330,9 @@ export const userRoleAssignments = mysqlTable("user_roles", {
     .references(() => roles.id, { onDelete: "cascade" }),
   createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date())
 }, (table: TableColumns) => ({
-  pk: primaryKey({ columns: [table.userId, table.roleId] }),
+  pk: primaryKey({ columns: [table.workspaceId, table.userId, table.roleId] }),
   userIdIdx: index("idx_user_roles_user_id").on(table.userId),
+  workspaceUserIdx: index("idx_user_roles_workspace_user").on(table.workspaceId, table.userId),
   roleIdIdx: index("idx_user_roles_role_id").on(table.roleId)
 }));
 
@@ -333,6 +397,9 @@ export const boardMemberPermissions = mysqlTable("board_member_permissions", {
 
 export const boards = mysqlTable("boards", {
   id: char("id", { length: 36 }).primaryKey(),
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   background: varchar("background", { length: 255 }).notNull().default("teal-gradient"),
@@ -348,7 +415,8 @@ export const boards = mysqlTable("boards", {
   createdAt: createdAt("created_at").notNull().$defaultFn(() => new Date()),
   updatedAt: createdAt("updated_at").notNull().$defaultFn(() => new Date())
 }, (table: TableColumns) => ({
-  nameUnique: uniqueIndex("idx_boards_name_unique").on(table.name)
+  nameUnique: uniqueIndex("idx_boards_workspace_name_unique").on(table.workspaceId, table.name),
+  workspaceArchivedIdx: index("idx_boards_workspace_archived").on(table.workspaceId, table.archivedAt)
 }));
 
 export const lists = mysqlTable("lists", {
@@ -523,6 +591,9 @@ export const commentMentions = mysqlTable("comment_mentions", {
 
 export const announcements = mysqlTable("announcements", {
   id: char("id", { length: 36 }).primaryKey(),
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   subject: varchar("subject", { length: 255 }).notNull(),
   body: text("body").notNull(),
   audience: text("audience"),
@@ -548,6 +619,9 @@ export const announcementRecipients = mysqlTable("announcement_recipients", {
 
 export const threadConversations = mysqlTable("thread_conversations", {
   id: char("id", { length: 36 }).primaryKey(),
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   type: mysqlEnum("type", threadConversationTypes).notNull(),
   name: varchar("name", { length: 255 }),
   description: text("description"),
@@ -556,7 +630,8 @@ export const threadConversations = mysqlTable("thread_conversations", {
   updatedAt: createdAt("updated_at").notNull().$defaultFn(() => new Date()),
   lastMessageAt: createdAt("last_message_at")
 }, (table: TableColumns) => ({
-  lastMessageIdx: index("idx_thread_conversations_last_message_at").on(table.lastMessageAt)
+  lastMessageIdx: index("idx_thread_conversations_last_message_at").on(table.workspaceId, table.lastMessageAt),
+  workspaceTypeIdx: index("idx_thread_conversations_workspace_type").on(table.workspaceId, table.type)
 }));
 
 export const threadMembers = mysqlTable("thread_members", {
@@ -783,6 +858,9 @@ export const threadReplyReactions = mysqlTable("thread_reply_reactions", {
 
 export const activityLogs = mysqlTable("activity_logs", {
   id: char("id", { length: 36 }).primaryKey(),
+  workspaceId: char("workspace_id", { length: 36 })
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
   type: varchar("type", { length: 255 }).notNull(),
   actorId: char("actor_id", { length: 36 })
     .notNull()
@@ -800,7 +878,7 @@ export const activityLogs = mysqlTable("activity_logs", {
   boardIdx: index("idx_activity_logs_board_id").on(table.boardId),
   boardCreatedIdx: index("idx_activity_logs_board_created").on(table.boardId, table.createdAt),
   actorIdx: index("idx_activity_logs_actor_id").on(table.actorId),
-  createdAtIdx: index("idx_activity_logs_created_at").on(table.createdAt),
+  createdAtIdx: index("idx_activity_logs_created_at").on(table.workspaceId, table.createdAt),
   typeCreatedIdx: index("idx_activity_logs_type_created").on(table.type, table.createdAt),
   threadConversationIdx: index("idx_activity_logs_thread_conversation_id").on(table.threadConversationId)
 }));
@@ -888,6 +966,8 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
 }));
 
 export type UserRole = (typeof userRoles)[number];
+export type WorkspaceStatus = (typeof workspaceStatuses)[number];
+export type WorkspaceMembershipStatus = (typeof workspaceMembershipStatuses)[number];
 export type RolePermission = (typeof rolePermissions)[number];
 export type RoleScopeType = (typeof roleScopeTypes)[number];
 export type RoleScopeAccess = (typeof roleScopeAccess)[number];

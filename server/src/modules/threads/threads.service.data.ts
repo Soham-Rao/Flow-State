@@ -16,10 +16,12 @@ import {
   threadReplyVoiceNotes,
   threadReplies,
   threadVoiceNotes,
-  users
+  users,
+  workspaceMemberships
 } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import { decryptDmBody } from "../../utils/encryption.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import type { ThreadAttachment, ThreadReaction, ThreadVoiceNote, ThreadReplyAttachment, ThreadReplyVoiceNote, ThreadUserSummary } from "./threads.service.types.js";
 
 
@@ -407,11 +409,12 @@ export async function getThreadUsersByIds(userIds: string[]): Promise<ThreadUser
       displayName: users.displayName,
       username: users.username,
       email: users.email,
-      role: users.role,
+      role: workspaceMemberships.role,
       bio: users.bio
     })
-    .from(users)
-    .where(inArray(users.id, userIds));
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()), inArray(users.id, userIds)));
 }
 
 export async function getThreadConversationMemberIds(conversationId: string, userIds: string[]): Promise<string[]> {
@@ -437,7 +440,11 @@ export async function getDmConversationRows(userId: string): Promise<Array<{ id:
     })
     .from(threadMembers)
     .innerJoin(threadConversations, eq(threadMembers.conversationId, threadConversations.id))
-    .where(and(eq(threadMembers.userId, userId), eq(threadConversations.type, "dm")));
+    .where(and(
+      eq(threadMembers.userId, userId),
+      eq(threadConversations.workspaceId, getCurrentWorkspaceId()),
+      eq(threadConversations.type, "dm")
+    ));
 }
 
 export async function getThreadMessageMentionCounts(userId: string, conversationIds: string[]): Promise<Map<string, number>> {

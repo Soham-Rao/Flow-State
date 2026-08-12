@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { boardsAttachmentsRouter } from "./boards.routes.attachments.js";
 import { boardsBaseRouter } from "./boards.routes.base.js";
 import { boardsCardsRouter } from "./boards.routes.cards.js";
@@ -11,7 +12,7 @@ import { boardsListsRouter } from "./boards.routes.lists.js";
 
 export const boardsRouter = Router();
 
-boardsRouter.use(requireAuth);
+boardsRouter.use(requireAuth, requireWorkspace);
 
 boardsRouter.use(boardsBaseRouter);
 boardsRouter.use(boardsLabelsRouter);

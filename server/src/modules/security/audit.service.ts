@@ -5,6 +5,7 @@ import { lt } from "drizzle-orm";
 import { env } from "../../config/env.js";
 import { db } from "../../db/connection.js";
 import { auditLogs } from "../../db/schema.js";
+import { getOptionalWorkspaceId } from "../../utils/workspace-context.js";
 
 const MAX_METADATA_LENGTH = 4000;
 const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
@@ -12,6 +13,7 @@ const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 let lastPruneAt = 0;
 
 export interface AuditLogInput {
+  workspaceId?: string | null;
   actorId?: string | null;
   action: string;
   targetType?: string | null;
@@ -57,6 +59,7 @@ export async function recordAuditLog(input: AuditLogInput): Promise<void> {
   await db.insert(auditLogs)
     .values({
       id: crypto.randomUUID(),
+      workspaceId: input.workspaceId === undefined ? getOptionalWorkspaceId() : input.workspaceId,
       actorId: input.actorId ?? null,
       action: truncate(input.action, 255) ?? "unknown",
       targetType: truncate(input.targetType ?? null, 64),

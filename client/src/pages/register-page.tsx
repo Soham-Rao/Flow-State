@@ -110,7 +110,7 @@ export function RegisterPage(): JSX.Element {
         inviteToken: inviteToken && !inviteError ? inviteToken : undefined,
         acceptedLegalTerms: true
       });
-      navigate("/");
+      navigate("/workspaces");
     } catch {
       // Error state is handled by the auth store.
     }
@@ -164,8 +164,8 @@ export function RegisterPage(): JSX.Element {
               ? "Checking invite..."
               : inviteError
                 ? inviteError
-                : inviteInfo?.email
-                  ? `Invite for ${inviteInfo.email}`
+                : inviteInfo
+                  ? `Invite to ${inviteInfo.workspaceName}${inviteInfo.email ? ` for ${inviteInfo.email}` : ""}`
                   : "Invite link detected."}
           </div>
         )}
@@ -201,7 +201,7 @@ export function RegisterPage(): JSX.Element {
 
       <p className="mt-4 text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link className="font-medium text-primary hover:underline" to="/login">
+        <Link className="font-medium text-primary hover:underline" to={inviteToken ? `/login?invite=${encodeURIComponent(inviteToken)}` : "/login"}>
           Sign in
         </Link>
       </p>

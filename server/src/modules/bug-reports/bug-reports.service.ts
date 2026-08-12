@@ -3,10 +3,11 @@ import crypto from "node:crypto";
 import { and, count, desc, eq } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { bugReports, users, type BugReportStatus } from "../../db/schema.js";
+import { bugReports, users, workspaceMemberships, type BugReportStatus } from "../../db/schema.js";
 import { sanitizeOptionalPlainText, sanitizeRequiredPlainText } from "../../utils/sanitize.js";
 import { assertWorkspaceManager } from "../../utils/access-control.js";
 import { ApiError } from "../../utils/api-error.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import { recordAuditLog } from "../security/audit.service.js";
 import type { SecurityRequestContext } from "../../utils/request-context.js";
 import type { CreateBugReportInput, ListBugReportsQuery } from "./bug-reports.schema.js";
@@ -90,7 +91,10 @@ async function getOpenCount(whereClause?: ReturnType<typeof eq> | ReturnType<typ
   const rows = await db
     .select({ total: count(bugReports.id) })
     .from(bugReports)
-    .where(whereClause ?? eq(bugReports.status, "open"));
+    .where(and(
+      eq(bugReports.workspaceId, getCurrentWorkspaceId()),
+      whereClause ?? eq(bugReports.status, "open")
+    ));
 
   return rows[0]?.total ?? 0;
 }
@@ -110,6 +114,7 @@ export async function createBugReport(
   await db.insert(bugReports)
     .values({
       id,
+      workspaceId: getCurrentWorkspaceId(),
       reporterId,
       title,
       message,
@@ -155,11 +160,12 @@ export async function listMyBugReports(userId: string): Promise<BugReportSummary
       reporterEmail: users.email,
       reporterUsername: users.username,
       reporterDisplayName: users.displayName,
-      reporterRole: users.role
+      reporterRole: workspaceMemberships.role
     })
     .from(bugReports)
     .innerJoin(users, eq(bugReports.reporterId, users.id))
-    .where(eq(bugReports.reporterId, userId))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
+    .where(and(eq(bugReports.workspaceId, getCurrentWorkspaceId()), eq(bugReports.reporterId, userId)))
     .orderBy(desc(bugReports.createdAt))
     .limit(50);
 
@@ -169,7 +175,9 @@ export async function listMyBugReports(userId: string): Promise<BugReportSummary
 export async function listAdminBugReports(userId: string, query: ListBugReportsQuery): Promise<BugReportAdminListResponse> {
   await assertWorkspaceManager(userId);
 
-  const filters = query.status ? eq(bugReports.status, query.status) : undefined;
+  const filters = query.status
+    ? and(eq(bugReports.workspaceId, getCurrentWorkspaceId()), eq(bugReports.status, query.status))
+    : eq(bugReports.workspaceId, getCurrentWorkspaceId());
   const limit = Math.min(query.limit ?? 50, 100);
   const rows = await db
     .select({
@@ -186,10 +194,11 @@ export async function listAdminBugReports(userId: string, query: ListBugReportsQ
       reporterEmail: users.email,
       reporterUsername: users.username,
       reporterDisplayName: users.displayName,
-      reporterRole: users.role
+      reporterRole: workspaceMemberships.role
     })
     .from(bugReports)
     .innerJoin(users, eq(bugReports.reporterId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
     .where(filters)
     .orderBy(desc(bugReports.createdAt))
     .limit(limit);
@@ -197,7 +206,7 @@ export async function listAdminBugReports(userId: string, query: ListBugReportsQ
   const openRows = await db
     .select({ total: count(bugReports.id) })
     .from(bugReports)
-    .where(eq(bugReports.status, "open"));
+    .where(and(eq(bugReports.workspaceId, getCurrentWorkspaceId()), eq(bugReports.status, "open")));
 
   return {
     items: rows.map(toSummary),
@@ -223,7 +232,7 @@ export async function updateBugReportStatus(
       status,
       updatedAt: new Date()
     })
-    .where(eq(bugReports.id, reportId))
+    .where(and(eq(bugReports.workspaceId, getCurrentWorkspaceId()), eq(bugReports.id, reportId)))
     .execute();
 
   await recordAuditLog({
@@ -252,7 +261,7 @@ export async function getBugReportSummary(userId: string): Promise<BugReportSumm
   const myOpenRows = await db
     .select({ total: count(bugReports.id) })
     .from(bugReports)
-    .where(and(eq(bugReports.reporterId, userId), eq(bugReports.status, "open")));
+    .where(and(eq(bugReports.workspaceId, getCurrentWorkspaceId()), eq(bugReports.reporterId, userId), eq(bugReports.status, "open")));
 
   const canManageAll = await hasWorkspaceManagerPermission(userId);
   const openCount = canManageAll ? await getOpenCount() : null;
@@ -280,11 +289,12 @@ async function getBugReportByIdForViewer(viewerId: string, reportId: string): Pr
       reporterEmail: users.email,
       reporterUsername: users.username,
       reporterDisplayName: users.displayName,
-      reporterRole: users.role
+      reporterRole: workspaceMemberships.role
     })
     .from(bugReports)
     .innerJoin(users, eq(bugReports.reporterId, users.id))
-    .where(and(eq(bugReports.id, reportId), eq(bugReports.reporterId, viewerId)))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
+    .where(and(eq(bugReports.workspaceId, getCurrentWorkspaceId()), eq(bugReports.id, reportId), eq(bugReports.reporterId, viewerId)))
     .limit(1);
 
   return rows[0] ? toSummary(rows[0]) : null;
@@ -306,11 +316,12 @@ async function getBugReportByIdForAdmin(reportId: string): Promise<BugReportSumm
       reporterEmail: users.email,
       reporterUsername: users.username,
       reporterDisplayName: users.displayName,
-      reporterRole: users.role
+      reporterRole: workspaceMemberships.role
     })
     .from(bugReports)
     .innerJoin(users, eq(bugReports.reporterId, users.id))
-    .where(eq(bugReports.id, reportId))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())))
+    .where(and(eq(bugReports.workspaceId, getCurrentWorkspaceId()), eq(bugReports.id, reportId)))
     .limit(1);
 
   return rows[0] ? toSummary(rows[0]) : null;

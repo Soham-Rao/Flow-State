@@ -6,6 +6,7 @@ import { hasUserPermission } from "@/lib/permissions";
 import { AuthGate } from "@/routes/auth-gate";
 import { GuestOnlyRoute, PermissionRoute, ProtectedRoute } from "@/routes/protected-route";
 import { useAuthStore } from "@/stores/auth-store";
+import { useWorkspaceStore } from "@/stores/workspace-store";
 import type { RolePermission } from "@/types/roles";
 
 const HomePage = lazy(async () => ({ default: (await import("@/pages/home-page")).HomePage }));
@@ -21,6 +22,8 @@ const LoginPage = lazy(async () => ({ default: (await import("@/pages/login-page
 const RegisterPage = lazy(async () => ({ default: (await import("@/pages/register-page")).RegisterPage }));
 const PrivacyPage = lazy(async () => ({ default: (await import("@/pages/legal/privacy-page")).PrivacyPage }));
 const TermsPage = lazy(async () => ({ default: (await import("@/pages/legal/terms-page")).TermsPage }));
+const WorkspaceCreatePage = lazy(async () => ({ default: (await import("@/pages/workspace-create-page")).WorkspaceCreatePage }));
+const WorkspacePickerPage = lazy(async () => ({ default: (await import("@/pages/workspace-picker-page")).WorkspacePickerPage }));
 
 function RouteFallback(): JSX.Element {
   return (
@@ -33,6 +36,8 @@ function RouteFallback(): JSX.Element {
 }
 
 function WithShell({ children }: { children: ReactNode }): JSX.Element {
+  const activeWorkspace = useWorkspaceStore((state) => state.active);
+  if (!activeWorkspace) return <Navigate to="/workspaces" replace />;
   return (
     <ProtectedRoute>
       <AppShell>
@@ -43,6 +48,8 @@ function WithShell({ children }: { children: ReactNode }): JSX.Element {
 }
 
 function WithPermission({ children, permission, fallbackTo = "/" }: { children: ReactNode; permission: RolePermission; fallbackTo?: string }): JSX.Element {
+  const activeWorkspace = useWorkspaceStore((state) => state.active);
+  if (!activeWorkspace) return <Navigate to="/workspaces" replace />;
   return (
     <ProtectedRoute>
       <PermissionRoute permission={permission} fallbackTo={fallbackTo}>
@@ -95,6 +102,8 @@ export function AppRouter(): JSX.Element {
           <Route path="/settings/profile" element={<WithShell><ProfileSettingsPage /></WithShell>} />
           <Route path="/settings/general" element={<WithPermission permission="view_settings"><GeneralSettingsPage /></WithPermission>} />
           <Route path="/settings/advanced" element={<WithPermission permission="view_settings"><AdvancedSettingsPage /></WithPermission>} />
+          <Route path="/workspaces" element={<ProtectedRoute><Suspense fallback={<RouteFallback />}><WorkspacePickerPage /></Suspense></ProtectedRoute>} />
+          <Route path="/workspaces/new" element={<ProtectedRoute><Suspense fallback={<RouteFallback />}><WorkspaceCreatePage /></Suspense></ProtectedRoute>} />
           <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
           <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
           <Route path="/privacy" element={<PublicRoute><PrivacyPage /></PublicRoute>} />

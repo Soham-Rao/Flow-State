@@ -4,6 +4,10 @@ import { AppErrorBoundary } from "@/components/layout/app-error-boundary";
 import { AppRouter } from "@/routes/app-router";
 import "./index.css";
 
+if (import.meta.env.DEV) {
+  void import("react-grab");
+}
+
 const normalizeStoredTheme = (value: string | null): "light" | "dark" | "system" => {
   if (value === "light" || value === "dark" || value === "system") return value;
   return "system";

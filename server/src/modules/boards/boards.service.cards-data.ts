@@ -1,8 +1,9 @@
 import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { attachments, boards, cardAssignees, cardLabels, cards, checklists, labels, lists, users } from "../../db/schema.js";
+import { attachments, boards, cardAssignees, cardLabels, cards, checklists, labels, lists, users, workspaceMemberships } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import { getChecklistItemsForChecklists } from "./boards.service.checklists-data.js";
 import { getCommentsForCards } from "./boards.service.comments-data.js";
 import { assertCardExists } from "./boards.service.lookups.js";
@@ -101,11 +102,15 @@ export async function getAssigneesForCards(cardIds: string[]): Promise<Map<strin
       username: users.username,
       email: users.email,
       bio: users.bio,
-      role: users.role,
+      role: workspaceMemberships.role,
       createdAt: users.createdAt
     })
     .from(cardAssignees)
     .innerJoin(users, eq(cardAssignees.userId, users.id))
+    .innerJoin(workspaceMemberships, and(
+      eq(workspaceMemberships.userId, users.id),
+      eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId())
+    ))
     .where(inArray(cardAssignees.cardId, cardIds))
     .orderBy(asc(users.name));
 

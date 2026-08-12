@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { buildSecurityRequestContext } from "../../utils/request-context.js";
 import { assertPermission } from "../../utils/permissions.js";
 import { recordAuditLog } from "../security/audit.service.js";
@@ -16,7 +17,7 @@ import { createRoleSchema, updateRoleSchema, updateUserRolesSchema } from "./rol
 
 export const rolesRouter = Router();
 
-rolesRouter.use(requireAuth);
+rolesRouter.use(requireAuth, requireWorkspace);
 
 rolesRouter.get("/", async (req, res, next) => {
   try {

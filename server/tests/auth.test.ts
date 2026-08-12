@@ -41,7 +41,7 @@ beforeEach(async () => {
 });
 
 describe("Auth API", () => {
-  it("registers first user as admin", async () => {
+  it("does not expose a role until a workspace is selected", async () => {
     const response = await request(app).post("/api/auth/register").send({
       name: "Soham",
       email: "soham@example.com",
@@ -51,8 +51,13 @@ describe("Auth API", () => {
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
-    expect(response.body.data.user.role).toBe("admin");
+    expect(response.body.data.user.role).toBeNull();
     expect(response.body.data.token).toEqual(expect.any(String));
+
+    const workspacesResponse = await request(app)
+      .get("/api/workspaces")
+      .set("Authorization", `Bearer ${response.body.data.token as string}`);
+    expect(workspacesResponse.body.data[0].role).toBe("admin");
   });
 
   it("requires legal consent during registration", async () => {
@@ -93,7 +98,7 @@ describe("Auth API", () => {
     expect(updateResponse.body.data.bio).not.toContain("<script>");
   });
 
-  it("registers second user as guest", async () => {
+  it("keeps the second test user role on its workspace membership", async () => {
     const firstRegister = await request(app).post("/api/auth/register").send({
       name: "Admin",
       email: "admin@example.com",
@@ -111,7 +116,11 @@ describe("Auth API", () => {
     });
 
     expect(response.status).toBe(201);
-    expect(response.body.data.user.role).toBe("guest");
+    expect(response.body.data.user.role).toBeNull();
+    const memberships = await request(app)
+      .get("/api/workspaces")
+      .set("Authorization", `Bearer ${response.body.data.token as string}`);
+    expect(memberships.body.data[0].role).toBe("guest");
   });
 
   it("logs in and returns a token", async () => {

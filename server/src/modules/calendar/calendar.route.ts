@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { buildCalendarFeed, getCalendarFeeds, regenerateCalendarFeed } from "./calendar.service.js";
 
 export const calendarRouter = Router();
@@ -16,7 +17,7 @@ calendarRouter.get("/ics/:token.ics", async (req, res, next) => {
   }
 });
 
-calendarRouter.use(requireAuth);
+calendarRouter.use(requireAuth, requireWorkspace);
 
 calendarRouter.get("/feeds", async (req, res, next) => {
   try {

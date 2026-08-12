@@ -24,6 +24,7 @@ import { mentionsRouter } from "./modules/mentions/mentions.route.js";
 import { notificationsRouter } from "./modules/notifications/notifications.route.js";
 import { rolesRouter } from "./modules/roles/roles.route.js";
 import { threadsRouter } from "./modules/threads/threads.route.js";
+import { workspacesRouter } from "./modules/workspaces/workspaces.route.js";
 import { healthRouter } from "./routes/health.route.js";
 
 export const app = express();
@@ -70,6 +71,7 @@ app.locals.allowedOrigins = allowedOrigins;
 
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/workspaces", workspacesRouter);
 app.use("/api/boards", boardsRouter);
 app.use("/api/bug-reports", bugReportsRouter);
 app.use("/api/invites", invitesRouter);

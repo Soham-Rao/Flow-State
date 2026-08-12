@@ -19,6 +19,8 @@ export interface InviteSummary {
 }
 
 export interface InviteLookup {
+  workspaceId: string;
+  workspaceName: string;
   email: string | null;
   expiresAt: string;
   status: InviteStatus;

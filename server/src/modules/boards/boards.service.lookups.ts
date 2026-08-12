@@ -1,12 +1,13 @@
 import { and, eq, isNull } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
-import { attachments, boards, cards, checklists, checklistItems, comments, labels, lists, users } from "../../db/schema.js";
+import { attachments, boards, cards, checklists, checklistItems, comments, labels, lists, users, workspaceMemberships } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 import type { AttachmentRecord, BoardLabel, BoardMember, CardRecord, ListRecord } from "./boards.service.types.js";
 
 export async function assertBoardExists(boardId: string): Promise<void> {
-  const rows = await db.select({ id: boards.id }).from(boards).where(eq(boards.id, boardId)).limit(1);
+  const rows = await db.select({ id: boards.id }).from(boards).where(and(eq(boards.id, boardId), eq(boards.workspaceId, getCurrentWorkspaceId()))).limit(1);
   if (!rows[0]) {
     throw new ApiError(404, "Board not found");
   }
@@ -21,7 +22,7 @@ export async function getBoardRecord(boardId: string): Promise<{ id: string; nam
       archiveRetentionMinutes: boards.archiveRetentionMinutes
     })
     .from(boards)
-    .where(eq(boards.id, boardId))
+    .where(and(eq(boards.id, boardId), eq(boards.workspaceId, getCurrentWorkspaceId())))
     .limit(1);
 
   const board = rows[0];
@@ -37,7 +38,7 @@ export async function assertBoardNameAvailable(name: string, excludeBoardId?: st
   const rows = await db
     .select({ id: boards.id })
     .from(boards)
-    .where(eq(boards.name, name))
+    .where(and(eq(boards.workspaceId, getCurrentWorkspaceId()), eq(boards.name, name)))
     .limit(1);
 
   const existing = rows[0];
@@ -149,11 +150,16 @@ export async function assertUserExists(userId: string): Promise<BoardMember> {
       username: users.username,
       email: users.email,
       bio: users.bio,
-      role: users.role,
+      role: workspaceMemberships.role,
       createdAt: users.createdAt
     })
-    .from(users)
-    .where(eq(users.id, userId))
+    .from(workspaceMemberships)
+    .innerJoin(users, eq(workspaceMemberships.userId, users.id))
+    .where(and(
+      eq(workspaceMemberships.workspaceId, getCurrentWorkspaceId()),
+      eq(workspaceMemberships.userId, userId),
+      eq(workspaceMemberships.status, "active")
+    ))
     .limit(1);
 
   const user = rows[0];

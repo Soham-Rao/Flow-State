@@ -136,7 +136,13 @@ const renderTaskRow = (card: DashboardCardSummary) => {
   );
 };
 
-export function DashboardHeader({ email }: { email?: string | null }): JSX.Element {
+export function DashboardHeader({
+  email,
+  canCreateWorkspace
+}: {
+  email?: string | null;
+  canCreateWorkspace: boolean;
+}): JSX.Element {
   return (
     <div className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3 ${glassCardClass}`}>
       <div>
@@ -146,9 +152,16 @@ export function DashboardHeader({ email }: { email?: string | null }): JSX.Eleme
         </p>
       </div>
 
-      <Link to="/boards">
-        <Button className={glassPillClass}>Open boards</Button>
-      </Link>
+      <div className="flex flex-wrap items-center gap-2">
+        {canCreateWorkspace && (
+          <Link to="/workspaces/new">
+            <Button variant="secondary" className={glassPillClass}>Create workspace</Button>
+          </Link>
+        )}
+        <Link to="/boards">
+          <Button className={glassPillClass}>Open boards</Button>
+        </Link>
+      </div>
     </div>
   );
 }

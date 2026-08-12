@@ -46,14 +46,25 @@ async function registerUser(name: string, email: string): Promise<{ token: strin
 }
 
 async function assignSystemRole(userId: string, roleName: "Member" | "Guest" | "Admin"): Promise<void> {
-  const [rows] = await pool.query<Array<RowDataPacket & { id: string }>>("SELECT id FROM roles WHERE name = ?", [roleName]);
-  const roleId = rows[0]?.id;
-  if (!roleId) {
+  const [rows] = await pool.query<Array<RowDataPacket & { id: string; workspaceId: string }>>(
+    `SELECT r.id, r.workspace_id AS workspaceId
+       FROM roles r
+       INNER JOIN workspace_memberships wm ON wm.workspace_id = r.workspace_id
+      WHERE r.name = ? AND wm.user_id = ?
+      LIMIT 1`,
+    [roleName, userId]
+  );
+  const role = rows[0];
+  if (!role) {
     throw new Error(`Role ${roleName} not found`);
   }
   await pool.query(
-    "INSERT IGNORE INTO user_roles (user_id, role_id, created_at) VALUES (?, ?, NOW(3))",
-    [userId, roleId]
+    "INSERT IGNORE INTO user_roles (workspace_id, user_id, role_id, created_at) VALUES (?, ?, ?, NOW(3))",
+    [role.workspaceId, userId, role.id]
+  );
+  await pool.query(
+    "UPDATE workspace_memberships SET role = ?, updated_at = NOW(3) WHERE workspace_id = ? AND user_id = ?",
+    [roleName.toLowerCase(), role.workspaceId, userId]
   );
 }
 
@@ -69,6 +80,18 @@ describe("Threads API", () => {
 
     expect(conversationResponse.status).toBe(201);
     const conversationId = conversationResponse.body.data.id as string;
+
+    const conversationsResponse = await request(app)
+      .get("/api/threads/dms")
+      .set("Authorization", `Bearer ${admin.token}`);
+
+    expect(conversationsResponse.status).toBe(200);
+    expect(conversationsResponse.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: conversationId,
+        otherUser: expect.objectContaining({ id: member.id, role: "member" })
+      })
+    ]));
 
     const messageResponse = await request(app)
       .post(`/api/threads/conversations/${conversationId}/messages`)

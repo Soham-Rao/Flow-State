@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { markCommentMentionsSchema, markThreadMentionsSchema, markThreadMessageMentionsSchema, markThreadReplyMentionsSchema, markThreadReplyMentionIdsSchema } from "./mentions.schema.js";
 import {
   getUnreadMentions,
@@ -15,7 +16,7 @@ import {
 
 export const mentionsRouter = Router();
 
-mentionsRouter.use(requireAuth);
+mentionsRouter.use(requireAuth, requireWorkspace);
 
 mentionsRouter.get("/unread", async (req, res, next) => {
   try {

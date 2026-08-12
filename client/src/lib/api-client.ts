@@ -1,4 +1,4 @@
-import { clearSessionToken, getSessionToken } from "@/lib/session";
+import { clearSessionToken, getActiveWorkspaceId, getSessionToken } from "@/lib/session";
 import { useAppFeedbackStore } from "@/stores/app-feedback-store";
 import { usePermissionErrorStore } from "@/stores/permission-error-store";
 
@@ -177,7 +177,8 @@ function getCacheEntry<T>(cacheKey: string): T | null {
 
 function buildCacheKey(path: string, method: string, authToken: string | null, customKey?: string): string {
   const scope = authToken ? `auth:${authToken}` : "anon";
-  return `${method.toUpperCase()}:${customKey ?? path}:${scope}`;
+  const workspace = getActiveWorkspaceId() ?? "none";
+  return `${method.toUpperCase()}:${customKey ?? path}:${scope}:workspace:${workspace}`;
 }
 
 export function invalidateApiCacheByTag(tags: string | string[]): void {
@@ -231,6 +232,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
+    const workspaceId = getActiveWorkspaceId();
+    if (workspaceId) {
+      headers.set("X-Workspace-Id", workspaceId);
+    }
   }
 
   if (shouldUseCache) {

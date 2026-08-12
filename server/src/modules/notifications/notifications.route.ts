@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import {
   assertReminderEmailPreference,
   getNotificationPreferences,
@@ -9,7 +10,7 @@ import {
 
 export const notificationsRouter = Router();
 
-notificationsRouter.use(requireAuth);
+notificationsRouter.use(requireAuth, requireWorkspace);
 
 notificationsRouter.get("/preferences", async (req, res, next) => {
   try {

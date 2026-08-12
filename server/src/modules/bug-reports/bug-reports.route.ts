@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { buildSecurityRequestContext } from "../../utils/request-context.js";
 import {
   createBugReportSchema,
@@ -17,7 +18,7 @@ import {
 
 export const bugReportsRouter = Router();
 
-bugReportsRouter.use(requireAuth);
+bugReportsRouter.use(requireAuth, requireWorkspace);
 
 bugReportsRouter.post("/", async (req, res, next) => {
   try {

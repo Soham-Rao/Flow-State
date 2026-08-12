@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
 
-import { desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 
 import { db } from "../../db/connection.js";
 import { emitActivityEvent, emitBoardEvent } from "../../realtime/socket.js";
-import { activityLogs, users } from "../../db/schema.js";
+import { activityLogs, users, workspaceMemberships } from "../../db/schema.js";
+import { getCurrentWorkspaceId } from "../../utils/workspace-context.js";
 
 export interface ActivityActor {
   id: string;
@@ -99,12 +100,14 @@ export async function createActivityLog(input: {
   mentionedUserId?: string | null;
   metadata?: Record<string, unknown> | null;
 }): Promise<ActivityLogEntry> {
+  const workspaceId = getCurrentWorkspaceId();
   const now = new Date();
   const id = crypto.randomUUID();
 
   await db.insert(activityLogs)
     .values({
       id,
+      workspaceId,
       type: input.type,
       actorId: input.actorId,
       boardId: input.boardId ?? null,
@@ -142,11 +145,12 @@ export async function createActivityLog(input: {
       actorDisplayName: users.displayName,
       actorUsername: users.username,
       actorEmail: users.email,
-      actorRole: users.role
+      actorRole: workspaceMemberships.role
     })
     .from(activityLogs)
     .innerJoin(users, eq(activityLogs.actorId, users.id))
-    .where(eq(activityLogs.id, id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, workspaceId)))
+    .where(and(eq(activityLogs.id, id), eq(activityLogs.workspaceId, workspaceId)))
     .limit(1);
 
   const row = rows[0];
@@ -190,8 +194,9 @@ export async function recordActivity(input: {
   mentionedUserId?: string | null;
   metadata?: Record<string, unknown> | null;
 }): Promise<ActivityLogEntry> {
+  const workspaceId = getCurrentWorkspaceId();
   const entry = await createActivityLog(input);
-  emitActivityEvent({ ...entry, createdAt: entry.createdAt.toISOString() });
+  emitActivityEvent(workspaceId, { ...entry, createdAt: entry.createdAt.toISOString() });
   if (entry.boardId) {
     emitBoardEvent(entry.boardId, { boardId: entry.boardId, type: "board.activity", data: { activityType: entry.type } });
   }
@@ -199,6 +204,7 @@ export async function recordActivity(input: {
 }
 
 export async function listActivityLogs(params: { boardId?: string; limit?: number }): Promise<ActivityLogEntry[]> {
+  const workspaceId = getCurrentWorkspaceId();
   const limit = params.limit ?? 50;
   const baseQuery = db
     .select({
@@ -218,15 +224,16 @@ export async function listActivityLogs(params: { boardId?: string; limit?: numbe
       actorDisplayName: users.displayName,
       actorUsername: users.username,
       actorEmail: users.email,
-      actorRole: users.role
+      actorRole: workspaceMemberships.role
     })
     .from(activityLogs)
     .innerJoin(users, eq(activityLogs.actorId, users.id))
+    .innerJoin(workspaceMemberships, and(eq(workspaceMemberships.userId, users.id), eq(workspaceMemberships.workspaceId, workspaceId)))
     .orderBy(desc(activityLogs.createdAt))
     .limit(limit);
   const rows = await (params.boardId
-    ? baseQuery.where(eq(activityLogs.boardId, params.boardId))
-    : baseQuery);
+    ? baseQuery.where(and(eq(activityLogs.workspaceId, workspaceId), eq(activityLogs.boardId, params.boardId)))
+    : baseQuery.where(eq(activityLogs.workspaceId, workspaceId)));
   return rows.map(mapActivityRow);
 }
 

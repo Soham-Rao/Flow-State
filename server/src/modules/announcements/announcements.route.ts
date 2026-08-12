@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/require-auth.js";
+import { requireWorkspace } from "../../middleware/require-workspace.js";
 import { setNoStore, setPrivateShortCache } from "../../utils/http-cache.js";
 import { createAnnouncementSchema, deleteAnnouncementsSchema, markAnnouncementsSeenSchema } from "./announcements.schema.js";
 import {
@@ -15,7 +16,7 @@ import {
 
 export const announcementsRouter = Router();
 
-announcementsRouter.use(requireAuth);
+announcementsRouter.use(requireAuth, requireWorkspace);
 
 announcementsRouter.get("/capabilities", async (req, res, next) => {
   try {

@@ -2,7 +2,7 @@
 import { io, type Socket } from "socket.io-client";
 
 import { invalidateApiCacheByTag } from "@/lib/api-client";
-import { getSessionToken } from "@/lib/session";
+import { getActiveWorkspaceId, getSessionToken } from "@/lib/session";
 import { useActivityStore } from "@/stores/activity-store";
 import { usePresenceStore } from "@/stores/presence-store";
 import type { ActivityLogEntry } from "@/types/activity";
@@ -42,6 +42,7 @@ const HEALTH_RETRY_MS = 1000;
 
 let activeSocket: Socket | null = null;
 let activeToken: string | null = null;
+let activeWorkspaceId: string | null = null;
 let healthCheckInFlight = false;
 let healthRetryTimer: number | null = null;
 let activityQueue: ActivityLogEntry[] = [];
@@ -165,12 +166,13 @@ export const useSocketStore = create<SocketStoreState>((set) => ({
 
   connect: () => {
     const token = getSessionToken();
-    if (!token) {
+    const workspaceId = getActiveWorkspaceId();
+    if (!token || !workspaceId) {
       set({ status: "idle" });
       return;
     }
 
-    if (activeSocket && activeToken === token && activeSocket.connected) {
+    if (activeSocket && activeToken === token && activeWorkspaceId === workspaceId && activeSocket.connected) {
       return;
     }
 
@@ -203,7 +205,7 @@ export const useSocketStore = create<SocketStoreState>((set) => ({
 
       const socketUrl = getSocketUrl();
       const socket = io(socketUrl ?? "/", {
-        auth: { token },
+        auth: { token, workspaceId },
         autoConnect: false,
         transports: ["websocket"],
         reconnection: true,
@@ -215,6 +217,7 @@ export const useSocketStore = create<SocketStoreState>((set) => ({
 
       activeSocket = socket;
       activeToken = token;
+      activeWorkspaceId = workspaceId;
       set({ status: "connecting" });
 
       socket.on("connect", () => {
@@ -258,6 +261,7 @@ export const useSocketStore = create<SocketStoreState>((set) => ({
       activeSocket.disconnect();
       activeSocket = null;
       activeToken = null;
+      activeWorkspaceId = null;
     }
     usePresenceStore.getState().clearAll();
     set({ status: "idle" });
