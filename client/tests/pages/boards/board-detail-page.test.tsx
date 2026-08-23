@@ -222,7 +222,7 @@ beforeEach(() => {
     id: baseAuthor.id,
     name: baseAuthor.name,
     displayName: baseAuthor.displayName,
-    username: baseAuthor.username,
+    username: baseAuthor.username ?? "jane",
     email: baseAuthor.email
   }]);
   getBoardMembersWithOverridesMock.mockResolvedValue([{
@@ -230,7 +230,7 @@ beforeEach(() => {
       id: baseAuthor.id,
       name: baseAuthor.name,
       displayName: baseAuthor.displayName,
-      username: baseAuthor.username,
+      username: baseAuthor.username ?? "jane",
       email: baseAuthor.email,
       role: baseAuthor.role
     },
