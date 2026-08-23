@@ -72,6 +72,24 @@ describe("Auth API", () => {
     expect(JSON.stringify(response.body.error)).toMatch(/accept/i);
   });
 
+  it("blocks a filled registration honeypot without creating an account", async () => {
+    const response = await request(app).post("/api/auth/register").send({
+      name: "Automated Visitor",
+      email: "bot@example.com",
+      password: "password123",
+      contactWebsite: "https://spam.example",
+      acceptedLegalTerms: true
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toBe("Unable to create account");
+    const loginResponse = await request(app).post("/api/auth/login").send({
+      email: "bot@example.com",
+      password: "password123"
+    });
+    expect(loginResponse.status).toBe(401);
+  });
+
   it("sanitizes profile text fields during registration and profile updates", async () => {
     const registerResponse = await request(app).post("/api/auth/register").send({
       name: "<b>Soham</b>",

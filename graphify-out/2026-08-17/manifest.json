@@ -635,8 +635,8 @@
     "semantic_hash": ""
   },
   "client/tests/pages/boards/board-detail-page.test.tsx": {
-    "mtime": 1786981338.069731,
-    "ast_hash": "980fb34317d859b2ee064a80cd79b4db",
+    "mtime": 1779864836.7349792,
+    "ast_hash": "c645ab0cae94338adf920cf0cd113946",
     "semantic_hash": ""
   },
   "client/tests/pages/boards/focus-page.test.tsx": {

@@ -36,6 +36,15 @@ describe("RegisterPage legal consent", () => {
     expect(screen.getAllByRole("link", { name: /Terms of Use/i }).length).toBeGreaterThanOrEqual(1);
   });
 
+  it("includes an invisible, non-tabbable honeypot field", () => {
+    renderRegisterPage();
+
+    const honeypot = document.querySelector('input[name="contactWebsite"]');
+    expect(honeypot).toBeInTheDocument();
+    expect(honeypot).toHaveAttribute("tabindex", "-1");
+    expect(honeypot?.closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+
   it("requires legal consent before attempting registration", async () => {
     renderRegisterPage();
 

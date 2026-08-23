@@ -45,7 +45,12 @@ vi.mock("@/lib/boards-api", () => ({
   archiveCard: vi.fn(),
   restoreBoard: vi.fn(),
   restoreList: vi.fn(),
-  restoreCard: vi.fn()
+  restoreCard: vi.fn(),
+  getWorkspaceUsers: vi.fn(),
+  getBoardMembersWithOverrides: vi.fn(),
+  addBoardMembers: vi.fn(),
+  updateBoardMemberOverrides: vi.fn(),
+  removeBoardMember: vi.fn()
 }));
 
 const getBoardByIdMock = vi.mocked(boardsApi.getBoardById);
@@ -78,6 +83,8 @@ const archiveCardMock = vi.mocked(boardsApi.archiveCard);
 const restoreBoardMock = vi.mocked(boardsApi.restoreBoard);
 const restoreListMock = vi.mocked(boardsApi.restoreList);
 const restoreCardMock = vi.mocked(boardsApi.restoreCard);
+const getWorkspaceUsersMock = vi.mocked(boardsApi.getWorkspaceUsers);
+const getBoardMembersWithOverridesMock = vi.mocked(boardsApi.getBoardMembersWithOverrides);
 
 const baseAuthor: BoardMember = {
   id: "user-1",
@@ -211,6 +218,25 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   getBoardByIdMock.mockResolvedValue(cloneBoard());
+  getWorkspaceUsersMock.mockResolvedValue([{
+    id: baseAuthor.id,
+    name: baseAuthor.name,
+    displayName: baseAuthor.displayName,
+    username: baseAuthor.username,
+    email: baseAuthor.email
+  }]);
+  getBoardMembersWithOverridesMock.mockResolvedValue([{
+    user: {
+      id: baseAuthor.id,
+      name: baseAuthor.name,
+      displayName: baseAuthor.displayName,
+      username: baseAuthor.username,
+      email: baseAuthor.email,
+      role: baseAuthor.role
+    },
+    overrides: [],
+    effectivePermissions: {}
+  }]);
 
   createListMock.mockResolvedValue({
     id: "list-3",

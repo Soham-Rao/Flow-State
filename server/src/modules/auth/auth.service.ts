@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
 
 import bcrypt from "bcryptjs";
-import { and, count, eq, isNull, ne } from "drizzle-orm";
+import { and, count, desc, eq, gt, isNull, ne } from "drizzle-orm";
 
 import { env } from "../../config/env.js";
 import { db } from "../../db/connection.js";
-import { passwordResetTokens, roles, userRoleAssignments, users, workspaceMemberships, type RolePermission, type UserRole } from "../../db/schema.js";
+import { invites, passwordResetTokens, roles, userRoleAssignments, users, workspaceMemberships, type RolePermission, type UserRole } from "../../db/schema.js";
 import { ApiError } from "../../utils/api-error.js";
 import type { SecurityRequestContext } from "../../utils/request-context.js";
 import { getUserPermissions } from "../../utils/permissions.js";
@@ -32,6 +32,14 @@ interface PublicUser {
   age: number | null;
   dateOfBirth: Date | null;
   createdAt: Date;
+  workspaceAssignment?: WorkspaceAssignment;
+}
+
+interface WorkspaceAssignment {
+  hasEverBeenAssigned: boolean;
+  expiresAt: Date | null;
+  protectedReason: "configured" | "pending_invite" | null;
+  retentionHours: number;
 }
 
 interface AuthResponse {
@@ -70,6 +78,56 @@ async function getAssignedRoles(userId: string, workspaceId: string): Promise<Ar
     .from(userRoleAssignments)
     .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
     .where(and(eq(userRoleAssignments.workspaceId, workspaceId), eq(userRoleAssignments.userId, userId)));
+}
+
+function parseConfiguredSet(value: string, normalize = false): Set<string> {
+  return new Set(value.split(",").map((entry) => entry.trim()).filter(Boolean).map((entry) => normalize ? entry.toLowerCase() : entry));
+}
+
+function isCleanupProtected(userId: string, email: string): boolean {
+  return parseConfiguredSet(env.UNASSIGNED_ACCOUNT_PROTECTED_USER_IDS).has(userId)
+    || parseConfiguredSet(env.UNASSIGNED_ACCOUNT_PROTECTED_EMAILS, true).has(normalizeEmail(email));
+}
+
+async function getWorkspaceAssignment(userId: string, email: string, createdAt: Date): Promise<WorkspaceAssignment> {
+  const memberships = await db.select({ userId: workspaceMemberships.userId })
+    .from(workspaceMemberships)
+    .where(eq(workspaceMemberships.userId, userId))
+    .limit(1);
+  if (memberships.length > 0) {
+    return { hasEverBeenAssigned: true, expiresAt: null, protectedReason: null, retentionHours: env.UNASSIGNED_ACCOUNT_RETENTION_HOURS };
+  }
+
+  if (isCleanupProtected(userId, email)) {
+    return { hasEverBeenAssigned: false, expiresAt: null, protectedReason: "configured", retentionHours: env.UNASSIGNED_ACCOUNT_RETENTION_HOURS };
+  }
+
+  const now = new Date();
+  const liveInvites = await db.select({ expiresAt: invites.expiresAt })
+    .from(invites)
+    .where(and(
+      eq(invites.email, normalizeEmail(email)),
+      isNull(invites.acceptedAt),
+      isNull(invites.revokedAt),
+      gt(invites.expiresAt, now)
+    ))
+    .orderBy(desc(invites.expiresAt))
+    .limit(1);
+  const baseExpiry = new Date(createdAt.getTime() + env.UNASSIGNED_ACCOUNT_RETENTION_HOURS * 60 * 60 * 1000);
+  const inviteExpiry = liveInvites[0]?.expiresAt;
+  return {
+    hasEverBeenAssigned: false,
+    expiresAt: inviteExpiry && inviteExpiry > baseExpiry ? inviteExpiry : baseExpiry,
+    protectedReason: inviteExpiry && inviteExpiry > baseExpiry ? "pending_invite" : null,
+    retentionHours: env.UNASSIGNED_ACCOUNT_RETENTION_HOURS
+  };
+}
+
+async function toAccountUserWithAssignment(user: Omit<PublicUser, "role" | "permissions" | "assignedRoles" | "workspaceAssignment">): Promise<PublicUser> {
+  return {
+    ...toAccountUser(user),
+    workspaceAssignment: await getWorkspaceAssignment(user.id, user.email, user.createdAt)
+  };
 }
 
 async function workspaceIdForUser(userId: string, preferredWorkspaceId?: string): Promise<string> {
@@ -132,6 +190,17 @@ function toAccountUser(user: Omit<PublicUser, "role" | "permissions" | "assigned
 
 export async function registerUser(input: RegisterBody, context?: Partial<AuditContext>): Promise<AuthResponse> {
   const auditContext = buildAuditContext(context);
+  if (env.REGISTRATION_HONEYPOT_ENABLED && input.contactWebsite.trim().length > 0) {
+    await recordAuditLog({
+      action: "auth.register.blocked",
+      targetType: "registration",
+      ip: auditContext.ip,
+      userAgent: auditContext.userAgent,
+      requestId: auditContext.requestId,
+      metadata: { reason: "honeypot" }
+    });
+    throw new ApiError(400, "Unable to create account");
+  }
   const email = normalizeEmail(input.email);
   const emailHash = hashAuditValue(email);
   const inviteToken = input.inviteToken?.trim();
@@ -252,7 +321,7 @@ export async function registerUser(input: RegisterBody, context?: Partial<AuditC
 
   return {
     token,
-    user: toAccountUser(created)
+    user: await toAccountUserWithAssignment(created)
   };
 }
 
@@ -328,7 +397,7 @@ export async function loginUser(input: LoginBody, context?: Partial<AuditContext
 
   return {
     token,
-    user: toAccountUser(user)
+    user: await toAccountUserWithAssignment(user)
   };
 }
 
@@ -588,7 +657,7 @@ export async function getAccountUser(userId: string): Promise<PublicUser> {
     .limit(1);
   const user = rows[0];
   if (!user) throw new ApiError(404, "User not found");
-  return toAccountUser(user);
+  return toAccountUserWithAssignment(user);
 }
 
 

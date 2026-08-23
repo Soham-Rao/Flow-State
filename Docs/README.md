@@ -23,3 +23,4 @@ Personal notes and learning material live in `My_Docs/`, which is intentionally 
 - [Project orientation](dev/project/index.md)
 - [Architecture index](dev/architecture/index.md)
 - [Operations index](dev/operations/index.md)
+- [Public signup abuse protection and account expiry plan](dev/operations/public-signup-abuse-and-account-expiry-plan.md)

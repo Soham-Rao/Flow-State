@@ -14,7 +14,8 @@
     "db:migrate:prod": "node dist/db/migrate.js",
     "db:generate": "drizzle-kit generate",
     "db:reset": "tsx src/db/reset.ts",
-    "db:seed:test": "tsx src/db/seed-test.ts"
+    "db:seed:test": "tsx src/db/seed-test.ts",
+    "accounts:cleanup": "node dist/jobs/cleanup-unassigned-accounts.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

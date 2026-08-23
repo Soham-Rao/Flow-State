@@ -67,6 +67,9 @@ export function PrivacyPage(): JSX.Element {
           <p>
             We retain account, collaboration, backup, and operational records for as long as reasonably necessary to provide the Service, maintain security and restore capability, comply with legal obligations, and support legitimate internal operational needs.
           </p>
+          <p>
+            An account that has never joined or created any workspace is normally removed after 48 hours. A pending email-bound workspace invitation may extend that deadline. Once an account has any workspace membership history, this automatic never-assigned-account cleanup no longer applies.
+          </p>
         </section>
 
         <section className="space-y-2">

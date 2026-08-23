@@ -73,6 +73,9 @@ export function TermsPage(): JSX.Element {
           <p>
             We may restrict, suspend, or terminate access where necessary to protect the Service, enforce these Terms, respond to abuse, or comply with legal or organizational obligations.
           </p>
+          <p>
+            Accounts that have never joined or created a workspace may be automatically removed after the deadline shown in the Service, normally 48 hours after registration.
+          </p>
         </section>
 
         <section className="space-y-2">

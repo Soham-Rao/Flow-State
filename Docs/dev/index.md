@@ -34,6 +34,7 @@ Start in this order if you are joining the project or resuming after a long brea
 - [Index](operations/index.md)
 - [Deploy, backup, restore, and rollback operations](operations/deploy-backup-restore-and-rollback.md)
 - [VPS and environment reference](operations/vps-and-environment-reference.md)
+- [Public signup abuse protection and never-assigned account expiry plan](operations/public-signup-abuse-and-account-expiry-plan.md)
 - [Detailed VPS setup runbook](vps-setup.md)
 - [Detailed VPS operations runbook](vps-operations.md)
 

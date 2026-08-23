@@ -62,8 +62,8 @@ export const loginRateLimiter = createJsonRateLimiter({
 export const registerRateLimiter = createJsonRateLimiter({
   action: "auth.register",
   message: "Too many registration attempts. Please try again later.",
-  windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
-  max: env.AUTH_RATE_LIMIT_MAX
+  windowMs: env.REGISTER_RATE_LIMIT_WINDOW_MS,
+  max: env.REGISTER_RATE_LIMIT_MAX
 });
 
 export const forgotPasswordRateLimiter = createJsonRateLimiter({

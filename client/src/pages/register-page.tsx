@@ -19,6 +19,7 @@ export function RegisterPage(): JSX.Element {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptedLegalTerms, setAcceptedLegalTerms] = useState(false);
+  const [contactWebsite, setContactWebsite] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get("invite") ?? undefined;
@@ -115,6 +116,7 @@ export function RegisterPage(): JSX.Element {
         email: normalizedEmail,
         password,
         inviteToken: inviteToken && !inviteError ? inviteToken : undefined,
+        contactWebsite,
         acceptedLegalTerms: true
       });
       navigate("/workspaces");
@@ -129,6 +131,18 @@ export function RegisterPage(): JSX.Element {
       description="Register for FlowState with a valid email address, a secure password, and acceptance of the governing legal terms."
     >
       <form className="space-y-4" onSubmit={onSubmit}>
+        <div className="absolute -left-[10000px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+          <label htmlFor="contact-website">Contact website</label>
+          <input
+            id="contact-website"
+            name="contactWebsite"
+            type="text"
+            value={contactWebsite}
+            onChange={(event) => setContactWebsite(event.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </div>
         <Input
           type="text"
           placeholder="Full name"

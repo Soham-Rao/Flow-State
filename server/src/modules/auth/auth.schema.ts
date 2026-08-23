@@ -5,6 +5,7 @@ export const registerBodySchema = z.object({
   email: z.string().trim().email().max(255),
   password: z.string().min(8).max(128),
   inviteToken: z.string().trim().min(8).optional(),
+  contactWebsite: z.string().max(500).optional().default(""),
   acceptedLegalTerms: z.literal(true, {
     errorMap: () => ({ message: "You must accept the Privacy Policy and Terms of Use." })
   })

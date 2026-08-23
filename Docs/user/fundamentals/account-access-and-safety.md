@@ -36,6 +36,10 @@ Important:
 
 - you cannot create an account unless you accept both legal documents
 - this is intentional and not an error
+- if you do not join or create a workspace, the workspace chooser shows when your never-assigned account will expire
+- never-assigned accounts are normally removed 48 hours after registration
+- a pending email invitation may extend the displayed deadline
+- after you have any workspace membership history, this automatic cleanup no longer applies
 
 ## 3. Why legal acceptance is required
 

@@ -13,6 +13,7 @@ interface RegisterInput {
   email: string;
   password: string;
   inviteToken?: string;
+  contactWebsite?: string;
   acceptedLegalTerms: boolean;
 }
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=FlowState never-assigned account cleanup
+After=docker.service flowstate-backup-daily.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+User=flowstate
+Group=flowstate
+WorkingDirectory=/opt/flowstate/app
+EnvironmentFile=/etc/flowstate/flowstate.env
+ExecStart=/usr/bin/node /opt/flowstate/app/server/dist/jobs/cleanup-unassigned-accounts.js
+TimeoutStartSec=300

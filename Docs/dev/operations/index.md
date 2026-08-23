@@ -4,6 +4,7 @@ This section is the engineering runbook layer for deploys, VPS management, backu
 
 - [Deploy, backup, restore, and rollback operations](deploy-backup-restore-and-rollback.md)
 - [VPS and environment reference](vps-and-environment-reference.md)
+- [Public signup abuse protection and never-assigned account expiry plan](public-signup-abuse-and-account-expiry-plan.md)
 
 ## Detailed step-by-step runbooks
 

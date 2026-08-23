@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Building2, LogOut, Plus, Users } from "lucide-react";
+import { AlertTriangle, Building2, LogOut, Plus, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,22 @@ export function WorkspacePickerPage(): JSX.Element {
   const refresh = useWorkspaceStore((state) => state.refresh);
   const switchWorkspace = useWorkspaceStore((state) => state.switchWorkspace);
   const logout = useAuthStore((state) => state.logout);
+  const workspaceAssignment = useAuthStore((state) => state.user?.workspaceAssignment);
   const [name, setName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const expiryLabel = workspaceAssignment?.expiresAt
+    ? new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "UTC",
+        timeZoneName: "short"
+      }).format(new Date(workspaceAssignment.expiresAt))
+    : null;
 
   const submitJoin = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -45,6 +57,20 @@ export function WorkspacePickerPage(): JSX.Element {
           </div>
           <Button variant="secondary" onClick={() => void logout()}><LogOut className="mr-2 h-4 w-4" />Sign out</Button>
         </div>
+
+        {workspaceAssignment && !workspaceAssignment.hasEverBeenAssigned && expiryLabel && (
+          <div className="flex gap-3 rounded-xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm text-amber-50">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
+            <div>
+              <p className="font-medium">Join or create a workspace by {expiryLabel} to keep this account.</p>
+              <p className="mt-1 text-amber-100/80">
+                {workspaceAssignment.protectedReason === "pending_invite"
+                  ? "Your pending email invitation extends this deadline until the invitation expires."
+                  : `Never-assigned accounts are automatically removed after ${workspaceAssignment.retentionHours} hours.`}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           {workspaces.map((workspace) => (

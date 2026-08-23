@@ -15,6 +15,12 @@ export interface AuthUser {
   age: number | null;
   dateOfBirth: string | null;
   createdAt: string;
+  workspaceAssignment?: {
+    hasEverBeenAssigned: boolean;
+    expiresAt: string | null;
+    protectedReason: "configured" | "pending_invite" | null;
+    retentionHours: number;
+  };
 }
 
 export interface AuthResponse {
